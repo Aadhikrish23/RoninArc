@@ -1,0 +1,93 @@
+import mongoose, { ObjectId } from "mongoose";
+import gameLibrarymodel from "../models/LibraryGame";
+import AppError from "../utils/AppError";
+import library_router from "../routes/library";
+
+async function addGameToLibrary(
+  userId: ObjectId,
+  payload: Partial<{
+    title: string;
+    description?: string;
+    tags?: string[];
+    imageURL?: string;
+    exePath?: string;
+    status: string;
+  }>
+) {
+  const title = payload.title?.trim();
+  const dedupe = await gameLibrarymodel.find({ userid: userId, title: title });
+  if (dedupe.length > 0) {
+    throw new AppError("Game already exist", 400);
+  }
+  const data = await gameLibrarymodel.create({ userid: userId, ...payload });
+  return data;
+}
+
+async function getUserLibrary(userid: ObjectId) {
+  const data = await gameLibrarymodel.find({ userid });
+  return data;
+}
+async function getGameById(userid: ObjectId , gameid:string) {
+  const data = await gameLibrarymodel.findOne({ _id: gameid, userid });
+    if (!data) {
+    return null;
+  }
+  return data;
+}
+async function getGameFilter(
+  userid: ObjectId,
+  searchparam: string,
+  searchvalue: string
+) {
+  const data = await gameLibrarymodel.find({
+    userid: userid,
+    [searchparam]: searchvalue,
+  });
+  if (!data) {
+    return null;
+  }
+  return data;
+}
+
+async function updateGame(
+  userId: ObjectId,
+  gameid:string,
+  payload: Partial<{
+    tags?: string[];
+    exePath?: string;
+    status?: string;
+  }>
+) {
+  const data = await gameLibrarymodel.findOneAndUpdate(
+    { _id: gameid, userid: userId },
+    payload,
+    {
+      new: true,
+      runValidators: true,
+    }
+  );
+  if (!data) {
+    return null;
+  }
+  return data;
+}
+
+async function deleteGame(userid: ObjectId, gameid: string) {
+  const data = await gameLibrarymodel.findOneAndDelete({
+  _id: gameid,
+  userid
+});
+  if (!data) {
+    return null;
+  }
+  return data;
+}
+
+export default {
+  addGameToLibrary,
+  getUserLibrary,
+  getGameFilter,
+  getGameById,
+  updateGame,
+  deleteGame,
+};

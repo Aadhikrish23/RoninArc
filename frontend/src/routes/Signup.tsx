@@ -1,5 +1,12 @@
+import { ViewOffIcon, ViewIcon } from "@chakra-ui/icons";
 import {
+  Container,
   Text,
+  Link,
+  AbsoluteCenter,
+  Spinner,
+  Alert,
+  AlertIcon,
   Flex,
   Box,
   Stack,
@@ -10,34 +17,26 @@ import {
   Input,
   InputGroup,
   InputRightElement,
-  Checkbox,
-  Link,
   Button,
-  Image,
+  Checkbox,
+  Tag,
   Spacer,
-  Container,
-  Spinner,
-  AbsoluteCenter,
-  Alert,
-  AlertIcon,
 } from "@chakra-ui/react";
-import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
-
 import React, { useState } from "react";
-
-import authApi from "../api/authApi";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
+import authApi from "../api/authApi";
 
-function Login() {
+function Signup() {
   const [show, setShow] = useState<boolean>(false);
   const [username, setUsername] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
+  const [Confirmpassword, setConfirmPassword] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [saveme, setSaveme] = useState<boolean>(false);
   const navigate = useNavigate();
-
   function handleClick() {
     setShow(!show);
   }
@@ -52,23 +51,27 @@ function Login() {
       setStatus("");
       let name = username.trim();
       let pass = password.trim();
+      let confirm = Confirmpassword.trim();
+      let mail = email === undefined ? "" : email.trim();
+      if (pass !== confirm) {
+        throw new Error("Password must be same...");
+      }
       if (name === "" || pass === "") {
         throw new Error("Invalid inputs");
       }
-      const datas = await authApi.userLogin(name, pass);
+      const datas = await authApi.userSignup(name, pass, mail);
+      if (saveme) {
+        localStorage.setItem("roninarc_user", JSON.stringify(datas.userdata));
+        localStorage.setItem("roninarc_token", datas.token);
+      }
       localStorage.removeItem("roninarc_user");
       localStorage.removeItem("roninarc_token");
       sessionStorage.removeItem("roninarc_user");
       sessionStorage.removeItem("roninarc_token");
 
-      if (saveme) {
-        localStorage.setItem("roninarc_user", JSON.stringify(datas.userdata));
-        localStorage.setItem("roninarc_token", datas.token);
-      }
       sessionStorage.setItem("roninarc_token", datas.token);
       sessionStorage.setItem("roninarc_user", JSON.stringify(datas.userdata));
-
-      setStatus("Login sucessfully...");
+      setStatus("Signup sucessfully...");
       navigate("/Home");
     } catch (error: any) {
       let errmgs;
@@ -119,10 +122,17 @@ function Login() {
           p={8}
         >
           {/* Brand / Title */}
-          <Stack spacing={1} mb={6} textAlign="center">
+          <Stack spacing={1} mb={6} textAlign="center" direction="column">
             <Heading size="lg" color="white">
-              Welcome back, Ronin ⚔️
+              ⚔️ Welcome Ronin ⚔️
             </Heading>
+
+            <AbsoluteCenter axis="horizontal">
+              {" "}
+              <Tag bg="transparent" color="#98272b" mt={5} p={4}>
+                Forge Your Game Path
+              </Tag>
+            </AbsoluteCenter>
           </Stack>
 
           <Divider mb={6} borderColor="gray.700" />
@@ -146,7 +156,23 @@ function Login() {
                 }}
               />
             </FormControl>
-
+            <FormControl>
+              <FormLabel color="gray.200">Email</FormLabel>
+              <Input
+                placeholder="Enter your username"
+                bg="gray.900"
+                color="#fff"
+                borderColor="gray.700"
+                _hover={{ borderColor: "gray.500" }}
+                _focus={{
+                  borderColor: "purple.400",
+                  boxShadow: "0 0 0 1px #9F7AEA",
+                }}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                }}
+              />
+            </FormControl>
             <FormControl>
               <FormLabel color="gray.200">Password</FormLabel>
               <InputGroup>
@@ -179,13 +205,34 @@ function Login() {
                 </InputRightElement>
               </InputGroup>
             </FormControl>
+            <FormControl>
+              <FormLabel color="gray.200">Confirm Password</FormLabel>
+              <InputGroup>
+                <Input
+                  type={show ? "text" : "password"}
+                  placeholder="Enter your password"
+                  bg="gray.900"
+                  color="#fff"
+                  borderColor="gray.700"
+                  _hover={{ borderColor: "gray.500" }}
+                  _focus={{
+                    borderColor: "purple.400",
+                    boxShadow: "0 0 0 1px #9F7AEA",
+                  }}
+                  onChange={(e) => {
+                    setConfirmPassword(e.target.value);
+                  }}
+                />
+                <InputRightElement></InputRightElement>
+              </InputGroup>
+            </FormControl>
 
             {/* Remember + Forgot */}
             <Flex justify="space-between" align="center" fontSize="sm">
               <Checkbox
                 colorScheme="purple"
                 color="gray.200"
-                 checked={saveme}
+                checked={saveme}
                 onChange={handleSaveme}
               >
                 Remember me
@@ -203,20 +250,20 @@ function Login() {
               size="md"
               onClick={() => handlesubmit()}
             >
-              Login
+              SignUp
             </Button>
           </Stack>
 
           {/* Footer: Sign up link */}
           <Text mt={6} fontSize="sm" color="gray.400" textAlign="center">
-            Don&apos;t have an account?{" "}
+            Already having account ?{" "}
             <Link
               as={RouterLink}
-              to="/Signup"
+              to="/"
               color="purple.300"
               _hover={{ color: "purple.200" }}
             >
-              SignUp
+              Login
             </Link>
           </Text>
         </Box>
@@ -225,4 +272,4 @@ function Login() {
   );
 }
 
-export default Login;
+export default Signup;
