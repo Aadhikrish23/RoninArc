@@ -1,12 +1,9 @@
 // desktop/main.js
-
-const { app, BrowserWindow } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("node:path");
+const { spawn } = require("node:child_process");
 
-// 🔹 Change this if your Vite dev server runs on another port
 const DEV_SERVER_URL = "http://localhost:5173";
-
-// app.isPackaged = false in dev, true when you build your Electron app
 const isDev = !app.isPackaged;
 
 function createMainWindow() {
@@ -16,50 +13,90 @@ function createMainWindow() {
     minWidth: 1024,
     minHeight: 600,
     title: "RoninArc",
-     menuBarVisible: false,
-      autoHideMenuBar: true, 
-        icon: path.join(__dirname, "assets", "logo.jpg"),
+    menuBarVisible: false,
+    autoHideMenuBar: true,
+    icon: path.join(__dirname, "assets", "logo.jpg"),
     webPreferences: {
-      // Keep these relatively strict for now (no Node in renderer)
       contextIsolation: true,
       nodeIntegration: false,
+      preload: path.join(__dirname, "preload.js"),
     },
   });
 
   if (isDev) {
-    // 👉 DEV MODE: load Vite dev server
     win.loadURL(DEV_SERVER_URL);
-    // Optional: open DevTools in dev mode
     // win.webContents.openDevTools();
   } else {
-    // 👉 PROD MODE: load built React app from frontend/dist
-    const indexHtml = path.join(
-      __dirname,
-      "..",
-      "frontend",
-      "dist",
-      "index.html"
-    );
-
+    const indexHtml = path.join(__dirname, "..", "frontend", "dist", "index.html");
     win.loadFile(indexHtml);
   }
 }
 
-// Called when Electron has finished initialization
+// IPC: select exe path
+ipcMain.handle("select-exe-path", async () => {
+  const { canceled, filePaths } = await dialog.showOpenDialog({
+    title: "Select game executable",
+    properties: ["openFile"],
+    filters: [{ name: "Executable", extensions: ["exe"] }],
+  });
+
+  if (canceled || !filePaths || filePaths.length === 0) {
+    return null;
+  }
+
+  return filePaths[0];
+});
+
+// IPC: launch exe (only THIS handler for "launch-game")
+ipcMain.handle("launch-game", async (_event, exePath) => {
+  console.log("[launch-game] Requested exePath:", exePath);
+
+  return new Promise((resolve) => {
+    try {
+      const exeDir = path.dirname(exePath);
+      console.log("[launch-game] Using cwd:", exeDir);
+
+      const child = spawn(
+        "cmd.exe",
+        [
+          "/c",
+          "start",
+          '""',
+          `"${exePath}"`,
+        ],
+        {
+          cwd: exeDir,
+          windowsVerbatimArguments: true,
+          detached: true,
+        }
+      );
+
+      child.on("error", (err) => {
+        console.error("[launch-game] child process error:", err);
+        resolve(false);
+      });
+
+      child.unref();
+      console.log("[launch-game] spawn() called successfully");
+      resolve(true);
+    } catch (err) {
+      console.error("[launch-game] top-level error:", err);
+      resolve(false);
+    }
+  });
+});
+
 app.whenReady().then(() => {
   createMainWindow();
 
   app.on("activate", () => {
-    // On macOS it's common to recreate a window when dock icon is clicked
     if (BrowserWindow.getAllWindows().length === 0) {
       createMainWindow();
     }
   });
 });
 
-// Quit when all windows are closed.
 app.on("window-all-closed", () => {
-  // On macOS, apps usually stay active until Cmd+Q
   if (process.platform !== "darwin") {
     app.quit();
   }

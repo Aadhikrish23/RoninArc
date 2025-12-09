@@ -9,7 +9,7 @@ const api = axios.create({
 })
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("roninarc_token");
+    const token = localStorage.getItem("roninarc_token")||sessionStorage.getItem("roninarc_token");
 
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;

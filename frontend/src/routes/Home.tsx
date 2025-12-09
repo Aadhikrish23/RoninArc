@@ -22,12 +22,22 @@ import {
   MenuButton,
   MenuItem,
   MenuList,
+  Modal,
+  ModalBody,
+  ModalCloseButton,
+  ModalContent,
+  ModalFooter,
+  ModalHeader,
+  ModalOverlay,
 } from "@chakra-ui/react";
 
 import { SearchIcon } from "@chakra-ui/icons";
 import { FiPlay, FiTrash2 } from "react-icons/fi";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@chakra-ui/react";
+import { getCurrentUser } from "../utils/auth";
+import {  useNavigate } from "react-router-dom";
+import Navbar from "../components/Navbar";
 
 import type {
   RawgGameResult,
@@ -46,6 +56,7 @@ const STATUS_FILTERS = [
 ];
 
 function LibraryPage() {
+  
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
@@ -54,10 +65,28 @@ function LibraryPage() {
   const [rawgResults, setRawgResults] = useState<RawgGameResult[]>([]);
   const [rawgLoading, setRawgLoading] = useState<boolean>(true);
   const [rawgError, setRawgError] = useState<string | null>(null);
+
+  const [launchModalGame, setLaunchModalGame] = useState<Game | null>(null);
+  const [launchPath, setLaunchPath] = useState<string>("");
   const bg = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
   const toast = useToast();
+  const openLaunchModal = (game: Game) => {
+    setLaunchModalGame(game);
+    setLaunchPath(game.exePath || "");
+  };
+  const currentUser = getCurrentUser();
+  const displayName = currentUser?.username.toUpperCase() || "Ronin";
+
+  console.log("currentUser::"+currentUser+
+    "::displayName::"+displayName
+  )
+
+  const closeLaunchModal = () => {
+    setLaunchModalGame(null);
+    setLaunchPath("");
+  };
 
   useEffect(() => {
     async function fetchLibrary() {
@@ -119,11 +148,11 @@ function LibraryPage() {
     try {
       const payload: AddGamePayload = {
         title: rawgGame.name,
-        description: "", // <-- FIXED
+        description: "", 
         imageURL: rawgGame.imageURL,
         exePath: "",
         tags: rawgGame.genres,
-        status: "plan", // <-- FIXED
+        status: "plan",
       };
 
       const createdGame = await libraryApi.addGame(payload);
@@ -149,7 +178,7 @@ function LibraryPage() {
     try {
       await libraryApi.deleteGame(id);
 
-      setGames((prev) => prev.filter((g) => g._id !== "id"));
+      setGames((prev) => prev.filter((g) => g._id !== id));
       const data = await libraryApi.getUserLibrary();
       setGames(data);
       toast({
@@ -184,45 +213,108 @@ function LibraryPage() {
       setError(error.toString());
     }
   };
+  const handlePickExePath = async () => {
+    if (!window.electronAPI?.selectExePath) {
+      toast({
+        title: "Desktop only",
+        description: "EXE path editing works only inside the Electron app.",
+        status: "warning",
+        duration: 2500,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      const selectedPath = await window.electronAPI.selectExePath();
+      if (!selectedPath) return; // user cancelled
+
+      if (!launchModalGame) return;
+
+      await libraryApi.updateGame(launchModalGame._id, {
+        exePath: selectedPath,
+      });
+
+      setLaunchPath(selectedPath);
+      setGames((prev) =>
+        prev.map((g) =>
+          g._id === launchModalGame._id ? { ...g, exePath: selectedPath } : g
+        )
+      );
+
+      toast({
+        title: "EXE path updated",
+        description: "Launch path saved successfully.",
+        status: "success",
+        duration: 2000,
+        isClosable: true,
+      });
+    } catch (error: any) {
+      console.error("Failed to update exe path", error);
+      setError(error.toString());
+      toast({
+        title: "Update failed",
+        description: "Could not update EXE path.",
+        status: "error",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleLaunchGame = async () => {
+    if (!launchModalGame) return;
+
+    if (!launchPath) {
+      toast({
+        title: "No EXE path set",
+        description: "Please choose an EXE path before launching.",
+        status: "warning",
+        duration: 2000,
+        isClosable: true,
+      });
+      return;
+    }
+
+    if (!window.electronAPI?.launchGame) {
+      toast({
+        title: "Desktop only",
+        description: "Launching is only available inside the Electron app.",
+        status: "warning",
+        duration: 2500,
+        isClosable: true,
+      });
+      return;
+    }
+
+    try {
+      await window.electronAPI.launchGame(launchPath);
+
+      toast({
+        title: `Launching ${launchModalGame.title}`,
+        description: launchPath,
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+      });
+
+      closeLaunchModal();
+    } catch (error: any) {
+      console.error("Failed to launch game", error);
+      toast({
+        title: "Launch failed",
+        description: "Could not start the game.",
+        status: "error",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+  };
+
   return (
     <Box minH="100vh" bg={bg}>
-      {/* ---------------- NAVBAR ---------------- */}
-      <Box
-        as="header"
-        borderBottomWidth="1px"
-        borderColor={subtleBorder}
-        px={8}
-        py={4}
-        bg={useColorModeValue("whiteAlpha.900", "gray.900")}
-        backdropFilter="blur(12px)"
-        position="sticky"
-        top={0}
-        zIndex={10}
-      >
-        <Flex align="center" maxW="1200px" mx="auto">
-          <Heading size="md">RoninArc</Heading>
-
-          <HStack spacing={4} ml={10}>
-            <Button variant="ghost" size="sm">
-              Home
-            </Button>
-            <Button variant="ghost" size="sm" fontWeight="semibold">
-              Library
-            </Button>
-            <Button variant="ghost" size="sm">
-              Search
-            </Button>
-          </HStack>
-
-          <Spacer />
-
-          <HStack spacing={3}>
-            <Avatar size="sm" name="AK" />
-            <Text fontSize="sm">aadhikrish</Text>
-          </HStack>
-        </Flex>
-      </Box>
-
+      
+      <Navbar/>
       {/* ---------------- MAIN CONTENT ---------------- */}
       <Box maxW="1200px" mx="auto" px={6} py={8}>
         {/* Header */}
@@ -396,9 +488,63 @@ function LibraryPage() {
                 onStatusChange={(id, newStatus) =>
                   handleUpdateStatus(id, newStatus)
                 }
+                onLaunch={(g) => openLaunchModal(g)}
               />
             ))}
           </SimpleGrid>
+        )}
+        {/* -------- Launch Modal -------- */}
+        {launchModalGame && (
+          <Modal
+            isOpen={!!launchModalGame}
+            onClose={closeLaunchModal}
+            isCentered
+          >
+            <ModalOverlay />
+            <ModalContent>
+              <ModalHeader>Launch {launchModalGame.title}</ModalHeader>
+              <ModalCloseButton />
+              <ModalBody>
+                <VStack align="stretch" spacing={3}>
+                  <Text fontSize="sm" color="gray.500">
+                    Choose the executable file for this game. You can change it
+                    anytime.
+                  </Text>
+
+                  <HStack align="center" spacing={2}>
+                    <Input
+                      placeholder="No path selected"
+                      value={launchPath}
+                      isReadOnly
+                      size="sm"
+                    />
+                    <Button size="sm" onClick={handlePickExePath}>
+                      Edit
+                    </Button>
+                  </HStack>
+
+                  {launchPath && (
+                    <Text fontSize="xs" color="gray.500">
+                      Path will be saved for future launches.
+                    </Text>
+                  )}
+                </VStack>
+              </ModalBody>
+
+              <ModalFooter>
+                <Button variant="ghost" mr={3} onClick={closeLaunchModal}>
+                  Cancel
+                </Button>
+                <Button
+                  colorScheme="purple"
+                  onClick={handleLaunchGame}
+                  isDisabled={!launchPath}
+                >
+                  Launch
+                </Button>
+              </ModalFooter>
+            </ModalContent>
+          </Modal>
         )}
       </Box>
     </Box>
@@ -410,10 +556,12 @@ function GameCard({
   game,
   onRemove,
   onStatusChange,
+  onLaunch,
 }: {
   game: Game;
   onRemove: (id: string) => void;
   onStatusChange: (id: string, newStatus: Status) => void;
+  onLaunch: (game: Game) => void;
 }) {
   const cardBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
@@ -488,7 +636,12 @@ function GameCard({
         </HStack>
 
         <Flex justify="space-between" mt={2}>
-          <Button size="sm" leftIcon={<FiPlay />} variant="outline">
+          <Button
+            size="sm"
+            leftIcon={<FiPlay />}
+            variant="outline"
+            onClick={() => onLaunch(game)}
+          >
             Launch
           </Button>
 

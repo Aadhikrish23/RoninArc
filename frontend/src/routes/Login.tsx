@@ -26,7 +26,9 @@ import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import React, { useState } from "react";
 
 import authApi from "../api/authApi";
+import DynamicBackground from "../components/DynamicBackground";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
+import { deleteCurrentUser } from "../utils/auth";
 
 function Login() {
   const [show, setShow] = useState<boolean>(false);
@@ -56,10 +58,7 @@ function Login() {
         throw new Error("Invalid inputs");
       }
       const datas = await authApi.userLogin(name, pass);
-      localStorage.removeItem("roninarc_user");
-      localStorage.removeItem("roninarc_token");
-      sessionStorage.removeItem("roninarc_user");
-      sessionStorage.removeItem("roninarc_token");
+   deleteCurrentUser();
 
       if (saveme) {
         localStorage.setItem("roninarc_user", JSON.stringify(datas.userdata));
@@ -84,6 +83,7 @@ function Login() {
     }
   };
   return (
+    
     <div>
       <Container>
         {loading && (
@@ -109,7 +109,8 @@ function Login() {
           </AbsoluteCenter>
         )}
       </Container>
-      <Flex minH="100vh" bg="#0a0a0a" align="center" justify="center" px={4}>
+      <DynamicBackground>
+      <Flex minH="100vh"  align="center" justify="center" px={4}>
         <Box
           w="full"
           maxW="md"
@@ -190,9 +191,9 @@ function Login() {
               >
                 Remember me
               </Checkbox>
-              <Link color="purple.300" _hover={{ color: "purple.200" }}>
+              {/* <Link color="purple.300" _hover={{ color: "purple.200" }}>
                 Forgot password?
-              </Link>
+              </Link> */}
             </Flex>
 
             {/* Login button */}
@@ -221,7 +222,9 @@ function Login() {
           </Text>
         </Box>
       </Flex>
+      </DynamicBackground>
     </div>
+
   );
 }
 
