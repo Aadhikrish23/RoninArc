@@ -1,7 +1,7 @@
 // frontend/src/routes/Dashboard.tsx
 import {
   Box,
-  Flex,
+  
   Heading,
   Text,
   useColorModeValue,

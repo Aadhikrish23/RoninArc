@@ -15,7 +15,7 @@ function createMainWindow() {
     title: "RoninArc",
     menuBarVisible: false,
     autoHideMenuBar: true,
-    icon: path.join(__dirname, "assets", "logo.jpg"),
+    icon: path.join(__dirname, "build", "icon.ico"),
     webPreferences: {
       contextIsolation: true,
       nodeIntegration: false,
@@ -25,14 +25,12 @@ function createMainWindow() {
 
   if (isDev) {
     win.loadURL(DEV_SERVER_URL);
-    // win.webContents.openDevTools();
   } else {
-    const indexHtml = path.join(__dirname, "..", "frontend", "dist", "index.html");
+    const indexHtml = path.join(__dirname, "frontend", "index.html");
     win.loadFile(indexHtml);
   }
 }
 
-// IPC: select exe path
 ipcMain.handle("select-exe-path", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     title: "Select game executable",
@@ -47,7 +45,6 @@ ipcMain.handle("select-exe-path", async () => {
   return filePaths[0];
 });
 
-// IPC: launch exe (only THIS handler for "launch-game")
 ipcMain.handle("launch-game", async (_event, exePath) => {
   console.log("[launch-game] Requested exePath:", exePath);
 
@@ -56,20 +53,11 @@ ipcMain.handle("launch-game", async (_event, exePath) => {
       const exeDir = path.dirname(exePath);
       console.log("[launch-game] Using cwd:", exeDir);
 
-      const child = spawn(
-        "cmd.exe",
-        [
-          "/c",
-          "start",
-          '""',
-          `"${exePath}"`,
-        ],
-        {
-          cwd: exeDir,
-          windowsVerbatimArguments: true,
-          detached: true,
-        }
-      );
+      const child = spawn("cmd.exe", ["/c", "start", '""', `"${exePath}"`], {
+        cwd: exeDir,
+        windowsVerbatimArguments: true,
+        detached: true,
+      });
 
       child.on("error", (err) => {
         console.error("[launch-game] child process error:", err);

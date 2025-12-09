@@ -13,8 +13,7 @@ import {
   Tag,
   TagLabel,
   useColorModeValue,
-  Avatar,
-  Spacer,
+  
   Badge,
   VStack,
   Spinner,
@@ -36,7 +35,6 @@ import { FiPlay, FiTrash2 } from "react-icons/fi";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@chakra-ui/react";
 import { getCurrentUser } from "../utils/auth";
-import {  useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 
 import type {

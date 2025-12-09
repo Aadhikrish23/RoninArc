@@ -1,12 +1,7 @@
 import { ViewOffIcon, ViewIcon } from "@chakra-ui/icons";
 import {
-  Container,
   Text,
   Link,
-  AbsoluteCenter,
-  Spinner,
-  Alert,
-  AlertIcon,
   Flex,
   Box,
   Stack,
@@ -20,98 +15,124 @@ import {
   Button,
   Checkbox,
   Tag,
-  Spacer,
+  useToast,
 } from "@chakra-ui/react";
-import React, { useState } from "react";
+import { useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import authApi from "../api/authApi";
 import { deleteCurrentUser } from "../utils/auth";
-import DynamicGameBackground from "../components/DynamicBackground";
 import DynamicBackground from "../components/DynamicBackground";
+
+// simple email validation helper
+// function isValidEmail(mail: string) {
+//   // not perfect, but good enough for UI validation
+//   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+//   return emailRegex.test(mail);
+// }
 
 function Signup() {
   const [show, setShow] = useState<boolean>(false);
   const [username, setUsername] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
-  const [Confirmpassword, setConfirmPassword] = useState<string>("");
-  const [error, setError] = useState<string | null>(null);
-  const [status, setStatus] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
+  const [confirmpassword, setConfirmPassword] = useState<string>("");
   const [saveme, setSaveme] = useState<boolean>(false);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  const [emailErrorShown, setEmailErrorShown] = useState(false);
+
   const navigate = useNavigate();
+  const toast = useToast();
+
   function handleClick() {
     setShow(!show);
   }
+
   function handleSaveme() {
     setSaveme(!saveme);
   }
+  const isValidEmail = (mail: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(mail);
+  };
 
   const handlesubmit = async () => {
     try {
       setLoading(true);
-      setError("");
-      setStatus("");
-      let name = username.trim();
-      let pass = password.trim();
-      let confirm = Confirmpassword.trim();
-      let mail = email === undefined ? "" : email.trim();
+
+      const name = username.trim();
+      const pass = password.trim();
+      const confirm = confirmpassword.trim();
+      const mail = email ? email.trim() : "";
+
+      if (!name || !pass) {
+        throw new Error("Username and password are required");
+      }
+
       if (pass !== confirm) {
-        throw new Error("Password must be same...");
+        throw new Error("Password and Confirm Password must be the same");
       }
-      if (name === "" || pass === "") {
-        throw new Error("Invalid inputs");
+
+      // ✅ Email format check (if email is provided)
+      if (mail && !isValidEmail(mail)) {
+        setEmail("");
+        throw new Error("Please enter a valid email address");
+        
       }
+
       const datas = await authApi.userSignup(name, pass, mail);
+
+      // Clear old user data
+      deleteCurrentUser();
+
       if (saveme) {
         localStorage.setItem("roninarc_user", JSON.stringify(datas.userdata));
         localStorage.setItem("roninarc_token", datas.token);
       }
-      deleteCurrentUser();
 
       sessionStorage.setItem("roninarc_token", datas.token);
       sessionStorage.setItem("roninarc_user", JSON.stringify(datas.userdata));
-      setStatus("Signup sucessfully...");
+
+      toast({
+        title: "Signup successful",
+        description: "Your RoninArc account has been created.",
+        status: "success",
+        duration: 3000,
+        isClosable: true,
+        position: "top",
+      });
+
+      // Go to login page
       navigate("/");
     } catch (error: any) {
-      let errmgs;
-      if (error.response && error.response.data) {
-        errmgs = error.response.data.error || error.response.data.message;
+      let errmgs: string;
+
+      if (error?.response && error.response.data) {
+        errmgs =
+          error.response.data.error ||
+          error.response.data.message ||
+          "Signup failed. Please try again.";
+      } else if (error instanceof Error) {
+        errmgs = error.message;
       } else {
-        errmgs = error.toString();
+        errmgs = "Signup failed. Please try again.";
       }
 
-      setError(errmgs);
+      toast({
+        title: "Signup failed",
+        description: errmgs,
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+        position: "top",
+      });
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <div>
-      <Container>
-        {loading && (
-          <AbsoluteCenter axis="both">
-            <Spinner color="red.500" size="xl" />
-          </AbsoluteCenter>
-        )}
-        {error && (
-          <AbsoluteCenter axis="horizontal" p={4}>
-            <Alert status="error">
-              <AlertIcon />
-              {error}
-            </Alert>
-          </AbsoluteCenter>
-        )}
-
-        {status && (
-          <AbsoluteCenter axis="horizontal" p={4}>
-            <Alert status="success">
-              <AlertIcon />
-              {status}
-            </Alert>
-          </AbsoluteCenter>
-        )}
-      </Container>
       <DynamicBackground>
         <Flex minH="100vh" align="center" justify="center" px={4} py={8}>
           <Box
@@ -121,8 +142,7 @@ function Signup() {
             bg="gray.800"
             borderRadius="xl"
             boxShadow="8px 8px 15px #ff004d"
-             p={[6, 7]} 
-            
+            p={[6, 7]}
           >
             {/* Brand / Title */}
             <Stack spacing={1} mb={6} textAlign="center" direction="column">
@@ -130,12 +150,15 @@ function Signup() {
                 ⚔️ Welcome Ronin ⚔️
               </Heading>
 
-              <AbsoluteCenter axis="horizontal">
-                {" "}
-                <Tag bg="transparent" color="#98272b" mt={5} p={4}>
-                  Forge Your Game Path
-                </Tag>
-              </AbsoluteCenter>
+              <Tag
+                bg="transparent"
+                color="#98272b"
+                mt={5}
+                p={4}
+                alignSelf="center"
+              >
+                Forge Your Game Path
+              </Tag>
             </Stack>
 
             <Divider mb={6} borderColor="gray.700" />
@@ -154,15 +177,17 @@ function Signup() {
                     borderColor: "purple.400",
                     boxShadow: "0 0 0 1px #9F7AEA",
                   }}
+                  value={username}
                   onChange={(e) => {
                     setUsername(e.target.value);
                   }}
                 />
               </FormControl>
+
               <FormControl>
-                <FormLabel color="gray.200">Email</FormLabel>
+                <FormLabel color="gray.200">Email </FormLabel>
                 <Input
-                  placeholder="Enter your username"
+                  placeholder="Enter your email"
                   bg="gray.900"
                   color="#fff"
                   borderColor="gray.700"
@@ -172,11 +197,32 @@ function Signup() {
                     boxShadow: "0 0 0 1px #9F7AEA",
                   }}
                   type="email"
+                  value={email}
                   onChange={(e) => {
                     setEmail(e.target.value);
+                    setEmailErrorShown(false); // reset error when typing
+                  }}
+                  onBlur={() => {
+                    if (
+                      email.trim() &&
+                      !isValidEmail(email.trim()) &&
+                      !emailErrorShown
+                    ) {
+                      toast({
+                        title: "Invalid Email",
+                        description: "Please enter a valid email address",
+                        status: "error",
+                        duration: 3000,
+                        isClosable: true,
+                        position: "top",
+                      });
+                      setEmailErrorShown(true);
+                       setEmail("");
+                    }
                   }}
                 />
               </FormControl>
+
               <FormControl>
                 <FormLabel color="gray.200">Password</FormLabel>
                 <InputGroup>
@@ -191,6 +237,7 @@ function Signup() {
                       borderColor: "purple.400",
                       boxShadow: "0 0 0 1px #9F7AEA",
                     }}
+                    value={password}
                     onChange={(e) => {
                       setPassword(e.target.value);
                     }}
@@ -209,12 +256,13 @@ function Signup() {
                   </InputRightElement>
                 </InputGroup>
               </FormControl>
+
               <FormControl>
                 <FormLabel color="gray.200">Confirm Password</FormLabel>
                 <InputGroup>
                   <Input
                     type={show ? "text" : "password"}
-                    placeholder="Enter your password"
+                    placeholder="Confirm your password"
                     bg="gray.900"
                     color="#fff"
                     borderColor="gray.700"
@@ -223,15 +271,16 @@ function Signup() {
                       borderColor: "purple.400",
                       boxShadow: "0 0 0 1px #9F7AEA",
                     }}
+                    value={confirmpassword}
                     onChange={(e) => {
                       setConfirmPassword(e.target.value);
                     }}
                   />
-                  <InputRightElement></InputRightElement>
+                  <InputRightElement />
                 </InputGroup>
               </FormControl>
 
-              {/* Remember + Forgot */}
+              {/* Remember me */}
               <Flex justify="space-between" align="center" fontSize="sm">
                 <Checkbox
                   colorScheme="purple"
@@ -241,24 +290,25 @@ function Signup() {
                 >
                   Remember me
                 </Checkbox>
-                
               </Flex>
 
-              {/* Login button */}
+              {/* Signup button */}
               <Button
                 mt={2}
                 w="full"
                 colorScheme="purple"
                 size="md"
-                onClick={() => handlesubmit()}
+                onClick={handlesubmit}
+                isLoading={loading}
+                loadingText="Creating account..."
               >
                 SignUp
               </Button>
             </Stack>
 
-            {/* Footer: Sign up link */}
+            {/* Footer: Login link */}
             <Text mt={6} fontSize="sm" color="gray.400" textAlign="center">
-              Already having account ?{" "}
+              Already have an account?{" "}
               <Link
                 as={RouterLink}
                 to="/login"

@@ -1,4 +1,4 @@
-import { useState, type JSX } from "react";
+import {  type JSX } from "react";
 
 import "./App.css";
 import Login from "./routes/Login";
@@ -7,7 +7,7 @@ import Home from "./routes/Home";
 import { Navigate, Route, Routes } from "react-router-dom";
 import SettingsPage from "./routes/Settings";
 import DashboardPage from "./routes/Dashboard";
-
+import NotFound from "./routes/NotFound";
 function RequireAuth({ children }: { children: JSX.Element }) {
   const token = localStorage.getItem("roninarc_token") || sessionStorage.getItem("roninarc_token");
   if (!token) {
@@ -17,7 +17,7 @@ function RequireAuth({ children }: { children: JSX.Element }) {
 }
 
 function App() {
-  const [count, setCount] = useState(0);
+  // const [count, setCount] = useState(0);
 
   return (
     <Routes>
@@ -47,7 +47,7 @@ function App() {
               </RequireAuth>
             }
           />
-           <Route path="*" element={<Navigate to="/" replace />} />
+             <Route path="*" element={<NotFound />} />
     </Routes>
   );
 }

@@ -5,12 +5,36 @@
   "main": "main.js",
   "scripts": {
     "dev": "electron .",
-    "start": "electron ."
+    "start": "electron .",
+     "dist": "electron-builder" 
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "electron": "^39.2.6"
+    "electron": "^39.2.6",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+  "appId": "com.roninarc.launcher",
+  "productName": "RoninArc",
+  "directories": {
+    "output": "dist",
+    "buildResources": "build"
+  },
+  "files": [
+    "main.js",
+    "preload.js",
+    "frontend/**/*",
+    "package.json"
+  ],
+  "win": {
+    "target": "nsis",
+    "icon": "build/icon.ico"
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true
   }
+}
 }
