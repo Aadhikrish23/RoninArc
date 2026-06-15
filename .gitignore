@@ -6,3 +6,6 @@ desktop/node_modules/
 # Env files
 backend/.env
 frontend/.env
+
+# code merger
+merge/

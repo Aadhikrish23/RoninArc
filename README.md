@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # RoninArc — Forge Your Game Path  
 A full-fledged cross-platform **Game Launcher** built with **React + TypeScript**, **Node.js**, **MongoDB**, **Electron**, and **RAWG API**.
 
@@ -169,3 +170,111 @@ Dashboard numbers are static as a preview module; dynamic analytics are part of 
 
 ## 👤 Author  
 **Aadhi Narayanan**
+=======
+
+
+```
+📦RoninArc
+ ┣ 📂backend
+ ┃ ┣ 📂src
+ ┃ ┃ ┣ 📂controllers
+ ┃ ┃ ┃ ┣ 📄.gitkeep
+ ┃ ┃ ┃ ┣ 📄authcontroller.ts
+ ┃ ┃ ┃ ┣ 📄librarycontroller.ts
+ ┃ ┃ ┃ ┗ 📄rawgController.ts
+ ┃ ┃ ┣ 📂middleware
+ ┃ ┃ ┃ ┗ 📄authMiddleware.ts
+ ┃ ┃ ┣ 📂models
+ ┃ ┃ ┃ ┣ 📄Activity.ts
+ ┃ ┃ ┃ ┣ 📄LibraryGame.ts
+ ┃ ┃ ┃ ┣ 📄PlaySession.ts
+ ┃ ┃ ┃ ┗ 📄User.ts
+ ┃ ┃ ┣ 📂routes
+ ┃ ┃ ┃ ┣ 📄auth.ts
+ ┃ ┃ ┃ ┣ 📄library.ts
+ ┃ ┃ ┃ ┣ 📄rawg.ts
+ ┃ ┃ ┃ ┗ 📄search.ts
+ ┃ ┃ ┣ 📂services
+ ┃ ┃ ┃ ┣ 📄authService.ts
+ ┃ ┃ ┃ ┣ 📄launcher.ts
+ ┃ ┃ ┃ ┣ 📄libraryServices.ts
+ ┃ ┃ ┃ ┗ 📄rawgService.ts
+ ┃ ┃ ┣ 📂utils
+ ┃ ┃ ┃ ┣ 📄.gitkeep
+ ┃ ┃ ┃ ┗ 📄AppError.ts
+ ┃ ┃ ┣ 📄app.ts
+ ┃ ┃ ┗ 📄server.ts
+ ┃ ┣ 📄.gitignore
+ ┃ ┣ 📄package-lock.json
+ ┃ ┣ 📄package.json
+ ┃ ┗ 📄tsconfig.json
+ ┣ 📂desktop
+ ┃ ┣ 📂assets
+ ┃ ┃ ┗ 📄logo.jpg
+ ┃ ┣ 📂frontend
+ ┃ ┃ ┣ 📂assets
+ ┃ ┃ ┃ ┣ 📄index-5xUDHm4L.js
+ ┃ ┃ ┃ ┣ 📄index-BgWqgjQR.js
+ ┃ ┃ ┃ ┣ 📄index-CGXEEHhX.js
+ ┃ ┃ ┃ ┣ 📄index-CTaHt9Vf.js
+ ┃ ┃ ┃ ┣ 📄index-DDsgsa0-.js
+ ┃ ┃ ┃ ┗ 📄index-tn0RQdqM.css
+ ┃ ┃ ┣ 📄index.html
+ ┃ ┃ ┗ 📄vite.svg
+ ┃ ┣ 📄.gitignore
+ ┃ ┣ 📄main.js
+ ┃ ┣ 📄package-lock.json
+ ┃ ┣ 📄package.json
+ ┃ ┗ 📄preload.js
+ ┣ 📂docs
+ ┃ ┗ 📄architecture.md
+ ┣ 📂frontend
+ ┃ ┣ 📂public
+ ┃ ┃ ┗ 📄vite.svg
+ ┃ ┣ 📂src
+ ┃ ┃ ┣ 📂api
+ ┃ ┃ ┃ ┣ 📄authApi.ts
+ ┃ ┃ ┃ ┣ 📄axiosInstance.ts
+ ┃ ┃ ┃ ┣ 📄config.ts
+ ┃ ┃ ┃ ┗ 📄libraryApi.ts
+ ┃ ┃ ┣ 📂assets
+ ┃ ┃ ┃ ┣ 📄logo_bg.png
+ ┃ ┃ ┃ ┗ 📄react.svg
+ ┃ ┃ ┣ 📂components
+ ┃ ┃ ┃ ┣ 📄DynamicBackground.tsx
+ ┃ ┃ ┃ ┗ 📄Navbar.tsx
+ ┃ ┃ ┣ 📂routes
+ ┃ ┃ ┃ ┣ 📄Dashboard.tsx
+ ┃ ┃ ┃ ┣ 📄Home.tsx
+ ┃ ┃ ┃ ┣ 📄Login.tsx
+ ┃ ┃ ┃ ┣ 📄NotFound.tsx
+ ┃ ┃ ┃ ┣ 📄Settings.tsx
+ ┃ ┃ ┃ ┗ 📄Signup.tsx
+ ┃ ┃ ┣ 📂styles
+ ┃ ┃ ┃ ┗ 📄index.css
+ ┃ ┃ ┣ 📂types
+ ┃ ┃ ┃ ┣ 📄electron.d.ts
+ ┃ ┃ ┃ ┗ 📄library.ts
+ ┃ ┃ ┣ 📂utils
+ ┃ ┃ ┃ ┗ 📄auth.ts
+ ┃ ┃ ┣ 📄App.css
+ ┃ ┃ ┣ 📄App.tsx
+ ┃ ┃ ┣ 📄index.css
+ ┃ ┃ ┗ 📄main.tsx
+ ┃ ┣ 📄.gitignore
+ ┃ ┣ 📄eslint.config.js
+ ┃ ┣ 📄index.html
+ ┃ ┣ 📄package-lock.json
+ ┃ ┣ 📄package.json
+ ┃ ┣ 📄postcss.config.js
+ ┃ ┣ 📄README.md
+ ┃ ┣ 📄tailwind.config.js
+ ┃ ┣ 📄tsconfig.app.json
+ ┃ ┣ 📄tsconfig.json
+ ┃ ┣ 📄tsconfig.node.json
+ ┃ ┗ 📄vite.config.ts
+ ┣ 📄.gitignore
+ ┣ 📄architecture.md
+ ┗ 📄README.md
+```
+>>>>>>> 98d39a6 (feat:RoninArc Phase 1)
