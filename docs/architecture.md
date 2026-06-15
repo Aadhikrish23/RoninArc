@@ -32,22 +32,25 @@ Authentication:
 
 ## Frontend Structure
 
+## Frontend Structure
+
 src/
 ├── api/
 ├── components/
 ├── context/
+├── features/
+│   ├── library/
+│   │   ├── api/
+│   │   ├── components/
+│   │   └── hooks/
+│   │
+│   └── reviews/
+│       ├── api/
+│       ├── components/
+│       └── types/
+│
 ├── routes/
 ├── types/
-
-Future Migration:
-
-src/
-├── features/
-│   ├── auth/
-│   ├── library/
-│   ├── dashboard/
-│   ├── activity/
-│   └── sessions/
 
 ## Backend Structure
 
@@ -58,20 +61,23 @@ backend/src/
 ├── routes/
 ├── services/
 
+
+
 ## Current Core Features
 
 * Authentication
 * Game Library
 * RAWG Integration
 * Game Launcher
+* Dashboard Analytics
+* Review System
 * Theme Support
 
 ## Planned Features
 
-* Dashboard Analytics
+
 * Activity Tracking
 * Play Sessions
-* Reviews
 * Collections
 * Achievements
 * AI Recommendations

@@ -32,6 +32,11 @@ function DashboardPage() {
     continuePlaying: [] as any[],
     recentGames: [] as any[],
     featuredGame: null as any,
+    reviewsWritten: 0,
+
+    averageRating: "0",
+
+    highestRatedGame: null as any,
   });
   useEffect(() => {
     const loadStats = async () => {
@@ -61,49 +66,134 @@ function DashboardPage() {
         </Box>
 
         {/* Top row: stats */}
-        <SimpleGrid columns={{ base: 1, md: 3 }} spacing={4} mb={6}>
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Total Games</StatLabel>
-              <StatNumber>{stats.totalGames}</StatNumber>
-              <StatHelpText>In your library</StatHelpText>
-            </Stat>
-          </Box>
+        {/* Stats Grid */}
+<SimpleGrid
+  columns={{ base: 1, md: 2, lg: 3 }}
+  spacing={4}
+  mb={6}
+>
+  {/* Total Games */}
+  <Box
+    borderWidth="1px"
+    borderRadius="xl"
+    borderColor={subtleBorder}
+    bg={cardBg}
+    p={4}
+  >
+    <Stat>
+      <StatLabel>Total Games</StatLabel>
+      <StatNumber>{stats.totalGames}</StatNumber>
+      <StatHelpText>
+        In your library
+      </StatHelpText>
+    </Stat>
+  </Box>
 
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Currently Playing</StatLabel>
-              <StatNumber>{stats.playing}</StatNumber>
-              <StatHelpText>Don’t drop the streak 👀</StatHelpText>
-            </Stat>
-          </Box>
+  {/* Currently Playing */}
+  <Box
+    borderWidth="1px"
+    borderRadius="xl"
+    borderColor={subtleBorder}
+    bg={cardBg}
+    p={4}
+  >
+    <Stat>
+      <StatLabel>
+        Currently Playing
+      </StatLabel>
+      <StatNumber>{stats.playing}</StatNumber>
+      <StatHelpText>
+        Don't drop the streak 👀
+      </StatHelpText>
+    </Stat>
+  </Box>
 
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Completed</StatLabel>
-              <StatNumber>{stats.completed}</StatNumber>
-              <StatHelpText>Nice progress!</StatHelpText>
-            </Stat>
-          </Box>
-        </SimpleGrid>
+  {/* Completed */}
+  <Box
+    borderWidth="1px"
+    borderRadius="xl"
+    borderColor={subtleBorder}
+    bg={cardBg}
+    p={4}
+  >
+    <Stat>
+      <StatLabel>Completed</StatLabel>
+      <StatNumber>{stats.completed}</StatNumber>
+      <StatHelpText>
+        Nice progress!
+      </StatHelpText>
+    </Stat>
+  </Box>
+
+  {/* Reviews Written */}
+  <Box
+    borderWidth="1px"
+    borderRadius="xl"
+    borderColor={subtleBorder}
+    bg={cardBg}
+    p={4}
+  >
+    <Stat>
+      <StatLabel>
+        Reviews Written
+      </StatLabel>
+      <StatNumber>
+        {stats.reviewsWritten}
+      </StatNumber>
+      <StatHelpText>
+        Total reviews created
+      </StatHelpText>
+    </Stat>
+  </Box>
+
+  {/* Average Rating */}
+  <Box
+    borderWidth="1px"
+    borderRadius="xl"
+    borderColor={subtleBorder}
+    bg={cardBg}
+    p={4}
+  >
+    <Stat>
+      <StatLabel>
+        Average Rating
+      </StatLabel>
+      <StatNumber>
+        {stats.averageRating}
+      </StatNumber>
+      <StatHelpText>
+        Across all reviews
+      </StatHelpText>
+    </Stat>
+  </Box>
+
+  {/* Highest Rated */}
+  <Box
+    borderWidth="1px"
+    borderRadius="xl"
+    borderColor={subtleBorder}
+    bg={cardBg}
+    p={4}
+  >
+    <Stat>
+      <StatLabel>
+        Highest Rated
+      </StatLabel>
+
+      <StatNumber
+        fontSize="lg"
+        noOfLines={1}
+      >
+        {stats.highestRatedGame?.title ||
+          "No reviews"}
+      </StatNumber>
+
+      <StatHelpText>
+        Your top-rated game
+      </StatHelpText>
+    </Stat>
+  </Box>
+</SimpleGrid>
 
         {/* Bottom row: Featured / Continue playing / Recently played */}
         <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={4}>

@@ -1,60 +1,45 @@
 # RoninArc Roadmap
 
-## Phase 1 - Stabilization
+## Completed
 
-Completed:
+### Phase 1 - Stabilization
+- AuthContext
+- useAuth Hook
+- Route Cleanup
+- Architecture Refactor
 
-* AuthContext
-* useAuth Hook
-* Route Cleanup
-* Dead Code Removal
+### Phase 2 - Dashboard
+- Real Statistics
+- Featured Game
+- Continue Playing
+- Recently Added
+- Review Analytics
 
-Remaining:
+### Phase 3 - Reviews
+- Review CRUD
+- Rating System
+- Review Dashboard Integration
 
-* Home.tsx Refactor
+## Upcoming
 
-## Phase 2 - Dashboard
+### Phase 4 - Collections
+- Favorites
+- Custom Collections
+- Collection Management
 
-Goals:
+### Phase 5 - Play Sessions
+- Session Tracking
+- Playtime Analytics
+- Recently Played
+- Most Played Games
 
-* Total Games
-* Playing Games
-* Completed Games
-* Dropped Games
-* Plan To Play Games
+### Phase 6 - Advanced Features
+- Achievements
+- Notes
+- Activity Feed
+- AI Recommendations
 
-## Phase 3 - Activity System
-
-Goals:
-
-* Activity Model
-* Activity Feed
-* Status Change Tracking
-* Game Launch Tracking
-
-## Phase 4 - Play Sessions
-
-Goals:
-
-* Session Tracking
-* Playtime Tracking
-* Recently Played
-* Session History
-
-## Phase 5 - Advanced Features
-
-Goals:
-
-* Reviews
-* Collections
-* Notes
-* Achievements
-
-## Phase 6 - Integrations
-
-Goals:
-
-* Steam Import
-* Epic Import
-* GOG Import
-* AI Recommendations
+### Phase 7 - Integrations
+- Steam Import
+- Epic Import
+- GOG Import

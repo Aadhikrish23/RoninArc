@@ -51,3 +51,44 @@ Parameters:
 
 query
 page
+
+# Dashboard
+
+GET /dashboard/stats
+
+Returns:
+
+{
+  totalGames,
+  playing,
+  completed,
+  dropped,
+  plan,
+  featuredGame,
+  continuePlaying,
+  recentGames,
+  reviewsWritten,
+  averageRating,
+  highestRatedGame
+}
+
+# Reviews
+
+GET /review/:gameId
+
+Returns review for a game.
+
+PUT /review/:gameId
+
+Creates or updates a review.
+
+Body:
+
+{
+  rating,
+  reviewText
+}
+
+DELETE /review/:gameId
+
+Deletes a review.

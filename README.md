@@ -1,100 +1,247 @@
-# RoninArc — Forge Your Game Path  
-A full-fledged cross-platform **Game Launcher** built with **React + TypeScript**, **Node.js**, **MongoDB**, **Electron**, and **RAWG API**.
+# RoninArc — Forge Your Game Path
 
-RoninArc allows users to search for games online, build a personal game library, categorize them, store executable paths, and **launch installed PC games directly** from the launcher.
+RoninArc is a desktop-first game library, launcher, and tracking platform built with **React**, **TypeScript**, **Node.js**, **MongoDB**, **Electron**, and the **RAWG API**.
 
-Backend is deployed on Render and the desktop app is packaged as a Windows installer (.exe).
+It allows users to discover games, build a personal game library, track progress, review games, manage launch paths, and launch installed PC games directly from a unified interface.
 
----
-
-## 🚀 Features
-
-### 🔐 Authentication
-- Signup & Login with JWT  
-- “Remember Me” support  
-- Client-side token storage  
-
-### 🎮 Game Library
-- Add games with title, description, image, tags  
-- RAWG search integration  
-- Status management: **Plan → Playing → Completed → Dropped**  
-- Update/Delete game entries  
-- Toast notifications for every action  
-
-### ⚡ Game Launcher (Electron)
-- Add local `exePath` for installed games  
-- Directly launch `.exe` or `.lnk` shortcuts  
-- Deployed backend works out-of-the-box  
-- Standalone installer (.exe) provided  
-
-### 🖥 UI / UX
-- Clean Chakra UI design  
-- Dark/Light theme toggle  
-- Toast messages for all actions  
-- Dashboard preview (static values)  
-- Settings: Logout + Theme  
+The backend is deployed on Render and the desktop application is packaged as a Windows installer.
 
 ---
 
-## 🧩 Tech Stack
+# 🚀 Features
 
-### Frontend
-- React  
-- TypeScript  
-- Chakra UI  
-- Axios  
+## 🔐 Authentication
 
-### Backend
-- Node.js  
-- Express  
-- JWT Authentication  
-- MongoDB Atlas  
-- Mongoose  
-
-### Desktop App
-- Electron  
-- electron-builder  
-
-### External API
-- RAWG games database  
-
-### Deployment
-- Render (Backend)  
-- MongoDB Atlas (Database)  
+- User Signup & Login
+- JWT Authentication
+- Remember Me Support
+- AuthContext State Management
+- Protected Routes
+- Persistent Sessions
 
 ---
 
-## 📁 Folder Structure
-```
+## 🎮 Game Library
+
+- Add games from RAWG
+- Store game metadata
+- Track game progress
+- Status Management:
+  - Plan to Play
+  - Playing
+  - Completed
+  - Dropped
+- Update game information
+- Delete games
+- Search and filter library
+
+---
+
+## 🔎 RAWG Integration
+
+- Search games from RAWG API
+- Import game information
+- Import images and genres
+- Quick add to library
+
+---
+
+## ⚡ Desktop Game Launcher
+
+- Save executable paths
+- Launch installed PC games
+- Supports:
+  - `.exe`
+  - `.lnk`
+- Electron desktop integration
+- One-click launching
+
+---
+
+## 📝 Reviews System
+
+- Rate games from 1–10
+- Optional review notes
+- Edit existing reviews
+- Delete reviews
+- One review per game
+- Persistent review storage
+
+---
+
+## 📊 Dashboard Analytics
+
+### Library Analytics
+
+- Total Games
+- Currently Playing
+- Completed Games
+- Featured Game
+- Continue Playing
+- Recently Added
+
+### Review Analytics
+
+- Reviews Written
+- Average Rating
+- Highest Rated Game
+
+---
+
+## 🎨 UI / UX
+
+- Chakra UI Design System
+- Responsive Layout
+- Dark Theme Support
+- Light Theme Support
+- Toast Notifications
+- Modular Feature Architecture
+
+---
+
+# 🧩 Tech Stack
+
+## Frontend
+
+- React
+- TypeScript
+- Vite
+- Chakra UI
+- Axios
+- React Router
+
+## Backend
+
+- Node.js
+- Express
+- TypeScript
+- MongoDB Atlas
+- Mongoose
+- JWT Authentication
+
+## Desktop
+
+- Electron
+- Electron Builder
+
+## External APIs
+
+- RAWG Game Database API
+
+## Deployment
+
+- Render
+- MongoDB Atlas
+
+---
+
+# 📁 Project Structure
+
+```text
 RoninArc/
-   backend/
-   frontend/
-   desktop/
-   README.md
+│
+├── backend/
+│
+├── frontend/
+│
+├── desktop/
+│
+├── docs/
+│   ├── api.md
+│   ├── architecture.md
+│   └── roadmap.md
+│
+└── README.md
 ```
 
 ---
 
-## 🔧 How to Run the Backend Locally
+# 🏗 Architecture
 
+## Backend
+
+```text
+backend/src/
+
+├── controllers/
+├── middleware/
+├── models/
+├── routes/
+├── services/
+├── app.ts
+└── server.ts
 ```
+
+### Request Flow
+
+```text
+Route
+  ↓
+Controller
+  ↓
+Service
+  ↓
+Model
+```
+
+---
+
+## Frontend
+
+```text
+frontend/src/
+
+├── api/
+├── components/
+├── context/
+├── features/
+│
+├── routes/
+├── types/
+└── main.tsx
+```
+
+### Current Feature Modules
+
+```text
+features/
+
+├── library/
+│   ├── api/
+│   ├── components/
+│   └── hooks/
+│
+└── reviews/
+    ├── api/
+    ├── components/
+    └── types/
+```
+
+---
+
+# 🔧 Local Development
+
+## Backend
+
+```bash
 cd backend
 npm install
 npm run dev
 ```
 
-Environment variables:
-```
-MONGO_URI=<your_mongo_uri>
-JWT_SECRET=<your_jwt_secret>
-RAWG_API_KEY=<your_rawg_api_key>
+Environment Variables:
+
+```env
+LOCAL_URL_Mongo=<mongodb_uri>
+JWT_SECRET=<jwt_secret>
+RAWG_API_KEY=<rawg_api_key>
 ```
 
 ---
 
-## 🔧 How to Run the Frontend Locally
+## Frontend
 
-```
+```bash
 cd frontend
 npm install
 npm run dev
@@ -102,9 +249,9 @@ npm run dev
 
 ---
 
-## 🖥 Running the Desktop App (Development)
+## Desktop Application
 
-```
+```bash
 cd desktop
 npm install
 npm start
@@ -112,166 +259,136 @@ npm start
 
 ---
 
-## 📦 Production Build (Windows Installer)
-Download the Windows installer from:  
-[👉 **<Drive Link to EXE>**](https://drive.google.com/file/d/1z4RMcp3RiyEDz8LnnZSuhtDDtqx52AmD/view?usp=sharing)
+# 📦 Production Build
 
-The app works immediately — no backend setup needed.
+Download the latest Windows installer:
 
----
-
-## 🔗 API Endpoints (Summary)
-
-### Auth
-- `POST /api/auth/signup`
-- `POST /api/auth/login`
-
-### Library
-- `GET /api/library`
-- `POST /api/library`
-- `PUT /api/library/:id`
-- `DELETE /api/library/:id`
+https://drive.google.com/file/d/1z4RMcp3RiyEDz8LnnZSuhtDDtqx52AmD/view?usp=sharing
 
 ---
 
-## 📝 Roadmap (Next Versions)
+# 🔗 API Overview
 
-### Phase 2
-- Dynamic Dashboard analytics  
-- Recently played section  
-- Change password + delete account  
-- Game time tracking  
-- Steam/Epic auto-detection (manifest parsing)  
-- Improved UI animations  
-- Landing website for RoninArc  
+## Authentication
 
-### Phase 3 (Mobile App)
-- React Native companion app  
-- Track mobile/console games (RAWG)  
-- Sync library across devices  
-- Stats visualization  
-- AI-powered recommendations  
+```http
+POST /auth/signup
+POST /auth/login
+```
+
+## Library
+
+```http
+GET    /library
+POST   /library/add
+GET    /library/:gameid
+PATCH  /library/:gameid
+DELETE /library/:gameid
+GET    /library/filter/search
+```
+
+## Dashboard
+
+```http
+GET /dashboard/stats
+```
+
+## Reviews
+
+```http
+GET    /review/:gameId
+PUT    /review/:gameId
+DELETE /review/:gameId
+```
+
+## RAWG
+
+```http
+GET /rawg/search
+```
 
 ---
 
-## 📌 Notes
-This submission focuses on delivering a **production-ready core product**:
-- Authentication  
-- Game library  
-- RAWG integration  
-- Desktop game launcher  
-- Stable deployed backend  
-- Installer package  
+# 🛣 Roadmap
 
-Dashboard numbers are static as a preview module; dynamic analytics are part of Phase 2 development.
+## ✅ Completed
+
+### Phase 1 — Stabilization
+
+- AuthContext
+- useAuth Hook
+- Protected Routes
+- Route Cleanup
+- Architecture Refactor
+
+### Phase 2 — Dashboard
+
+- Real Dashboard Statistics
+- Featured Game
+- Continue Playing
+- Recently Added
+- Review Analytics
+
+### Phase 3 — Reviews
+
+- Review CRUD
+- Rating System
+- Dashboard Integration
 
 ---
 
-## 👤 Author  
+## 🚧 In Progress
+
+### Phase 4 — Collections
+
+- Favorites
+- Custom Collections
+- Collection Management
+
+---
+
+## 📅 Planned
+
+### Phase 5 — Play Sessions
+
+- Session Tracking
+- Playtime Analytics
+- Recently Played
+- Most Played Games
+
+### Phase 6 — Advanced Features
+
+- Notes
+- Achievements
+- Activity Feed
+- Enhanced Analytics
+
+### Phase 7 — Integrations
+
+- Steam Import
+- Epic Games Import
+- GOG Import
+- AI Recommendations
+
+---
+
+# 👤 Author
+
 **Aadhi Narayanan**
 
+---
 
-```
-📦RoninArc
- ┣ 📂backend
- ┃ ┣ 📂src
- ┃ ┃ ┣ 📂controllers
- ┃ ┃ ┃ ┣ 📄.gitkeep
- ┃ ┃ ┃ ┣ 📄authcontroller.ts
- ┃ ┃ ┃ ┣ 📄librarycontroller.ts
- ┃ ┃ ┃ ┗ 📄rawgController.ts
- ┃ ┃ ┣ 📂middleware
- ┃ ┃ ┃ ┗ 📄authMiddleware.ts
- ┃ ┃ ┣ 📂models
- ┃ ┃ ┃ ┣ 📄Activity.ts
- ┃ ┃ ┃ ┣ 📄LibraryGame.ts
- ┃ ┃ ┃ ┣ 📄PlaySession.ts
- ┃ ┃ ┃ ┗ 📄User.ts
- ┃ ┃ ┣ 📂routes
- ┃ ┃ ┃ ┣ 📄auth.ts
- ┃ ┃ ┃ ┣ 📄library.ts
- ┃ ┃ ┃ ┣ 📄rawg.ts
- ┃ ┃ ┃ ┗ 📄search.ts
- ┃ ┃ ┣ 📂services
- ┃ ┃ ┃ ┣ 📄authService.ts
- ┃ ┃ ┃ ┣ 📄launcher.ts
- ┃ ┃ ┃ ┣ 📄libraryServices.ts
- ┃ ┃ ┃ ┗ 📄rawgService.ts
- ┃ ┃ ┣ 📂utils
- ┃ ┃ ┃ ┣ 📄.gitkeep
- ┃ ┃ ┃ ┗ 📄AppError.ts
- ┃ ┃ ┣ 📄app.ts
- ┃ ┃ ┗ 📄server.ts
- ┃ ┣ 📄.gitignore
- ┃ ┣ 📄package-lock.json
- ┃ ┣ 📄package.json
- ┃ ┗ 📄tsconfig.json
- ┣ 📂desktop
- ┃ ┣ 📂assets
- ┃ ┃ ┗ 📄logo.jpg
- ┃ ┣ 📂frontend
- ┃ ┃ ┣ 📂assets
- ┃ ┃ ┃ ┣ 📄index-5xUDHm4L.js
- ┃ ┃ ┃ ┣ 📄index-BgWqgjQR.js
- ┃ ┃ ┃ ┣ 📄index-CGXEEHhX.js
- ┃ ┃ ┃ ┣ 📄index-CTaHt9Vf.js
- ┃ ┃ ┃ ┣ 📄index-DDsgsa0-.js
- ┃ ┃ ┃ ┗ 📄index-tn0RQdqM.css
- ┃ ┃ ┣ 📄index.html
- ┃ ┃ ┗ 📄vite.svg
- ┃ ┣ 📄.gitignore
- ┃ ┣ 📄main.js
- ┃ ┣ 📄package-lock.json
- ┃ ┣ 📄package.json
- ┃ ┗ 📄preload.js
- ┣ 📂docs
- ┃ ┗ 📄architecture.md
- ┣ 📂frontend
- ┃ ┣ 📂public
- ┃ ┃ ┗ 📄vite.svg
- ┃ ┣ 📂src
- ┃ ┃ ┣ 📂api
- ┃ ┃ ┃ ┣ 📄authApi.ts
- ┃ ┃ ┃ ┣ 📄axiosInstance.ts
- ┃ ┃ ┃ ┣ 📄config.ts
- ┃ ┃ ┃ ┗ 📄libraryApi.ts
- ┃ ┃ ┣ 📂assets
- ┃ ┃ ┃ ┣ 📄logo_bg.png
- ┃ ┃ ┃ ┗ 📄react.svg
- ┃ ┃ ┣ 📂components
- ┃ ┃ ┃ ┣ 📄DynamicBackground.tsx
- ┃ ┃ ┃ ┗ 📄Navbar.tsx
- ┃ ┃ ┣ 📂routes
- ┃ ┃ ┃ ┣ 📄Dashboard.tsx
- ┃ ┃ ┃ ┣ 📄Home.tsx
- ┃ ┃ ┃ ┣ 📄Login.tsx
- ┃ ┃ ┃ ┣ 📄NotFound.tsx
- ┃ ┃ ┃ ┣ 📄Settings.tsx
- ┃ ┃ ┃ ┗ 📄Signup.tsx
- ┃ ┃ ┣ 📂styles
- ┃ ┃ ┃ ┗ 📄index.css
- ┃ ┃ ┣ 📂types
- ┃ ┃ ┃ ┣ 📄electron.d.ts
- ┃ ┃ ┃ ┗ 📄library.ts
- ┃ ┃ ┣ 📂utils
- ┃ ┃ ┃ ┗ 📄auth.ts
- ┃ ┃ ┣ 📄App.css
- ┃ ┃ ┣ 📄App.tsx
- ┃ ┃ ┣ 📄index.css
- ┃ ┃ ┗ 📄main.tsx
- ┃ ┣ 📄.gitignore
- ┃ ┣ 📄eslint.config.js
- ┃ ┣ 📄index.html
- ┃ ┣ 📄package-lock.json
- ┃ ┣ 📄package.json
- ┃ ┣ 📄postcss.config.js
- ┃ ┣ 📄README.md
- ┃ ┣ 📄tailwind.config.js
- ┃ ┣ 📄tsconfig.app.json
- ┃ ┣ 📄tsconfig.json
- ┃ ┣ 📄tsconfig.node.json
- ┃ ┗ 📄vite.config.ts
- ┣ 📄.gitignore
- ┣ 📄architecture.md
- ┗ 📄README.md
-```
+# 📌 Project Vision
+
+RoninArc began as a personal game launcher and library manager.
+
+The long-term vision is to evolve it into a complete gaming companion that combines:
+
+- Library Management
+- Progress Tracking
+- Reviews
+- Collections
+- Play Analytics
+- Game Discovery
+
+while also serving as a standalone product and a future module within the broader Hina ecosystem.
