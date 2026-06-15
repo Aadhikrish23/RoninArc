@@ -21,7 +21,8 @@ import { useState } from "react";
 import authApi from "../api/authApi";
 import DynamicBackground from "../components/DynamicBackground";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
-import { deleteCurrentUser } from "../utils/auth";
+// import { deleteCurrentUser } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 
 function Login() {
   const [show, setShow] = useState<boolean>(false);
@@ -32,6 +33,7 @@ function Login() {
 
   const navigate = useNavigate();
   const toast = useToast();
+  const { login } = useAuth();
 
   function handleClick() {
     setShow(!show);
@@ -55,16 +57,10 @@ function Login() {
       const datas = await authApi.userLogin(name, pass);
 
       // Clear any old user
-      deleteCurrentUser();
+      // deleteCurrentUser();
 
       // Save user/token
-      if (saveme) {
-        localStorage.setItem("roninarc_user", JSON.stringify(datas.userdata));
-        localStorage.setItem("roninarc_token", datas.token);
-      }
-
-      sessionStorage.setItem("roninarc_token", datas.token);
-      sessionStorage.setItem("roninarc_user", JSON.stringify(datas.userdata));
+      login(datas.userdata, datas.token, saveme);
 
       // Success toast
       toast({

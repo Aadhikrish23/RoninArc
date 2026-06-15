@@ -34,7 +34,7 @@ import { SearchIcon } from "@chakra-ui/icons";
 import { FiPlay, FiTrash2 } from "react-icons/fi";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@chakra-ui/react";
-import { getCurrentUser } from "../utils/auth";
+// import { getCurrentUser } from "../utils/auth";
 import Navbar from "../components/Navbar";
 
 import type {
@@ -44,6 +44,7 @@ import type {
   Status,
 } from "../types/library";
 import libraryApi from "../api/libraryApi";
+import { useAuth } from "../context/AuthContext";
 
 const STATUS_FILTERS = [
   { label: "All", value: "all" },
@@ -74,12 +75,11 @@ function LibraryPage() {
     setLaunchModalGame(game);
     setLaunchPath(game.exePath || "");
   };
-  const currentUser = getCurrentUser();
-  const displayName = currentUser?.username.toUpperCase() || "Ronin";
-
-  console.log("currentUser::"+currentUser+
-    "::displayName::"+displayName
-  )
+  const { user } = useAuth();
+  // const currentUser = getCurrentUser();
+  const displayName = user?.name.toUpperCase() || "Ronin";
+  
+ 
 
   const closeLaunchModal = () => {
     setLaunchModalGame(null);

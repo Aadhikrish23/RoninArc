@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # RoninArc — Forge Your Game Path  
 A full-fledged cross-platform **Game Launcher** built with **React + TypeScript**, **Node.js**, **MongoDB**, **Electron**, and **RAWG API**.
 
@@ -170,7 +169,6 @@ Dashboard numbers are static as a preview module; dynamic analytics are part of 
 
 ## 👤 Author  
 **Aadhi Narayanan**
-=======
 
 
 ```
@@ -277,4 +275,3 @@ Dashboard numbers are static as a preview module; dynamic analytics are part of 
  ┣ 📄architecture.md
  ┗ 📄README.md
 ```
->>>>>>> 98d39a6 (feat:RoninArc Phase 1)

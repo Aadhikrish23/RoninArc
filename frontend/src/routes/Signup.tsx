@@ -20,15 +20,11 @@ import {
 import { useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import authApi from "../api/authApi";
-import { deleteCurrentUser } from "../utils/auth";
+// import { deleteCurrentUser } from "../utils/auth";
 import DynamicBackground from "../components/DynamicBackground";
+import { useAuth } from "../context/AuthContext";
 
-// simple email validation helper
-// function isValidEmail(mail: string) {
-//   // not perfect, but good enough for UI validation
-//   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-//   return emailRegex.test(mail);
-// }
+
 
 function Signup() {
   const [show, setShow] = useState<boolean>(false);
@@ -43,6 +39,7 @@ function Signup() {
 
   const navigate = useNavigate();
   const toast = useToast();
+  const { login } = useAuth();
 
   function handleClick() {
     setShow(!show);
@@ -83,15 +80,9 @@ function Signup() {
       const datas = await authApi.userSignup(name, pass, mail);
 
       // Clear old user data
-      deleteCurrentUser();
+      // deleteCurrentUser();
 
-      if (saveme) {
-        localStorage.setItem("roninarc_user", JSON.stringify(datas.userdata));
-        localStorage.setItem("roninarc_token", datas.token);
-      }
-
-      sessionStorage.setItem("roninarc_token", datas.token);
-      sessionStorage.setItem("roninarc_user", JSON.stringify(datas.userdata));
+    login(datas.userdata, datas.token, saveme);
 
       toast({
         title: "Signup successful",

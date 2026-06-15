@@ -10,12 +10,15 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
-import { getCurrentUser } from "../utils/auth";
+// import { getCurrentUser } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 
 function Navbar() {
   const navigate = useNavigate();
-  const currentUser = getCurrentUser();
-  const displayName = currentUser?.username || "Player";
+
+  const { user } = useAuth();
+
+  const displayName = user?.name || "Player";
 
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
 
@@ -33,17 +36,17 @@ function Navbar() {
       zIndex={10}
     >
       <Flex align="center" maxW="1200px" mx="auto">
-        <Heading
-          size="md"
-          cursor="pointer"
-          onClick={() => navigate("/")}
-        >
+        <Heading size="md" cursor="pointer" onClick={() => navigate("/")}>
           RoninArc
         </Heading>
 
         {/* Navigation Buttons */}
         <HStack spacing={4} ml={10}>
-          <Button variant="ghost" size="sm" onClick={() => navigate("/dashboard")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/dashboard")}
+          >
             Dashboard
           </Button>
 
@@ -56,7 +59,11 @@ function Navbar() {
             Library
           </Button>
 
-          <Button variant="ghost" size="sm" onClick={() => navigate("/settings")}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/settings")}
+          >
             Settings
           </Button>
         </HStack>

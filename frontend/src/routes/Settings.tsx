@@ -13,7 +13,8 @@ import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
-import { deleteCurrentUser, getCurrentUser } from "../utils/auth";
+// import { deleteCurrentUser, getCurrentUser } from "../utils/auth";
+import { useAuth } from "../context/AuthContext";
 
 function SettingsPage() {
   // same palette as Library
@@ -25,22 +26,20 @@ function SettingsPage() {
   const { colorMode, toggleColorMode } = useColorMode();
   const [username, setUsername] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { logout,user } = useAuth();
 
-   const currentUser = getCurrentUser();
-    const displayName = currentUser?.username.toUpperCase() || "Ronin";
+  //  const currentUser = getCurrentUser();
+    const displayName = user?.name.toUpperCase() || "Ronin";
   
-    console.log("currentUser::"+currentUser+
-      "::displayName::"+displayName
-    )
+   
   useEffect(() => {
-   const stored = currentUser?.username.toUpperCase() || "Ronin";
+   const stored = user?.name.toUpperCase() || "Ronin";
     if (stored) setUsername(stored);
   }, []);
 
   const handleLogout = () => {
     // clear auth stuff
-     deleteCurrentUser();
-
+     logout();
     // (optional) clear anything else you stored for auth here
 
     navigate("/login");

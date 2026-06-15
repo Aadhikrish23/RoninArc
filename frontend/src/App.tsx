@@ -8,11 +8,18 @@ import { Navigate, Route, Routes } from "react-router-dom";
 import SettingsPage from "./routes/Settings";
 import DashboardPage from "./routes/Dashboard";
 import NotFound from "./routes/NotFound";
+import { useAuth } from "./context/AuthContext";
 function RequireAuth({ children }: { children: JSX.Element }) {
-  const token = localStorage.getItem("roninarc_token") || sessionStorage.getItem("roninarc_token");
-  if (!token) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
+
   return children;
 }
 
