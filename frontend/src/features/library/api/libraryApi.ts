@@ -1,10 +1,10 @@
-import api from "./axiosInstance";
+import api from "../../../api/axiosInstance";
 import type {
   Game,
   UpdateGamePayload,
   AddGamePayload,
   RawgGameResult,
-} from "../types/library";
+} from "../../../types/library";
 
 const getUserLibrary = async (): Promise<Game[]> => {
   const gamedata = await api.get<{ Status: string; Data: Game[] }>("/game");

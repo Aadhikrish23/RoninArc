@@ -29,6 +29,9 @@ function DashboardPage() {
     completed: 0,
     dropped: 0,
     plan: 0,
+    continuePlaying: [] as any[],
+    recentGames: [] as any[],
+    featuredGame: null as any,
   });
   useEffect(() => {
     const loadStats = async () => {
@@ -53,7 +56,7 @@ function DashboardPage() {
         <Box mb={6}>
           <Heading size="lg">RoninArc Dashboard</Heading>
           <Text fontSize="sm" color={mutedText} mt={1}>
-           Track your gaming library and progress.
+            Track your gaming library and progress.
           </Text>
         </Box>
 
@@ -121,14 +124,18 @@ function DashboardPage() {
 
             <VStack align="stretch" spacing={2}>
               <Text fontWeight="semibold" noOfLines={1}>
-                Elden Ring
+                {stats.featuredGame?.title || "No Games"}
               </Text>
-              <HStack spacing={2}>
-                <Badge colorScheme="purple">Action</Badge>
-                <Badge colorScheme="green">RPG</Badge>
+
+              <HStack spacing={2} wrap="wrap">
+                {stats.featuredGame?.tags?.map((tag: string) => (
+                  <Badge key={tag} colorScheme="purple">
+                    {tag}
+                  </Badge>
+                ))}
               </HStack>
               <Button size="sm" mt={2} variant="outline">
-                Jump back in
+                {stats.featuredGame ? "View Game" : "Add Games"}
               </Button>
             </VStack>
           </Box>
@@ -149,18 +156,21 @@ function DashboardPage() {
             </Text>
 
             <VStack align="stretch" spacing={2}>
-              <HStack justify="space-between">
-                <Text fontSize="sm" noOfLines={1}>
-                  Dark Souls III
+              {stats.continuePlaying.length === 0 ? (
+                <Text fontSize="sm" color={mutedText}>
+                  No games currently playing
                 </Text>
-                <Badge colorScheme="yellow">Playing</Badge>
-              </HStack>
-              <HStack justify="space-between">
-                <Text fontSize="sm" noOfLines={1}>
-                  Batman: Arkham Knight
-                </Text>
-                <Badge colorScheme="yellow">Playing</Badge>
-              </HStack>
+              ) : (
+                stats.continuePlaying.map((game: any) => (
+                  <HStack key={game._id} justify="space-between">
+                    <Text fontSize="sm" noOfLines={1}>
+                      {game.title}
+                    </Text>
+
+                    <Badge colorScheme="yellow">{game.status}</Badge>
+                  </HStack>
+                ))
+              )}
             </VStack>
           </Box>
 
@@ -173,16 +183,24 @@ function DashboardPage() {
             p={4}
           >
             <Heading size="sm" mb={2}>
-              Recently Played
+              Recently Added
             </Heading>
             <Text fontSize="xs" color={mutedText} mb={3}>
-              Last few games you launched.
+              Last few games added to your library.
             </Text>
 
             <VStack align="stretch" spacing={2}>
-              <Text fontSize="sm">Elden Ring • 2 days ago</Text>
-              <Text fontSize="sm">Dark Souls III • 4 days ago</Text>
-              <Text fontSize="sm">Batman: Arkham Knight • 1 week ago</Text>
+              {stats.recentGames.length === 0 ? (
+                <Text fontSize="sm" color={mutedText}>
+                  No recent games
+                </Text>
+              ) : (
+                stats.recentGames.map((game: any) => (
+                  <Text key={game._id} fontSize="sm" noOfLines={1}>
+                    {game.title}
+                  </Text>
+                ))
+              )}
             </VStack>
           </Box>
         </SimpleGrid>

@@ -8,6 +8,7 @@ import AppError from "./utils/AppError";
 import library_router from "./routes/library";
 import rawgRouter from "./routes/rawg";
 import dashboardRouter from "./routes/dashboard";
+import reviewRouter from "./routes/review";
 dotenv.config();
 const app = express();
 app.use(helmet());
@@ -24,6 +25,7 @@ app.use("/auth", authRouter);
 app.use("/game",library_router);
 app.use("/rawg",rawgRouter);
 app.use("/dashboard", dashboardRouter);
+app.use("/review", reviewRouter);
 
 
 
