@@ -1,7 +1,6 @@
 // frontend/src/routes/Dashboard.tsx
 import {
   Box,
-  
   Heading,
   Text,
   useColorModeValue,
@@ -16,25 +15,45 @@ import {
   VStack,
 } from "@chakra-ui/react";
 import Navbar from "../components/Navbar";
+import { useEffect, useState } from "react";
+import { getDashboardStats } from "../api/dashboardApi";
 
 function DashboardPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
+  const [stats, setStats] = useState({
+    totalGames: 0,
+    playing: 0,
+    completed: 0,
+    dropped: 0,
+    plan: 0,
+  });
+  useEffect(() => {
+    const loadStats = async () => {
+      try {
+        const data = await getDashboardStats();
+        setStats(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    loadStats();
+  }, []);
 
   return (
     <Box minH="100vh" bg={bg}>
-        <Navbar/>
+      <Navbar />
       {/* Navbar is rendered outside, same as Library/Settings */}
 
       <Box maxW="1200px" mx="auto" px={6} py={8}>
         {/* Page header */}
         <Box mb={6}>
-          <Heading size="lg">Dashboard Module — Coming Soon</Heading>
+          <Heading size="lg">RoninArc Dashboard</Heading>
           <Text fontSize="sm" color={mutedText} mt={1}>
-            This section will display real-time statistics and analytics about your game library.
-Current values are placeholders for UI demonstration.
+           Track your gaming library and progress.
           </Text>
         </Box>
 
@@ -49,7 +68,7 @@ Current values are placeholders for UI demonstration.
           >
             <Stat>
               <StatLabel>Total Games</StatLabel>
-              <StatNumber>12</StatNumber>
+              <StatNumber>{stats.totalGames}</StatNumber>
               <StatHelpText>In your library</StatHelpText>
             </Stat>
           </Box>
@@ -63,7 +82,7 @@ Current values are placeholders for UI demonstration.
           >
             <Stat>
               <StatLabel>Currently Playing</StatLabel>
-              <StatNumber>3</StatNumber>
+              <StatNumber>{stats.playing}</StatNumber>
               <StatHelpText>Don’t drop the streak 👀</StatHelpText>
             </Stat>
           </Box>
@@ -77,7 +96,7 @@ Current values are placeholders for UI demonstration.
           >
             <Stat>
               <StatLabel>Completed</StatLabel>
-              <StatNumber>5</StatNumber>
+              <StatNumber>{stats.completed}</StatNumber>
               <StatHelpText>Nice progress!</StatHelpText>
             </Stat>
           </Box>

@@ -7,6 +7,7 @@ import type { Request, Response, NextFunction } from "express";
 import AppError from "./utils/AppError";
 import library_router from "./routes/library";
 import rawgRouter from "./routes/rawg";
+import dashboardRouter from "./routes/dashboard";
 dotenv.config();
 const app = express();
 app.use(helmet());
@@ -22,6 +23,7 @@ app.get("/health", (req: Request, res: Response) => {
 app.use("/auth", authRouter);
 app.use("/game",library_router);
 app.use("/rawg",rawgRouter);
+app.use("/dashboard", dashboardRouter);
 
 
 
