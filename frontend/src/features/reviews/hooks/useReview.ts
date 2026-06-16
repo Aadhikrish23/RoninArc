@@ -4,27 +4,22 @@ import { useToast } from "@chakra-ui/react";
 import type { Game } from "../../../types/library";
 import type { Review } from "../types/review";
 
-import * as reviewApi from "../api/reviewAPI"
+import * as reviewApi from "../api/reviewApi";
 
-export function useReview() {
+export function useReview(
+  updateGameRating: (gameId: string, rating: number | null) => void,
+) {
   const toast = useToast();
 
-  const [reviewGame, setReviewGame] =
-    useState<Game | null>(null);
+  const [reviewGame, setReviewGame] = useState<Game | null>(null);
 
-  const [currentReview, setCurrentReview] =
-    useState<Review | null>(null);
+  const [currentReview, setCurrentReview] = useState<Review | null>(null);
 
-  const openReviewModal = async (
-    game: Game
-  ) => {
+  const openReviewModal = async (game: Game) => {
     try {
       setReviewGame(game);
 
-      const review =
-        await reviewApi.getReview(
-          game._id
-        );
+      const review = await reviewApi.getReview(game._id);
 
       setCurrentReview(review);
     } catch {
@@ -37,20 +32,17 @@ export function useReview() {
     setCurrentReview(null);
   };
 
-  const saveReview = async (
-    rating: number,
-    reviewText: string
-  ) => {
+  const saveReview = async (rating: number, reviewText: string) => {
     if (!reviewGame) return;
 
-    const saved =
-      await reviewApi.saveReview(
-        reviewGame._id,
-        rating,
-        reviewText
-      );
+    const saved = await reviewApi.saveReview(
+      reviewGame._id,
+      rating,
+      reviewText,
+    );
 
     setCurrentReview(saved);
+    updateGameRating(reviewGame._id, saved.rating);
 
     toast({
       title: "Review Saved",
@@ -65,9 +57,8 @@ export function useReview() {
   const deleteReview = async () => {
     if (!reviewGame) return;
 
-    await reviewApi.deleteReview(
-      reviewGame._id
-    );
+    await reviewApi.deleteReview(reviewGame._id);
+    updateGameRating(reviewGame._id, null);
 
     toast({
       title: "Review Deleted",

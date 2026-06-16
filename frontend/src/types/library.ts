@@ -8,8 +8,10 @@ export interface Game {
   exePath: string;
   status: Status;
   tags: string[];
+  rating?: number | null;
   createdAt: string;
   updatedAt: string;
+  
 }
 
 export interface AddGamePayload {

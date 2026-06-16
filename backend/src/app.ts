@@ -9,6 +9,7 @@ import library_router from "./routes/library";
 import rawgRouter from "./routes/rawg";
 import dashboardRouter from "./routes/dashboard";
 import reviewRouter from "./routes/review";
+import collectionRoutes from "./routes/collectionRoutes";
 dotenv.config();
 const app = express();
 app.use(helmet());
@@ -22,19 +23,15 @@ app.get("/health", (req: Request, res: Response) => {
   return res.json({ Status: "ok", message: "RoninArc was healthy " });
 });
 app.use("/auth", authRouter);
-app.use("/game",library_router);
-app.use("/rawg",rawgRouter);
+app.use("/game", library_router);
+app.use("/rawg", rawgRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/review", reviewRouter);
-
-
-
-
+app.use("/collection", collectionRoutes);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   return res.status(404).json({ Status: "fail", error: "Route not found" });
 });
-
 
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {

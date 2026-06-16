@@ -18,8 +18,12 @@ import {
 import { FiEdit3, FiPlay, FiTrash2 } from "react-icons/fi";
 
 import type { Game, Status } from "../../../types/library";
+import type { Collection } from "../../collections/types/collection";
+
 interface GameCardProps {
   game: Game;
+
+  collections: Collection[];
 
   onLaunch: (game: Game) => void;
 
@@ -27,10 +31,9 @@ interface GameCardProps {
 
   onDelete: (id: string) => void;
 
-  onStatusChange: (
-    id: string,
-    status: Status
-  ) => void;
+  onAddToCollection: (collectionId: string, gameId: string) => void;
+
+  onStatusChange: (id: string, status: Status) => void;
 }
 
 const STATUS_COLOR = {
@@ -42,9 +45,11 @@ const STATUS_COLOR = {
 
 export default function GameCard({
   game,
+  collections,
   onLaunch,
   onReview,
   onDelete,
+  onAddToCollection,
   onStatusChange,
 }: GameCardProps) {
   const cardBg = useColorModeValue("white", "gray.800");
@@ -76,6 +81,11 @@ export default function GameCard({
           <Text fontWeight="semibold" noOfLines={1} mr={2}>
             {game.title}
           </Text>
+          {game.rating && (
+            <Badge colorScheme="yellow" ml={2} borderRadius="full">
+              ⭐ {game.rating}/10
+            </Badge>
+          )}
 
           <Menu>
             <MenuButton
@@ -118,35 +128,56 @@ export default function GameCard({
           ))}
         </HStack>
 
-        <Flex justify="space-between" mt={2} gap={2}>
-  <Button
-    size="sm"
-    leftIcon={<FiPlay />}
-    variant="outline"
-    onClick={() => onLaunch(game)}
-  >
-    Launch
-  </Button>
+        <Flex justify="space-between" mt={2} gap={2} wrap="wrap">
+          <Button
+            size="sm"
+            leftIcon={<FiPlay />}
+            variant="outline"
+            onClick={() => onLaunch(game)}
+          >
+            Launch
+          </Button>
 
-  <Button
-    size="sm"
-    leftIcon={<FiEdit3 />}
-    variant="outline"
-    onClick={() => onReview(game)}
-  >
-    Review
-  </Button>
+          <Button
+            size="sm"
+            leftIcon={<FiEdit3 />}
+            variant="outline"
+            onClick={() => onReview(game)}
+          >
+            Review
+          </Button>
 
-  <Button
-    size="sm"
-    leftIcon={<FiTrash2 />}
-    colorScheme="red"
-    variant="ghost"
-    onClick={() => onDelete(game._id)}
-  >
-    Remove
-  </Button>
-</Flex>
+          <Menu>
+            <MenuButton as={Button} size="sm" variant="outline">
+              Collection
+            </MenuButton>
+
+            <MenuList>
+              {collections.length === 0 ? (
+                <MenuItem isDisabled>No Collections</MenuItem>
+              ) : (
+                collections.map((collection) => (
+                  <MenuItem
+                    key={collection._id}
+                    onClick={() => onAddToCollection(collection._id, game._id)}
+                  >
+                    {collection.name}
+                  </MenuItem>
+                ))
+              )}
+            </MenuList>
+          </Menu>
+
+          <Button
+            size="sm"
+            leftIcon={<FiTrash2 />}
+            colorScheme="red"
+            variant="ghost"
+            onClick={() => onDelete(game._id)}
+          >
+            Remove
+          </Button>
+        </Flex>
       </VStack>
     </Box>
   );

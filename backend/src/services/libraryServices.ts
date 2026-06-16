@@ -1,7 +1,8 @@
 import mongoose, { ObjectId } from "mongoose";
 import gameLibrarymodel from "../models/LibraryGame";
 import AppError from "../utils/AppError";
-import library_router from "../routes/library";
+import Review from "../models/Review";
+import Collection from "../models/Collection";
 
 async function addGameToLibrary(
   userId: ObjectId,
@@ -24,8 +25,28 @@ async function addGameToLibrary(
 }
 
 async function getUserLibrary(userid: ObjectId) {
-  const data = await gameLibrarymodel.find({ userid });
-  return data;
+  const games = await gameLibrarymodel
+    .find({ userid })
+    .lean();
+
+  const reviews = await Review.find({
+    userId: userid,
+  }).lean();
+
+  const reviewMap = new Map(
+    reviews.map((review) => [
+      review.gameId.toString(),
+      review.rating,
+    ])
+  );
+
+  return games.map((game) => ({
+    ...game,
+    rating:
+      reviewMap.get(
+        game._id.toString()
+      ) || null,
+  }));
 }
 async function getGameById(userid: ObjectId , gameid:string) {
   const data = await gameLibrarymodel.findOne({ _id: gameid, userid });
@@ -72,14 +93,36 @@ async function updateGame(
   return data;
 }
 
-async function deleteGame(userid: ObjectId, gameid: string) {
-  const data = await gameLibrarymodel.findOneAndDelete({
-  _id: gameid,
-  userid
-});
+async function deleteGame(
+  userid: ObjectId,
+  gameid: string
+) {
+  const data =
+    await gameLibrarymodel.findOneAndDelete({
+      _id: gameid,
+      userid,
+    });
+
   if (!data) {
     return null;
   }
+
+  await Collection.updateMany(
+    {
+      userId: userid,
+    },
+    {
+      $pull: {
+        gameIds: gameid,
+      },
+    }
+  );
+
+  await Review.deleteMany({
+    userId: userid,
+    gameId: gameid,
+  });
+
   return data;
 }
 

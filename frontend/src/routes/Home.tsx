@@ -23,6 +23,13 @@ import { useLibrary } from "../features/library/hooks/useLibrary";
 import { useRawgSearch } from "../features/library/hooks/useRawgSearch";
 import { useReview } from "../features/reviews/hooks/useReview";
 import ReviewModal from "../features/reviews/components/ReviewModal";
+import { Button } from "@chakra-ui/react";
+
+import { useCollections } from "../features/collections/hooks/useCollections";
+
+import CreateCollectionModal from "../features/collections/components/CreateCollectionModal";
+
+import CollectionCard from "../features/collections/components/CollectionCard";
 
 function LibraryPage() {
   const { games, setGames, fetchLibrary, addGame, deleteGame, updateStatus } =
@@ -50,6 +57,39 @@ function LibraryPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
 
   const toast = useToast();
+
+  const updateGameRating = (gameId: string, rating: number | null) => {
+    setGames((prev) =>
+      prev.map((game) =>
+        game._id === gameId
+          ? {
+              ...game,
+              rating,
+            }
+          : game,
+      ),
+    );
+  };
+  const handleDeleteGame = async (gameId: string) => {
+    await deleteGame(gameId);
+
+    removeGameEverywhere(gameId);
+  };
+  const {
+    collections,
+    fetchCollections,
+
+    createCollection,
+
+    deleteCollection: deleteCollectionHandler,
+
+    addGameToCollection,
+    removeGameFromCollection,
+
+    removeGameEverywhere,
+  } = useCollections();
+
+  const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
   const {
     reviewGame,
     currentReview,
@@ -59,7 +99,7 @@ function LibraryPage() {
 
     saveReview,
     deleteReview: deleteReviewHandler,
-  } = useReview();
+  } = useReview(updateGameRating);
   const openLaunchModal = (game: Game) => {
     setLaunchModalGame(game);
     setLaunchPath(game.exePath || "");
@@ -69,14 +109,20 @@ function LibraryPage() {
     setLaunchModalGame(null);
     setLaunchPath("");
   };
+  const openCollectionModal = () => {
+    setIsCreateCollectionOpen(true);
+  };
 
+  const closeCollectionModal = () => {
+    setIsCreateCollectionOpen(false);
+  };
   useEffect(() => {
     const loadLibrary = async () => {
       try {
         setLoading(true);
         setError(null);
 
-        await fetchLibrary();
+        await Promise.all([fetchLibrary(), fetchCollections()]);
       } catch (error: any) {
         setError(error.toString());
       } finally {
@@ -231,6 +277,11 @@ function LibraryPage() {
           selectedStatus={selectedStatus}
           onStatusChange={setSelectedStatus}
         />
+        <Flex mb={6}>
+          <Button colorScheme="purple" onClick={openCollectionModal}>
+            New Collection
+          </Button>
+        </Flex>
 
         {/* ---------------- GAME GRID ---------------- */}
         {loading ? (
@@ -280,14 +331,43 @@ function LibraryPage() {
               <GameCard
                 key={game._id}
                 game={game}
-                onDelete={deleteGame}
+                collections={collections}
+                onDelete={handleDeleteGame}
                 onStatusChange={updateStatus}
                 onLaunch={openLaunchModal}
                 onReview={openReviewModal}
+                onAddToCollection={addGameToCollection}
               />
             ))}
           </SimpleGrid>
         )}
+        <Box mt={10}>
+          <Heading size="md" mb={4}>
+            Collections
+          </Heading>
+
+          {collections.length === 0 ? (
+            <Text color="gray.500">No collections created yet.</Text>
+          ) : (
+            <SimpleGrid
+              columns={{
+                base: 1,
+                sm: 2,
+                md: 3,
+              }}
+              spacing={4}
+            >
+              {collections.map((collection) => (
+                <CollectionCard
+                  key={collection._id}
+                  collection={collection}
+                  onDelete={deleteCollectionHandler}
+                  onRemoveGame={removeGameFromCollection}
+                />
+              ))}
+            </SimpleGrid>
+          )}
+        </Box>
         {/* -------- Launch Modal -------- */}
         <LaunchModal
           game={launchModalGame}
@@ -303,6 +383,15 @@ function LibraryPage() {
           onClose={closeReviewModal}
           onSave={saveReview}
           onDelete={deleteReviewHandler}
+        />
+        <CreateCollectionModal
+          isOpen={isCreateCollectionOpen}
+          onClose={closeCollectionModal}
+          onCreate={async (name, description) => {
+            await createCollection(name, description);
+
+            closeCollectionModal();
+          }}
         />
       </Box>
     </Box>
