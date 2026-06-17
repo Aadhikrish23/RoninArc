@@ -17,12 +17,14 @@ import {
 import Navbar from "../components/Navbar";
 import { useEffect, useState } from "react";
 import { getDashboardStats } from "../api/dashboardApi";
+import { useActivity } from "../features/activity/hooks/useActivity";
 
 function DashboardPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
+  const { activities } = useActivity();
   const [stats, setStats] = useState({
     totalGames: 0,
     playing: 0,
@@ -67,136 +69,104 @@ function DashboardPage() {
 
         {/* Top row: stats */}
         {/* Stats Grid */}
-<SimpleGrid
-  columns={{ base: 1, md: 2, lg: 3 }}
-  spacing={4}
-  mb={6}
->
-  {/* Total Games */}
-  <Box
-    borderWidth="1px"
-    borderRadius="xl"
-    borderColor={subtleBorder}
-    bg={cardBg}
-    p={4}
-  >
-    <Stat>
-      <StatLabel>Total Games</StatLabel>
-      <StatNumber>{stats.totalGames}</StatNumber>
-      <StatHelpText>
-        In your library
-      </StatHelpText>
-    </Stat>
-  </Box>
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} mb={6}>
+          {/* Total Games */}
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Stat>
+              <StatLabel>Total Games</StatLabel>
+              <StatNumber>{stats.totalGames}</StatNumber>
+              <StatHelpText>In your library</StatHelpText>
+            </Stat>
+          </Box>
 
-  {/* Currently Playing */}
-  <Box
-    borderWidth="1px"
-    borderRadius="xl"
-    borderColor={subtleBorder}
-    bg={cardBg}
-    p={4}
-  >
-    <Stat>
-      <StatLabel>
-        Currently Playing
-      </StatLabel>
-      <StatNumber>{stats.playing}</StatNumber>
-      <StatHelpText>
-        Don't drop the streak 👀
-      </StatHelpText>
-    </Stat>
-  </Box>
+          {/* Currently Playing */}
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Stat>
+              <StatLabel>Currently Playing</StatLabel>
+              <StatNumber>{stats.playing}</StatNumber>
+              <StatHelpText>Don't drop the streak 👀</StatHelpText>
+            </Stat>
+          </Box>
 
-  {/* Completed */}
-  <Box
-    borderWidth="1px"
-    borderRadius="xl"
-    borderColor={subtleBorder}
-    bg={cardBg}
-    p={4}
-  >
-    <Stat>
-      <StatLabel>Completed</StatLabel>
-      <StatNumber>{stats.completed}</StatNumber>
-      <StatHelpText>
-        Nice progress!
-      </StatHelpText>
-    </Stat>
-  </Box>
+          {/* Completed */}
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Stat>
+              <StatLabel>Completed</StatLabel>
+              <StatNumber>{stats.completed}</StatNumber>
+              <StatHelpText>Nice progress!</StatHelpText>
+            </Stat>
+          </Box>
 
-  {/* Reviews Written */}
-  <Box
-    borderWidth="1px"
-    borderRadius="xl"
-    borderColor={subtleBorder}
-    bg={cardBg}
-    p={4}
-  >
-    <Stat>
-      <StatLabel>
-        Reviews Written
-      </StatLabel>
-      <StatNumber>
-        {stats.reviewsWritten}
-      </StatNumber>
-      <StatHelpText>
-        Total reviews created
-      </StatHelpText>
-    </Stat>
-  </Box>
+          {/* Reviews Written */}
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Stat>
+              <StatLabel>Reviews Written</StatLabel>
+              <StatNumber>{stats.reviewsWritten}</StatNumber>
+              <StatHelpText>Total reviews created</StatHelpText>
+            </Stat>
+          </Box>
 
-  {/* Average Rating */}
-  <Box
-    borderWidth="1px"
-    borderRadius="xl"
-    borderColor={subtleBorder}
-    bg={cardBg}
-    p={4}
-  >
-    <Stat>
-      <StatLabel>
-        Average Rating
-      </StatLabel>
-      <StatNumber>
-        {stats.averageRating}
-      </StatNumber>
-      <StatHelpText>
-        Across all reviews
-      </StatHelpText>
-    </Stat>
-  </Box>
+          {/* Average Rating */}
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Stat>
+              <StatLabel>Average Rating</StatLabel>
+              <StatNumber>{stats.averageRating}</StatNumber>
+              <StatHelpText>Across all reviews</StatHelpText>
+            </Stat>
+          </Box>
 
-  {/* Highest Rated */}
-  <Box
-    borderWidth="1px"
-    borderRadius="xl"
-    borderColor={subtleBorder}
-    bg={cardBg}
-    p={4}
-  >
-    <Stat>
-      <StatLabel>
-        Highest Rated
-      </StatLabel>
+          {/* Highest Rated */}
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Stat>
+              <StatLabel>Highest Rated</StatLabel>
 
-      <StatNumber
-        fontSize="lg"
-        noOfLines={1}
-      >
-        {stats.highestRatedGame?.title ||
-          "No reviews"}
-      </StatNumber>
+              <StatNumber fontSize="lg" noOfLines={1}>
+                {stats.highestRatedGame?.title || "No reviews"}
+              </StatNumber>
 
-      <StatHelpText>
-        Your top-rated game
-      </StatHelpText>
-    </Stat>
-  </Box>
-</SimpleGrid>
+              <StatHelpText>Your top-rated game</StatHelpText>
+            </Stat>
+          </Box>
+        </SimpleGrid>
 
         {/* Bottom row: Featured / Continue playing / Recently played */}
-        <SimpleGrid columns={{ base: 1, lg: 3 }} spacing={4}>
+        <SimpleGrid columns={{ base: 1, lg: 4 }} spacing={4}>
           {/* Featured game */}
           <Box
             borderWidth="1px"
@@ -288,6 +258,35 @@ function DashboardPage() {
                 stats.recentGames.map((game: any) => (
                   <Text key={game._id} fontSize="sm" noOfLines={1}>
                     {game.title}
+                  </Text>
+                ))
+              )}
+            </VStack>
+          </Box>
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Heading size="sm" mb={2}>
+              Recent Activity
+            </Heading>
+
+            <Text fontSize="xs" color={mutedText} mb={3}>
+              Your latest actions.
+            </Text>
+
+            <VStack align="stretch" spacing={2}>
+              {activities.length === 0 ? (
+                <Text fontSize="sm" color={mutedText}>
+                  No activity yet
+                </Text>
+              ) : (
+                activities.slice(0, 8).map((activity) => (
+                  <Text key={activity._id} fontSize="sm" noOfLines={2}>
+                    {activity.message}
                   </Text>
                 ))
               )}

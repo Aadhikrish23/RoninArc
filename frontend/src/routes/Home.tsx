@@ -30,6 +30,7 @@ import { useCollections } from "../features/collections/hooks/useCollections";
 import CreateCollectionModal from "../features/collections/components/CreateCollectionModal";
 
 import CollectionCard from "../features/collections/components/CollectionCard";
+import activityApi from "../features/activity/api/activityApi";
 
 function LibraryPage() {
   const { games, setGames, fetchLibrary, addGame, deleteGame, updateStatus } =
@@ -227,7 +228,11 @@ function LibraryPage() {
     }
 
     try {
-      await window.electronAPI.launchGame(launchPath);
+      const launched = await window.electronAPI.launchGame(launchPath);
+
+      if (launched) {
+        await activityApi.recordLaunch(launchModalGame._id);
+      }
 
       toast({
         title: `Launching ${launchModalGame.title}`,

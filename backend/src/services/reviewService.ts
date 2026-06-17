@@ -1,6 +1,7 @@
 import Review from "../models/Review";
 
-
+import mongoose from "mongoose";
+import activityService from "./activityService";
 
 
  const getReview = async (
@@ -14,37 +15,78 @@ import Review from "../models/Review";
 };
 
 
- const upsertReview = async (
+const upsertReview = async (
   userId: string,
   gameId: string,
   rating: number,
   reviewText?: string
 ) => {
-  return Review.findOneAndUpdate(
-    {
+  const existingReview =
+    await Review.findOne({
       userId,
       gameId,
-    },
-    {
-      rating,
-      reviewText: reviewText?.trim() || "",
-    },
-    {
-      new: true,
-      upsert: true,
-    }
+    });
+
+  const review =
+    await Review.findOneAndUpdate(
+      {
+        userId,
+        gameId,
+      },
+      {
+        rating,
+        reviewText:
+          reviewText?.trim() || "",
+      },
+      {
+        new: true,
+        upsert: true,
+      }
+    );
+
+  await activityService.createActivity(
+    new mongoose.Types.ObjectId(
+      userId
+    ),
+    existingReview
+      ? "REVIEW_UPDATED"
+      : "REVIEW_CREATED",
+    existingReview
+      ? `Updated review (${rating}/10)`
+      : `Reviewed a game (${rating}/10)`,
+    new mongoose.Types.ObjectId(
+      gameId
+    )
   );
+
+  return review;
 };
 
 
 
- const deleteReview = async (
+const deleteReview = async (
   userId: string,
   gameId: string
 ) => {
-  return Review.findOneAndDelete({
-    userId,
-    gameId,
-  });
+  const review =
+    await Review.findOneAndDelete({
+      userId,
+      gameId,
+    });
+
+  if (review) {
+    await activityService.createActivity(
+      new mongoose.Types.ObjectId(
+        userId
+      ),
+      "REVIEW_DELETED",
+      "Deleted a review",
+      new mongoose.Types.ObjectId(
+        gameId
+      )
+    );
+  }
+
+  return review;
 };
 export default {getReview,upsertReview,deleteReview}

@@ -3,6 +3,7 @@ import gameLibrarymodel from "../models/LibraryGame";
 import AppError from "../utils/AppError";
 import Review from "../models/Review";
 import Collection from "../models/Collection";
+import activityService from "./activityService";
 
 async function addGameToLibrary(
   userId: ObjectId,
@@ -16,11 +17,33 @@ async function addGameToLibrary(
   }>
 ) {
   const title = payload.title?.trim();
-  const dedupe = await gameLibrarymodel.find({ userid: userId, title: title });
+
+  const dedupe =
+    await gameLibrarymodel.find({
+      userid: userId,
+      title,
+    });
+
   if (dedupe.length > 0) {
-    throw new AppError("Game already exist", 400);
+    throw new AppError(
+      "Game already exist",
+      400
+    );
   }
-  const data = await gameLibrarymodel.create({ userid: userId, ...payload });
+
+  const data =
+    await gameLibrarymodel.create({
+      userid: userId,
+      ...payload,
+    });
+
+  await activityService.createActivity(
+    userId as any,
+    "GAME_ADDED",
+    `Added ${data.title} to library`,
+    data._id as any
+  );
+
   return data;
 }
 
@@ -72,24 +95,49 @@ async function getGameFilter(
 
 async function updateGame(
   userId: ObjectId,
-  gameid:string,
+  gameid: string,
   payload: Partial<{
     tags?: string[];
     exePath?: string;
     status?: string;
   }>
 ) {
-  const data = await gameLibrarymodel.findOneAndUpdate(
-    { _id: gameid, userid: userId },
-    payload,
-    {
-      new: true,
-      runValidators: true,
-    }
-  );
+  const oldGame =
+    await gameLibrarymodel.findOne({
+      _id: gameid,
+      userid: userId,
+    });
+
+  const data =
+    await gameLibrarymodel.findOneAndUpdate(
+      {
+        _id: gameid,
+        userid: userId,
+      },
+      payload,
+      {
+        new: true,
+        runValidators: true,
+      }
+    );
+
   if (!data) {
     return null;
   }
+
+  if (
+    payload.status &&
+    oldGame &&
+    oldGame.status !== payload.status
+  ) {
+    await activityService.createActivity(
+      userId as any,
+      "STATUS_CHANGED",
+      `${data.title} marked as ${payload.status}`,
+      data._id as any
+    );
+  }
+
   return data;
 }
 
@@ -122,6 +170,12 @@ async function deleteGame(
     userId: userid,
     gameId: gameid,
   });
+
+  await activityService.createActivity(
+    userid as any,
+    "GAME_REMOVED",
+    `Removed ${data.title} from library`
+  );
 
   return data;
 }
