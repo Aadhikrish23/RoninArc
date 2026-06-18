@@ -2,16 +2,16 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
-import authRouter from "./routes/auth";
+import authRouter from "./modules/auth/auth";
 import type { Request, Response, NextFunction } from "express";
-import AppError from "./utils/AppError";
-import library_router from "./routes/library";
-import rawgRouter from "./routes/rawg";
-import dashboardRouter from "./routes/dashboard";
-import reviewRouter from "./routes/review";
-import collectionRoutes from "./routes/collectionRoutes";
-import activityRouter from "./routes/activity";
-import playSessionRoutes from "./routes/playSession";
+import AppError from "./shared/errors/AppError";
+import library_router from "./modules/library/library";
+import rawgRouter from "./modules/rawg/rawg";
+import dashboardRouter from "./modules/dashboard/dashboard";
+import reviewRouter from "./modules/review/review";
+import collectionRoutes from "./modules/collection/collectionRoutes";
+import activityRouter from "./modules/activity/activity";
+import playSessionRoutes from "./modules/playSession/playSession";
 dotenv.config();
 const app = express();
 app.use(helmet());
@@ -37,7 +37,7 @@ app.use((req: Request, res: Response, next: NextFunction) => {
   return res.status(404).json({ Status: "fail", error: "Route not found" });
 });
 
-app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   if (res.headersSent) {
     return next(err);
   }
