@@ -11,6 +11,7 @@ import dashboardRouter from "./routes/dashboard";
 import reviewRouter from "./routes/review";
 import collectionRoutes from "./routes/collectionRoutes";
 import activityRouter from "./routes/activity";
+import playSessionRoutes from "./routes/playSession";
 dotenv.config();
 const app = express();
 app.use(helmet());
@@ -30,6 +31,7 @@ app.use("/dashboard", dashboardRouter);
 app.use("/review", reviewRouter);
 app.use("/collection", collectionRoutes);
 app.use("/activity", activityRouter);
+app.use("/play-session", playSessionRoutes);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   return res.status(404).json({ Status: "fail", error: "Route not found" });
