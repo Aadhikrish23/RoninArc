@@ -17,6 +17,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import settingsApi from "../api/settingsApi";
+import { getErrorMessage } from "../../../shared/utils/error";
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
@@ -60,13 +61,10 @@ export default function DeleteAccountModal({
       });
 
       navigate("/login");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Delete failed",
-        description:
-          error?.response?.data?.error ||
-          error?.response?.data?.message ||
-          "Unable to delete account",
+       description: getErrorMessage(error),
         status: "error",
       });
     } finally {

@@ -1,62 +1,8 @@
-import {  type JSX } from "react";
-
 import "./App.css";
-import Login from "./routes/Login";
-import Signup from "./routes/Signup";
-import Home from "./routes/Home";
-import { Navigate, Route, Routes } from "react-router-dom";
-import SettingsPage from "./routes/Settings";
-import DashboardPage from "./routes/Dashboard";
-import NotFound from "./routes/NotFound";
-import { useAuth } from "./context/AuthContext";
-function RequireAuth({ children }: { children: JSX.Element }) {
-  const { isAuthenticated, isLoading } = useAuth();
-
-  if (isLoading) {
-    return null;
-  }
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
-
-  return children;
-}
+import AppRouter from "./app/router/AppRouter";
 
 function App() {
-  // const [count, setCount] = useState(0);
-
-  return (
-    <Routes>
-      <Route path="/login" element={<Login />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route
-        path="/"
-        element={
-          <RequireAuth>
-            <Home />
-          </RequireAuth>
-        }
-      />
-       <Route
-            path="/settings"
-            element={
-              <RequireAuth>
-                <SettingsPage />
-              </RequireAuth>
-            }
-          />
-           <Route
-            path="/dashboard"
-            element={
-              <RequireAuth>
-                <DashboardPage />
-              </RequireAuth>
-            }
-          />
-             <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
+  return <AppRouter />;
 }
 
 export default App;

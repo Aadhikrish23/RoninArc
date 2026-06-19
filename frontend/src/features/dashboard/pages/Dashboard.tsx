@@ -14,10 +14,10 @@ import {
   HStack,
   VStack,
 } from "@chakra-ui/react";
-import Navbar from "../components/Navbar";
 import { useEffect, useState } from "react";
 import { getDashboardStats } from "../api/dashboardApi";
-import { useActivity } from "../features/activity/hooks/useActivity";
+import { useActivity } from "../../activity/hooks/useActivity";
+import type { DashboardStats } from "../types/dashboard";
 
 function DashboardPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
@@ -25,20 +25,18 @@ function DashboardPage() {
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
   const { activities } = useActivity();
-  const [stats, setStats] = useState({
+  const [stats, setStats] = useState<DashboardStats>({
     totalGames: 0,
     playing: 0,
     completed: 0,
     dropped: 0,
     plan: 0,
-    continuePlaying: [] as any[],
-    recentGames: [] as any[],
-    featuredGame: null as any,
+    continuePlaying: [],
+    recentGames: [],
+    featuredGame: null,
     reviewsWritten: 0,
-
     averageRating: "0",
-
-    highestRatedGame: null as any,
+    highestRatedGame: null,
   });
   useEffect(() => {
     const loadStats = async () => {
@@ -55,9 +53,6 @@ function DashboardPage() {
 
   return (
     <Box minH="100vh" bg={bg}>
-      <Navbar />
-      {/* Navbar is rendered outside, same as Library/Settings */}
-
       <Box maxW="1200px" mx="auto" px={6} py={8}>
         {/* Page header */}
         <Box mb={6}>
@@ -221,7 +216,7 @@ function DashboardPage() {
                   No games currently playing
                 </Text>
               ) : (
-                stats.continuePlaying.map((game: any) => (
+                stats.continuePlaying.map((game) => (
                   <HStack key={game._id} justify="space-between">
                     <Text fontSize="sm" noOfLines={1}>
                       {game.title}
@@ -255,7 +250,7 @@ function DashboardPage() {
                   No recent games
                 </Text>
               ) : (
-                stats.recentGames.map((game: any) => (
+                stats.recentGames.map((game) => (
                   <Text key={game._id} fontSize="sm" noOfLines={1}>
                     {game.title}
                   </Text>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useToast } from "@chakra-ui/react";
 
-import type { Game } from "../../../types/library";
+import type { Game } from "../../library/types/library";
 import type { Review } from "../types/review";
 
 import * as reviewApi from "../api/reviewApi";

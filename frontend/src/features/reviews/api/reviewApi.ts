@@ -1,4 +1,4 @@
-import api from "../../../api/axiosInstance";
+import api from "../../../shared/api/axiosInstance";
 
 import type { Review } from "../types/review";
 

@@ -17,7 +17,7 @@ import {
 
 import { FiEdit3, FiPlay, FiTrash2 } from "react-icons/fi";
 
-import type { Game, Status } from "../../../types/library";
+import type { Game, Status } from "../types/library";
 import type { Collection } from "../../collections/types/collection";
 
 interface GameCardProps {
@@ -121,7 +121,7 @@ export default function GameCard({
         </Flex>
 
         <HStack spacing={1} wrap="wrap">
-          {game.tags.map((tag: any) => (
+          {game.tags.map((tag) => (
             <Tag key={tag} size="sm" variant="subtle" borderRadius="full">
               <TagLabel>{tag}</TagLabel>
             </Tag>

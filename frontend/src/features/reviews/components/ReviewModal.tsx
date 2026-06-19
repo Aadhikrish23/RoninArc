@@ -2,7 +2,6 @@ import {
   Button,
   FormControl,
   FormLabel,
-  Input,
   Modal,
   ModalBody,
   ModalContent,
@@ -18,7 +17,7 @@ import {
 import { useEffect, useState } from "react";
 
 import type { Review } from "../types/review";
-import type { Game } from "../../../types/library";
+import type { Game } from "../../library/types/library";
 
 interface ReviewModalProps {
   game: Game | null;

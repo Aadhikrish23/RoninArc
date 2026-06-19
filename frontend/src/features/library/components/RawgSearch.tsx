@@ -17,7 +17,7 @@ import { SearchIcon } from "@chakra-ui/icons";
 
 import type {
   RawgGameResult,
-} from "../../../types/library";
+} from "../types/library";
 
 interface RawgSearchProps {
   searchText: string;

@@ -13,7 +13,7 @@ import {
   Text,
 } from "@chakra-ui/react";
 
-import type { Game } from "../../../types/library";
+import type { Game } from "../types/library";
 
 interface LaunchModalProps {
   game: Game | null;

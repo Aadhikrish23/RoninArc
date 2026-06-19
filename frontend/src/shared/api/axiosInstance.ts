@@ -85,12 +85,7 @@ api.interceptors.response.use(
         console.log("[AUTH] Retrying:", originalRequest.url);
 
         return api(originalRequest);
-      } catch (refreshError: any) {
-        console.error(
-          "[AUTH] Refresh failed:",
-          refreshError?.response?.data || refreshError,
-        );
-
+      } catch (refreshError) {
         localStorage.removeItem("roninarc_user");
         localStorage.removeItem("roninarc_token");
         localStorage.removeItem("roninarc_refresh_token");

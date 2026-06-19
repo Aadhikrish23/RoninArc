@@ -8,7 +8,7 @@ import type {
   Status,
   AddGamePayload,
   RawgGameResult,
-} from "../../../types/library";
+} from "../types/library";
 
 export function useLibrary() {
   const [games, setGames] = useState<Game[]>([]);

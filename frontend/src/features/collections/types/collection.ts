@@ -1,4 +1,4 @@
-import type { Game } from "../../../types/library";
+import type { Game } from "../../library/types/library";
 
 export interface Collection {
   _id: string;

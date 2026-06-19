@@ -21,8 +21,9 @@ import { useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import authApi from "../api/authApi";
 // import { deleteCurrentUser } from "../utils/auth";
-import DynamicBackground from "../components/DynamicBackground";
+import DynamicBackground from "../../../shared/components/DynamicBackground";
 import { useAuth } from "../context/AuthContext";
+import { getErrorMessage } from "../../../shared/utils/error";
 
 function Signup() {
   const [show, setShow] = useState<boolean>(false);
@@ -99,29 +100,16 @@ function Signup() {
 
       // Go to login page
       navigate("/");
-    } catch (error: any) {
-      let errmgs: string;
-
-      if (error?.response && error.response.data) {
-        errmgs =
-          error.response.data.error ||
-          error.response.data.message ||
-          "Signup failed. Please try again.";
-      } else if (error instanceof Error) {
-        errmgs = error.message;
-      } else {
-        errmgs = "Signup failed. Please try again.";
-      }
-
-      toast({
-        title: "Signup failed",
-        description: errmgs,
-        status: "error",
-        duration: 4000,
-        isClosable: true,
-        position: "top",
-      });
-    } finally {
+    } catch (error: unknown) {
+  toast({
+    title: "Signup failed",
+    description: getErrorMessage(error),
+    status: "error",
+    duration: 4000,
+    isClosable: true,
+    position: "top",
+  });
+} finally {
       setLoading(false);
     }
   };

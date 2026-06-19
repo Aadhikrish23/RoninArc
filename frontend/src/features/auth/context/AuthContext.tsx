@@ -6,7 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import authApi from "../api/authApi";
-import { setTokenUpdater } from "../utils/tokenManager";
+import { setTokenUpdater } from "../../../shared/utils/tokenManager";
 
 export interface AuthUser {
   name: string;

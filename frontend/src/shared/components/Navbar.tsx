@@ -11,7 +11,7 @@ import {
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 // import { getCurrentUser } from "../utils/auth";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../../features/auth/context/AuthContext";
 
 function Navbar() {
   const navigate = useNavigate();

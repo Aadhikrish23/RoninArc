@@ -1,24 +1,7 @@
-import api from "./axiosInstance";
+import api from "../../../shared/api/axiosInstance";
+import type { LoginSuccess, RegisterSuccess } from "../types/auth";
 
-interface RegisterSuccess {
-  userdata: {
-    name: string;
-    email?: string;
-    updatedAt: string;
-  };
-  accessToken: string;
-  refreshToken: string;
-}
 
-interface LoginSuccess {
-  userdata: {
-    name: string;
-    email?: string;
-    updatedAt: string;
-  };
-  accessToken: string;
-  refreshToken: string;
-}
 const userLogin = async (
   name: string,
   password: string,

@@ -14,7 +14,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import settingsApi from "../api/settingsApi";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../auth/context/AuthContext";
+import { getErrorMessage } from "../../../shared/utils/error";
 
 interface Props {
   isOpen: boolean;
@@ -49,12 +50,10 @@ export default function LogoutAllDevicesModal({
       await logout();
 
       navigate("/login");
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({
         title: "Failed",
-        description:
-          error?.response?.data?.error ||
-          "Something went wrong",
+        description: getErrorMessage(error),
         status: "error",
       });
     } finally {

@@ -1,21 +1,17 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import "./index.css";
-import App from "./App.tsx";
 
 import "./index.css";
-import { ChakraProvider } from "@chakra-ui/react";
-import { HashRouter } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext.tsx";
 
-createRoot(document.getElementById("root")!).render(
+import App from "./App";
+import AppProviders from "./app/providers/AppProviders";
+
+createRoot(
+  document.getElementById("root")!
+).render(
   <StrictMode>
-   <ChakraProvider>
-  <AuthProvider>
-    <HashRouter>
+    <AppProviders>
       <App />
-    </HashRouter>
-  </AuthProvider>
-</ChakraProvider>
+    </AppProviders>
   </StrictMode>
 );

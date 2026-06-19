@@ -19,10 +19,11 @@ import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
 import { useState } from "react";
 
 import authApi from "../api/authApi";
-import DynamicBackground from "../components/DynamicBackground";
+import DynamicBackground from "../../../shared/components/DynamicBackground";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 // import { deleteCurrentUser } from "../utils/auth";
 import { useAuth } from "../context/AuthContext";
+import { getErrorMessage } from "../../../shared/utils/error";
 
 function Login() {
   const [show, setShow] = useState<boolean>(false);
@@ -73,24 +74,10 @@ function Login() {
       });
 
       navigate("/");
-    } catch (error: any) {
-      let errmgs: string;
-
-      if (error?.response && error.response.data) {
-        errmgs =
-          error.response.data.error ||
-          error.response.data.message ||
-          "Login failed. Please try again.";
-      } else if (error instanceof Error) {
-        errmgs = error.message;
-      } else {
-        errmgs = "Login failed. Please try again.";
-      }
-
-      // Error toast
+    } catch (error: unknown) {
       toast({
         title: "Login failed",
-        description: errmgs,
+        description: getErrorMessage(error),
         status: "error",
         duration: 4000,
         isClosable: true,

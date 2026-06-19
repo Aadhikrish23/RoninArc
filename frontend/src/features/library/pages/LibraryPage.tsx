@@ -1,37 +1,29 @@
 import {
   Box,
-  Flex,
-  Heading,
-  Text,
-  SimpleGrid,
   useColorModeValue,
-  Spinner,
 } from "@chakra-ui/react";
 
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@chakra-ui/react";
-// import { getCurrentUser } from "../utils/auth";
-import Navbar from "../components/Navbar";
-import GameCard from "../features/library/components/GameCard";
-import StatusFilter from "../features/library/components/StatusFilter";
 
-import RawgSearch from "../features/library/components/RawgSearch";
 import type { RawgGameResult, Game } from "../types/library";
-import libraryApi from "../features/library/api/libraryApi";
-import LaunchModal from "../features/library/components/LaunchModal";
-import { useLibrary } from "../features/library/hooks/useLibrary";
-import { useRawgSearch } from "../features/library/hooks/useRawgSearch";
-import { useReview } from "../features/reviews/hooks/useReview";
-import ReviewModal from "../features/reviews/components/ReviewModal";
-import { Button } from "@chakra-ui/react";
+import libraryApi from "../api/libraryApi";
+import LaunchModal from "../components/LaunchModal";
+import { useLibrary } from "../hooks/useLibrary";
+import { useRawgSearch } from "../hooks/useRawgSearch";
+import { useReview } from "../../reviews/hooks/useReview";
+import ReviewModal from "../../reviews/components/ReviewModal";
 
-import { useCollections } from "../features/collections/hooks/useCollections";
+import { useCollections } from "../../collections/hooks/useCollections";
 
-import CreateCollectionModal from "../features/collections/components/CreateCollectionModal";
+import CreateCollectionModal from "../../collections/components/CreateCollectionModal";
 
-import CollectionCard from "../features/collections/components/CollectionCard";
-import activityApi from "../features/activity/api/activityApi";
-import { useAuth } from "../context/AuthContext";
+import activityApi from "../../activity/api/activityApi";
+import { useAuth } from "../../auth/context/AuthContext";
+import { getErrorMessage } from "../../../shared/utils/error";
+import LibraryHeader from "../sections/LibraryHeader";
+import LibraryGamesSection from "../sections/LibraryGamesSection";
+import CollectionsSection from "../sections/CollectionsSection";
 
 function LibraryPage() {
   const { games, setGames, fetchLibrary, addGame, deleteGame, updateStatus } =
@@ -128,8 +120,8 @@ function LibraryPage() {
         setError(null);
 
         await Promise.all([fetchLibrary(), fetchCollections()]);
-      } catch (error: any) {
-        setError(error.toString());
+      } catch (error: unknown) {
+        setError(getErrorMessage(error));
       } finally {
         setLoading(false);
       }
@@ -193,9 +185,9 @@ function LibraryPage() {
         duration: 2000,
         isClosable: true,
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to update exe path", error);
-      setError(error.toString());
+      setError(getErrorMessage(error));
       toast({
         title: "Update failed",
         description: "Could not update EXE path.",
@@ -247,7 +239,7 @@ function LibraryPage() {
       });
 
       closeLaunchModal();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Failed to launch game", error);
       toast({
         title: "Launch failed",
@@ -261,123 +253,37 @@ function LibraryPage() {
 
   return (
     <Box minH="100vh" bg={bg}>
-      <Navbar />
       {/* ---------------- MAIN CONTENT ---------------- */}
       <Box maxW="1200px" mx="auto" px={6} py={8}>
-        {/* Header */}
-        <Flex direction="column" gap={2} mb={6}>
-          <Heading size="lg">My Library</Heading>
-          <Text fontSize="sm" color="gray.500">
-            Track your gaming progress and backlog.
-          </Text>
-        </Flex>
+        <LibraryHeader />
 
-        <RawgSearch
+        <LibraryGamesSection
           searchText={searchText}
           onSearchChange={setSearchText}
-          results={rawgResults}
-          loading={rawgLoading}
-          error={rawgError}
+          rawgResults={rawgResults}
+          rawgLoading={rawgLoading}
+          rawgError={rawgError}
           onAddGame={handleAddGame}
-        />
-
-        {/* ---------------- STATUS FILTERS ---------------- */}
-        <StatusFilter
           selectedStatus={selectedStatus}
           onStatusChange={setSelectedStatus}
+          loading={loading}
+          error={error}
+          filteredGames={filteredGames}
+          collections={collections}
+          onDeleteGame={handleDeleteGame}
+          onLaunch={openLaunchModal}
+          onReview={openReviewModal}
+          onGameStatusChange={updateStatus}
+          onAddToCollection={addGameToCollection}
+          onOpenCollectionModal={openCollectionModal}
         />
-        <Flex mb={6}>
-          <Button colorScheme="purple" onClick={openCollectionModal}>
-            New Collection
-          </Button>
-        </Flex>
 
-        {/* ---------------- GAME GRID ---------------- */}
-        {loading ? (
-          <Box
-            w="100%"
-            py={10}
-            textAlign="center"
-            color="gray.500"
-            fontSize="lg"
-          >
-            <Spinner size="xl" thickness="4px" speed="0.6s" />
-            <Text mt={4}>Loading your library...</Text>
-          </Box>
-        ) : error ? (
-          <Box
-            w="100%"
-            py={10}
-            textAlign="center"
-            color="red.400"
-            fontSize="md"
-            borderWidth="1px"
-            borderColor="red.300"
-            borderRadius="lg"
-            bg="red.50"
-            _dark={{
-              bg: "red.900",
-              borderColor: "red.700",
-              color: "red.200",
-            }}
-          >
-            <Text fontWeight="semibold">Something went wrong!</Text>
-            <Text>{error}</Text>
-          </Box>
-        ) : filteredGames.length === 0 ? (
-          <Box
-            p={6}
-            borderWidth="1px"
-            borderStyle="dashed"
-            borderRadius="lg"
-            textAlign="center"
-          >
-            <Text>No games found.</Text>
-          </Box>
-        ) : (
-          <SimpleGrid columns={{ base: 1, sm: 2, md: 3 }} spacing={5}>
-            {filteredGames.map((game) => (
-              <GameCard
-                key={game._id}
-                game={game}
-                collections={collections}
-                onDelete={handleDeleteGame}
-                onStatusChange={updateStatus}
-                onLaunch={openLaunchModal}
-                onReview={openReviewModal}
-                onAddToCollection={addGameToCollection}
-              />
-            ))}
-          </SimpleGrid>
-        )}
-        <Box mt={10}>
-          <Heading size="md" mb={4}>
-            Collections
-          </Heading>
+        <CollectionsSection
+          collections={collections}
+          onDelete={deleteCollectionHandler}
+          onRemoveGame={removeGameFromCollection}
+        />
 
-          {collections.length === 0 ? (
-            <Text color="gray.500">No collections created yet.</Text>
-          ) : (
-            <SimpleGrid
-              columns={{
-                base: 1,
-                sm: 2,
-                md: 3,
-              }}
-              spacing={4}
-            >
-              {collections.map((collection) => (
-                <CollectionCard
-                  key={collection._id}
-                  collection={collection}
-                  onDelete={deleteCollectionHandler}
-                  onRemoveGame={removeGameFromCollection}
-                />
-              ))}
-            </SimpleGrid>
-          )}
-        </Box>
-        {/* -------- Launch Modal -------- */}
         <LaunchModal
           game={launchModalGame}
           launchPath={launchPath}
@@ -385,6 +291,7 @@ function LibraryPage() {
           onEditPath={handlePickExePath}
           onLaunch={handleLaunchGame}
         />
+
         <ReviewModal
           game={reviewGame}
           review={currentReview}
@@ -393,6 +300,7 @@ function LibraryPage() {
           onSave={saveReview}
           onDelete={deleteReviewHandler}
         />
+
         <CreateCollectionModal
           isOpen={isCreateCollectionOpen}
           onClose={closeCollectionModal}

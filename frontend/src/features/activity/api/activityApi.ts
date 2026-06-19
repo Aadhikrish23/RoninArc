@@ -1,4 +1,4 @@
-import api from "../../../api/axiosInstance";
+import api from "../../../shared/api/axiosInstance";
 
 const getActivities = async () => {
   const response =

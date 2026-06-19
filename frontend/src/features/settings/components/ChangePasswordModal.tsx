@@ -16,7 +16,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import settingsApi from "../api/settingsApi";
-import { useAuth } from "../../../context/AuthContext";
+import { useAuth } from "../../auth/context/AuthContext";
 
 interface Props {
   isOpen: boolean;
