@@ -8,10 +8,7 @@ import type { Game, RawgGameResult, Status } from "../types/library";
 import type { Collection } from "../../collections/types/collection";
 
 interface Props {
-
-
-  
-
+  selectedGameId?: string | null;
   selectedStatus: string;
 
   onStatusChange: (status: string) => void;
@@ -35,10 +32,10 @@ interface Props {
   onAddToCollection: (collectionId: string, gameId: string) => void;
 
   onOpenCollectionModal: () => void;
-
 }
 
 export default function LibraryGamesSection({
+  selectedGameId,
   selectedStatus,
   onStatusChange,
   loading,
@@ -54,8 +51,6 @@ export default function LibraryGamesSection({
 }: Props) {
   return (
     <>
-      
-      
       <StatusFilter
         selectedStatus={selectedStatus}
         onStatusChange={onStatusChange}
@@ -123,6 +118,7 @@ export default function LibraryGamesSection({
               onLaunch={onLaunch}
               onReview={onReview}
               onAddToCollection={onAddToCollection}
+              isHighlighted={game._id === selectedGameId}
             />
           ))}
         </SimpleGrid>

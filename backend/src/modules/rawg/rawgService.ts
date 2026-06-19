@@ -53,28 +53,79 @@ async function getGameDetails(rawgId: string | number) {
   }
 
   try {
-    const url = `${RAWG_BASE_URL}/games/${rawgId}`;
+  const [detailsResponse, screenshotsResponse] =
+  await Promise.all([
+    axios.get(
+      `${RAWG_BASE_URL}/games/${rawgId}`,
+      {
+        params: {
+          key: RAWG_API_KEY,
+        },
+      }
+    ),
 
-    const response = await axios.get(url, {
-      params: {
-        key: RAWG_API_KEY,
-      },
-    });
+    axios.get(
+      `${RAWG_BASE_URL}/games/${rawgId}/screenshots`,
+      {
+        params: {
+          key: RAWG_API_KEY,
+        },
+      }
+    ),
+  ]);
 
-    const g = response.data;
+const g = detailsResponse.data;
+
+const screenshots =
+  screenshotsResponse.data.results?.map(
+    (s: any) => s.image
+  ) || [];
     return {
-      id: g.id,
-      name: g.name,
-      description: g.description_raw || g.description,
-      imageURL: g.background_image,
-      imageAlt: g.background_image_additional,
-      rating: g.rating,
-      released: g.released,
-      website: g.website,
-      metacritic: g.metacritic,
-      genres: g.genres?.map((x: any) => x.name) || [],
-      platforms: g.platforms?.map((p: any) => p.platform.name) || [],
-    };
+  id: g.id,
+  name: g.name,
+  description: g.description_raw,
+
+  imageURL: g.background_image,
+  imageAlt: g.background_image_additional,
+
+  screenshots:screenshots,
+
+  rating: g.rating,
+  ratingsCount: g.ratings_count,
+
+  released: g.released,
+
+  website: g.website,
+
+  metacritic: g.metacritic,
+
+  playtime: g.playtime,
+
+  genres:
+    g.genres?.map(
+      (x: any) => x.name
+    ) || [],
+
+  platforms:
+    g.platforms?.map(
+      (p: any) => p.platform.name
+    ) || [],
+
+  developers:
+    g.developers?.map(
+      (d: any) => d.name
+    ) || [],
+
+  publishers:
+    g.publishers?.map(
+      (p: any) => p.name
+    ) || [],
+
+  tags:
+    g.tags?.slice(0, 10).map(
+      (t: any) => t.name
+    ) || [],
+};
   } catch (err) {
     throw new AppError("RAWG game not found", 404);
   }

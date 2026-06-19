@@ -8,6 +8,7 @@ import {
 } from "@chakra-ui/react";
 
 import type { RawgGameResult } from "../types/library";
+import { useNavigate } from "react-router-dom";
 
 interface Props {
   results: RawgGameResult[];
@@ -18,7 +19,7 @@ export default function RawgSearchDropdown({ results, onViewAll }: Props) {
   const bg = useColorModeValue("white", "gray.800");
 
   const border = useColorModeValue("gray.200", "gray.700");
-
+  const navigate = useNavigate();
   const topResults = results;
 
   return (
@@ -44,6 +45,8 @@ export default function RawgSearchDropdown({ results, onViewAll }: Props) {
             py={3}
             gap={3}
             align="center"
+            cursor="pointer"
+            onClick={() => navigate(`/library/game/${game.id}`)}
             _hover={{
               bg: "whiteAlpha.100",
             }}

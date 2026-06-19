@@ -19,9 +19,11 @@ import { FiEdit3, FiPlay, FiTrash2 } from "react-icons/fi";
 
 import type { Game, Status } from "../types/library";
 import type { Collection } from "../../collections/types/collection";
+import { useNavigate } from "react-router-dom";
 
 interface GameCardProps {
   game: Game;
+  isHighlighted?: boolean;
 
   collections: Collection[];
 
@@ -50,22 +52,26 @@ export default function GameCard({
   onReview,
   onDelete,
   onAddToCollection,
-  onStatusChange,
+  onStatusChange,isHighlighted
 }: GameCardProps) {
   const cardBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
+  const navigate = useNavigate();
 
   return (
     <Box
       borderWidth="1px"
       borderRadius="xl"
       bg={cardBg}
-      borderColor={subtleBorder}
+      
+      borderColor={isHighlighted ? "purple.400" : subtleBorder}
+      boxShadow={isHighlighted ? "0 0 20px rgba(159,122,234,.5)" : undefined}
       _hover={{
         transform: "translateY(-3px)",
         boxShadow: "lg",
       }}
       transition="all 0.15s ease-out"
+      onClick={() => navigate(`/library/game/${game.rawgId}`)}
     >
       <Box
         h="140px"
@@ -133,7 +139,10 @@ export default function GameCard({
             size="sm"
             leftIcon={<FiPlay />}
             variant="outline"
-            onClick={() => onLaunch(game)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onLaunch(game);
+            }}
           >
             Launch
           </Button>
@@ -142,7 +151,10 @@ export default function GameCard({
             size="sm"
             leftIcon={<FiEdit3 />}
             variant="outline"
-            onClick={() => onReview(game)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onReview(game);
+            }}
           >
             Review
           </Button>
@@ -159,7 +171,10 @@ export default function GameCard({
                 collections.map((collection) => (
                   <MenuItem
                     key={collection._id}
-                    onClick={() => onAddToCollection(collection._id, game._id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onAddToCollection(collection._id, game._id);
+                    }}
                   >
                     {collection.name}
                   </MenuItem>
@@ -173,7 +188,10 @@ export default function GameCard({
             leftIcon={<FiTrash2 />}
             colorScheme="red"
             variant="ghost"
-            onClick={() => onDelete(game._id)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(game._id);
+            }}
           >
             Remove
           </Button>

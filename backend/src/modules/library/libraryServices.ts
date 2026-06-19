@@ -8,6 +8,7 @@ import activityService from "../activity/activityService";
 async function addGameToLibrary(
   userId: string,
   payload: Partial<{
+      rawgId: number;
     title: string;
     description?: string;
     tags?: string[];
@@ -19,17 +20,17 @@ async function addGameToLibrary(
   const title = payload.title?.trim();
 
   const dedupe =
-    await gameLibrarymodel.find({
-      userId: userId,
-      title,
-    });
+  await gameLibrarymodel.findOne({
+    userId,
+    rawgId: payload.rawgId,
+  });
 
-  if (dedupe.length > 0) {
-    throw new AppError(
-      "Game already exist",
-      400
-    );
-  }
+if (dedupe) {
+  throw new AppError(
+    "Game already exists",
+    400
+  );
+}
 
   const data =
     await gameLibrarymodel.create({

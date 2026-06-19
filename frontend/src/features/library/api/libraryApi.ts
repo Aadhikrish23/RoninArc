@@ -4,6 +4,7 @@ import type {
   UpdateGamePayload,
   AddGamePayload,
   RawgGameResult,
+  RawgGameDetails,
 } from "../types/library";
 
 const getUserLibrary = async (): Promise<Game[]> => {
@@ -12,15 +13,21 @@ const getUserLibrary = async (): Promise<Game[]> => {
 };
 
 const addGame = async (payload: AddGamePayload): Promise<Game> => {
-  const gamedata = await api.post<{ Status: string; Data: Game }>("/game/add", payload);
+  const gamedata = await api.post<{ Status: string; Data: Game }>(
+    "/game/add",
+    payload,
+  );
   return gamedata.data.Data;
 };
 
 const updateGame = async (
   id: string,
-  payload: UpdateGamePayload
+  payload: UpdateGamePayload,
 ): Promise<Game> => {
-  const gameData = await api.patch<{ Status: string; Data: Game }>(`/game/${id}`, payload);
+  const gameData = await api.patch<{ Status: string; Data: Game }>(
+    `/game/${id}`,
+    payload,
+  );
   return gameData.data.Data;
 };
 const deleteGame = async (id: string): Promise<void> => {
@@ -29,15 +36,25 @@ const deleteGame = async (id: string): Promise<void> => {
 
 const searchRawgGames = async (
   query: string,
-  page = 1
+  page = 1,
 ): Promise<RawgGameResult[]> => {
   const rawgdata = await api.get<{ Status: string; Data: RawgGameResult[] }>(
     "/rawg/search",
     {
       params: { query, page },
-    }
+    },
   );
   return rawgdata.data.Data;
+};
+const getRawgGameDetails = async (
+  id: number | string,
+): Promise<RawgGameDetails> => {
+  const response = await api.get<{
+    Status: string;
+    Data: RawgGameDetails;
+  }>(`/rawg/${id}`);
+
+  return response.data.Data;
 };
 export default {
   getUserLibrary,
@@ -45,4 +62,5 @@ export default {
   updateGame,
   deleteGame,
   searchRawgGames,
+  getRawgGameDetails,
 };

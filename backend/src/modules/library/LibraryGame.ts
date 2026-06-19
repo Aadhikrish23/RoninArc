@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 
 export interface IGameLibrary extends mongoose.Document {
   userId: mongoose.Types.ObjectId;
+  rawgId: number;
   title: string;
   description: string;
   tags: string[];
@@ -17,6 +18,10 @@ const gameLibraryschema = new mongoose.Schema<IGameLibrary>(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, "Game title is mandatory"],
+    },
+    rawgId: {
+      type: Number,
+      required: true,
     },
 
     title: {

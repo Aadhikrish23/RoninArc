@@ -14,12 +14,17 @@ interface updatetype {
 const addGame = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user.id;
+    const rawgId = req.body.rawgId;
     let title = req.body.title;
     let description = req.body.description;
     let tags = req.body.tags;
     let imageURL = req.body.imageURL;
     let exePath = req.body.exePath;
     let status = req.body.status;
+
+    if (typeof rawgId !== "number" || Number.isNaN(rawgId)) {
+      return next(new AppError("Valid rawgId is required", 400));
+    }
     if (typeof title !== "string" || !title || title.trim() === "") {
       return next(new AppError("Title is required", 400));
     }
@@ -34,8 +39,8 @@ const addGame = async (req: Request, res: Response, next: NextFunction) => {
       return next(
         new AppError(
           "Invalid inputs: description,imageURL,exePath must be text/string ",
-          400
-        )
+          400,
+        ),
       );
     }
 
@@ -48,7 +53,9 @@ const addGame = async (req: Request, res: Response, next: NextFunction) => {
       }
     }
     const payload = {
+      rawgId,
       title: title.trim(),
+      
       description: description !== undefined ? description.trim() : undefined,
       tags: tags,
       imageURL: imageURL !== undefined ? imageURL.trim() : undefined,
@@ -96,15 +103,15 @@ const getGameById = async (req: Request, res: Response, next: NextFunction) => {
 const filterGames = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user.id;
-      const searchparam = req.query.param as string;
+    const searchparam = req.query.param as string;
     const searchvalue = req.query.value as string;
     if (!searchparam) {
-   return next(new AppError("Missing search param", 400));
-}
-if (!searchvalue) {
-   return next(new AppError("Missing search value", 400));
-}
-    
+      return next(new AppError("Missing search param", 400));
+    }
+    if (!searchvalue) {
+      return next(new AppError("Missing search value", 400));
+    }
+
     if (!allowedSearchParams.includes(searchparam)) {
       return next(new AppError("Invalid Search params", 400));
     }
@@ -118,7 +125,7 @@ if (!searchvalue) {
     const data = await libraryServices.getGameFilter(
       userId,
       searchparam,
-      searchvalue
+      searchvalue,
     );
 
     if (!data) {
@@ -140,21 +147,15 @@ const updateGame = async (req: Request, res: Response, next: NextFunction) => {
     let exePath = req.body.exePath;
     let status = req.body.status;
     if (!mongoose.Types.ObjectId.isValid(gameid)) {
-   return next(new AppError("Invalid game id", 400));
-}
+      return next(new AppError("Invalid game id", 400));
+    }
 
-
-    if (
-      (typeof exePath !== "string" && exePath !== undefined)
-    ) {
+    if (typeof exePath !== "string" && exePath !== undefined) {
       return next(
-        new AppError(
-          "Invalid inputs: exePath must be text/string ",
-          400
-        )
+        new AppError("Invalid inputs: exePath must be text/string ", 400),
       );
     }
-if (status !== undefined) {
+    if (status !== undefined) {
       if (
         typeof status !== "string" ||
         !allowerstatus.includes(status.trim())
@@ -163,14 +164,14 @@ if (status !== undefined) {
       }
     }
 
-    if (tags !== undefined &&!Array.isArray(tags)) {
+    if (tags !== undefined && !Array.isArray(tags)) {
       return next(new AppError("Invalid Tags", 400));
     }
 
     let updates = <updatetype>{};
-   if (Array.isArray(tags)) {
-  updates["tags"] = tags;
-}
+    if (Array.isArray(tags)) {
+      updates["tags"] = tags;
+    }
 
     if (status) {
       updates["status"] = status.trim();

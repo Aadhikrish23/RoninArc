@@ -15,32 +15,32 @@ export function useLibrary() {
 
   const toast = useToast();
 
- const fetchLibrary = async (): Promise<void> => {
-    const data =
-      await libraryApi.getUserLibrary();
+  const fetchLibrary = async (): Promise<void> => {
+    const data = await libraryApi.getUserLibrary();
 
     setGames(data);
   };
 
- const addGame = async (
-  rawgGame: RawgGameResult
-): Promise<void> => {
-    const payload: AddGamePayload = {
-      title: rawgGame.name,
-      description: "",
-      imageURL: rawgGame.imageURL,
-      exePath: "",
-      tags: rawgGame.genres,
-      status: "plan",
-    };
+  const addGame = async ( payload: AddGamePayload): Promise<void> => {
+    // const payload: AddGamePayload = {
+    //   rawgId: rawgGame.id,
 
-    const created =
-      await libraryApi.addGame(payload);
+    //   title: rawgGame.name,
 
-    setGames((prev) => [
-      ...prev,
-      created,
-    ]);
+    //   description: "",
+
+    //   imageURL: rawgGame.imageURL,
+
+    //   exePath: "",
+
+    //   tags: rawgGame.genres,
+
+    //   status: "plan",
+    // };
+
+    const created = await libraryApi.addGame(payload);
+
+    setGames((prev) => [...prev, created]);
 
     toast({
       title: "Game Added",
@@ -50,31 +50,18 @@ export function useLibrary() {
     });
   };
 
-  const deleteGame = async (
-    id: string
-  ) => {
+  const deleteGame = async (id: string) => {
     await libraryApi.deleteGame(id);
 
-    setGames((prev) =>
-      prev.filter((g) => g._id !== id)
-    );
+    setGames((prev) => prev.filter((g) => g._id !== id));
   };
 
-  const updateStatus = async (
-    id: string,
-    status: Status
-  ) => {
+  const updateStatus = async (id: string, status: Status) => {
     await libraryApi.updateGame(id, {
       status,
     });
 
-    setGames((prev) =>
-      prev.map((g) =>
-        g._id === id
-          ? { ...g, status }
-          : g
-      )
-    );
+    setGames((prev) => prev.map((g) => (g._id === id ? { ...g, status } : g)));
   };
 
   return {

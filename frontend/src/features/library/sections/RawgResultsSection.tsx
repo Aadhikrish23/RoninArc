@@ -16,7 +16,7 @@ import { BsGrid3X3Gap } from "react-icons/bs";
 import { useState } from "react";
 import { useMemo } from "react";
 import { rankSearchResults } from "../utils/searchRanking";
-
+import { useNavigate } from "react-router-dom";
 interface Props {
   searchText: string;
 
@@ -40,8 +40,18 @@ export default function RawgResultsSection({
   onBack,
 }: Props) {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
+  const navigate = useNavigate();
+  const openGameDetails = (gameId: number) => {
+    navigate(`/library/game/${gameId}`);
+  };
   const renderGrid = (game: RawgGameResult) => (
-    <Box key={game.id} borderWidth="1px" borderRadius="lg" overflow="hidden">
+    <Box
+      key={game.id}
+      borderWidth="1px"
+      borderRadius="lg"
+      overflow="hidden"
+      onClick={() => openGameDetails(game.id)}
+    >
       <Image src={game.imageURL} h="180px" w="100%" objectFit="cover" />
 
       <Box p={4}>
@@ -61,7 +71,10 @@ export default function RawgResultsSection({
           mt={3}
           w="100%"
           colorScheme="purple"
-          onClick={() => onAddGame(game)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddGame(game);
+          }}
         >
           Add
         </Button>
@@ -70,13 +83,20 @@ export default function RawgResultsSection({
   );
   const renderList = (game: RawgGameResult) => (
     <Flex
-      key={game.id}
-      gap={4}
-      p={4}
-      borderWidth="1px"
-      borderRadius="lg"
-      align="center"
-    >
+  key={game.id}
+  gap={4}
+  p={4}
+  borderWidth="1px"
+  borderRadius="lg"
+  align="center"
+  cursor="pointer"
+  transition="all .2s"
+  _hover={{
+    transform: "translateY(-2px)",
+    shadow: "md",
+  }}
+  onClick={() => openGameDetails(game.id)}
+>
       <Image
         src={game.imageURL}
         alt={game.name}
@@ -103,7 +123,13 @@ export default function RawgResultsSection({
         </Text>
       </Box>
 
-      <Button colorScheme="purple" onClick={() => onAddGame(game)}>
+      <Button
+        colorScheme="purple"
+        onClick={(e) => {
+          e.stopPropagation();
+          onAddGame(game);
+        }}
+      >
         Add
       </Button>
     </Flex>
@@ -132,7 +158,7 @@ export default function RawgResultsSection({
             <Text color="gray.500">"{searchText}"</Text>
           </Box>
 
-          <Button size="sm" variant="link"  onClick={onBack}>
+          <Button size="sm" variant="link" onClick={onBack}>
             ← Back To Library
           </Button>
         </Flex>

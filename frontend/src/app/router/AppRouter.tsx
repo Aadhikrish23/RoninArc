@@ -12,6 +12,7 @@ import ProtectedLayout from "../layouts/ProtectedLayout";
 import NotFound from "./NotFound";
 
 import { useAuth } from "../../features/auth/context/AuthContext";
+import GameDetailsPage from "../../features/library/pages/GameDetailsPage";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -46,6 +47,7 @@ export default function AppRouter() {
         <Route path="/dashboard" element={<DashboardPage />} />
 
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/library/game/:rawgId" element={<GameDetailsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

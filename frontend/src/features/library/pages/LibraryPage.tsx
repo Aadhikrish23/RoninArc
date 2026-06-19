@@ -1,6 +1,7 @@
 import { Box, useColorModeValue } from "@chakra-ui/react";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { useToast } from "@chakra-ui/react";
 
 import type { RawgGameResult, Game } from "../types/library";
@@ -39,6 +40,11 @@ function LibraryPage() {
 
     clearSearch,
   } = useRawgSearch();
+  const [searchParams] =
+  useSearchParams();
+
+const selectedGameId =
+  searchParams.get("game");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -154,11 +160,25 @@ function LibraryPage() {
     });
   }, [games, selectedStatus, searchText]);
 
-  const handleAddGame = async (rawgGame: RawgGameResult) => {
-    await addGame(rawgGame);
+ const handleAddGame = async (rawgGame: RawgGameResult) => {
+  await addGame({
+    rawgId: rawgGame.id,
 
-    clearSearch();
-  };
+    title: rawgGame.name,
+
+    description: rawgGame.description ?? "",
+
+    imageURL: rawgGame.imageURL,
+
+    exePath: "",
+
+    tags: rawgGame.genres,
+
+    status: "plan",
+  });
+
+  clearSearch();
+};
 
   const handlePickExePath = async () => {
     if (!window.electronAPI?.selectExePath) {
@@ -288,6 +308,7 @@ function LibraryPage() {
             />
             <LibraryHeader />
             <LibraryGamesSection
+             selectedGameId={selectedGameId}
               selectedStatus={selectedStatus}
               onStatusChange={setSelectedStatus}
               loading={loading}
