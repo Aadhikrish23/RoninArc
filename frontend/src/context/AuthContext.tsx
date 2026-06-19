@@ -5,6 +5,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import authApi from "../api/authApi";
 
 export interface AuthUser {
   name: string;
@@ -14,9 +15,17 @@ export interface AuthUser {
 interface AuthContextType {
   user: AuthUser | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (user: AuthUser, token: string, rememberMe?: boolean) => void;
+
+  login: (
+    user: AuthUser,
+    accessToken: string,
+    refreshToken: string,
+    rememberMe?: boolean,
+  ) => void;
+
   logout: () => void;
 }
 
@@ -26,6 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [refreshToken, setRefreshToken] = useState<string | null>(null);
 
   useEffect(() => {
     const storedUser =
@@ -36,45 +46,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.getItem("roninarc_token") ||
       sessionStorage.getItem("roninarc_token");
 
-    if (storedUser && storedToken) {
+    const storedRefreshToken =
+      localStorage.getItem("roninarc_refresh_token") ||
+      sessionStorage.getItem("roninarc_refresh_token");
+
+    if (storedUser && storedToken && storedRefreshToken) {
       setUser(JSON.parse(storedUser));
       setToken(storedToken);
+      setRefreshToken(storedRefreshToken);
     }
 
     setIsLoading(false);
   }, []);
 
-  const login = (userData: AuthUser, jwtToken: string, rememberMe = false) => {
+  const login = (
+    userData: AuthUser,
+    accessToken: string,
+    refreshTokenValue: string,
+    rememberMe = false,
+  ) => {
     setUser(userData);
-    setToken(jwtToken);
+    setToken(accessToken);
+    setRefreshToken(refreshTokenValue);
 
     if (rememberMe) {
       localStorage.setItem("roninarc_user", JSON.stringify(userData));
-      localStorage.setItem("roninarc_token", jwtToken);
+
+      localStorage.setItem("roninarc_token", accessToken);
+
+      localStorage.setItem("roninarc_refresh_token", refreshTokenValue);
     } else {
       sessionStorage.setItem("roninarc_user", JSON.stringify(userData));
-      sessionStorage.setItem("roninarc_token", jwtToken);
+
+      sessionStorage.setItem("roninarc_token", accessToken);
+
+      sessionStorage.setItem("roninarc_refresh_token", refreshTokenValue);
     }
   };
 
-  const logout = () => {
+const logout = async () => {
+  try {
+    const refreshToken =
+      localStorage.getItem("roninarc_refresh_token") ||
+      sessionStorage.getItem("roninarc_refresh_token");
+
+    if (refreshToken) {
+      await authApi.logoutUser(refreshToken);
+    }
+  } catch (error) {
+    console.error(error);
+  } finally {
+    clearStorage();
+
     setUser(null);
     setToken(null);
-
-    localStorage.removeItem("roninarc_user");
-    localStorage.removeItem("roninarc_token");
-
-    sessionStorage.removeItem("roninarc_user");
-    sessionStorage.removeItem("roninarc_token");
-  };
+    setRefreshToken(null);
+  }
+};
 
   return (
     <AuthContext.Provider
       value={{
         user,
         token,
+        refreshToken,
         isAuthenticated: !!token,
-         isLoading,
+        isLoading,
         login,
         logout,
       }}
@@ -92,4 +129,13 @@ export function useAuth() {
   }
 
   return context;
+}
+function clearStorage() {
+  localStorage.removeItem("roninarc_user");
+  localStorage.removeItem("roninarc_token");
+  localStorage.removeItem("roninarc_refresh_token");
+
+  sessionStorage.removeItem("roninarc_user");
+  sessionStorage.removeItem("roninarc_token");
+  sessionStorage.removeItem("roninarc_refresh_token");
 }

@@ -277,6 +277,13 @@ async function deleteAccount(userId: string, password: string) {
     success: true,
   };
 }
+async function logoutAllDevices(
+  userId: string
+) {
+  await revokeAllUserTokens(
+    new mongoose.Types.ObjectId(userId)
+  );
+}
 export {
   registerUser,
   loginUser,
@@ -289,4 +296,7 @@ export {
   generateRefreshToken,
   verifyRefreshToken,
   deleteAccount,
+  logoutAllDevices
 };
+ 
+

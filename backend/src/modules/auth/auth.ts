@@ -18,5 +18,6 @@ authRouter.patch(
   authcontroller.changePassword,
 );
 authRouter.delete("/account", authMiddleware, authcontroller.deleteAccount);
+authRouter.post("/logout-all", authMiddleware, authcontroller.logoutAllDevices);
 
 export default authRouter;

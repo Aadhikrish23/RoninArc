@@ -283,6 +283,25 @@ const deleteAccount = async (
     next(error);
   }
 };
+const logoutAllDevices = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    await authServices.logoutAllDevices(
+      req.user.id
+    );
+
+    return res.status(200).json({
+      Status: "Success",
+      Message:
+        "Logged out from all devices",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export default {
   registerUser,
@@ -294,5 +313,6 @@ export default {
   getCurrentUser,
 
   logoutUser,
+  logoutAllDevices,
   deleteAccount
 };

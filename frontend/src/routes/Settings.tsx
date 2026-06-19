@@ -7,6 +7,7 @@ import {
   useColorModeValue,
   Divider,
   HStack,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { useColorMode } from "@chakra-ui/react";
 import { MoonIcon, SunIcon } from "@chakra-ui/icons";
@@ -15,6 +16,10 @@ import { useNavigate } from "react-router-dom";
 import Navbar from "../components/Navbar";
 // import { deleteCurrentUser, getCurrentUser } from "../utils/auth";
 import { useAuth } from "../context/AuthContext";
+import ChangePasswordModal from "../features/settings/components/ChangePasswordModal";
+import LogoutAllDevicesModal from "../features/settings/components/LogoutAllDevicesModal";
+
+import DeleteAccountModal from "../features/settings/components/DeleteAccountModal";
 
 function SettingsPage() {
   // same palette as Library
@@ -25,21 +30,23 @@ function SettingsPage() {
 
   const { colorMode, toggleColorMode } = useColorMode();
   const [username, setUsername] = useState<string | null>(null);
+  const [isPasswordOpen, setPasswordOpen] = useState(false);
+  const [isLogoutAllOpen, setLogoutAllOpen] = useState(false);
   const navigate = useNavigate();
-  const { logout,user } = useAuth();
+  const deleteModal = useDisclosure();
+  const { logout, user } = useAuth();
 
   //  const currentUser = getCurrentUser();
-    const displayName = user?.name.toUpperCase() || "Ronin";
-  
-   
+  const displayName = user?.name.toUpperCase() || "Ronin";
+
   useEffect(() => {
-   const stored = user?.name.toUpperCase() || "Ronin";
+    const stored = user?.name.toUpperCase() || "Ronin";
     if (stored) setUsername(stored);
   }, []);
 
   const handleLogout = () => {
     // clear auth stuff
-     logout();
+    logout();
     // (optional) clear anything else you stored for auth here
 
     navigate("/login");
@@ -108,31 +115,44 @@ function SettingsPage() {
               Logout
             </Button>
 
-            {/* You can keep these as future options if you want */}
-            {/* 
             <Button
               size="sm"
-              isDisabled
-              justifyContent="flex-start"
               variant="outline"
+              onClick={() => setPasswordOpen(true)}
             >
-              Change Password (coming soon)
+              Change Password
             </Button>
-
             <Button
               size="sm"
-              isDisabled
-              justifyContent="flex-start"
               variant="outline"
-              colorScheme="red"
-              _disabled={{ opacity: 0.7 }}
+              onClick={() => setLogoutAllOpen(true)}
             >
-              Delete Account (coming soon)
-            </Button> 
-            */}
+              Logout All Devices
+            </Button>
+            <Button
+              size="sm"
+              colorScheme="red"
+              variant="outline"
+              alignSelf="flex-start"
+              onClick={deleteModal.onOpen}
+            >
+              Delete Account
+            </Button>
           </VStack>
         </Box>
       </Box>
+      <ChangePasswordModal
+        isOpen={isPasswordOpen}
+        onClose={() => setPasswordOpen(false)}
+      />
+      <LogoutAllDevicesModal
+        isOpen={isLogoutAllOpen}
+        onClose={() => setLogoutAllOpen(false)}
+      />
+      <DeleteAccountModal
+        isOpen={deleteModal.isOpen}
+        onClose={deleteModal.onClose}
+      />
     </Box>
   );
 }

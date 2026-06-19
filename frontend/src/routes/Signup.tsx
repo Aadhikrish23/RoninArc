@@ -24,8 +24,6 @@ import authApi from "../api/authApi";
 import DynamicBackground from "../components/DynamicBackground";
 import { useAuth } from "../context/AuthContext";
 
-
-
 function Signup() {
   const [show, setShow] = useState<boolean>(false);
   const [username, setUsername] = useState<string>("");
@@ -74,7 +72,6 @@ function Signup() {
       if (mail && !isValidEmail(mail)) {
         setEmail("");
         throw new Error("Please enter a valid email address");
-        
       }
 
       const datas = await authApi.userSignup(name, pass, mail);
@@ -82,7 +79,7 @@ function Signup() {
       // Clear old user data
       // deleteCurrentUser();
 
-    login(datas.userdata, datas.token, saveme);
+      login(datas.userdata, datas.accessToken, datas.refreshToken, saveme);
 
       toast({
         title: "Signup successful",
@@ -208,7 +205,7 @@ function Signup() {
                         position: "top",
                       });
                       setEmailErrorShown(true);
-                       setEmail("");
+                      setEmail("");
                     }
                   }}
                 />

@@ -26,6 +26,7 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     
     return next(new AppError("Server config error: JWT_SECRET missing", 500));
   }
+  console.log("AUTH HEADER:", req.headers.authorization);
 
   try {
     const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;
@@ -36,10 +37,10 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
 
     req.user = { id, name };
     
-    
+    console.log("JWT VERIFIED");
     next();
   } catch (error) {
-    
+    console.log("JWT VERIFY FAILED", error);
     return next(new AppError("Invalid or expired token", 401));
   }
 };

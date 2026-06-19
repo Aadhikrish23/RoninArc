@@ -60,7 +60,7 @@ function Login() {
       // deleteCurrentUser();
 
       // Save user/token
-      login(datas.userdata, datas.token, saveme);
+      login(datas.userdata, datas.accessToken, datas.refreshToken, saveme);
 
       // Success toast
       toast({
