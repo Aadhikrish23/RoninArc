@@ -4,27 +4,22 @@ import {
   InputGroup,
   InputLeftElement,
   Icon,
-  Text,
-  VStack,
-  Flex,
-  Button,
   Spinner,
-  HStack,
   useColorModeValue,
+  InputRightElement,
 } from "@chakra-ui/react";
 
 import { SearchIcon } from "@chakra-ui/icons";
 
-import type {
-  RawgGameResult,
-} from "../types/library";
+import type { RawgGameResult } from "../types/library";
+import RawgSearchDropdown from "./RawgSearchDropdown";
+import { rankSearchResults } from "../utils/searchRanking";
+import { useMemo } from "react";
 
 interface RawgSearchProps {
   searchText: string;
 
-  onSearchChange: (
-    value: string
-  ) => void;
+  onSearchChange: (value: string) => void;
 
   results: RawgGameResult[];
 
@@ -32,9 +27,8 @@ interface RawgSearchProps {
 
   error: string | null;
 
-  onAddGame: (
-    game: RawgGameResult
-  ) => void;
+  onAddGame: (game: RawgGameResult) => void;
+  onSearchSubmit: () => void;
 }
 
 export default function RawgSearch({
@@ -44,132 +38,55 @@ export default function RawgSearch({
   loading,
   error,
   onAddGame,
+  onSearchSubmit,
 }: RawgSearchProps) {
-  const cardBg = useColorModeValue(
-    "white",
-    "gray.800"
-  );
+  const cardBg = useColorModeValue("white", "gray.800");
 
-  const subtleBorder = useColorModeValue(
-    "gray.200",
-    "gray.700"
-  );
-
+  const subtleBorder = useColorModeValue("gray.200", "gray.700");
+ 
+const rankedResults = useMemo(
+  () =>
+    rankSearchResults(
+      results,
+      searchText
+    ),
+  [results, searchText]
+);
+console.log("RAWG Results", results);
+console.log("Ranked Results", rankedResults);
   return (
     <>
       <Box mb={6}>
         <InputGroup size="lg">
           <InputLeftElement>
-            <Icon
-              as={SearchIcon}
-              color="gray.400"
-            />
+            <Icon as={SearchIcon} color="gray.400" />
           </InputLeftElement>
 
           <Input
-            placeholder="Search games to add from RAWG..."
+            placeholder="Search games..."
             value={searchText}
-            onChange={(e) =>
-              onSearchChange(e.target.value)
-            }
+            onChange={(e) => onSearchChange(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                onSearchSubmit();
+              }
+            }}
             borderRadius="xl"
             bg={cardBg}
             borderColor={subtleBorder}
           />
+          <InputRightElement>
+            {loading && <Spinner size="sm" />}
+          </InputRightElement>
         </InputGroup>
-      </Box>
 
-      <Box mb={6}>
-        {loading ? (
-          <HStack
-            spacing={2}
-            p={3}
-            borderWidth="1px"
-            borderRadius="md"
-            borderColor={subtleBorder}
-            bg={cardBg}
-          >
-            <Spinner size="sm" />
-            <Text fontSize="sm" color="gray.500">
-              Searching RAWG...
-            </Text>
-          </HStack>
-        ) : error ? (
-          <Box
-            p={3}
-            borderWidth="1px"
-            borderRadius="md"
-            borderColor="red.300"
-            bg="red.50"
-          >
-            <Text
-              fontSize="sm"
-              color="red.500"
-            >
-              {error}
-            </Text>
-          </Box>
-        ) : results.length > 0 ? (
-          <Box
-            p={3}
-            borderWidth="1px"
-            borderRadius="md"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            maxH="260px"
-            overflowY="auto"
-          >
-            <Text
-              fontSize="sm"
-              mb={2}
-              color="gray.500"
-            >
-              RAWG results:
-            </Text>
-
-            <VStack
-              align="stretch"
-              spacing={2}
-            >
-              {results.map((game) => (
-                <Flex
-                  key={game.id}
-                  align="center"
-                  justify="space-between"
-                  p={2}
-                  borderRadius="md"
-                >
-                  <Box>
-                    <Text
-                      fontSize="sm"
-                      fontWeight="semibold"
-                    >
-                      {game.name}
-                    </Text>
-
-                    <Text
-                      fontSize="xs"
-                      color="gray.500"
-                    >
-                      {game.genres.join(", ")}
-                    </Text>
-                  </Box>
-
-                  <Button
-                    size="xs"
-                    colorScheme="purple"
-                    variant="outline"
-                    onClick={() =>
-                      onAddGame(game)
-                    }
-                  >
-                    Add
-                  </Button>
-                </Flex>
-              ))}
-            </VStack>
-          </Box>
-        ) : null}
+        {!error && searchText.trim() && results.length > 0 && (
+          
+          <RawgSearchDropdown
+            results={rankedResults.slice(0, 5)}
+            onViewAll={onSearchSubmit}
+          />
+        )}
       </Box>
     </>
   );

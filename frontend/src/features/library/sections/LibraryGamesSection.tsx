@@ -1,46 +1,20 @@
-import {
-  Box,
-  Button,
-  Flex,
-  SimpleGrid,
-  Spinner,
-  Text,
-} from "@chakra-ui/react";
+import { Box, Button, Flex, SimpleGrid, Spinner, Text } from "@chakra-ui/react";
 
-import RawgSearch from "../components/RawgSearch";
 import StatusFilter from "../components/StatusFilter";
 import GameCard from "../components/GameCard";
 
-import type {
-  Game,
-  RawgGameResult,
-  Status,
-} from "../types/library";
+import type { Game, RawgGameResult, Status } from "../types/library";
 
 import type { Collection } from "../../collections/types/collection";
 
 interface Props {
-  searchText: string;
 
-  onSearchChange: (
-    value: string
-  ) => void;
 
-  rawgResults: RawgGameResult[];
-
-  rawgLoading: boolean;
-
-  rawgError: string | null;
-
-  onAddGame: (
-    game: RawgGameResult
-  ) => Promise<void>;
+  
 
   selectedStatus: string;
 
-  onStatusChange: (
-    status: string
-  ) => void;
+  onStatusChange: (status: string) => void;
 
   loading: boolean;
 
@@ -50,38 +24,21 @@ interface Props {
 
   collections: Collection[];
 
-  onDeleteGame: (
-    gameId: string
-  ) => void;
+  onDeleteGame: (gameId: string) => void;
 
-  onLaunch: (
-    game: Game
-  ) => void;
+  onLaunch: (game: Game) => void;
 
-  onReview: (
-    game: Game
-  ) => void;
+  onReview: (game: Game) => void;
 
-  onGameStatusChange: (
-    gameId: string,
-    status: Status
-  ) => void;
+  onGameStatusChange: (gameId: string, status: Status) => void;
 
-  onAddToCollection: (
-    collectionId: string,
-    gameId: string
-  ) => void;
+  onAddToCollection: (collectionId: string, gameId: string) => void;
 
   onOpenCollectionModal: () => void;
+
 }
 
 export default function LibraryGamesSection({
-  searchText,
-  onSearchChange,
-  rawgResults,
-  rawgLoading,
-  rawgError,
-  onAddGame,
   selectedStatus,
   onStatusChange,
   loading,
@@ -97,46 +54,24 @@ export default function LibraryGamesSection({
 }: Props) {
   return (
     <>
-      <RawgSearch
-        searchText={searchText}
-        onSearchChange={onSearchChange}
-        results={rawgResults}
-        loading={rawgLoading}
-        error={rawgError}
-        onAddGame={onAddGame}
-      />
-
+      
+      
       <StatusFilter
         selectedStatus={selectedStatus}
         onStatusChange={onStatusChange}
       />
 
       <Flex mb={6}>
-        <Button
-          colorScheme="purple"
-          onClick={onOpenCollectionModal}
-        >
+        <Button colorScheme="purple" onClick={onOpenCollectionModal}>
           New Collection
         </Button>
       </Flex>
 
       {loading ? (
-        <Box
-          w="100%"
-          py={10}
-          textAlign="center"
-          color="gray.500"
-          fontSize="lg"
-        >
-          <Spinner
-            size="xl"
-            thickness="4px"
-            speed="0.6s"
-          />
+        <Box w="100%" py={10} textAlign="center" color="gray.500" fontSize="lg">
+          <Spinner size="xl" thickness="4px" speed="0.6s" />
 
-          <Text mt={4}>
-            Loading your library...
-          </Text>
+          <Text mt={4}>Loading your library...</Text>
         </Box>
       ) : error ? (
         <Box
@@ -155,9 +90,7 @@ export default function LibraryGamesSection({
             color: "red.200",
           }}
         >
-          <Text fontWeight="semibold">
-            Something went wrong!
-          </Text>
+          <Text fontWeight="semibold">Something went wrong!</Text>
 
           <Text>{error}</Text>
         </Box>
@@ -186,14 +119,10 @@ export default function LibraryGamesSection({
               game={game}
               collections={collections}
               onDelete={onDeleteGame}
-              onStatusChange={
-                onGameStatusChange
-              }
+              onStatusChange={onGameStatusChange}
               onLaunch={onLaunch}
               onReview={onReview}
-              onAddToCollection={
-                onAddToCollection
-              }
+              onAddToCollection={onAddToCollection}
             />
           ))}
         </SimpleGrid>

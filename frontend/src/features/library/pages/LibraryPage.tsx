@@ -1,7 +1,4 @@
-import {
-  Box,
-  useColorModeValue,
-} from "@chakra-ui/react";
+import { Box, useColorModeValue } from "@chakra-ui/react";
 
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@chakra-ui/react";
@@ -24,6 +21,8 @@ import { getErrorMessage } from "../../../shared/utils/error";
 import LibraryHeader from "../sections/LibraryHeader";
 import LibraryGamesSection from "../sections/LibraryGamesSection";
 import CollectionsSection from "../sections/CollectionsSection";
+import RawgResultsSection from "../sections/RawgResultsSection";
+import RawgSearch from "../components/RawgSearch";
 
 function LibraryPage() {
   const { games, setGames, fetchLibrary, addGame, deleteGame, updateStatus } =
@@ -45,6 +44,7 @@ function LibraryPage() {
   const [selectedStatus, setSelectedStatus] = useState("all");
 
   const [launchModalGame, setLaunchModalGame] = useState<Game | null>(null);
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   const [launchPath, setLaunchPath] = useState<string>("");
 
@@ -112,6 +112,17 @@ function LibraryPage() {
 
   const closeCollectionModal = () => {
     setIsCreateCollectionOpen(false);
+  };
+  const handleSearchSubmit = () => {
+    if (!searchText.trim()) return;
+
+    setShowSearchResults(true);
+  };
+
+  const handleBackToLibrary = () => {
+    clearSearch();
+
+    setShowSearchResults(false);
   };
   useEffect(() => {
     const loadLibrary = async () => {
@@ -255,34 +266,49 @@ function LibraryPage() {
     <Box minH="100vh" bg={bg}>
       {/* ---------------- MAIN CONTENT ---------------- */}
       <Box maxW="1200px" mx="auto" px={6} py={8}>
-        <LibraryHeader />
+        {showSearchResults ? (
+          <RawgResultsSection
+            searchText={searchText}
+            results={rawgResults}
+            loading={rawgLoading}
+            error={rawgError}
+            onAddGame={handleAddGame}
+            onBack={handleBackToLibrary}
+          />
+        ) : (
+          <>
+            <RawgSearch
+              searchText={searchText}
+              onSearchChange={setSearchText}
+              results={rawgResults}
+              loading={rawgLoading}
+              error={rawgError}
+              onAddGame={handleAddGame}
+              onSearchSubmit={handleSearchSubmit}
+            />
+            <LibraryHeader />
+            <LibraryGamesSection
+              selectedStatus={selectedStatus}
+              onStatusChange={setSelectedStatus}
+              loading={loading}
+              error={error}
+              filteredGames={filteredGames}
+              collections={collections}
+              onDeleteGame={handleDeleteGame}
+              onLaunch={openLaunchModal}
+              onReview={openReviewModal}
+              onGameStatusChange={updateStatus}
+              onAddToCollection={addGameToCollection}
+              onOpenCollectionModal={openCollectionModal}
+            />
 
-        <LibraryGamesSection
-          searchText={searchText}
-          onSearchChange={setSearchText}
-          rawgResults={rawgResults}
-          rawgLoading={rawgLoading}
-          rawgError={rawgError}
-          onAddGame={handleAddGame}
-          selectedStatus={selectedStatus}
-          onStatusChange={setSelectedStatus}
-          loading={loading}
-          error={error}
-          filteredGames={filteredGames}
-          collections={collections}
-          onDeleteGame={handleDeleteGame}
-          onLaunch={openLaunchModal}
-          onReview={openReviewModal}
-          onGameStatusChange={updateStatus}
-          onAddToCollection={addGameToCollection}
-          onOpenCollectionModal={openCollectionModal}
-        />
-
-        <CollectionsSection
-          collections={collections}
-          onDelete={deleteCollectionHandler}
-          onRemoveGame={removeGameFromCollection}
-        />
+            <CollectionsSection
+              collections={collections}
+              onDelete={deleteCollectionHandler}
+              onRemoveGame={removeGameFromCollection}
+            />
+          </>
+        )}
 
         <LaunchModal
           game={launchModalGame}

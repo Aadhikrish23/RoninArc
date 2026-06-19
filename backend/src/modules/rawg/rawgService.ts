@@ -6,11 +6,9 @@ dotenv.config();
 const RAWG_BASE_URL = process.env.RAWG_BASE_URL;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
 
-
-
 async function searchGames(query: string, page: number) {
-    console.log(">>> RAWG SERVICE searchGames HIT <<<");
- 
+  console.log(">>> RAWG SERVICE searchGames HIT <<<");
+
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
   }
@@ -21,7 +19,10 @@ async function searchGames(query: string, page: number) {
       params: {
         key: RAWG_API_KEY,
         search: query,
-        page: page,
+        page,
+
+        search_precise: true,
+        ordering: "-added",
       },
     });
 
@@ -34,6 +35,10 @@ async function searchGames(query: string, page: number) {
       rating: g.rating,
       released: g.released,
       genres: g.genres?.map((x: any) => x.name) || [],
+      added: g.added,
+      ratingsCount: g.ratings_count,
+      suggestionsCount: g.suggestions_count,
+      metacritic: g.metacritic,
     }));
 
     return cleaned;

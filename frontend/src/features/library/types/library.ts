@@ -11,7 +11,6 @@ export interface Game {
   rating?: number | null;
   createdAt: string;
   updatedAt: string;
-  
 }
 
 export interface AddGamePayload {
@@ -34,9 +33,13 @@ export interface UpdateGamePayload {
 export interface RawgGameResult {
   id: number;
   name: string;
-  description:string;
+  description: string;
   imageURL: string;
   released: string;
   rating: number;
   genres: string[];
+  added: number;
+  ratingsCount: number;
+  suggestionsCount: number;
+  metacritic: number | null;
 }

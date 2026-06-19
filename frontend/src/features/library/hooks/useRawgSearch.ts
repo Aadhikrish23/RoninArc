@@ -14,35 +14,44 @@ export function useRawgSearch() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (searchText.trim().length < 3) {
-      setResults([]);
+  // 1. Immediately reset state if search text is too short
+  if (searchText.trim().length < 3) {
+    setResults([]);
+    setError(null);
+    setLoading(false);
+    return;
+  }
+
+  // 2. Single debounce timer for all search activities
+  const timer = setTimeout(async () => {
+    try {
+      setLoading(true);
       setError(null);
-      setLoading(false);
-      return;
-    }
 
-    const timer = setTimeout(async () => {
-      try {
-        setLoading(true);
-        setError(null);
+      // Trigger the API call
+      const data = await libraryApi.searchRawgGames(searchText, 1);
 
-        const data = await libraryApi.searchRawgGames(searchText, 1);
-
-        if (!data) {
-          setError("Failed to search RAWG");
-          return;
-        }
-
-        setResults(data);
-      } catch (error: unknown) {
-        setError(getErrorMessage(error));
-      } finally {
-        setLoading(false);
+      if (!data) {
+        setError("Failed to search RAWG");
+        return;
       }
-    }, 400);
 
-    return () => clearTimeout(timer);
-  }, [searchText]);
+      setResults(data);
+
+      // 3. Call your secondary function here if it relies on the final searchText
+      // searchGames(searchText); 
+
+    } catch (error: unknown) {
+      setError(getErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  }, 400); // Standardized to a 400ms delay
+
+  // 4. Cleanup function cancels the timer if user keeps typing
+  return () => clearTimeout(timer);
+}, [searchText]);
+
 
   const clearSearch = () => {
     setSearchText("");
