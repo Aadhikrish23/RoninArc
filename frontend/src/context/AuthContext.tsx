@@ -6,6 +6,7 @@ import {
   type ReactNode,
 } from "react";
 import authApi from "../api/authApi";
+import { setTokenUpdater } from "../utils/tokenManager";
 
 export interface AuthUser {
   name: string;
@@ -25,6 +26,7 @@ interface AuthContextType {
     refreshToken: string,
     rememberMe?: boolean,
   ) => void;
+  updateTokens: (accessToken: string, refreshToken: string) => void;
 
   logout: () => void;
 }
@@ -84,25 +86,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-const logout = async () => {
-  try {
-    const refreshToken =
-      localStorage.getItem("roninarc_refresh_token") ||
-      sessionStorage.getItem("roninarc_refresh_token");
+  const logout = async () => {
+    try {
+      const refreshToken =
+        localStorage.getItem("roninarc_refresh_token") ||
+        sessionStorage.getItem("roninarc_refresh_token");
 
-    if (refreshToken) {
-      await authApi.logoutUser(refreshToken);
+      if (refreshToken) {
+        await authApi.logoutUser(refreshToken);
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      clearStorage();
+
+      setUser(null);
+      setToken(null);
+      setRefreshToken(null);
     }
-  } catch (error) {
-    console.error(error);
-  } finally {
-    clearStorage();
+  };
+  const updateTokens = (accessToken: string, refreshTokenValue: string) => {
+    setToken(accessToken);
+    setRefreshToken(refreshTokenValue);
 
-    setUser(null);
-    setToken(null);
-    setRefreshToken(null);
-  }
-};
+    const usingLocalStorage = !!localStorage.getItem("roninarc_refresh_token");
+
+    if (usingLocalStorage) {
+      localStorage.setItem("roninarc_token", accessToken);
+
+      localStorage.setItem("roninarc_refresh_token", refreshTokenValue);
+    } else {
+      sessionStorage.setItem("roninarc_token", accessToken);
+
+      sessionStorage.setItem("roninarc_refresh_token", refreshTokenValue);
+    }
+  };
+  useEffect(() => {
+    setTokenUpdater(updateTokens);
+
+    return () => {
+      setTokenUpdater(() => {});
+    };
+  }, []);
 
   return (
     <AuthContext.Provider
@@ -113,6 +138,7 @@ const logout = async () => {
         isAuthenticated: !!token,
         isLoading,
         login,
+        updateTokens,
         logout,
       }}
     >

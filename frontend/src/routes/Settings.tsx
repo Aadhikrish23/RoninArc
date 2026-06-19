@@ -41,14 +41,12 @@ function SettingsPage() {
 
   useEffect(() => {
     const stored = user?.name.toUpperCase() || "Ronin";
-    if (stored) setUsername(stored);
-  }, []);
 
-  const handleLogout = () => {
-    // clear auth stuff
-    logout();
-    // (optional) clear anything else you stored for auth here
+    setUsername(stored);
+  }, [user]);
 
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 

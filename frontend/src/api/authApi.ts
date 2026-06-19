@@ -39,7 +39,7 @@ const userSignup = async (
   email?: string,
 ): Promise<RegisterSuccess> => {
   email = email === undefined ? "" : email.trim();
-  const userdata = await api.post<{ Status: String; Data: RegisterSuccess }>(
+  const userData  = await api.post<{ Status: String; Data: RegisterSuccess }>(
     "auth/register",
     {
       username: name.trim(),
@@ -47,7 +47,7 @@ const userSignup = async (
       email: email,
     },
   );
-  return userdata.data.Data;
+  return userData.data.Data;
 };
 const logoutUser = async (refreshToken: string) => {
   return api.post("auth/logout", {

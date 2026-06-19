@@ -1,5 +1,6 @@
 import axios from "axios";
 import { API_BASE_URL } from "./config";
+import { updateAuthTokens } from "../utils/tokenManager";
 
 let isRefreshing = false;
 let refreshPromise: Promise<any> | null = null;
@@ -75,15 +76,7 @@ api.interceptors.response.use(
           "roninarc_refresh_token",
         );
         console.log("[AUTH] Using Local Storage:", usingLocalStorage);
-        if (usingLocalStorage) {
-          localStorage.setItem("roninarc_token", accessToken);
-
-          localStorage.setItem("roninarc_refresh_token", newRefreshToken);
-        } else {
-          sessionStorage.setItem("roninarc_token", accessToken);
-
-          sessionStorage.setItem("roninarc_refresh_token", newRefreshToken);
-        }
+        updateAuthTokens(accessToken, newRefreshToken);
 
         originalRequest.headers = originalRequest.headers || {};
 

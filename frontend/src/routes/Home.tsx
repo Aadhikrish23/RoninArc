@@ -31,6 +31,7 @@ import CreateCollectionModal from "../features/collections/components/CreateColl
 
 import CollectionCard from "../features/collections/components/CollectionCard";
 import activityApi from "../features/activity/api/activityApi";
+import { useAuth } from "../context/AuthContext";
 
 function LibraryPage() {
   const { games, setGames, fetchLibrary, addGame, deleteGame, updateStatus } =
@@ -58,6 +59,9 @@ function LibraryPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
 
   const toast = useToast();
+  const { token } = useAuth();
+
+  console.log("Context token:", token);
 
   const updateGameRating = (gameId: string, rating: number | null) => {
     setGames((prev) =>

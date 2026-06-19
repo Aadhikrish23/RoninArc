@@ -78,8 +78,15 @@ function Signup() {
 
       // Clear old user data
       // deleteCurrentUser();
+      console.log("SIGNUP RESPONSE", datas);
 
       login(datas.userdata, datas.accessToken, datas.refreshToken, saveme);
+
+      console.log(
+        "TOKEN AFTER LOGIN",
+        sessionStorage.getItem("roninarc_token"),
+        localStorage.getItem("roninarc_token"),
+      );
 
       toast({
         title: "Signup successful",
