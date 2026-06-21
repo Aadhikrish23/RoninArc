@@ -4,7 +4,9 @@ declare global {
   interface Window {
     electronAPI?: {
       selectExePath: () => Promise<string | null>;
-      launchGame: (exePath: string) => Promise<boolean>;
+      launchGame: (gameId: string, exePath: string) => Promise<boolean>;
+
+      onGameExited?: (callback: (gameId: string) => void) => void;
     };
   }
 }

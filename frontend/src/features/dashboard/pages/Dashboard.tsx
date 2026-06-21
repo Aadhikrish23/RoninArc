@@ -18,13 +18,14 @@ import { useEffect, useState } from "react";
 import { getDashboardStats } from "../api/dashboardApi";
 import { useActivity } from "../../activity/hooks/useActivity";
 import type { DashboardStats } from "../types/dashboard";
-
+import { usePlaySession } from "../../playSession/hooks/usePlaySession";
 function DashboardPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
   const { activities } = useActivity();
+  const { stats: playtimeStats, loadStats } = usePlaySession();
   const [stats, setStats] = useState<DashboardStats>({
     totalGames: 0,
     playing: 0,
@@ -39,16 +40,19 @@ function DashboardPage() {
     highestRatedGame: null,
   });
   useEffect(() => {
-    const loadStats = async () => {
+    const load = async () => {
       try {
         const data = await getDashboardStats();
+
         setStats(data);
+
+        await loadStats();
       } catch (error) {
         console.error(error);
       }
     };
 
-    loadStats();
+    load();
   }, []);
 
   return (
@@ -156,6 +160,72 @@ function DashboardPage() {
               </StatNumber>
 
               <StatHelpText>Your top-rated game</StatHelpText>
+            </Stat>
+          </Box>
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Stat>
+              <StatLabel>Total Hours Played</StatLabel>
+
+              <StatNumber>{playtimeStats?.totalHours ?? 0}</StatNumber>
+
+              <StatHelpText>Across all games</StatHelpText>
+            </Stat>
+          </Box>
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Stat>
+              <StatLabel>Average Session</StatLabel>
+
+              <StatNumber>
+                {playtimeStats?.averageSessionMinutes ?? 0}m
+              </StatNumber>
+
+              <StatHelpText>Per completed session</StatHelpText>
+            </Stat>
+          </Box>
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Stat>
+              <StatLabel>Total Sessions</StatLabel>
+
+              <StatNumber>{playtimeStats?.totalSessions ?? 0}</StatNumber>
+
+              <StatHelpText>Recorded launches</StatHelpText>
+            </Stat>
+          </Box>
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Stat>
+              <StatLabel>Most Played Game</StatLabel>
+
+              <StatNumber fontSize="lg" noOfLines={1}>
+                {playtimeStats?.mostPlayedGame?.title || "None"}
+              </StatNumber>
+
+              <StatHelpText>
+                {playtimeStats?.mostPlayedMinutes ?? 0}m played
+              </StatHelpText>
             </Stat>
           </Box>
         </SimpleGrid>
@@ -286,6 +356,29 @@ function DashboardPage() {
                 ))
               )}
             </VStack>
+          </Box>
+          <Box
+            borderWidth="1px"
+            borderRadius="xl"
+            borderColor={subtleBorder}
+            bg={cardBg}
+            p={4}
+          >
+            <Heading size="sm" mb={2}>
+              Play Sessions
+            </Heading>
+
+            <Text fontSize="xs" color={mutedText} mb={3}>
+              Rykard Tracking
+            </Text>
+
+            <Text fontSize="sm">
+              Total Hours: {playtimeStats?.totalHours ?? 0}
+            </Text>
+
+            <Text fontSize="sm">
+              Sessions: {playtimeStats?.totalSessions ?? 0}
+            </Text>
           </Box>
         </SimpleGrid>
       </Box>

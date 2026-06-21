@@ -8,7 +8,7 @@ import {
   VStack,
 } from "@chakra-ui/react";
 
-import type { RawgGameResult } from "../types/library";
+import type { Game, RawgGameResult } from "../types/library";
 import { Grid, IconButton } from "@chakra-ui/react";
 
 import { RxHamburgerMenu } from "react-icons/rx";
@@ -17,6 +17,7 @@ import { useState } from "react";
 import { useMemo } from "react";
 import { rankSearchResults } from "../utils/searchRanking";
 import { useNavigate } from "react-router-dom";
+import { useRawgSearch } from "../hooks/useRawgSearch";
 interface Props {
   searchText: string;
 
@@ -27,6 +28,7 @@ interface Props {
   error: string | null;
 
   onAddGame: (game: RawgGameResult) => Promise<void>;
+  games: Game[];
 
   onBack: () => void;
 }
@@ -38,11 +40,26 @@ export default function RawgResultsSection({
   error,
   onAddGame,
   onBack,
+  games,
 }: Props) {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const navigate = useNavigate();
+
   const openGameDetails = (gameId: number) => {
     navigate(`/library/game/${gameId}`);
+  };
+  const isInLibrary = (rawgId: number) =>
+    games.some((game) => game.rawgId === rawgId);
+  const openLibraryEntry = ( rawgId: number) => {
+    
+    const libraryGame = games.find(
+    (g) => g.rawgId === rawgId
+  );
+
+  if (!libraryGame) return;
+
+  navigate(`/?game=${libraryGame._id}`);
+  onBack();
   };
   const renderGrid = (game: RawgGameResult) => (
     <Box
@@ -67,36 +84,51 @@ export default function RawgResultsSection({
           {game.genres.join(", ")}
         </Text>
 
-        <Button
-          mt={3}
-          w="100%"
-          colorScheme="purple"
-          onClick={(e) => {
-            e.stopPropagation();
-            onAddGame(game);
-          }}
-        >
-          Add
-        </Button>
+        {isInLibrary(game.id) ? (
+          <Button
+            mt={3}
+            w="100%"
+            variant="outline"
+            colorScheme="purple"
+            onClick={(e) => {
+              e.stopPropagation();
+              openLibraryEntry(game.id);
+            }}
+          >
+            Open In Library
+          </Button>
+        ) : (
+          <Button
+            mt={3}
+            w="100%"
+            colorScheme="purple"
+            onClick={(e) => {
+              e.stopPropagation();
+              onAddGame(game);
+            }}
+          >
+            Add
+          </Button>
+        )}
       </Box>
     </Box>
   );
   const renderList = (game: RawgGameResult) => (
     <Flex
-  key={game.id}
-  gap={4}
-  p={4}
-  borderWidth="1px"
-  borderRadius="lg"
-  align="center"
-  cursor="pointer"
-  transition="all .2s"
-  _hover={{
-    transform: "translateY(-2px)",
-    shadow: "md",
-  }}
-  onClick={() => openGameDetails(game.id)}
->
+      key={game.id}
+      gap={4}
+      p={4}
+      borderWidth="1px"
+      borderRadius="lg"
+      align="center"
+      cursor="pointer"
+      transition="all .2s"
+      _hover={{
+        transform: "translateY(-2px)",
+        shadow: "md",
+      }}
+      onClick={() => openGameDetails(game.id)}
+    >
       <Image
         src={game.imageURL}
         alt={game.name}
@@ -123,15 +155,28 @@ export default function RawgResultsSection({
         </Text>
       </Box>
 
-      <Button
-        colorScheme="purple"
-        onClick={(e) => {
-          e.stopPropagation();
-          onAddGame(game);
-        }}
-      >
-        Add
-      </Button>
+      {isInLibrary(game.id) ? (
+        <Button
+          variant="outline"
+          colorScheme="purple"
+          onClick={(e) => {
+            e.stopPropagation();
+            openLibraryEntry(game.id);
+          }}
+        >
+          Open In Library
+        </Button>
+      ) : (
+        <Button
+          colorScheme="purple"
+          onClick={(e) => {
+            e.stopPropagation();
+            onAddGame(game);
+          }}
+        >
+          Add
+        </Button>
+      )}
     </Flex>
   );
   const rankedResults = useMemo(

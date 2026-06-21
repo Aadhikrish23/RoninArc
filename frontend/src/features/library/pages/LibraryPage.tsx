@@ -1,7 +1,7 @@
 import { Box, useColorModeValue } from "@chakra-ui/react";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import { useToast } from "@chakra-ui/react";
 
 import type { RawgGameResult, Game } from "../types/library";
@@ -24,6 +24,8 @@ import LibraryGamesSection from "../sections/LibraryGamesSection";
 import CollectionsSection from "../sections/CollectionsSection";
 import RawgResultsSection from "../sections/RawgResultsSection";
 import RawgSearch from "../components/RawgSearch";
+import GameAddedModal from "../components/GameAddedModal";
+import { usePlaySession } from "../../playSession/hooks/usePlaySession";
 
 function LibraryPage() {
   const { games, setGames, fetchLibrary, addGame, deleteGame, updateStatus } =
@@ -40,11 +42,9 @@ function LibraryPage() {
 
     clearSearch,
   } = useRawgSearch();
-  const [searchParams] =
-  useSearchParams();
+  const [searchParams] = useSearchParams();
 
-const selectedGameId =
-  searchParams.get("game");
+  const selectedGameId = searchParams.get("game");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedStatus, setSelectedStatus] = useState("all");
@@ -58,6 +58,12 @@ const selectedGameId =
 
   const toast = useToast();
   const { token } = useAuth();
+  const { startSession, endSession } = usePlaySession();
+  const navigate = useNavigate();
+
+  const [addedGameTitle, setAddedGameTitle] = useState("");
+
+  const [showAddedModal, setShowAddedModal] = useState(false);
 
   console.log("Context token:", token);
 
@@ -146,6 +152,23 @@ const selectedGameId =
 
     loadLibrary();
   }, []);
+  useEffect(() => {
+    if (!window.electronAPI?.onGameExited) return;
+
+    window.electronAPI.onGameExited(async (gameId) => {
+      try {
+        console.log("[END SESSION]", gameId);
+        await endSession(gameId);
+
+        toast({
+          title: "Play session ended",
+          status: "success",
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    });
+  }, []);
 
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
@@ -160,25 +183,21 @@ const selectedGameId =
     });
   }, [games, selectedStatus, searchText]);
 
- const handleAddGame = async (rawgGame: RawgGameResult) => {
-  await addGame({
-    rawgId: rawgGame.id,
+  const handleAddGame = async (rawgGame: RawgGameResult) => {
+    await addGame({
+      rawgId: rawgGame.id,
+      title: rawgGame.name,
+      description: rawgGame.description ?? "",
+      imageURL: rawgGame.imageURL,
+      exePath: "",
+      tags: rawgGame.genres,
+      status: "plan",
+    });
 
-    title: rawgGame.name,
+    setAddedGameTitle(rawgGame.name);
 
-    description: rawgGame.description ?? "",
-
-    imageURL: rawgGame.imageURL,
-
-    exePath: "",
-
-    tags: rawgGame.genres,
-
-    status: "plan",
-  });
-
-  clearSearch();
-};
+    setShowAddedModal(true);
+  };
 
   const handlePickExePath = async () => {
     if (!window.electronAPI?.selectExePath) {
@@ -255,7 +274,12 @@ const selectedGameId =
     }
 
     try {
-      const launched = await window.electronAPI.launchGame(launchPath);
+      await startSession(launchModalGame._id);
+
+      const launched = await window.electronAPI.launchGame(
+        launchModalGame._id,
+        launchPath,
+      );
 
       if (launched) {
         await activityApi.recordLaunch(launchModalGame._id);
@@ -290,6 +314,7 @@ const selectedGameId =
           <RawgResultsSection
             searchText={searchText}
             results={rawgResults}
+            games={games}
             loading={rawgLoading}
             error={rawgError}
             onAddGame={handleAddGame}
@@ -308,7 +333,7 @@ const selectedGameId =
             />
             <LibraryHeader />
             <LibraryGamesSection
-             selectedGameId={selectedGameId}
+              selectedGameId={selectedGameId}
               selectedStatus={selectedStatus}
               onStatusChange={setSelectedStatus}
               loading={loading}
@@ -355,6 +380,20 @@ const selectedGameId =
             await createCollection(name, description);
 
             closeCollectionModal();
+          }}
+        />
+        <GameAddedModal
+          isOpen={showAddedModal}
+          gameTitle={addedGameTitle}
+          onContinue={() => {
+            setShowAddedModal(false);
+          }}
+          onViewLibrary={() => {
+            setShowAddedModal(false);
+
+            clearSearch();
+
+            setShowSearchResults(false);
           }}
         />
       </Box>

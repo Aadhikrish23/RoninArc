@@ -7,7 +7,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
   selectExePath: async () => {
     return await ipcRenderer.invoke("select-exe-path");
   },
-  launchGame: async (exePath) => {
-    return await ipcRenderer.invoke("launch-game", exePath);
+  launchGame: async (gameId, exePath) => {
+    return await ipcRenderer.invoke("launch-game", gameId, exePath);
+  },
+
+  onGameExited: (callback) => {
+    ipcRenderer.on("game-exited", (_event, gameId) => {
+      callback(gameId);
+    });
   },
 });
