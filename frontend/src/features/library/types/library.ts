@@ -81,3 +81,9 @@ export interface RawgGameDetails {
 
   tags: string[];
 }
+export interface EpicGame {
+  name: string;
+  installPath: string;
+  executable: string;
+  epicId: string;
+}

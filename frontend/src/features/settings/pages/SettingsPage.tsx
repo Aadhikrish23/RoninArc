@@ -19,6 +19,7 @@ import ChangePasswordModal from "../components/ChangePasswordModal";
 import LogoutAllDevicesModal from "../components/LogoutAllDevicesModal";
 
 import DeleteAccountModal from "../components/DeleteAccountModal";
+import ImportWizardModal from "../components/ImportWizardModal";
 
 function SettingsPage() {
   // same palette as Library
@@ -34,7 +35,7 @@ function SettingsPage() {
   const navigate = useNavigate();
   const deleteModal = useDisclosure();
   const { logout, user } = useAuth();
-
+  const [isImportOpen, setImportOpen] = useState(false);
 
   useEffect(() => {
     const stored = user?.name.toUpperCase() || "Ronin";
@@ -49,8 +50,6 @@ function SettingsPage() {
 
   return (
     <Box minH="100vh" bg={bg}>
-     
-
       <Box maxW="1200px" mx="auto" px={6} py={8}>
         {/* Header */}
         <Box mb={6}>
@@ -59,7 +58,21 @@ function SettingsPage() {
             Manage your RoninArc account and preferences.
           </Text>
         </Box>
+        <Box>
+          <Heading size="md">Library Import</Heading>
 
+          <Text color="gray.500">
+            Import games from Steam and Epic Games Launcher.
+          </Text>
+
+          <Button
+            mt={3}
+            colorScheme="purple"
+            onClick={() => setImportOpen(true)}
+          >
+            Open Import Wizard
+          </Button>
+        </Box>
         {/* Card */}
         <Box
           borderWidth="1px"
@@ -147,6 +160,10 @@ function SettingsPage() {
       <DeleteAccountModal
         isOpen={deleteModal.isOpen}
         onClose={deleteModal.onClose}
+      />
+      <ImportWizardModal
+        isOpen={isImportOpen}
+        onClose={() => setImportOpen(false)}
       />
     </Box>
   );

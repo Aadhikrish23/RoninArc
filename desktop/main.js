@@ -3,14 +3,8 @@ const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("node:path");
 const { spawn, exec } = require("node:child_process");
 const activeGames = new Map();
-
-/*
-{
-  gameId: {
-    exeName: "eldenring.exe"
-  }
-}
-*/
+const { scanEpicGames } = require("./services/epicScanner");
+const { scanSteamGames } = require("./services/steamScanner");
 
 const DEV_SERVER_URL = "http://localhost:5173";
 const isDev = !app.isPackaged;
@@ -232,3 +226,10 @@ setInterval(() => {
     });
   });
 }, 5000);
+
+ipcMain.handle("epic:scan", async () => {
+  return scanEpicGames();
+});
+ipcMain.handle("steam:scan", async () => {
+  return scanSteamGames();
+});

@@ -43,6 +43,7 @@ function LibraryPage() {
     clearSearch,
   } = useRawgSearch();
   const [searchParams] = useSearchParams();
+  
 
   const selectedGameId = searchParams.get("game");
   const [loading, setLoading] = useState<boolean>(true);
@@ -310,6 +311,8 @@ function LibraryPage() {
     <Box minH="100vh" bg={bg}>
       {/* ---------------- MAIN CONTENT ---------------- */}
       <Box maxW="1200px" mx="auto" px={6} py={8}>
+        
+        
         {showSearchResults ? (
           <RawgResultsSection
             searchText={searchText}
@@ -355,7 +358,6 @@ function LibraryPage() {
             />
           </>
         )}
-
         <LaunchModal
           game={launchModalGame}
           launchPath={launchPath}
@@ -363,7 +365,6 @@ function LibraryPage() {
           onEditPath={handlePickExePath}
           onLaunch={handleLaunchGame}
         />
-
         <ReviewModal
           game={reviewGame}
           review={currentReview}
@@ -372,7 +373,6 @@ function LibraryPage() {
           onSave={saveReview}
           onDelete={deleteReviewHandler}
         />
-
         <CreateCollectionModal
           isOpen={isCreateCollectionOpen}
           onClose={closeCollectionModal}

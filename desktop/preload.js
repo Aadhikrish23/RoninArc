@@ -16,4 +16,10 @@ contextBridge.exposeInMainWorld("electronAPI", {
       callback(gameId);
     });
   },
+  scanEpicGames: async () => {
+    return await ipcRenderer.invoke("epic:scan");
+  },
+  scanSteamGames: async () => {
+    return await ipcRenderer.invoke("steam:scan");
+  },
 });
