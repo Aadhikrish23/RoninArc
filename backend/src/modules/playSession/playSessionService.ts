@@ -128,6 +128,30 @@ const getUserPlaytimeStats = async (userId: Types.ObjectId) => {
   };
 };
 
+const getGamePlaytime = async (userId: Types.ObjectId, gameId: string) => {
+  const sessions = await PlaySession.find({
+    userId,
+    gameId: new Types.ObjectId(gameId),
+  });
+
+  const totalMinutes = sessions.reduce(
+    (sum, session) => sum + (session.durationMinutes || 0),
+    0,
+  );
+
+  const lastSession = await PlaySession.findOne({
+    userId,
+    gameId: new Types.ObjectId(gameId),
+  }).sort({
+    startedAt: -1,
+  });
+
+  return {
+    totalHours: Number((totalMinutes / 60).toFixed(1)),
+    lastPlayed: lastSession ? lastSession.startedAt : null,
+  };
+};
+
 export default {
   startSession,
 
@@ -136,4 +160,7 @@ export default {
   getRecentSessions,
 
   getUserPlaytimeStats,
+
+  getGamePlaytime,
 };
+

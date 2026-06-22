@@ -11,6 +11,7 @@ import {
   ModalOverlay,
   Text,
   useToast,
+  VStack,
 } from "@chakra-ui/react";
 
 import { useState } from "react";
@@ -18,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 
 import settingsApi from "../api/settingsApi";
 import { getErrorMessage } from "../../../shared/utils/error";
+import SettingsModal from "./SettingsModal";
 
 interface DeleteAccountModalProps {
   isOpen: boolean;
@@ -73,69 +75,65 @@ export default function DeleteAccountModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      isCentered
-    >
-      <ModalOverlay />
+  <SettingsModal
+    isOpen={isOpen}
+    onClose={onClose}
+    title="Delete Account"
+    footer={
+      <>
+        <Button
+          variant="ghost"
+          onClick={onClose}
+        >
+          Cancel
+        </Button>
 
-      <ModalContent>
-        <ModalHeader>
+        <Button
+          colorScheme="red"
+          isLoading={loading}
+          onClick={handleDelete}
+        >
           Delete Account
-        </ModalHeader>
+        </Button>
+      </>
+    }
+  >
+    <VStack
+      align="stretch"
+      spacing={4}
+    >
+      <Text
+        color="red.400"
+        fontWeight="bold"
+      >
+        This action cannot be
+        undone.
+      </Text>
 
-        <ModalBody>
-          <Text
-            mb={4}
-            color="red.500"
-            fontWeight="semibold"
-          >
-            Warning: This action cannot be
-            undone.
-          </Text>
+      <Text>
+        Your account, library,
+        reviews, collections and
+        activity history will be
+        permanently removed.
+      </Text>
 
-          <Text mb={4}>
-            All collections, reviews,
-            activities and library entries
-            will be permanently deleted.
-          </Text>
+      <FormControl>
+        <FormLabel>
+          Confirm Password
+        </FormLabel>
 
-          <FormControl>
-            <FormLabel>
-              Enter Password
-            </FormLabel>
-
-            <Input
-              type="password"
-              value={password}
-              onChange={(e) =>
-                setPassword(
-                  e.target.value
-                )
-              }
-              placeholder="Confirm your password"
-            />
-          </FormControl>
-        </ModalBody>
-
-        <ModalFooter gap={3}>
-          <Button
-            variant="ghost"
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            colorScheme="red"
-            onClick={handleDelete}
-            isLoading={loading}
-          >
-            Delete Account
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
-  );
+        <Input
+          type="password"
+          value={password}
+          placeholder="Enter password"
+          onChange={(e) =>
+            setPassword(
+              e.target.value
+            )
+          }
+        />
+      </FormControl>
+    </VStack>
+  </SettingsModal>
+);
 }

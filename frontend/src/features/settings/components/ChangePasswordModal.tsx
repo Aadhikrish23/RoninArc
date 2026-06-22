@@ -17,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 
 import settingsApi from "../api/settingsApi";
 import { useAuth } from "../../auth/context/AuthContext";
+import SettingsModal from "./SettingsModal";
 
 interface Props {
   isOpen: boolean;
@@ -84,86 +85,84 @@ export default function ChangePasswordModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
+  <SettingsModal
+    isOpen={isOpen}
+    onClose={onClose}
+    title="Change Password"
+    footer={
+      <>
+        <Button
+          mr={3}
+          onClick={onClose}
+        >
+          Cancel
+        </Button>
+
+        <Button
+          colorScheme="purple"
+          isLoading={loading}
+          onClick={handleSubmit}
+        >
+          Update Password
+        </Button>
+      </>
+    }
+  >
+    <VStack
+      spacing={5}
+      align="stretch"
     >
-      <ModalOverlay />
+      <FormControl>
+        <FormLabel>
+          Current Password
+        </FormLabel>
 
-      <ModalContent>
-        <ModalHeader>
-          Change Password
-        </ModalHeader>
+        <Input
+          type="password"
+          placeholder="Current password"
+          value={currentPassword}
+          onChange={(e) =>
+            setCurrentPassword(
+              e.target.value
+            )
+          }
+        />
+      </FormControl>
 
-        <ModalBody>
-          <VStack spacing={4}>
-            <FormControl>
-              <FormLabel>
-                Current Password
-              </FormLabel>
+      <FormControl>
+        <FormLabel>
+          New Password
+        </FormLabel>
 
-              <Input
-                type="password"
-                value={currentPassword}
-                onChange={(e) =>
-                  setCurrentPassword(
-                    e.target.value
-                  )
-                }
-              />
-            </FormControl>
+        <Input
+          type="password"
+          placeholder="New password"
+          value={newPassword}
+          onChange={(e) =>
+            setNewPassword(
+              e.target.value
+            )
+          }
+        />
+      </FormControl>
 
-            <FormControl>
-              <FormLabel>
-                New Password
-              </FormLabel>
+      <FormControl>
+        <FormLabel>
+          Confirm Password
+        </FormLabel>
 
-              <Input
-                type="password"
-                value={newPassword}
-                onChange={(e) =>
-                  setNewPassword(
-                    e.target.value
-                  )
-                }
-              />
-            </FormControl>
-
-            <FormControl>
-              <FormLabel>
-                Confirm Password
-              </FormLabel>
-
-              <Input
-                type="password"
-                value={confirmPassword}
-                onChange={(e) =>
-                  setConfirmPassword(
-                    e.target.value
-                  )
-                }
-              />
-            </FormControl>
-          </VStack>
-        </ModalBody>
-
-        <ModalFooter>
-          <Button
-            mr={3}
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            colorScheme="purple"
-            isLoading={loading}
-            onClick={handleSubmit}
-          >
-            Update
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
-  );
+        <Input
+          type="password"
+          placeholder="Confirm password"
+          value={confirmPassword}
+          onChange={(e) =>
+            setConfirmPassword(
+              e.target.value
+            )
+          }
+        />
+      </FormControl>
+    </VStack>
+  </SettingsModal>
+);
 }

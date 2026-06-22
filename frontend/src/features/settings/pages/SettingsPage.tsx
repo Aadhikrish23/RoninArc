@@ -1,166 +1,214 @@
 import {
   Box,
+  Button,
   Heading,
   Text,
-  Button,
   VStack,
   useColorModeValue,
-  Divider,
-  HStack,
   useDisclosure,
 } from "@chakra-ui/react";
+import { Grid, GridItem, Divider, HStack, Switch } from "@chakra-ui/react";
+
 import { useColorMode } from "@chakra-ui/react";
-import { MoonIcon, SunIcon } from "@chakra-ui/icons";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// import { deleteCurrentUser, getCurrentUser } from "../utils/auth";
+
 import { useAuth } from "../../auth/context/AuthContext";
+
 import ChangePasswordModal from "../components/ChangePasswordModal";
 import LogoutAllDevicesModal from "../components/LogoutAllDevicesModal";
-
 import DeleteAccountModal from "../components/DeleteAccountModal";
 import ImportWizardModal from "../components/ImportWizardModal";
 
-function SettingsPage() {
-  // same palette as Library
+export default function SettingsPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
-  const subtleBorder = useColorModeValue("gray.200", "gray.700");
+
   const mutedText = useColorModeValue("gray.600", "gray.400");
 
-  const { colorMode, toggleColorMode } = useColorMode();
-  const [username, setUsername] = useState<string | null>(null);
-  const [isPasswordOpen, setPasswordOpen] = useState(false);
-  const [isLogoutAllOpen, setLogoutAllOpen] = useState(false);
   const navigate = useNavigate();
-  const deleteModal = useDisclosure();
+
   const { logout, user } = useAuth();
+
+  const [username, setUsername] = useState("Unknown User");
+  const { colorMode, toggleColorMode } = useColorMode();
+
+  const [isPasswordOpen, setPasswordOpen] = useState(false);
+
+  const [isLogoutAllOpen, setLogoutAllOpen] = useState(false);
+
   const [isImportOpen, setImportOpen] = useState(false);
 
-  useEffect(() => {
-    const stored = user?.name.toUpperCase() || "Ronin";
+  const deleteModal = useDisclosure();
+  const isDesktop = typeof window !== "undefined" && !!window.electronAPI;
 
-    setUsername(stored);
+  useEffect(() => {
+    setUsername(user?.name?.toUpperCase() ?? "RONIN");
   }, [user]);
 
   const handleLogout = async () => {
     await logout();
+
     navigate("/login");
   };
 
   return (
     <Box minH="100vh" bg={bg}>
-      <Box maxW="1200px" mx="auto" px={6} py={8}>
-        {/* Header */}
-        <Box mb={6}>
+      <Box maxW="900px" mx="auto" px={6} py={8}>
+        <Box mb={8}>
           <Heading size="lg">Settings</Heading>
-          <Text fontSize="sm" color={mutedText} mt={1}>
-            Manage your RoninArc account and preferences.
+
+          <Text mt={2} color={mutedText}>
+            Configure RoninArc launcher preferences.
           </Text>
         </Box>
-        <Box>
-          <Heading size="md">Library Import</Heading>
 
-          <Text color="gray.500">
-            Import games from Steam and Epic Games Launcher.
-          </Text>
-
-          <Button
-            mt={3}
-            colorScheme="purple"
-            onClick={() => setImportOpen(true)}
-          >
-            Open Import Wizard
-          </Button>
-        </Box>
-        {/* Card */}
-        <Box
-          borderWidth="1px"
-          borderRadius="xl"
-          borderColor={subtleBorder}
-          bg={cardBg}
-          p={6}
-          boxShadow="sm"
+        <Grid
+          templateColumns={{
+            base: "1fr",
+            lg: "1fr 1fr",
+          }}
+          gap={6}
         >
-          <VStack align="stretch" spacing={5}>
-            {/* Theme section */}
-            <HStack justify="space-between" align="flex-start">
-              <Box>
-                <Text fontWeight="medium">Theme</Text>
-                <Text fontSize="sm" color={mutedText}>
-                  Switch between light and dark mode.
-                </Text>
-              </Box>
+          {/* ACCOUNT */}
 
-              <Button
-                size="sm"
-                onClick={toggleColorMode}
-                leftIcon={colorMode === "light" ? <MoonIcon /> : <SunIcon />}
-                variant="outline"
-              >
-                {colorMode === "light" ? "Dark mode" : "Light mode"}
-              </Button>
-            </HStack>
-
-            <Divider />
-
-            {/* Account + logout */}
-            <Box>
-              <Text fontWeight="medium" mb={1}>
+          <GridItem>
+            <Box borderWidth="1px" borderRadius="xl" p={6} h="100%">
+              <Heading size="md" mb={5}>
                 Account
-              </Text>
-              <Text fontSize="sm" color={mutedText}>
-                Logged in as: <strong>{username ?? "Unknown user"}</strong>
-              </Text>
+              </Heading>
+
+              <VStack align="stretch" spacing={3}>
+                <Button
+                  variant="ghost"
+                  justifyContent="start"
+                  onClick={() => setPasswordOpen(true)}
+                >
+                  Change Password
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  justifyContent="start"
+                  onClick={handleLogout}
+                >
+                  Logout
+                </Button>
+
+                <Button
+                  variant="ghost"
+                  justifyContent="start"
+                  onClick={() => setLogoutAllOpen(true)}
+                >
+                  Logout All Devices
+                </Button>
+
+                <Button
+                  colorScheme="red"
+                  variant="ghost"
+                  justifyContent="start"
+                  onClick={deleteModal.onOpen}
+                >
+                  Delete Account
+                </Button>
+              </VStack>
             </Box>
+          </GridItem>
 
-            <Button
-              size="sm"
-              colorScheme="red"
-              alignSelf="flex-start"
-              onClick={handleLogout}
-            >
-              Logout
-            </Button>
+          {/* LAUNCHER */}
 
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setPasswordOpen(true)}
-            >
-              Change Password
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setLogoutAllOpen(true)}
-            >
-              Logout All Devices
-            </Button>
-            <Button
-              size="sm"
-              colorScheme="red"
-              variant="outline"
-              alignSelf="flex-start"
-              onClick={deleteModal.onOpen}
-            >
-              Delete Account
-            </Button>
-          </VStack>
-        </Box>
+          <GridItem>
+            <Box borderWidth="1px" borderRadius="xl" p={6} h="100%">
+              <Heading size="md" mb={5}>
+                Launcher
+              </Heading>
+
+              <VStack align="stretch" spacing={5}>
+                {/* Theme */}
+
+                <HStack justify="space-between">
+                  <Text>Dark Mode</Text>
+
+                  <Switch
+                    isChecked={colorMode === "dark"}
+                    onChange={toggleColorMode}
+                    colorScheme="purple"
+                  />
+                </HStack>
+
+                <Divider />
+
+                {/* Import */}
+
+                <Box>
+                  <Text fontWeight="bold" mb={2}>
+                    Library Import
+                  </Text>
+
+                  {!isDesktop ? (
+                    <Box
+                      p={3}
+                      borderWidth="1px"
+                      borderRadius="md"
+                      borderColor="orange.500"
+                      bg="orange.500/10"
+                    >
+                      <Text fontSize="sm" color="orange.300">
+                        Steam and Epic library scanning requires the desktop
+                        version of RoninArc.
+                      </Text>
+                    </Box>
+                  ) : (
+                    <>
+                      <VStack align="stretch" spacing={2} mb={4}>
+                        <HStack justify="space-between">
+                          <Text>Steam</Text>
+
+                          <Text color="green.400">✓</Text>
+                        </HStack>
+
+                        <HStack justify="space-between">
+                          <Text>Epic Games</Text>
+
+                          <Text color="green.400">✓</Text>
+                        </HStack>
+                      </VStack>
+
+                      <Button
+                        colorScheme="purple"
+                        onClick={() => setImportOpen(true)}
+                      >
+                        Import Games
+                      </Button>
+                    </>
+                  )}
+                </Box>
+
+              
+              </VStack>
+            </Box>
+          </GridItem>
+        </Grid>
+
+        {/* Library Import */}
       </Box>
+
+      {/* Modals */}
+
       <ChangePasswordModal
         isOpen={isPasswordOpen}
         onClose={() => setPasswordOpen(false)}
       />
+
       <LogoutAllDevicesModal
         isOpen={isLogoutAllOpen}
         onClose={() => setLogoutAllOpen(false)}
       />
+
       <DeleteAccountModal
         isOpen={deleteModal.isOpen}
         onClose={deleteModal.onClose}
       />
+
       <ImportWizardModal
         isOpen={isImportOpen}
         onClose={() => setImportOpen(false)}
@@ -168,5 +216,3 @@ function SettingsPage() {
     </Box>
   );
 }
-
-export default SettingsPage;

@@ -42,21 +42,55 @@ const getDashboardStats = async (req: Request, res: Response) => {
     if (highestReview) {
       highestRatedGame = await LibraryGame.findById(highestReview.gameId);
     }
+    const genreMap: Record<string, number> = {};
+
+    games.forEach((game) => {
+      game.tags?.forEach((tag: string) => {
+        genreMap[tag] = (genreMap[tag] || 0) + 1;
+      });
+    });
+
+    const genreStats = Object.entries(genreMap)
+      .map(([genre, count]) => ({
+        genre,
+        count,
+      }))
+      .sort((a, b) => b.count - a.count)
+      .slice(0, 8);
+
+    const statusStats = [
+      {
+        status: "Playing",
+        count: games.filter((g) => g.status === "playing").length,
+      },
+      {
+        status: "Completed",
+        count: games.filter((g) => g.status === "completed").length,
+      },
+      {
+        status: "Plan",
+        count: games.filter((g) => g.status === "plan").length,
+      },
+      {
+        status: "Dropped",
+        count: games.filter((g) => g.status === "dropped").length,
+      },
+    ];
+
     const stats = {
       totalGames: games.length,
+
       playing: games.filter((g) => g.status === "playing").length,
 
       completed: games.filter((g) => g.status === "completed").length,
 
-      dropped: games.filter((g) => g.status === "dropped").length,
+      continuePlaying,
 
-      plan: games.filter((g) => g.status === "plan").length,
-      continuePlaying: continuePlaying,
-      recentGames: recentGames,
-      featuredGame: featuredGame,
-      reviewsWritten,
-      averageRating,
-      highestRatedGame,
+      recentGames,
+
+      genreStats,
+
+      statusStats,
     };
 
     return res.status(200).json(stats);

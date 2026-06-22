@@ -49,16 +49,18 @@ export default function LibraryGamesSection({
   onAddToCollection,
   onOpenCollectionModal,
 }: Props) {
+
+  
   return (
     <>
-      <StatusFilter
-        selectedStatus={selectedStatus}
-        onStatusChange={onStatusChange}
-      />
+      <Flex justify="space-between" align="center" mb={6} wrap="wrap" gap={4}>
+        <StatusFilter
+          selectedStatus={selectedStatus}
+          onStatusChange={onStatusChange}
+        />
 
-      <Flex mb={6}>
         <Button colorScheme="purple" onClick={onOpenCollectionModal}>
-          New Collection
+          + New Collection
         </Button>
       </Flex>
 
@@ -106,7 +108,7 @@ export default function LibraryGamesSection({
             sm: 2,
             md: 3,
           }}
-          spacing={5}
+          spacing={6}
         >
           {filteredGames.map((game) => (
             <GameCard

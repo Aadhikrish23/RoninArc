@@ -10,34 +10,31 @@ import {
   StatNumber,
   StatHelpText,
   Badge,
-  Button,
   HStack,
   VStack,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { getDashboardStats } from "../api/dashboardApi";
-import { useActivity } from "../../activity/hooks/useActivity";
 import type { DashboardStats } from "../types/dashboard";
 import { usePlaySession } from "../../playSession/hooks/usePlaySession";
+import GenreChart from "../components/GenreChart";
+import StatusChart from "../components/StatusChart";
 function DashboardPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
-  const { activities } = useActivity();
   const { stats: playtimeStats, loadStats } = usePlaySession();
   const [stats, setStats] = useState<DashboardStats>({
     totalGames: 0,
     playing: 0,
     completed: 0,
-    dropped: 0,
-    plan: 0,
+
     continuePlaying: [],
     recentGames: [],
-    featuredGame: null,
-    reviewsWritten: 0,
-    averageRating: "0",
-    highestRatedGame: null,
+
+    genreStats: [],
+    statusStats: [],
   });
   useEffect(() => {
     const load = async () => {
@@ -53,7 +50,7 @@ function DashboardPage() {
     };
 
     load();
-  }, []);
+  }, [loadStats]);
 
   return (
     <Box minH="100vh" bg={bg}>
@@ -68,8 +65,7 @@ function DashboardPage() {
 
         {/* Top row: stats */}
         {/* Stats Grid */}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 3 }} spacing={4} mb={6}>
-          {/* Total Games */}
+        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={6}>
           <Box
             borderWidth="1px"
             borderRadius="xl"
@@ -84,7 +80,6 @@ function DashboardPage() {
             </Stat>
           </Box>
 
-          {/* Currently Playing */}
           <Box
             borderWidth="1px"
             borderRadius="xl"
@@ -93,13 +88,12 @@ function DashboardPage() {
             p={4}
           >
             <Stat>
-              <StatLabel>Currently Playing</StatLabel>
+              <StatLabel>Playing</StatLabel>
               <StatNumber>{stats.playing}</StatNumber>
-              <StatHelpText>Don't drop the streak 👀</StatHelpText>
+              <StatHelpText>Active adventures</StatHelpText>
             </Stat>
           </Box>
 
-          {/* Completed */}
           <Box
             borderWidth="1px"
             borderRadius="xl"
@@ -110,11 +104,10 @@ function DashboardPage() {
             <Stat>
               <StatLabel>Completed</StatLabel>
               <StatNumber>{stats.completed}</StatNumber>
-              <StatHelpText>Nice progress!</StatHelpText>
+              <StatHelpText>Finished journeys</StatHelpText>
             </Stat>
           </Box>
 
-          {/* Reviews Written */}
           <Box
             borderWidth="1px"
             borderRadius="xl"
@@ -123,116 +116,19 @@ function DashboardPage() {
             p={4}
           >
             <Stat>
-              <StatLabel>Reviews Written</StatLabel>
-              <StatNumber>{stats.reviewsWritten}</StatNumber>
-              <StatHelpText>Total reviews created</StatHelpText>
-            </Stat>
-          </Box>
-
-          {/* Average Rating */}
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Average Rating</StatLabel>
-              <StatNumber>{stats.averageRating}</StatNumber>
-              <StatHelpText>Across all reviews</StatHelpText>
-            </Stat>
-          </Box>
-
-          {/* Highest Rated */}
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Highest Rated</StatLabel>
-
-              <StatNumber fontSize="lg" noOfLines={1}>
-                {stats.highestRatedGame?.title || "No reviews"}
-              </StatNumber>
-
-              <StatHelpText>Your top-rated game</StatHelpText>
-            </Stat>
-          </Box>
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Total Hours Played</StatLabel>
-
+              <StatLabel>Hours Played</StatLabel>
               <StatNumber>{playtimeStats?.totalHours ?? 0}</StatNumber>
 
               <StatHelpText>Across all games</StatHelpText>
             </Stat>
           </Box>
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Average Session</StatLabel>
-
-              <StatNumber>
-                {playtimeStats?.averageSessionMinutes ?? 0}m
-              </StatNumber>
-
-              <StatHelpText>Per completed session</StatHelpText>
-            </Stat>
-          </Box>
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Total Sessions</StatLabel>
-
-              <StatNumber>{playtimeStats?.totalSessions ?? 0}</StatNumber>
-
-              <StatHelpText>Recorded launches</StatHelpText>
-            </Stat>
-          </Box>
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Most Played Game</StatLabel>
-
-              <StatNumber fontSize="lg" noOfLines={1}>
-                {playtimeStats?.mostPlayedGame?.title || "None"}
-              </StatNumber>
-
-              <StatHelpText>
-                {playtimeStats?.mostPlayedMinutes ?? 0}m played
-              </StatHelpText>
-            </Stat>
-          </Box>
         </SimpleGrid>
+        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4} mb={6}>
+          <GenreChart data={stats.genreStats} />
 
-        {/* Bottom row: Featured / Continue playing / Recently played */}
-        <SimpleGrid columns={{ base: 1, lg: 4 }} spacing={4}>
-          {/* Featured game */}
+          <StatusChart data={stats.statusStats} />
+        </SimpleGrid>
+        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4} mt={6}>
           <Box
             borderWidth="1px"
             borderRadius="xl"
@@ -240,66 +136,33 @@ function DashboardPage() {
             bg={cardBg}
             p={4}
           >
-            <Heading size="sm" mb={2}>
-              Featured Game
-            </Heading>
-            <Text fontSize="xs" color={mutedText} mb={3}>
-              Hand-picked from your library.
-            </Text>
-
-            <VStack align="stretch" spacing={2}>
-              <Text fontWeight="semibold" noOfLines={1}>
-                {stats.featuredGame?.title || "No Games"}
-              </Text>
-
-              <HStack spacing={2} wrap="wrap">
-                {stats.featuredGame?.tags?.map((tag: string) => (
-                  <Badge key={tag} colorScheme="purple">
-                    {tag}
-                  </Badge>
-                ))}
-              </HStack>
-              <Button size="sm" mt={2} variant="outline">
-                {stats.featuredGame ? "View Game" : "Add Games"}
-              </Button>
-            </VStack>
-          </Box>
-
-          {/* Continue playing */}
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Heading size="sm" mb={2}>
+            <Heading size="sm" mb={4}>
               Continue Playing
             </Heading>
-            <Text fontSize="xs" color={mutedText} mb={3}>
-              Games you marked as “Playing”.
-            </Text>
 
-            <VStack align="stretch" spacing={2}>
+            <VStack align="stretch" spacing={3}>
               {stats.continuePlaying.length === 0 ? (
-                <Text fontSize="sm" color={mutedText}>
-                  No games currently playing
-                </Text>
+                <Text color={mutedText}>No active games</Text>
               ) : (
                 stats.continuePlaying.map((game) => (
-                  <HStack key={game._id} justify="space-between">
-                    <Text fontSize="sm" noOfLines={1}>
-                      {game.title}
-                    </Text>
+                  <HStack
+                    key={game._id}
+                    justify="space-between"
+                    p={2}
+                    borderRadius="md"
+                    _hover={{
+                      bg: "whiteAlpha.50",
+                    }}
+                  >
+                    <Text>{game.title}</Text>
 
-                    <Badge colorScheme="yellow">{game.status}</Badge>
+                    <Badge colorScheme="yellow">PLAYING</Badge>
                   </HStack>
                 ))
               )}
             </VStack>
           </Box>
 
-          {/* Recently played */}
           <Box
             borderWidth="1px"
             borderRadius="xl"
@@ -307,78 +170,15 @@ function DashboardPage() {
             bg={cardBg}
             p={4}
           >
-            <Heading size="sm" mb={2}>
+            <Heading size="sm" mb={4}>
               Recently Added
             </Heading>
-            <Text fontSize="xs" color={mutedText} mb={3}>
-              Last few games added to your library.
-            </Text>
 
-            <VStack align="stretch" spacing={2}>
-              {stats.recentGames.length === 0 ? (
-                <Text fontSize="sm" color={mutedText}>
-                  No recent games
-                </Text>
-              ) : (
-                stats.recentGames.map((game) => (
-                  <Text key={game._id} fontSize="sm" noOfLines={1}>
-                    {game.title}
-                  </Text>
-                ))
-              )}
+            <VStack align="stretch" spacing={3}>
+              {stats.recentGames.map((game) => (
+                <Text key={game._id}>{game.title}</Text>
+              ))}
             </VStack>
-          </Box>
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Heading size="sm" mb={2}>
-              Recent Activity
-            </Heading>
-
-            <Text fontSize="xs" color={mutedText} mb={3}>
-              Your latest actions.
-            </Text>
-
-            <VStack align="stretch" spacing={2}>
-              {activities.length === 0 ? (
-                <Text fontSize="sm" color={mutedText}>
-                  No activity yet
-                </Text>
-              ) : (
-                activities.slice(0, 8).map((activity) => (
-                  <Text key={activity._id} fontSize="sm" noOfLines={2}>
-                    {activity.message}
-                  </Text>
-                ))
-              )}
-            </VStack>
-          </Box>
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Heading size="sm" mb={2}>
-              Play Sessions
-            </Heading>
-
-            <Text fontSize="xs" color={mutedText} mb={3}>
-              Rykard Tracking
-            </Text>
-
-            <Text fontSize="sm">
-              Total Hours: {playtimeStats?.totalHours ?? 0}
-            </Text>
-
-            <Text fontSize="sm">
-              Sessions: {playtimeStats?.totalSessions ?? 0}
-            </Text>
           </Box>
         </SimpleGrid>
       </Box>

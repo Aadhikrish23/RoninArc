@@ -42,9 +42,15 @@ const getPlaytimeStats =
     return response.data.Data;
   };
 
+const getGamePlaytime = async (gameId: string) => {
+  const response = await api.get(`/play-session/game/${gameId}`);
+  return response.data.Data;
+};
+
 export default {
   startSession,
   endSession,
   getRecentSessions,
   getPlaytimeStats,
-};
+  getGamePlaytime,
+};

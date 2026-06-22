@@ -26,3 +26,8 @@ export interface PlaytimeStats {
 
   mostPlayedMinutes: number;
 }
+
+export interface GamePlaytimeStats {
+  totalHours: number;
+  lastPlayed: string | null;
+}

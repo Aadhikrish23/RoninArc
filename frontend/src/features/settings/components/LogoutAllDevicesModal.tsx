@@ -8,6 +8,7 @@ import {
   Button,
   Text,
   useToast,
+  VStack,
 } from "@chakra-ui/react";
 
 import { useState } from "react";
@@ -16,6 +17,7 @@ import { useNavigate } from "react-router-dom";
 import settingsApi from "../api/settingsApi";
 import { useAuth } from "../../auth/context/AuthContext";
 import { getErrorMessage } from "../../../shared/utils/error";
+import SettingsModal from "./SettingsModal";
 
 interface Props {
   isOpen: boolean;
@@ -62,42 +64,47 @@ export default function LogoutAllDevicesModal({
   };
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
+  <SettingsModal
+    isOpen={isOpen}
+    onClose={onClose}
+    title="Logout All Devices"
+    footer={
+      <>
+        <Button
+          mr={3}
+          onClick={onClose}
+        >
+          Cancel
+        </Button>
+
+        <Button
+          colorScheme="orange"
+          isLoading={loading}
+          onClick={handleSubmit}
+        >
+          Logout Everywhere
+        </Button>
+      </>
+    }
+  >
+    <VStack
+      align="stretch"
+      spacing={4}
     >
-      <ModalOverlay />
+      <Text>
+        RoninArc will revoke all
+        active sessions.
+      </Text>
 
-      <ModalContent>
-        <ModalHeader>
-          Logout All Devices
-        </ModalHeader>
-
-        <ModalBody>
-          <Text>
-            This will revoke all active
-            sessions and sign you out
-            everywhere.
-          </Text>
-        </ModalBody>
-
-        <ModalFooter>
-          <Button
-            mr={3}
-            onClick={onClose}
-          >
-            Cancel
-          </Button>
-
-          <Button
-            colorScheme="orange"
-            isLoading={loading}
-            onClick={handleSubmit}
-          >
-            Logout Everywhere
-          </Button>
-        </ModalFooter>
-      </ModalContent>
-    </Modal>
-  );
+      <Text
+        color="orange.400"
+        fontSize="sm"
+      >
+        You'll be signed out from
+        every device including
+        this one.
+      </Text>
+    </VStack>
+  </SettingsModal>
+);
 }

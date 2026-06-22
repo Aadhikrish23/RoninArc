@@ -115,3 +115,34 @@ export const getPlaytimeStats = async (req: Request, res: Response) => {
     });
   }
 };
+
+export const getGamePlaytime = async (req: Request, res: Response) => {
+  try {
+    const userId = req.user.id;
+    const { gameId } = req.params;
+
+    if (!Types.ObjectId.isValid(gameId)) {
+      return res.status(400).json({
+        Status: "Failed",
+        Message: "Invalid game id",
+      });
+    }
+
+    const stats = await playSessionService.getGamePlaytime(
+      new Types.ObjectId(userId),
+      gameId,
+    );
+
+    return res.status(200).json({
+      Status: "Success",
+      Data: stats,
+    });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Unknown error";
+    return res.status(500).json({
+      Status: "Failed",
+      Message: message || "Failed to fetch game playtime stats",
+    });
+  }
+};
+

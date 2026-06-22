@@ -2,17 +2,22 @@ import type { Game } from "../../library/types/library";
 
 export interface DashboardStats {
   totalGames: number;
+
   playing: number;
+
   completed: number;
-  dropped: number;
-  plan: number;
 
   continuePlaying: Game[];
+
   recentGames: Game[];
 
-  featuredGame: Game | null;
-  highestRatedGame: Game | null;
+  genreStats: {
+    genre: string;
+    count: number;
+  }[];
 
-  reviewsWritten: number;
-  averageRating: string;
+  statusStats: {
+    status: string;
+    count: number;
+  }[];
 }

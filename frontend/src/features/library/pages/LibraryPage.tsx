@@ -43,7 +43,6 @@ function LibraryPage() {
     clearSearch,
   } = useRawgSearch();
   const [searchParams] = useSearchParams();
-  
 
   const selectedGameId = searchParams.get("game");
   const [loading, setLoading] = useState<boolean>(true);
@@ -310,9 +309,7 @@ function LibraryPage() {
   return (
     <Box minH="100vh" bg={bg}>
       {/* ---------------- MAIN CONTENT ---------------- */}
-      <Box maxW="1200px" mx="auto" px={6} py={8}>
-        
-        
+    <Box maxW="1400px" mx="auto" px={6} py={8}>
         {showSearchResults ? (
           <RawgResultsSection
             searchText={searchText}
@@ -335,6 +332,12 @@ function LibraryPage() {
               onSearchSubmit={handleSearchSubmit}
             />
             <LibraryHeader />
+            <CollectionsSection
+              collections={collections}
+              onDelete={deleteCollectionHandler}
+              onRemoveGame={removeGameFromCollection}
+            />
+
             <LibraryGamesSection
               selectedGameId={selectedGameId}
               selectedStatus={selectedStatus}
@@ -349,12 +352,6 @@ function LibraryPage() {
               onGameStatusChange={updateStatus}
               onAddToCollection={addGameToCollection}
               onOpenCollectionModal={openCollectionModal}
-            />
-
-            <CollectionsSection
-              collections={collections}
-              onDelete={deleteCollectionHandler}
-              onRemoveGame={removeGameFromCollection}
             />
           </>
         )}

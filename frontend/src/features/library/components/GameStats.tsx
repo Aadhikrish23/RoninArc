@@ -1,15 +1,13 @@
 import {
   Box,
-  Heading,
   SimpleGrid,
   Stat,
   StatLabel,
   StatNumber,
+  useColorModeValue,
 } from "@chakra-ui/react";
 
-import type {
-  RawgGameDetails,
-} from "../types/library";
+import type { RawgGameDetails } from "../types/library";
 
 interface Props {
   game: RawgGameDetails;
@@ -18,6 +16,36 @@ interface Props {
 export default function GameStats({
   game,
 }: Props) {
+  const bg = useColorModeValue(
+    "white",
+    "gray.800"
+  );
+
+  const borderColor =
+    useColorModeValue(
+      "gray.200",
+      "gray.700"
+    );
+
+  const stats = [
+    {
+      label: "Rating",
+      value: game.rating,
+    },
+    {
+      label: "Reviews",
+      value: game.ratingsCount,
+    },
+    {
+      label: "Metacritic",
+      value: game.metacritic ?? "-",
+    },
+    {
+      label: "Playtime",
+      value: `${game.playtime}h`,
+    },
+  ];
+
   return (
     <SimpleGrid
       mt={8}
@@ -27,45 +55,26 @@ export default function GameStats({
       }}
       spacing={5}
     >
-      <Stat>
-        <StatLabel>
-          Rating
-        </StatLabel>
+      {stats.map((stat) => (
+        <Box
+          key={stat.label}
+          p={5}
+          borderWidth="1px"
+          borderRadius="xl"
+          bg={bg}
+          borderColor={borderColor}
+        >
+          <Stat>
+            <StatLabel>
+              {stat.label}
+            </StatLabel>
 
-        <StatNumber>
-          {game.rating}
-        </StatNumber>
-      </Stat>
-
-      <Stat>
-        <StatLabel>
-          Reviews
-        </StatLabel>
-
-        <StatNumber>
-          {game.ratingsCount}
-        </StatNumber>
-      </Stat>
-
-      <Stat>
-        <StatLabel>
-          Metacritic
-        </StatLabel>
-
-        <StatNumber>
-          {game.metacritic ?? "-"}
-        </StatNumber>
-      </Stat>
-
-      <Stat>
-        <StatLabel>
-          Community Playtime
-        </StatLabel>
-
-        <StatNumber>
-          {game.playtime}h
-        </StatNumber>
-      </Stat>
+            <StatNumber>
+              {stat.value}
+            </StatNumber>
+          </Stat>
+        </Box>
+      ))}
     </SimpleGrid>
   );
 }

@@ -26,34 +26,34 @@ export default function CollectionsSection({
   onRemoveGame,
 }: Props) {
   return (
-    <Box mt={10}>
-      <Heading size="md" mb={4}>
-        Collections
-      </Heading>
+   <Box mb={10}>
+  <Heading size="md" mb={4}>
+    Collections
+  </Heading>
 
-      {collections.length === 0 ? (
-        <Text color="gray.500">
-          No collections created yet.
-        </Text>
-      ) : (
-        <SimpleGrid
-          columns={{
-            base: 1,
-            sm: 2,
-            md: 3,
-          }}
-          spacing={4}
-        >
-          {collections.map((collection) => (
-            <CollectionCard
-              key={collection._id}
-              collection={collection}
-              onDelete={onDelete}
-              onRemoveGame={onRemoveGame}
-            />
-          ))}
-        </SimpleGrid>
-      )}
-    </Box>
+  {collections.length === 0 ? (
+    <Text color="gray.500">
+      No collections created yet.
+    </Text>
+  ) : (
+    <SimpleGrid
+      columns={{
+        base: 1,
+        md: 2,
+        lg: 4,
+      }}
+      spacing={4}
+    >
+      {collections.map((collection) => (
+        <CollectionCard
+          key={collection._id}
+          collection={collection}
+          onDelete={onDelete}
+          onRemoveGame={onRemoveGame}
+        />
+      ))}
+    </SimpleGrid>
+  )}
+</Box>
   );
 }

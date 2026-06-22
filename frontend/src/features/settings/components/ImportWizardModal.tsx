@@ -13,207 +13,90 @@ import {
   Spinner,
 } from "@chakra-ui/react";
 
-import { useEffect, useState } from "react";
-import { useToast } from "@chakra-ui/react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 
-interface EpicGame {
-  name: string;
-  installPath: string;
-  executable: string;
-  epicId: string;
-}
-interface SteamGame {
-  appId: string;
-  name: string;
-  installPath: string;
-  executable: string;
-}
 interface Props {
   isOpen: boolean;
   onClose: () => void;
 }
-import libraryApi from "../../library/api/libraryApi";
-import { rankSearchResults } from "../../library/utils/searchRanking";
 
-import type { Game, AddGamePayload } from "../../library/types/library";
+import { useGameImport } from "../hooks/useGameImport";
 export default function ImportWizardModal({ isOpen, onClose }: Props) {
   const [epicSelected, setEpicSelected] = useState(true);
 
-  const [scanning, setScanning] = useState(false);
-
-  const [games, setGames] = useState<EpicGame[]>([]);
   const [selectedGames, setSelectedGames] = useState<string[]>([]);
-  const [importing, setImporting] = useState(false);
   const [steamSelected, setSteamSelected] = useState(true);
 
-  const [steamGames, setSteamGames] = useState<SteamGame[]>([]);
-  const [libraryGames, setLibraryGames] = useState<Game[]>([]);
-  const navigate =useNavigate()
-  
-  const toast = useToast();
-  const isAlreadyImported = (exePath: string) => {
-    return libraryGames.some((game) => game.exePath === exePath);
-  };
+  const {
+    scanning,
+    importing,
+
+    epicGames: games,
+    steamGames,
+
+    loadLibrary,
+
+    scanLibraries,
+
+    importGames,
+
+    isAlreadyImported,
+  } = useGameImport();
   useEffect(() => {
-    const loadLibrary = async () => {
-      try {
-        const data = await libraryApi.getUserLibrary();
-
-        setLibraryGames(data);
-      } catch (err) {
-        console.error(err);
-      }
-    };
-
     if (isOpen) {
       loadLibrary();
     }
   }, [isOpen]);
+
   const handleScan = async () => {
-    setScanning(true);
+    const result = await scanLibraries(epicSelected, steamSelected);
 
-    try {
-      let epicResults: EpicGame[] = [];
-      let steamResults: SteamGame[] = [];
+    setSelectedGames([
+      ...result.epicResults
+        .filter((g) => !isAlreadyImported(g.executable))
+        .map((g) => g.epicId),
 
-      if (epicSelected) {
-        epicResults = (await window.electronAPI?.scanEpicGames()) ?? [];
-      }
-
-      if (steamSelected) {
-        steamResults = (await window.electronAPI?.scanSteamGames()) ?? [];
-      }
-
-      setGames(epicResults);
-
-      setSteamGames(steamResults);
-
-      setSelectedGames([
-        ...epicResults
-          .filter((g) => !isAlreadyImported(g.executable))
-          .map((g) => g.epicId),
-
-        ...steamResults
-          .filter((g) => !isAlreadyImported(g.executable))
-          .map((g) => g.appId),
-      ]);
-    } finally {
-      setScanning(false);
-    }
+      ...result.steamResults
+        .filter((g) => !isAlreadyImported(g.executable))
+        .map((g) => g.appId),
+    ]);
   };
   const handleImport = async () => {
-    setImporting(true);
+    await importGames(selectedGames);
 
-    try {
-      const epicGamesToImport = games.filter((game) =>
-        selectedGames.includes(game.epicId),
-      );
-
-      const steamGamesToImport = steamGames.filter((game) =>
-        selectedGames.includes(game.appId),
-      );
-      let importedCount = 0;
-
-      for (const epicGame of epicGamesToImport) {
-        const results = await libraryApi.searchRawgGames(epicGame.name);
-
-        const ranked = rankSearchResults(results, epicGame.name);
-
-        const rawg = ranked[0];
-
-        if (!rawg) {
-          continue;
-        }
-
-        const payload: AddGamePayload = {
-          rawgId: rawg.id,
-
-          title: rawg.name,
-
-          description: rawg.description ?? "",
-
-          imageURL: rawg.imageURL,
-
-          exePath: epicGame.executable,
-
-          tags: rawg.genres,
-
-          status: "plan",
-        };
-
-        await libraryApi.addGame(payload);
-        importedCount++;
-      }
-      for (const steamGame of steamGamesToImport) {
-        const results = await libraryApi.searchRawgGames(steamGame.name);
-
-        const ranked = rankSearchResults(results, steamGame.name);
-
-        const rawg = ranked[0];
-
-        if (!rawg) {
-          continue;
-        }
-
-        const payload: AddGamePayload = {
-          rawgId: rawg.id,
-          title: rawg.name,
-          description: rawg.description ?? "",
-          imageURL: rawg.imageURL,
-          exePath: steamGame.executable,
-          tags: rawg.genres,
-          status: "plan",
-        };
-
-        await libraryApi.addGame(payload);
-        importedCount++;
-
-        console.log("Imported Steam:", steamGame.name);
-      }
-
-      toast({
-        title: "Import Complete",
-        description: `${importedCount} games imported`,
-        status: "success",
-        duration: 3000,
-        isClosable: true,
-      });
-     
-      onClose();
-      navigate("/")
-    } catch (error) {
-      console.error(error);
-
-      alert("Failed to import games.");
-    } finally {
-      setImporting(false);
-    }
+    onClose();
   };
   return (
     <Modal isOpen={isOpen} onClose={onClose} isCentered size="lg">
       <ModalOverlay />
 
-      <ModalContent>
-        <ModalHeader>Import Libraries</ModalHeader>
+      <ModalContent borderRadius="2xl">
+        <ModalHeader>Import Game Libraries</ModalHeader>
 
         <ModalBody>
-          <VStack align="stretch" spacing={4}>
-            <Text>Select launchers to scan.</Text>
+          <VStack align="stretch" spacing={5}>
+            <Text px={6} pb={4} color="gray.500" fontSize="sm">
+              Scan installed launchers and import games directly into your
+              RoninArc library.
+            </Text>
 
-            <Checkbox
-              isChecked={epicSelected}
-              onChange={(e) => setEpicSelected(e.target.checked)}
-            >
-              Epic Games
-            </Checkbox>
+            <Box borderWidth="1px" borderRadius="lg" p={4}>
+              <Checkbox
+                isChecked={epicSelected}
+                onChange={(e) => setEpicSelected(e.target.checked)}
+              >
+                Epic Games
+              </Checkbox>
+            </Box>
 
-            <Checkbox
-              isChecked={steamSelected}
-              onChange={(e) => setSteamSelected(e.target.checked)}
-            >
-              Steam Games
-            </Checkbox>
+            <Box borderWidth="1px" borderRadius="lg" p={4}>
+              <Checkbox
+                isChecked={steamSelected}
+                onChange={(e) => setSteamSelected(e.target.checked)}
+              >
+                Steam Games
+              </Checkbox>
+            </Box>
 
             <Button
               colorScheme="purple"
