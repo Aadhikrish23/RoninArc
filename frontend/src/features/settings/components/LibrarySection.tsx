@@ -1,6 +1,5 @@
 import {
   Button,
-  HStack,
   Text,
   VStack,
 } from "@chakra-ui/react";

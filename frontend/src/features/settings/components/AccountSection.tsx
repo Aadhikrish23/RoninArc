@@ -1,6 +1,6 @@
 import {
   Button,
-  Text,
+  
   VStack,
   Badge,
 } from "@chakra-ui/react";

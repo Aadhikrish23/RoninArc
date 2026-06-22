@@ -1,7 +1,7 @@
 import { Button } from "@chakra-ui/react";
 
 import libraryApi from "../api/libraryApi";
-import type { AddGamePayload, EpicGame } from "../types/library";
+import type { AddGamePayload } from "../types/library";
 import { rankSearchResults } from "../utils/searchRanking";
 
 interface Props {

@@ -1,7 +1,7 @@
 import { Box, useColorModeValue } from "@chakra-ui/react";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useToast } from "@chakra-ui/react";
 
 import type { RawgGameResult, Game } from "../types/library";
@@ -59,7 +59,6 @@ function LibraryPage() {
   const toast = useToast();
   const { token } = useAuth();
   const { startSession, endSession } = usePlaySession();
-  const navigate = useNavigate();
 
   const [addedGameTitle, setAddedGameTitle] = useState("");
 

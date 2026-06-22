@@ -7,7 +7,6 @@ import type {
   Game,
   Status,
   AddGamePayload,
-  RawgGameResult,
 } from "../types/library";
 
 export function useLibrary() {

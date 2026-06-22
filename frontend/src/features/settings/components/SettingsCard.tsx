@@ -19,10 +19,6 @@ export default function SettingsCard({
   children,
   danger = false,
 }: SettingsCardProps) {
-  const bg = useColorModeValue(
-    "white",
-    "gray.800"
-  );
 
   const darkBg = useColorModeValue(
     "white",

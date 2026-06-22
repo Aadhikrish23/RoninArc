@@ -3,7 +3,7 @@ import { Box, Button, Flex, SimpleGrid, Spinner, Text } from "@chakra-ui/react";
 import StatusFilter from "../components/StatusFilter";
 import GameCard from "../components/GameCard";
 
-import type { Game, RawgGameResult, Status } from "../types/library";
+import type { Game, Status } from "../types/library";
 
 import type { Collection } from "../../collections/types/collection";
 
@@ -50,7 +50,7 @@ export default function LibraryGamesSection({
   onOpenCollectionModal,
 }: Props) {
 
-  
+
   return (
     <>
       <Flex justify="space-between" align="center" mb={6} wrap="wrap" gap={4}>

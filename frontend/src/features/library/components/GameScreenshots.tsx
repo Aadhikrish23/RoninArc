@@ -2,7 +2,6 @@ import {
   Box,
   Heading,
   Image,
-  IconButton,
 } from "@chakra-ui/react";
 
 import {
@@ -15,10 +14,6 @@ import {
   Autoplay,
 } from "swiper/modules";
 
-import {
-  ChevronLeftIcon,
-  ChevronRightIcon,
-} from "@chakra-ui/icons";
 
 import "swiper/css";
 import "swiper/css/navigation";

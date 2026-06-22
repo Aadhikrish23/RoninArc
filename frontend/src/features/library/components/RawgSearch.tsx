@@ -37,7 +37,6 @@ export default function RawgSearch({
   results,
   loading,
   error,
-  onAddGame,
   onSearchSubmit,
 }: RawgSearchProps) {
   const cardBg = useColorModeValue("white", "gray.800");

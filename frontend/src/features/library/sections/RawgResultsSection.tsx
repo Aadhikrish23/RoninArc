@@ -17,7 +17,6 @@ import { useState } from "react";
 import { useMemo } from "react";
 import { rankSearchResults } from "../utils/searchRanking";
 import { useNavigate } from "react-router-dom";
-import { useRawgSearch } from "../hooks/useRawgSearch";
 interface Props {
   searchText: string;
 

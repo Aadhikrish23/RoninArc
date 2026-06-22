@@ -3,7 +3,7 @@ import {
   HStack,
   Icon,
   Text,
-  VStack,
+  
   useColorMode,
 } from "@chakra-ui/react";
 

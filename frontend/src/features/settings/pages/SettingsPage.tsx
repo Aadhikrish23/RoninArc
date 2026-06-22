@@ -30,6 +30,7 @@ export default function SettingsPage() {
   const { logout, user } = useAuth();
 
   const [username, setUsername] = useState("Unknown User");
+  console.log(username)
   const { colorMode, toggleColorMode } = useColorMode();
 
   const [isPasswordOpen, setPasswordOpen] = useState(false);

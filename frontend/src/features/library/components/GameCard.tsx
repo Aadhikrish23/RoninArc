@@ -1,21 +1,16 @@
 import {
   Box,
   VStack,
-  Flex,
   Text,
   HStack,
   Tag,
   TagLabel,
   Badge,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
   Button,
   useColorModeValue,
 } from "@chakra-ui/react";
 
-import { FiEdit3, FiPlay, FiTrash2 } from "react-icons/fi";
+import { FiPlay } from "react-icons/fi";
 
 import type { Game, Status } from "../types/library";
 import type { Collection } from "../../collections/types/collection";
