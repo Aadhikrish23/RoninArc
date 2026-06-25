@@ -12,6 +12,7 @@ import reviewRouter from "./modules/review/review";
 import collectionRoutes from "./modules/collection/collectionRoutes";
 import activityRouter from "./modules/activity/activity";
 import playSessionRoutes from "./modules/playSession/playSession";
+import epicRoutes from "./modules/providers/epic/epicRoutes";
 dotenv.config();
 const app = express();
 app.use(helmet());
@@ -32,6 +33,8 @@ app.use("/review", reviewRouter);
 app.use("/collection", collectionRoutes);
 app.use("/activity", activityRouter);
 app.use("/play-session", playSessionRoutes);
+
+app.use("/provider/epic", epicRoutes);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   return res.status(404).json({ Status: "fail", error: "Route not found" });

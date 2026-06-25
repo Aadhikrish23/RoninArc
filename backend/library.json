@@ -1,0 +1,1563 @@
+{
+  "responseMetadata": {
+    "nextCursor": "eyJvZmZzZXQiOjEwMH0=",
+    "stateToken": "189860a4-7731-4921-8f4f-7d465a46881d"
+  },
+  "records": [
+    {
+      "namespace": "2a09fb19b47f46dfb11ebd382f132a8f",
+      "catalogItemId": "88f4bb0bb06e4962a2042d5e20fb6ace",
+      "appName": "63a665088eb1480298f1e57943b225d8",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "fb40e48d8e454558a2e02ad7f9a991ff",
+      "sandboxName": "Marvel's Guardians of the Galaxy",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-01-05T16:19:19.179Z",
+      "availableDate": "2021-10-26T16:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "2a09fb19b47f46dfb11ebd382f132a8f",
+      "catalogItemId": "b2666e211d334d15a0c29188d0abb6c8",
+      "appName": "9596620d263b40c083ddf1f0c662c8ff",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "fb40e48d8e454558a2e02ad7f9a991ff",
+      "sandboxName": "Marvel's Guardians of the Galaxy",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-01-05T16:19:19.179Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "2e412cfcbd954e7180930e9784a47e18",
+      "catalogItemId": "ad210330aa424a0f843d501ca26f8488",
+      "appName": "f8ef168f3522419caad27d82878e0329",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "62a250183ac841098734f409cbca597d",
+      "sandboxName": "Fallout 1",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-30T11:49:52.619Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "afe2527e29b94db48b2eef984e34d81a",
+      "catalogItemId": "1860f41341d1499fa4a06ae064340bbe",
+      "appName": "verdi",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "175e781d820144ce966f1c1942b64b57",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-05-20T11:14:16.367Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "c986e75258a146fba03a920dba852ca9",
+      "catalogItemId": "18d3c0e34d85461e90474b3a69afea1e",
+      "appName": "051eaac0842c46d7a5a62858ad534d5a",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "370dbdf8c5e44dc09eac477fd43e8aee",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-29T02:27:14.727Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "7b9cdaaca4f5424e8d6bd7dabe559010",
+      "catalogItemId": "cc82af51ae724ec6bcf291fa940be8fc",
+      "appName": "29d12cc907b148dd957a709f1414843e",
+      "country": "IN",
+      "platform": [
+        "Win32",
+        "Windows"
+      ],
+      "productId": "58c8925d94e440c7b0b4206635272579",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-20T11:48:31.266Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "wombat",
+      "catalogItemId": "ec6ed5344a904ea78729113d80818d18",
+      "appName": "Wombat",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "prod-wombat",
+      "sandboxName": "World War Z",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-02-21T08:40:41.965Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "db6d869788bd4aa59f9ccb26c91a0153",
+      "catalogItemId": "7ae00498170d40a18952e3542b7cdd08",
+      "appName": "c7cb232d49d347aabfa73d583660d7ee",
+      "country": "IN",
+      "platform": [
+        "Win32",
+        "Windows"
+      ],
+      "productId": "7ec1d897ec2c4228b5b2bb63cc447456",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-28T16:53:32.793Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "3072dbe471f84dac8b2e9ba8af253ee2",
+      "catalogItemId": "ead90ef7726d403cb8df00b7cd767c63",
+      "appName": "6fd5e6a8632c499fa2657cf650c96b14",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "0f05927e8b8d440dba62da9221638aa3",
+      "sandboxName": "dayze Production",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-30T11:48:14.712Z",
+      "availableDate": "2023-10-10T12:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "610a546d4e204215a0b9a1c8a382bacb",
+      "catalogItemId": "594b8acf31114b8f92430e150610e8db",
+      "appName": "da2038ef19e94554898056d79168b3f8",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "9a8b45f55d1e4d36b4cf472f88a4ecfb",
+      "sandboxName": "yorkie Production",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-09-06T05:24:36.971Z",
+      "availableDate": "2023-11-06T16:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "610a546d4e204215a0b9a1c8a382bacb",
+      "catalogItemId": "16e3d5114c314457b1bdd1659e70bb7c",
+      "appName": "08c5c041aa2c4fe08fbd87c08fb37c36",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "9a8b45f55d1e4d36b4cf472f88a4ecfb",
+      "sandboxName": "yorkie Production",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-09-06T05:24:36.971Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "610a546d4e204215a0b9a1c8a382bacb",
+      "catalogItemId": "a3575fda30c34f1fba24f5f6c7ddb2e1",
+      "appName": "7e9ca4940ed0427699f687f538d8f72d",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "9a8b45f55d1e4d36b4cf472f88a4ecfb",
+      "sandboxName": "yorkie Production",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-09-06T05:24:36.971Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "7109c2e220544434ad355bce3cf69120",
+      "catalogItemId": "a14e80eeef704aa1894b1bf14547e069",
+      "appName": "6fa12837a99e4b16bc21d7719b3c401e",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "e42eff0761f24bb089fe429611bd2e31",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-11-25T07:02:24.799Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "4817ba5c11504724ba4d5817c8995dff",
+      "catalogItemId": "c58f6419c8754f169577e9162d1c8b32",
+      "appName": "70883ed009994efe86d00a5fb8f2b52e",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "378035dd04714b5b98a89ebe9d928c12",
+      "sandboxName": "Jurassic World Evolution 2",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-21T09:55:15.330Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ca4058f18b0a4a9e9e2ccc28f7f33000",
+      "catalogItemId": "d5c565b42c3b45e68d8aaf505d83e880",
+      "appName": "8c845d616cfb4dedb46e4ab7c53b4235",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "88801317bf794eaba96d893fa7d0c5c3",
+      "sandboxName": "Kingdom Come: Deliverance",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-01-01T16:33:47.172Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "b90be973f6e74975ac1a6ff15dbfd0b3",
+      "catalogItemId": "025bf6c6f8f54e9ba1853e2a81dfd896",
+      "appName": "908f75e7f1624819a70c27f543741dcd",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "f61fd2a12b9d4d19b430501feb3ef96f",
+      "sandboxName": "Fallout Tactics",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-30T11:49:52.619Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ca4058f18b0a4a9e9e2ccc28f7f33000",
+      "catalogItemId": "3da187c4bcce47ca9fd69a733b4ea611",
+      "appName": "d5aec4c1d5ae4e77945fac16f5af9345",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "88801317bf794eaba96d893fa7d0c5c3",
+      "sandboxName": "Kingdom Come: Deliverance",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-01-01T16:33:47.190Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "9c59efaabb6a48f19b3485d5d9416032",
+      "catalogItemId": "709536796ff5489a97c4574b9d6bda24",
+      "appName": "c390e58246ea4a778acd26473a489b48",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "0b43b779c42a46f2a520d8aa5ea0fe7c",
+      "sandboxName": "Lego Star Wars: The Skywalker Saga",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-06T14:56:36.620Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "9c59efaabb6a48f19b3485d5d9416032",
+      "catalogItemId": "e8c72d870a3645fcbc5534271210c8a5",
+      "appName": "7b40d89dd2cb4f439e00d4ab81188f3b",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "0b43b779c42a46f2a520d8aa5ea0fe7c",
+      "sandboxName": "Lego Star Wars: The Skywalker Saga",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-06T14:56:36.620Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ab9f1f7354a8418388b43132d420524a",
+      "catalogItemId": "bf81790c99634630b7389c5d261f3a11",
+      "appName": "fec1a1199e624a79b6293cef4e1d3505",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "5461784e424b43709943f14954a9f83f",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-10-13T10:36:12.715Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "eb99ee4694474e8da0b05a8ab391825c",
+      "catalogItemId": "498ff2997ac2491a9fc7c0e95991afd8",
+      "appName": "9361c8c6d2f34b42b5f2f61093eedf48",
+      "country": "IN",
+      "platform": [
+        "Win32",
+        "Windows"
+      ],
+      "productId": "53ec4985296b4facbe3a8d8d019afba9",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2022-12-16T10:12:13.644Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "d37fcefd6be042c5a232b716ac56f118",
+      "catalogItemId": "91377969375a4e64a7a638462c9dfa38",
+      "appName": "7c2defeaebb04d71bb3702e363ee3e9c",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "8ffd326fee0c4e4a93f5b0c3c1c62af7",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-01-30T11:02:45.147Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ba2eb1ee9bfc434b8c06d33f9df7d15a",
+      "catalogItemId": "b3303e3e422448b8bbcee71138f63a01",
+      "appName": "d4d31e492ea24c0fbcc239c0bb29aed8",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "6630e3dcc72a4e2285e91ca48aa0eb4b",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-23T03:39:10.495Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "bd12fd574df14846ad24703ca7b1a12b",
+      "catalogItemId": "358264a79a7f4723b8226cc8fae4c0a7",
+      "appName": "4b920bb4aebf4586a4f6d823817fe32d",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "855997739a6748f3b8d03e0f043117d6",
+      "sandboxName": "Mages of Mystralia",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-03T02:42:02.974Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "8211dc6089af4542926b7a8137b9079e",
+      "catalogItemId": "ea08171c6a0144a293d0c77f1996e69c",
+      "appName": "1d74dcbca79540efb52cab2ff026215f",
+      "country": "IN",
+      "platform": [
+        "Mac",
+        "Win32",
+        "Windows"
+      ],
+      "productId": "3173085c161c4e70ad15966abf74e56f",
+      "sandboxName": "tommes Production",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2023-08-20T15:22:52.451Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "a1a52b1a570e4ee3ab3b2a8ca930753e",
+      "catalogItemId": "d1e09eb6c1e447f98d5792f73f33d88c",
+      "appName": "3047a2d268da49588bbd22c806cde4de",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "af503dd7e8b64218b69c22a9003de268",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-30T02:46:21.468Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "487df1dfd24b44c381a2a376fbf78946",
+      "catalogItemId": "034973e5bc3b4aa8af5247eba80c6f46",
+      "appName": "c98c934106994f2d8afc36c3f1872549",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "45eb6916194142e3a8c0fb7242601057",
+      "sandboxName": "Dublin",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-01-31T03:15:38.013Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "53ea1f0a585f4fbc9c8adc6b76af1165",
+      "catalogItemId": "93bae60779234528837028190b8495ff",
+      "appName": "03c9fe3b2869452ba8433ee7708a3e93",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "57015e643399448f8139291daa15bfc2",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-02-15T07:27:08.798Z",
+      "availableDate": "2024-07-23T14:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "04e4108a1fec4845bd2744e8d554c9a6",
+      "catalogItemId": "66f8c4bf50d1416c8ddf1d48cc95e4b2",
+      "appName": "98614687b212444c9ff0d42095f56cb3",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "38d7f3e2a3854e9fa4c31456b87c899f",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-31T08:44:04.834Z",
+      "availableDate": "2024-10-31T00:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "c4c7d3cd0a2f4ea2bf7d4a57e46e8d68",
+      "catalogItemId": "cf7b858799184d94a2920426e728b2ed",
+      "appName": "a9999cf992d74279b410a0ac9608e153",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "f2f1008125d14145a848fe58a6afc56c",
+      "sandboxName": "BrilliantRose",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-29T02:28:27.625Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "05ae696a3c5f49af91a7433547460c21",
+      "catalogItemId": "74447f48d95a4cdbbf77ef4f248ff19c",
+      "appName": "16a37a0080e3414aafb30f1cc8390f6c",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "17ff6d68ac4f4ca6a89728bb7d93b21c",
+      "sandboxName": "Redout 2",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-06-15T00:22:46.956Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "048550a9623d4824894430a2c2823e02",
+      "catalogItemId": "3e165bcb3f2a4924b58c75350c6e0987",
+      "appName": "8c5172fc5e454598aab78a4a19791638",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "3e4cea34f89d440d97cf22ddf6c122f2",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-09-16T07:41:33.266Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "043ffc92cbd64a9fbc350ea68f415937",
+      "catalogItemId": "53d899266198493ba6c65765f81e25a1",
+      "appName": "b0b94ccc68564c729568cd07f9cfb812",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "bdf9183a47b8449d99ad5c233ca15a5d",
+      "sandboxName": "Arcadegeddon",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-04-11T18:17:37.503Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "f7ca5706875344d8a1fe695093353fae",
+      "catalogItemId": "8792117b4de44b098523bab9b3ff6e76",
+      "appName": "ef041e69837d410ea851934ef879ba7b",
+      "country": "IN",
+      "platform": [
+        "Mac",
+        "Windows"
+      ],
+      "productId": "e6d8370167ce4fe99a69d195174f6208",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-07-17T11:52:07.617Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "96830aff053e404c808a54300c941e57",
+      "catalogItemId": "df8a45a7adf74a7d8a9fc807d595ef2e",
+      "appName": "24b4ee8b16e4450184fe33ff871cc0ee",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "6e13abedd200415e9622043791acf055",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-21T16:17:41.229Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "d408f663403d4e9f8ecdc3086ed0d7bc",
+      "catalogItemId": "c724171247b44b14b13dfc19da33eabd",
+      "appName": "67042b70b5964ebd8f1976a82f76c5c7",
+      "country": "IN",
+      "platform": [
+        "Android"
+      ],
+      "productId": "671b8ba419e2433eac672283d53567b5",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-21T09:53:17.317Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "8d296e80f3ec42a79881f0693f3bded0",
+      "catalogItemId": "e3c33844fdea4946ac563c9902bfc667",
+      "appName": "d5cfb57c4c7f4a18a7ca6e695f845f73",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "324c347dd8e74dafbdcb7677f0419cd1",
+      "sandboxName": "pozole Production",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-09-24T06:09:21.743Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "29e93200bb53431a961afc53e39fb9c8",
+      "catalogItemId": "758fb8c2460b49a5a0d50ee0eba1a1dd",
+      "appName": "32dbb6444ce14e9198129b746c0d056f",
+      "country": "IN",
+      "platform": [
+        "Win32",
+        "Windows"
+      ],
+      "productId": "574121fb5ef54dc0b794e2d0e1d5695e",
+      "sandboxName": "CharlestonGreen",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-07-04T16:38:36.055Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "2bda08f9230144a19e98373cc4a6ac2d",
+      "catalogItemId": "52bf29cddef541aeaea4605f5d9f3123",
+      "appName": "2e26af55c1a146e7a939dcc1014fc9fd",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "c2775c7d8cdf4505a8a0be90da6b235d",
+      "sandboxName": "Lion",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2023-04-18T15:59:14.475Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "eca9a86adffa4605b8250d383fc01098",
+      "catalogItemId": "9ee12f049a214208afb3236018bcc168",
+      "appName": "cccdbadd66124f609ba706a9c4c73756",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "2f47837cc5d047768889831e359038b7",
+      "sandboxName": "Deceive Inc",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-11-08T12:11:43.604Z",
+      "availableDate": "2023-03-21T15:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ca4058f18b0a4a9e9e2ccc28f7f33000",
+      "catalogItemId": "8f328dced20e41d29b6f1fceed8f2164",
+      "appName": "Eel",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "88801317bf794eaba96d893fa7d0c5c3",
+      "sandboxName": "Kingdom Come: Deliverance",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-01-01T16:32:48.594Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "3eb832eb6d9f4496818a0b0d667420c0",
+      "catalogItemId": "90f6c1b0452f4f839a34c55e09f326d0",
+      "appName": "82cdbdf05c61474d89c4f9e8a8bf0ea4",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "98cdc7484b264021ad8a3a6e1e721989",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-14T11:02:26.277Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "a02304688fb3406192a3491b4281bee7",
+      "catalogItemId": "ff3441646daa4bb9aac0ae01beca6275",
+      "appName": "588cec64448242d8b61188205d97f887",
+      "country": "IN",
+      "platform": [
+        "Win32",
+        "Windows"
+      ],
+      "productId": "a6eec1ad46bc4515be5731b22f274ef7",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-04-11T18:18:40.036Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "5d9f109e44ec4c8bbc5495f43b601f25",
+      "catalogItemId": "7dbf6df45b47438197d789e095d7e8c1",
+      "appName": "25ad72f164b948ab9e05eb18fab2cda8",
+      "country": "IN",
+      "platform": [
+        "Win32",
+        "Windows"
+      ],
+      "productId": "99e568930ad045a5a91b0b50ea3d5389",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-14T11:01:08.169Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "38e211ced4e448a5a653a8d1e13fef18",
+      "catalogItemId": "27556e7cd968479daee8cc7bd77aebdd",
+      "appName": "575efd0b5dd54429b035ffc8fe2d36d0",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "eb15454c010f4a748498cd3a62096a52",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-15T08:47:54.506Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "22a9bc193ad94ab78155b5c2f9541e6b",
+      "catalogItemId": "2014cc67b96947ec956fc178a52fa097",
+      "appName": "985373b4b4754b18b2f88ca100040ccc",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Win32"
+      ],
+      "productId": "16244a18d39c4d30919ead91c7860397",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-10-18T05:27:11.476Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "aae22da1fb884fa395b25bc30dd61faf",
+      "catalogItemId": "87e1c4c8fcbd47fba99e57a8b52defca",
+      "appName": "74034e8449f2470d9f45115f3a49f9aa",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "5624c3d58c3e4675930951e7119c6dbf",
+      "sandboxName": "Fallout 2",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-30T11:49:52.619Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "c20d98862be8473b896df438004868c5",
+      "catalogItemId": "565d6ab483f14997b7ab4b4213c84c96",
+      "appName": "cb28095340aa4bb8ace6f42c9a6e5f13",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "1251ee32f3b6496e99e170d4dc890d9e",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-09-16T07:40:57.175Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "6c3a09646a954c04b5ab774e5b8c861d",
+      "catalogItemId": "9a26128dfe1f480e97c16015736b20f7",
+      "appName": "b3cb6e007019430ebb1dd87f6e8c87d3",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "9f8b082e3cf84425be6aa563f0ddc2a0",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-10-07T05:13:19.426Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "0ef87626cd724281b9f8f74c83c54b93",
+      "catalogItemId": "75d762a36e4646a98eef0e3930c097be",
+      "appName": "8d3aca1e5ccb454abc4e83429439cb50",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "edd7b759e98447aaa1f72b683f2a4df8",
+      "sandboxName": "TOEM",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-09-24T06:07:50.953Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "a4e77bc04aa440a096962c14b63a41e8",
+      "catalogItemId": "9cc0c39d76354bd79d78f405e09cdb51",
+      "appName": "1136763135c0482cbbb4b2d45e978156",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "6091b3f3943e4a7aa25fcac13de15cd1",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-19T18:05:24.602Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "1c26f99d58a94ae08d094d5911ba7883",
+      "catalogItemId": "8004efce7c904c948355331710e1c75f",
+      "appName": "76cebf29ff9b4acbac9d5c0067088f4f",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "557fb2a2e101498bb9fe6998ee36154b",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-11-03T11:51:18.573Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "71e6bd85af1841f598526da595f22a62",
+      "catalogItemId": "dff2626bd13b457387875f9ba12f3309",
+      "appName": "0006475a83f143ba807174654bc09d38",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "82093add2c92433abf5e4975c4e259c4",
+      "sandboxName": "HOT WHEELS UNLEASHED™",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-28T02:57:11.492Z",
+      "availableDate": "2021-09-30T16:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ea73c08ac633414584e281f838b3a78c",
+      "catalogItemId": "c7397d2fcea94f0babca92475f52bbe3",
+      "appName": "49550aa9fcd74552ae07c4e9f2c262fe",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "4ae43da8b7c74066be91f9bf3049f3f9",
+      "sandboxName": "Marvel's Midnight Suns",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-06-07T11:14:18.488Z",
+      "availableDate": "2022-12-02T05:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "b79b8b81ba8c4bf9b4b1154670237131",
+      "catalogItemId": "e35269408cce4631ba6a69b6a2e4d1a0",
+      "appName": "ef50503adc284a8ba65d4dea1ecce91a",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "bf00db0c53ad40f09bc1331b34cd58b6",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-10-18T05:26:20.404Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "6b0541b5d9aa476cbf407643ab3b1d7d",
+      "catalogItemId": "96571224db9a4dae8414e06050230e51",
+      "appName": "256ba8bdd1ff4c26a0b2d3776d1a1bf6",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "cc1afd157b8f408bb1a0591c67127808",
+      "sandboxName": "The Callisto Protocol",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-23T03:46:41.226Z",
+      "availableDate": "2022-12-02T05:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "edd938a6d7ec4a55ab82bba8f8dd5b22",
+      "catalogItemId": "2b524cdfced84a39b4d2110249ad7d84",
+      "appName": "16db0e48c4d84d1490ab96be62a83c4c",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "25da1d05381345f6b50cca947a2fc2fc",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-10-13T10:17:55.684Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "bd9fd28ca1214868922f2ab41d6d3b65",
+      "catalogItemId": "c17465f604fe411a8dca86089cd68898",
+      "appName": "3a0cae9455844390ad00505a704d641e",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "4c998fd4568946c7875a6d5ab11979fc",
+      "sandboxName": "Beyond Blue",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-02-10T03:12:26.267Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "f919a1262081444fb28f0fdef68d6b14",
+      "catalogItemId": "ad66ba38abed4035917aab1b1a3a3607",
+      "appName": "8e29583ae4b44a21883038668f7e301e",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "575ef79db8ea4c2184d745b09b8518d8",
+      "sandboxName": "Moving Out",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-10-25T14:56:50.304Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "300ee26a2d6746cdb7dd515ae819f5d4",
+      "catalogItemId": "6675018d71f84b599a59c5bd7bb439ff",
+      "appName": "8de4840d52d645119f0a08d1f6ce206d",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "836b235a73124dff93ad3f6ec12dbaeb",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-09-27T07:14:35.072Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "2a14cf8a83b149919a2399504e5686a6",
+      "catalogItemId": "52a1bd5e5a7240269b8514ff94db8f54",
+      "appName": "huddle",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "9e59bd1fac90426880f8448b396e764d",
+      "sandboxName": "huddle Production",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2023-11-24T02:08:08.772Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "f9f24f4a353b451297e31f5db9cc54f2",
+      "catalogItemId": "1a628e9e37234b39a3e88e67a1bcb291",
+      "appName": "makalu",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "5dcd88f4e2094a698ebffa43438edc33",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-11-08T12:13:33.514Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "84c76746bce94effb8e1047fabfd7eb7",
+      "catalogItemId": "b9e23e5fa8e84064b356677022beb37a",
+      "appName": "a79746038c6948558274065d24f3faa3",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "4eb4296fe40e4130a61adbf2d6b34586",
+      "sandboxName": "World of Warships",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-16T15:13:23.425Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "b9665613f2b94636bf4536a411002d22",
+      "catalogItemId": "f630390312144c1f84314e61319c4779",
+      "appName": "93228a1a7b2b4205811d8edf930a0c18",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "925b89bff456434291f264924ab51443",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-05T07:53:47.194Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ff8c96d781824ba1ae62d18d207fc52e",
+      "catalogItemId": "9b106e9bf35d4a7e8cefa750bd26e759",
+      "appName": "0055e45ce7654c55aade646467349e83",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "80c76cf826c44084b64cfe48b5f83ffa",
+      "sandboxName": "Mortal Shell",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-16T15:12:05.320Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ff8c96d781824ba1ae62d18d207fc52e",
+      "catalogItemId": "f261a461e9224e09a4f888e19a3b633b",
+      "appName": "f0ac8218ef7d4b5aabec153e3f193db6",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "80c76cf826c44084b64cfe48b5f83ffa",
+      "sandboxName": "Mortal Shell",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-16T15:12:05.320Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "194cda74f9024d67860202683a3dab18",
+      "catalogItemId": "24cb36289be34527b528cda87cdc925c",
+      "appName": "89443d0c5afa4ef586c72445c0399a8b",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "b1d735eb93de4c6da325aa9a6db9a5a5",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-22T16:05:01.263Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "7a6c212ee9cf425c82d4b08af3f564a9",
+      "catalogItemId": "804f8922867e42d1ab051d3c2720919c",
+      "appName": "b5271de997b44ef993d7a84196717452",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "e3784d83a73a4327912200df080c08e6",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-05-20T13:00:54.172Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "13e30807efce43ea9e04ac1c45668d8e",
+      "catalogItemId": "2036f1c3d4074be6b5adb31a3713918a",
+      "appName": "f5b2bda11e0f4e22b552f03be3f15f62",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "b3880830b9a54ae7bf9262ec56487f2f",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-10-13T10:18:39.069Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "5fb8093984924ff5bfad61ae28730818",
+      "catalogItemId": "b18e1911942c4dbebcb4d23676e299f0",
+      "appName": "ba94c39030df477180e5141aadcc8b13",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "4911a9e7ee9f4cb89651afa9c147a273",
+      "sandboxName": "mindaro Production",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-01-27T01:29:47.060Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "cae311831cac43d6960d2aa6bfb0b52f",
+      "catalogItemId": "b4e4f8944ff24b8897f88c791b0a5e44",
+      "appName": "3c3e0f7567674017ad9700d9f36266ca",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "a0369ce3d85b4059be3ea5d306f2eb20",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-01-03T14:18:52.601Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "013ef1cdbe5a4408919025207ddb9c99",
+      "catalogItemId": "c1b3517c568940c1a1aa794030dc65e5",
+      "appName": "c95f2c3e2e8b41f1bb9de3036e53f319",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "8856ac3296214cc086bc101382ee8ffa",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-06-24T19:44:55.216Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "8b454b47f5544fc6829cf0fed42ebae0",
+      "catalogItemId": "eac6533129434f98a6b04a81cbcaf357",
+      "appName": "65c25644a2e0444d8766967a008b1d69",
+      "country": "IN",
+      "platform": [
+        "Win32",
+        "Windows",
+        "Mac"
+      ],
+      "productId": "068f920aa2e3477db96c60a00aebf8a3",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-24T16:53:04.899Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ff8c96d781824ba1ae62d18d207fc52e",
+      "catalogItemId": "1d008ac35c9a4fdf8fc278f04206c194",
+      "appName": "e8a9426c08b94430b637c56bbab826bf",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "80c76cf826c44084b64cfe48b5f83ffa",
+      "sandboxName": "Mortal Shell",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-16T15:18:12.895Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "a940fa38f001486a9884640924119576",
+      "catalogItemId": "f3ac42b603f546ccbd0f0240ba120143",
+      "appName": "f9685170f7b142909c661a080bd9e60c",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "4515173972ae4444a2582bc690c150bd",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-20T17:22:07.979Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ef233d1e2619445a887f0380266aa4b5",
+      "catalogItemId": "5835c5d90779470b961e9db51851c652",
+      "appName": "0ddc48f6812b447e9834bd7a474b627b",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "c7686614cdfc421b933b32a37a5eb6ce",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-09-06T05:27:00.688Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "efc30c2078a2499ab979d198255e2e4b",
+      "catalogItemId": "1cb5e018771c43ee96aa553b450e9f95",
+      "appName": "8337d1f975514d35ad0c1176e8a29f26",
+      "country": "IN",
+      "platform": [
+        "Mac",
+        "Windows"
+      ],
+      "productId": "8ecb2895d94f4c64a743c1c4f056743f",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-11-18T05:11:55.959Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "1d6b5762a1d643a4830481c44d59abfb",
+      "catalogItemId": "b55e326929b44a7b913693ea8ae79d00",
+      "appName": "8e4f8dc250364e30aef276555bba1734",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "2ae760629a384d5199cbefc612db7ac8",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-13T03:38:46.411Z",
+      "availableDate": "2023-10-24T13:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "fd952b46a2ad411f8277811e3d9ce98f",
+      "catalogItemId": "4f74ac32d2974298a7793d3c26f91dc2",
+      "appName": "8afa91ad1bc34eb2a1ae704d391896f1",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "bec08df44a434459a5ae9b1254797d5b",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-29T02:29:56.530Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "0f3f352865294c3ea5e10454f24fde85",
+      "catalogItemId": "6538249d5bc84eb69715c5ab78ca712d",
+      "appName": "61cc250618f94809a3ef6837c8d69445",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "b8b5f8ab6b7e45f69d6618aaf71960cc",
+      "sandboxName": "Garden Story",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-02-21T08:39:49.704Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "99e8ecbba8a34b95839498e98fbebeeb",
+      "catalogItemId": "47a08b0b1ff64c57be4833fe76dd9468",
+      "appName": "246eeb03ef15431f8ea95c6c7ae1e2ca",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "465c0f6c95d04b1c86b280b4925fee2d",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-11-08T12:20:15.817Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "58004246d72f474a957ff5f57b9684ca",
+      "catalogItemId": "44dc6b5ffd984b32b526c7d6bed73b86",
+      "appName": "6a2cc8b03e684bbd9096a338f96a7ba2",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "fe812f94c42e44e986691a84c796952d",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-04-03T17:33:36.081Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "6430e58041234e41b8f81f68f01450ed",
+      "catalogItemId": "581c8d4fd9574884bff66cbdbaa42def",
+      "appName": "3e02273b543f4ff0a1c24d3b534a9ac3",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "0fac3450d5b24587a1d25b5c94676f99",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-01-02T16:36:18.206Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "b9e6e3d5a4474a8ead248c62bfdf08b7",
+      "catalogItemId": "a01d846767aa43d0bbb285548d59817d",
+      "appName": "fdbd9987b8344d2ead326c7f18d6da0e",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "03887d7e03fd460eb1c3074d1de865dd",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-11-03T09:06:46.660Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "3b391953ce4b42bb9a28a2fee249154b",
+      "catalogItemId": "518490da62794d0a8f3695cbe2fcf0a6",
+      "appName": "e8bbb84be35640cda646233152ff3428",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "2c5525406ea34caebf391f1f4c8a44a5",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-01T14:37:16.401Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "2b09519576cb4276bfd8df52f5288e4a",
+      "catalogItemId": "5fee571eae9d43e798ea022d632232fa",
+      "appName": "0fcb6881984f4e9ab91f5e22e4bf844c",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "a391c82c2bdc46cbaa107272f2fc90dd",
+      "sandboxName": "Bus Simulator 21",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-06T14:54:10.337Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "247d4d4b4e424afd9b474334fe450a43",
+      "catalogItemId": "62da4c1440ae445093f1d650c3a5cc8c",
+      "appName": "d1df808b70104992a53512d64fae933c",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "1ff2f74ba0ef4019b6905d8abe268819",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-11-18T05:11:12.865Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "a93cd6111251461c953776a0c4ea4d80",
+      "catalogItemId": "d0083c0713b140709d92ac02b179cbf2",
+      "appName": "007ff8f4e30845a687e66aa77eb3e965",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "e5d12f6d14514964a97cb98002f0eeea",
+      "sandboxName": "Ghostwire Tokyo",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-11-03T09:07:37.712Z",
+      "availableDate": "2022-03-25T04:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "85c72a063b884d249a554fee9f71125d",
+      "catalogItemId": "26047d36df5e48aeaa570d1577f44b95",
+      "appName": "9b1148db19dc457aa1adf9f21ac6f0ff",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "4985026f56654289a4a1fa848f41c4c9",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-01-14T16:14:07.779Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "ea533c2d54754167a9392a2ffa61bb87",
+      "catalogItemId": "4c35cfd4b3c4487386a524867864481c",
+      "appName": "806f3b7734764e2498962ce7b55c0dda",
+      "country": "IN",
+      "platform": [
+        "Win32",
+        "Windows"
+      ],
+      "productId": "7aae3abbbea241618a4246fb80ea8582",
+      "sandboxName": "LEGO Builders Journey",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2022-12-22T10:27:52.833Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "calluna",
+      "catalogItemId": "9afb582e90b74bdd9e2146fb79c78589",
+      "appName": "Calluna",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "prod-calluna",
+      "sandboxName": "Control",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-25T16:06:31.313Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "b7b42e2078524ab386a8b2a9856ef557",
+      "catalogItemId": "c80a76de890145edbe0d41679dbccc66",
+      "appName": "d36336f190094951873ed6138ac208d8",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "535f2bc5c4fb43798c8e65fefce6f990",
+      "sandboxName": "Sifu",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-31T18:10:31.586Z",
+      "availableDate": "2022-02-08T12:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "b112cc17de8c4b43a2372993b5916fec",
+      "catalogItemId": "c94754a1de0c4bd4b7749dbb2e1d82bc",
+      "appName": "5ff96008f7314df4bb188cd085b1cdf4",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "67b80cb431834a1fa1ec3e69ef2f83f1",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-08-05T07:55:22.111Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "630a4b97a55545bb9941aee38ec799db",
+      "catalogItemId": "15f80e26c27242afb07172b565a5b4aa",
+      "appName": "09e8f92d436c4484b4c666bac75bc041",
+      "country": "IN",
+      "platform": [
+        "Android"
+      ],
+      "productId": "aa3726b6b8a14b148b58992e8d2700b1",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-21T09:53:33.980Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "3196925cb7ea45c3a9c47118e52a820e",
+      "catalogItemId": "f554c33320e4489880f9c640f487395f",
+      "appName": "f8b6cc851ab34f5f9f07654426dc2429",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "4ad9b2d4a92141a09e3ca4df8bfbcfea",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-09-06T05:25:23.233Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "02c14a01b7044db98de3f3a10813a42e",
+      "catalogItemId": "1708848cdb2842d2bc2ce3b536b26b0d",
+      "appName": "5fc579fbef6a4bf99171861b68b8fcb2",
+      "country": "IN",
+      "platform": [
+        "Windows",
+        "Mac"
+      ],
+      "productId": "17941f406ec14df1abbec8a6bed848ea",
+      "sandboxName": "Humankind",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-02-10T03:12:58.861Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "3ed00dd26dce45c0912e528beb2877f8",
+      "catalogItemId": "93274ac5770e4b739ab29a89908edf62",
+      "appName": "84939992ff804046959c7ae7818a2fdc",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "305a4ae0d4934ebf8dbe4ea6445d1a8c",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-06-15T00:30:52.801Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "708f57aaa04b42ef885be16c8288f0ac",
+      "catalogItemId": "d303a92b6c4d4e25808a92a0a9ca3950",
+      "appName": "cc3213f280df4b428e85b771c09d1891",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "5fe2542e232b4014a5f2f3619598bd19",
+      "sandboxName": "Ghostrunner 2",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-12-26T16:06:36.749Z",
+      "availableDate": "2023-10-26T15:00:00.000Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "7e508f543b05465abe3a935960eb70ac",
+      "catalogItemId": "48353a502e72433298f25827e03dbff0",
+      "appName": "40cb42e38c0b4a14a1bb133eb3291572",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "a53f91e55c6840018cb5de0b204f1ad9",
+      "sandboxName": "Idle Champions of the Forgotten Realms",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2024-06-15T00:25:09.024Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "a567c32599bf4d4fb609e424f3691b39",
+      "catalogItemId": "d74fb2e8ae09432db115612e1bde5655",
+      "appName": "2d9d7555ccdd4ceaa1b60e501ba0bacd",
+      "country": "IN",
+      "platform": [
+        "Windows"
+      ],
+      "productId": "a4913c01be82426584eb67824840a7cc",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-03-07T15:24:00.957Z",
+      "dependencies": []
+    },
+    {
+      "namespace": "040baa2d100d465caf428c688cc3cdba",
+      "catalogItemId": "ddcae2cac7f94a5e9f19e8f7a24b4878",
+      "appName": "4237ffc575c94a0e89ef9ab7dd884ad5",
+      "country": "IN",
+      "platform": [
+        "Win32",
+        "Windows"
+      ],
+      "productId": "9da72b3af32d4818b502369a4aac5aac",
+      "sandboxName": "Live",
+      "sandboxType": "PUBLIC",
+      "recordType": "APPLICATION",
+      "acquisitionDate": "2025-01-17T05:57:26.831Z",
+      "dependencies": []
+    }
+  ]
+}
