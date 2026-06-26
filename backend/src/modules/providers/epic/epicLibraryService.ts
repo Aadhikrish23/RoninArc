@@ -3,6 +3,17 @@ import EpicOwnership from "./models/EpicOwnership";
 import epicAuthService from "./epicAuthService";
 
 const syncLibrary = async (userId: string) => {
+  // Drop legacy index if it exists to allow duplicate productIds (base game + DLC)
+  try {
+    await EpicOwnership.collection.dropIndex("userId_1_productId_1");
+    console.log("[EpicLibraryService] Dropped legacy unique index userId_1_productId_1");
+  } catch (e) {
+    // Index doesn't exist or already dropped, ignore
+  }
+
+  // Reset ownership status before syncing to handle removed/filtered items
+  await EpicOwnership.updateMany({ userId, provider: "epic" }, { $set: { owned: false } });
+
   const accessToken = await epicAuthService.getValidAccessToken(userId);
 
   const uniqueGames = new Map();
@@ -18,8 +29,7 @@ const syncLibrary = async (userId: string) => {
       if (record.recordType !== "APPLICATION") {
         continue;
       }
-
-      uniqueGames.set(record.productId, record);
+      uniqueGames.set(record.catalogItemId, record);
     }
 
     cursor = page.responseMetadata?.nextCursor;
@@ -38,7 +48,7 @@ const syncLibrary = async (userId: string) => {
       await EpicOwnership.updateOne(
         {
           userId,
-          productId: game.productId,
+          catalogItemId: game.catalogItemId,
         },
         {
           $set: {

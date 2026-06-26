@@ -1,9 +1,12 @@
 import User from "../../auth/models/User";
 import epicApiService from "./epicApiService";
 import EpicOwnership from "./models/EpicOwnership";
-import fs from "fs";
+
 const getStatus = async (userId: string) => {
   const user = await User.findById(userId);
+  const count = user?.providers?.epic
+    ? await EpicOwnership.countDocuments({ userId, provider: "epic" })
+    : 0;
 
   return {
     connected: !!user?.providers?.epic,
@@ -11,6 +14,10 @@ const getStatus = async (userId: string) => {
     displayName: user?.providers?.epic?.displayName || null,
 
     connectedAt: user?.providers?.epic?.connectedAt || null,
+
+    importedGames: count,
+
+    lastSync: user?.providers?.epic?.lastSyncAt || null,
   };
 };
 
@@ -24,6 +31,10 @@ const connect = async (
     accessTokenExpiresAt?: Date;
   },
 ) => {
+  console.log("CONNECT USER", userId);
+
+  console.log(provider);
+
   const user = await User.findByIdAndUpdate(
     userId,
     {
@@ -38,6 +49,7 @@ const connect = async (
       new: true,
     },
   );
+  console.log(user);
 
   return user?.providers?.epic;
 };
@@ -121,9 +133,6 @@ const getValidAccessToken = async (userId: string) => {
   return tokenData.access_token;
 };
 
-
-
-
 export default {
   getStatus,
   connect,
@@ -132,6 +141,4 @@ export default {
   verifyEpicToken,
   getLoginUrl,
   getValidAccessToken,
-  
-  
 };

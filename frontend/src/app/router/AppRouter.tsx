@@ -5,6 +5,7 @@ import Login from "../../features/auth/pages/Login";
 import Signup from "../../features/auth/pages/Signup";
 
 import LibraryPage from "../../features/library/pages/LibraryPage";
+import BrowsePage from "../../features/library/pages/BrowsePage";
 import DashboardPage from "../../features/dashboard/pages/Dashboard";
 import SettingsPage from "../../features/settings/pages/SettingsPage";
 import ProtectedLayout from "../layouts/ProtectedLayout";
@@ -13,6 +14,7 @@ import NotFound from "./NotFound";
 
 import { useAuth } from "../../features/auth/context/AuthContext";
 import GameDetailsPage from "../../features/library/pages/GameDetailsPage";
+import EpicOAuthCallback from "../../features/providers/epic/pages/EpicOAuthCallback";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -43,10 +45,12 @@ export default function AppRouter() {
         }
       >
         <Route path="/" element={<LibraryPage />} />
+        <Route path="/library/browse" element={<BrowsePage />} />
 
         <Route path="/dashboard" element={<DashboardPage />} />
 
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/providers/epic/callback" element={<EpicOAuthCallback />} />
         <Route path="/library/game/:rawgId" element={<GameDetailsPage />} />
       </Route>
       <Route path="*" element={<NotFound />} />

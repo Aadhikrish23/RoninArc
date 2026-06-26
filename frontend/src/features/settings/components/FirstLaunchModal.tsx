@@ -11,11 +11,11 @@ import {
 } from "@chakra-ui/react";
 
 import { useEffect, useState } from "react";
-import ImportWizardModal from "./ImportWizardModal";
+import { useNavigate } from "react-router-dom";
 
 export default function FirstLaunchModal() {
   const [isOpen, setIsOpen] = useState(false);
-  const [isImportOpen, setImportOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const hasSeenWizard = localStorage.getItem("roninarc_import_wizard_seen");
@@ -27,20 +27,16 @@ export default function FirstLaunchModal() {
 
   const handleSkip = () => {
     localStorage.setItem("roninarc_import_wizard_seen", "true");
-
     setIsOpen(false);
   };
 
   const handleContinue = () => {
     localStorage.setItem("roninarc_import_wizard_seen", "true");
-
     setIsOpen(false);
-
-    setImportOpen(true);
+    navigate("/settings");
   };
 
   return (
-    <>
     <Modal
       isOpen={isOpen}
       onClose={() => {}}
@@ -55,18 +51,18 @@ export default function FirstLaunchModal() {
 
         <ModalBody>
           <VStack align="start" spacing={3}>
-            <Text>Would you like to import your existing game libraries?</Text>
+            <Text>Connect your game library accounts to get started.</Text>
 
             <Text fontSize="sm" color="gray.500">
-              RoninArc can scan and import games from supported launchers.
+              RoninArc supports automatic library syncing from major gaming platforms.
             </Text>
 
             <Text fontSize="sm" color="gray.500">
-              ✓ Epic Games
+              ✓ Epic Games — available now
             </Text>
 
             <Text fontSize="sm" color="gray.500">
-              ✓ Steam (Coming Soon)
+              🔜 Steam, GOG, and more — coming soon
             </Text>
           </VStack>
         </ModalBody>
@@ -77,16 +73,10 @@ export default function FirstLaunchModal() {
           </Button>
 
           <Button colorScheme="purple" onClick={handleContinue}>
-            Continue
+            Set Up Connections
           </Button>
         </ModalFooter>
       </ModalContent>
-      
     </Modal>
-    <ImportWizardModal
-        isOpen={isImportOpen}
-        onClose={() => setImportOpen(false)}
-      />
-    </>
   );
 }

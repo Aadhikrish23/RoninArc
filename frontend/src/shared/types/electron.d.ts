@@ -17,6 +17,7 @@ declare global {
       scanEpicGames: () => Promise<EpicGame[]>;
 
       onGameExited?: (callback: (gameId: string) => void) => void;
+
       scanSteamGames: () => Promise<
         {
           appId: string;
@@ -25,6 +26,18 @@ declare global {
           executable: string;
         }[]
       >;
+
+      /**
+       * Opens a child BrowserWindow for Epic OAuth, monitors navigation events,
+       * extracts the authorization code from the redirect URL or JSON body, and
+       * closes the window automatically.
+       *
+       * Returns:
+       *   - string  → authorization code (success)
+       *   - null    → user cancelled / closed the window
+       *   - "ERROR:<message>" → an error occurred during the flow
+       */
+      epicLogin: (loginUrl: string) => Promise<string | null>;
     };
   }
 }

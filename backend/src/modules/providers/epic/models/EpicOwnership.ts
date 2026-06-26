@@ -85,7 +85,7 @@ const epicOwnershipSchema = new mongoose.Schema<EpicOwnershipDocument>(
 epicOwnershipSchema.index(
   {
     userId: 1,
-    productId: 1,
+    catalogItemId: 1,
   },
   {
     unique: true,

@@ -11,6 +11,7 @@ router.get("/status", epicController.getStatus);
 router.post("/connect", epicController.connect);
 
 router.delete("/disconnect", epicController.disconnect);
+router.post("/resync", epicController.resync);
 router.post("/verify", epicController.verifyConnection);
 router.post("/verify-token", epicController.verifyToken);
 

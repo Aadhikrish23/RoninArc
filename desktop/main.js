@@ -233,3 +233,160 @@ ipcMain.handle("epic:scan", async () => {
 ipcMain.handle("steam:scan", async () => {
   return scanSteamGames();
 });
+
+// ── Epic OAuth: BrowserWindow-based code extraction ──────────────────────
+//
+// Epic's OAuth flow:
+//   1. User visits login URL.
+//   2. After successful login, Epic redirects to:
+//        https://www.epicgames.com/id/api/redirect?clientId=...&responseType=code
+//      This page returns a JSON document of the form:
+//        { "redirectUrl": "...", "authorizationCode": "abc123..." }
+//      The code may be in the URL as a query param OR only in the JSON body.
+//
+// Extraction strategy (in priority order):
+//   Layer 1 – URL query param ("code" or "authorizationCode") from any navigation/redirect event.
+//   Layer 2 – JSON body scrape via executeJavaScript once the page finishes loading.
+//   Layer 3 – 10-minute hard timeout → return null (treated as cancellation by renderer).
+
+ipcMain.handle("epic:login", async (_event, loginUrl) => {
+  return new Promise((resolve) => {
+    const TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+
+    // ── Helper: extract code from a URL string ─────────────────────────
+    function extractCodeFromUrl(urlString) {
+      try {
+        const u      = new URL(urlString);
+        const code   = u.searchParams.get("authorizationCode") || u.searchParams.get("code");
+        const sid    = u.searchParams.get("sid"); // Epic sometimes uses "sid" as the code
+        return code || sid || null;
+      } catch {
+        return null;
+      }
+    }
+
+    // ── Helper: is this URL Epic's redirect endpoint? ──────────────────
+    function isRedirectPage(urlString) {
+      try {
+        const u = new URL(urlString);
+        return (
+          u.hostname === "www.epicgames.com" &&
+          u.pathname.startsWith("/id/api/redirect")
+        );
+      } catch {
+        return false;
+      }
+    }
+
+    let settled = false;
+
+    function settle(result) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(hardTimeout);
+      if (authWindow && !authWindow.isDestroyed()) {
+        authWindow.close();
+      }
+      resolve(result);
+    }
+
+    // ── Hard timeout ───────────────────────────────────────────────────
+    const hardTimeout = setTimeout(() => {
+      settle(null); // null → renderer treats as cancellation
+    }, TIMEOUT_MS);
+
+    // ── Child BrowserWindow ────────────────────────────────────────────
+    const authWindow = new BrowserWindow({
+      width:  560,
+      height: 700,
+      title:  "Epic Games — Sign In",
+      show:   true,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration:  false,
+        // Do NOT attach a preload — this is an external OAuth window.
+      },
+    });
+
+    // Prevent the auth window from being embedded in the main window
+    authWindow.setParentWindow(BrowserWindow.getAllWindows()[0] ?? null);
+
+    authWindow.loadURL(loginUrl);
+
+    // ── Layer 1: URL param extraction on any navigation/redirect event ─
+    function handleNavigation(url) {
+      if (!url || settled) return;
+
+      // Code in the URL of the redirect endpoint
+      if (isRedirectPage(url)) {
+        const code = extractCodeFromUrl(url);
+        if (code) {
+          settle(code);
+          return;
+        }
+        // URL is the redirect page but code is not in URL params —
+        // fall through to Layer 2 (body scrape) triggered by did-navigate.
+      }
+    }
+
+    authWindow.webContents.on("will-navigate", (_e, url) => handleNavigation(url));
+    authWindow.webContents.on("will-redirect", (_e, url) => handleNavigation(url));
+    authWindow.webContents.on("did-navigate",  (_e, url) => {
+      handleNavigation(url);
+
+      // ── Layer 2: JSON body scrape ─────────────────────────────────
+      // Triggered whenever the page finishes navigation. If we are on
+      // the redirect page and Layer 1 didn't fire, scrape the body.
+      if (!settled && isRedirectPage(url)) {
+        authWindow.webContents
+          .executeJavaScript(
+            `(function() {
+              try {
+                var body = document.body && document.body.innerText;
+                if (!body) return null;
+                var parsed = JSON.parse(body.trim());
+                return parsed.authorizationCode || parsed.code || parsed.sid || null;
+              } catch(e) { return null; }
+            })()`
+          )
+          .then((code) => {
+            if (code && typeof code === "string" && code.length >= 20) {
+              settle(code);
+            }
+          })
+          .catch(() => {/* scrape failed, keep waiting */});
+      }
+    });
+
+    // did-finish-load is an additional scrape trigger (handles SPA-style navigation)
+    authWindow.webContents.on("did-finish-load", () => {
+      if (settled) return;
+      const url = authWindow.webContents.getURL();
+      if (isRedirectPage(url)) {
+        authWindow.webContents
+          .executeJavaScript(
+            `(function() {
+              try {
+                var body = document.body && document.body.innerText;
+                if (!body) return null;
+                var parsed = JSON.parse(body.trim());
+                return parsed.authorizationCode || parsed.code || parsed.sid || null;
+              } catch(e) { return null; }
+            })()`
+          )
+          .then((code) => {
+            if (code && typeof code === "string" && code.length >= 20) {
+              settle(code);
+            }
+          })
+          .catch(() => {});
+      }
+    });
+
+    // ── User closed the window manually ───────────────────────────────
+    authWindow.on("closed", () => {
+      settle(null); // null → renderer treats as cancellation
+    });
+  });
+});
+

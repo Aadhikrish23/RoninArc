@@ -1,7 +1,7 @@
-import { Box, useColorModeValue } from "@chakra-ui/react";
+import { Box, useColorModeValue, Heading, Flex, Button, Spinner, Text, VStack } from "@chakra-ui/react";
 
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useToast } from "@chakra-ui/react";
 
 import type { RawgGameResult, Game } from "../types/library";
@@ -20,12 +20,14 @@ import activityApi from "../../activity/api/activityApi";
 import { useAuth } from "../../auth/context/AuthContext";
 import { getErrorMessage } from "../../../shared/utils/error";
 import LibraryHeader from "../sections/LibraryHeader";
-import LibraryGamesSection from "../sections/LibraryGamesSection";
-import CollectionsSection from "../sections/CollectionsSection";
 import RawgResultsSection from "../sections/RawgResultsSection";
 import RawgSearch from "../components/RawgSearch";
 import GameAddedModal from "../components/GameAddedModal";
 import { usePlaySession } from "../../playSession/hooks/usePlaySession";
+
+import HorizontalSection from "../components/HorizontalSection";
+import GameCarousel from "../components/GameCarousel";
+import CollectionCarousel from "../components/CollectionCarousel";
 
 function LibraryPage() {
   const { games, setGames, fetchLibrary, addGame, deleteGame, updateStatus } =
@@ -33,21 +35,16 @@ function LibraryPage() {
   const {
     searchText,
     setSearchText,
-
-    results: rawgResults,
-
+    ownedResults,
+    discoverResults,
     loading: rawgLoading,
-
     error: rawgError,
-
     clearSearch,
   } = useRawgSearch();
-  const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
 
-  const selectedGameId = searchParams.get("game");
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedStatus, setSelectedStatus] = useState("all");
 
   const [launchModalGame, setLaunchModalGame] = useState<Game | null>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -168,19 +165,6 @@ function LibraryPage() {
       }
     });
   }, []);
-
-  const filteredGames = useMemo(() => {
-    return games.filter((game) => {
-      const matchStatus =
-        selectedStatus === "all" || game.status === selectedStatus;
-
-      const matchSearch = game.title
-        .toLowerCase()
-        .includes(searchText.toLowerCase());
-
-      return matchStatus && matchSearch;
-    });
-  }, [games, selectedStatus, searchText]);
 
   const handleAddGame = async (rawgGame: RawgGameResult) => {
     await addGame({
@@ -305,18 +289,83 @@ function LibraryPage() {
     }
   };
 
+  const handleLaunchGameFromSearch = async (game: Game) => {
+    if (game.exePath) {
+      if (!window.electronAPI?.launchGame) {
+        toast({
+          title: "Desktop only",
+          description: "Launching is only available inside the Electron app.",
+          status: "warning",
+          duration: 2500,
+          isClosable: true,
+        });
+        return;
+      }
+      try {
+        await startSession(game._id);
+        const launched = await window.electronAPI.launchGame(
+          game._id,
+          game.exePath,
+        );
+        if (launched) {
+          await activityApi.recordLaunch(game._id);
+        }
+        toast({
+          title: `Launching ${game.title}`,
+          description: game.exePath,
+          status: "info",
+          duration: 2000,
+          isClosable: true,
+        });
+      } catch (error: unknown) {
+        console.error("Failed to launch game", error);
+        toast({
+          title: "Launch failed",
+          description: "Could not start the game.",
+          status: "error",
+          duration: 2000,
+          isClosable: true,
+        });
+      }
+    } else {
+      setLaunchModalGame(game);
+      setLaunchPath("");
+    }
+  };
+
+  const continuePlayingGames = useMemo(() => {
+    return games.filter((g) => g.status === "playing");
+  }, [games]);
+
+  const favoriteGames = useMemo(() => {
+    return games.filter(
+      (g) => g.rating !== null && g.rating !== undefined && g.rating >= 4
+    );
+  }, [games]);
+
+  const recentlyAddedGames = useMemo(() => {
+    return [...games]
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .slice(0, 20);
+  }, [games]);
+
+  const completedGames = useMemo(() => {
+    return games.filter((g) => g.status === "completed");
+  }, [games]);
+
   return (
     <Box minH="100vh" bg={bg}>
       {/* ---------------- MAIN CONTENT ---------------- */}
-    <Box maxW="1400px" mx="auto" px={6} py={8}>
+      <Box maxW="1400px" mx="auto" px={6} py={8}>
         {showSearchResults ? (
           <RawgResultsSection
             searchText={searchText}
-            results={rawgResults}
-            games={games}
+            ownedResults={ownedResults}
+            discoverResults={discoverResults}
             loading={rawgLoading}
             error={rawgError}
             onAddGame={handleAddGame}
+            onLaunchGame={handleLaunchGameFromSearch}
             onBack={handleBackToLibrary}
           />
         ) : (
@@ -324,34 +373,136 @@ function LibraryPage() {
             <RawgSearch
               searchText={searchText}
               onSearchChange={setSearchText}
-              results={rawgResults}
+              ownedResults={ownedResults}
+              discoverResults={discoverResults}
               loading={rawgLoading}
               error={rawgError}
               onAddGame={handleAddGame}
               onSearchSubmit={handleSearchSubmit}
             />
-            <LibraryHeader />
-            <CollectionsSection
-              collections={collections}
-              onDelete={deleteCollectionHandler}
-              onRemoveGame={removeGameFromCollection}
-            />
+            <Flex justify="space-between" align="flex-end" mb={8} mt={4}>
+              <LibraryHeader />
+              <Button colorScheme="purple" onClick={() => navigate("/library/browse")}>
+                View All Games
+              </Button>
+            </Flex>
 
-            <LibraryGamesSection
-              selectedGameId={selectedGameId}
-              selectedStatus={selectedStatus}
-              onStatusChange={setSelectedStatus}
-              loading={loading}
-              error={error}
-              filteredGames={filteredGames}
-              collections={collections}
-              onDeleteGame={handleDeleteGame}
-              onLaunch={openLaunchModal}
-              onReview={openReviewModal}
-              onGameStatusChange={updateStatus}
-              onAddToCollection={addGameToCollection}
-              onOpenCollectionModal={openCollectionModal}
-            />
+            {loading ? (
+              <Box w="100%" py={20} textAlign="center" color="gray.500">
+                <Spinner size="xl" thickness="4px" speed="0.6s" />
+                <Text mt={4}>Loading your dashboard...</Text>
+              </Box>
+            ) : error ? (
+              <Box w="100%" py={10} textAlign="center" color="red.400">
+                <Text fontWeight="semibold">Something went wrong!</Text>
+                <Text>{error}</Text>
+              </Box>
+            ) : games.length === 0 ? (
+              <Box
+                p={10}
+                borderWidth="1px"
+                borderStyle="dashed"
+                borderRadius="xl"
+                textAlign="center"
+                bg={useColorModeValue("white", "gray.800")}
+              >
+                <VStack spacing={4}>
+                  <Heading size="md">Welcome to your gaming dashboard!</Heading>
+                  <Text color="gray.500" maxW="500px">
+                    Start search-adding games using the search bar above, or connect your
+                    Epic Games account in Settings.
+                  </Text>
+                  <Button colorScheme="purple" onClick={() => navigate("/settings")}>
+                    Go to Settings
+                  </Button>
+                </VStack>
+              </Box>
+            ) : (
+              <VStack align="stretch" spacing={8}>
+                {continuePlayingGames.length > 0 && (
+                  <HorizontalSection title="Continue Playing">
+                    <GameCarousel
+                      games={continuePlayingGames}
+                      collections={collections}
+                      onLaunch={openLaunchModal}
+                      onReview={openReviewModal}
+                      onDelete={handleDeleteGame}
+                      onAddToCollection={addGameToCollection}
+                      onStatusChange={updateStatus}
+                    />
+                  </HorizontalSection>
+                )}
+
+                {favoriteGames.length > 0 && (
+                  <HorizontalSection title="Favorites (★ 4+)">
+                    <GameCarousel
+                      games={favoriteGames}
+                      collections={collections}
+                      onLaunch={openLaunchModal}
+                      onReview={openReviewModal}
+                      onDelete={handleDeleteGame}
+                      onAddToCollection={addGameToCollection}
+                      onStatusChange={updateStatus}
+                    />
+                  </HorizontalSection>
+                )}
+
+                <VStack align="stretch" spacing={4} w="100%" mb={8}>
+                  <Flex justify="space-between" align="center">
+                    <Heading size="md" fontWeight="bold">
+                      Collections
+                    </Heading>
+                    <Button size="sm" colorScheme="purple" variant="outline" onClick={openCollectionModal}>
+                      + New Collection
+                    </Button>
+                  </Flex>
+                  <Box
+                    overflowX="auto"
+                    py={2}
+                    px={1}
+                    sx={{
+                      "&::-webkit-scrollbar": {
+                        display: "none",
+                      },
+                      msOverflowStyle: "none",
+                      scrollbarWidth: "none",
+                    }}
+                  >
+                    <CollectionCarousel
+                      collections={collections}
+                      onDelete={deleteCollectionHandler}
+                      onRemoveGame={removeGameFromCollection}
+                    />
+                  </Box>
+                </VStack>
+
+                <HorizontalSection title="Recently Added">
+                  <GameCarousel
+                    games={recentlyAddedGames}
+                    collections={collections}
+                    onLaunch={openLaunchModal}
+                    onReview={openReviewModal}
+                    onDelete={handleDeleteGame}
+                    onAddToCollection={addGameToCollection}
+                    onStatusChange={updateStatus}
+                  />
+                </HorizontalSection>
+
+                {completedGames.length > 0 && (
+                  <HorizontalSection title="Completed Games">
+                    <GameCarousel
+                      games={completedGames}
+                      collections={collections}
+                      onLaunch={openLaunchModal}
+                      onReview={openReviewModal}
+                      onDelete={handleDeleteGame}
+                      onAddToCollection={addGameToCollection}
+                      onStatusChange={updateStatus}
+                    />
+                  </HorizontalSection>
+                )}
+              </VStack>
+            )}
           </>
         )}
         <LaunchModal

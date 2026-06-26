@@ -11,22 +11,18 @@ import {
 
 import { SearchIcon } from "@chakra-ui/icons";
 
-import type { RawgGameResult } from "../types/library";
+import type { RawgGameResult, Game } from "../types/library";
 import RawgSearchDropdown from "./RawgSearchDropdown";
 import { rankSearchResults } from "../utils/searchRanking";
 import { useMemo } from "react";
 
 interface RawgSearchProps {
   searchText: string;
-
   onSearchChange: (value: string) => void;
-
-  results: RawgGameResult[];
-
+  ownedResults: Game[];
+  discoverResults: RawgGameResult[];
   loading: boolean;
-
   error: string | null;
-
   onAddGame: (game: RawgGameResult) => void;
   onSearchSubmit: () => void;
 }
@@ -34,7 +30,8 @@ interface RawgSearchProps {
 export default function RawgSearch({
   searchText,
   onSearchChange,
-  results,
+  ownedResults,
+  discoverResults,
   loading,
   error,
   onSearchSubmit,
@@ -43,16 +40,16 @@ export default function RawgSearch({
 
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
  
-const rankedResults = useMemo(
-  () =>
-    rankSearchResults(
-      results,
-      searchText
-    ),
-  [results, searchText]
-);
-console.log("RAWG Results", results);
-console.log("Ranked Results", rankedResults);
+  const rankedDiscoverResults = useMemo(
+    () =>
+      rankSearchResults(
+        discoverResults,
+        searchText
+      ),
+    [discoverResults, searchText]
+  );
+console.log("RAWG Results", discoverResults);
+console.log("Ranked Results", rankedDiscoverResults);
   return (
     <>
       <Box mb={6}>
@@ -79,10 +76,10 @@ console.log("Ranked Results", rankedResults);
           </InputRightElement>
         </InputGroup>
 
-        {!error && searchText.trim() && results.length > 0 && (
-          
+        {!error && searchText.trim() && (ownedResults.length > 0 || discoverResults.length > 0) && (
           <RawgSearchDropdown
-            results={rankedResults.slice(0, 5)}
+            ownedResults={ownedResults}
+            discoverResults={rankedDiscoverResults}
             onViewAll={onSearchSubmit}
           />
         )}

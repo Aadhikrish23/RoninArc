@@ -45,7 +45,6 @@ import {
 export default function GameDetailsPage() {
   const { rawgId } = useParams();
 
-  const { game, loading, error } = useGameDetails(rawgId);
   const { games, setGames, fetchLibrary, addGame, updateStatus, deleteGame } =
     useLibrary();
   const { collections, fetchCollections, addGameToCollection, removeGameFromCollection } =
@@ -62,7 +61,12 @@ export default function GameDetailsPage() {
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
-  const libraryGame = games.find((g) => g.rawgId === game?.id) ?? null;
+  const isMongoId = /^[0-9a-fA-F]{24}$/.test(rawgId || "");
+  const libraryGame = isMongoId
+    ? (games.find((g) => g._id === rawgId) ?? null)
+    : (games.find((g) => g.rawgId === Number(rawgId)) ?? null);
+
+  const { game, loading, error } = useGameDetails(rawgId, libraryGame);
 
   const handleAddGame = async () => {
     if (!game) return;

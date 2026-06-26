@@ -1,18 +1,61 @@
 export type Status = "plan" | "playing" | "completed" | "dropped";
 
+export interface GameArtwork {
+  selectedSource: "manual" | "rawg" | "epic" | "steam" | "gog" | "ea" | "ubisoft" | "xbox";
+  sources: Record<string, string>;
+}
+
 export interface Game {
   _id: string;
-  rawgId: number;
+  rawgId?: number | null;
   title: string;
   description: string;
   imageURL: string;
+  artwork: GameArtwork;
+  developer?: string;
   exePath: string;
   status: Status;
   tags: string[];
   rating?: number | null;
+  provider?: "manual" | "epic" | "steam" | "gog" | "ea" | "ubisoft" | "xbox";
+  providerGameId?: string;
+  providerTitle?: string;
+  normalizedTitle?: string;
+  metadataSyncedAt?: string;
+  
+  // Multi-provider ownership
+  providers?: Record<string, {
+    providerGameId: string;
+    providerTitle?: string;
+    owned?: boolean;
+    installed?: boolean;
+    launcher?: string;
+    installPath?: string;
+    manifestId?: string;
+    syncedAt: string;
+  }>;
+
+  // Enrichment fields
+  screenshots?: string[];
+  trailers?: string[];
+  rawgRating?: number;
+  metacritic?: number | null;
+  website?: string;
+  playtime?: number;
+  developers?: string[];
+  publishers?: string[];
+
   createdAt: string;
   updatedAt: string;
 }
+
+export interface SearchResponse {
+  owned: Game[];
+  discover: RawgGameResult[];
+  totalOwned: number;
+  totalDiscover: number;
+}
+
 
 export interface AddGamePayload {
   rawgId: number;
@@ -80,10 +123,4 @@ export interface RawgGameDetails {
   publishers: string[];
 
   tags: string[];
-}
-export interface EpicGame {
-  name: string;
-  installPath: string;
-  executable: string;
-  epicId: string;
-}
+}

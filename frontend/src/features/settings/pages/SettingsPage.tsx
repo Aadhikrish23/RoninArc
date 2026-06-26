@@ -1,15 +1,12 @@
 import {
   Box,
-  Button,
   Heading,
   Text,
-  VStack,
   useColorModeValue,
   useDisclosure,
+  Grid,
+  GridItem,
 } from "@chakra-ui/react";
-import { Grid, GridItem, Divider, HStack, Switch } from "@chakra-ui/react";
-
-import { useColorMode } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
@@ -18,29 +15,26 @@ import { useAuth } from "../../auth/context/AuthContext";
 import ChangePasswordModal from "../components/ChangePasswordModal";
 import LogoutAllDevicesModal from "../components/LogoutAllDevicesModal";
 import DeleteAccountModal from "../components/DeleteAccountModal";
-import ImportWizardModal from "../components/ImportWizardModal";
+
+import AccountSection from "../components/AccountSection";
+import AppearanceSection from "../components/AppearanceSection";
+import SecuritySection from "../components/SecuritySection";
+import DangerZoneSection from "../components/DangerZoneSection";
+
+import ProviderSection from "../../providers/components/ProviderSection";
+import EpicProviderCard from "../../providers/epic/components/EpicProviderCard";
+import ComingSoonProviderCard from "../../providers/components/ComingSoonProviderCard";
 
 export default function SettingsPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
-
   const mutedText = useColorModeValue("gray.600", "gray.400");
-
   const navigate = useNavigate();
-
   const { logout, user } = useAuth();
 
   const [username, setUsername] = useState("Unknown User");
-  console.log(username)
-  const { colorMode, toggleColorMode } = useColorMode();
-
   const [isPasswordOpen, setPasswordOpen] = useState(false);
-
   const [isLogoutAllOpen, setLogoutAllOpen] = useState(false);
-
-  const [isImportOpen, setImportOpen] = useState(false);
-
   const deleteModal = useDisclosure();
-  const isDesktop = typeof window !== "undefined" && !!window.electronAPI;
 
   useEffect(() => {
     setUsername(user?.name?.toUpperCase() ?? "RONIN");
@@ -48,7 +42,6 @@ export default function SettingsPage() {
 
   const handleLogout = async () => {
     await logout();
-
     navigate("/login");
   };
 
@@ -57,144 +50,48 @@ export default function SettingsPage() {
       <Box maxW="900px" mx="auto" px={6} py={8}>
         <Box mb={8}>
           <Heading size="lg">Settings</Heading>
-
           <Text mt={2} color={mutedText}>
-            Configure RoninArc launcher preferences.
+            Configure RoninArc launcher preferences and manage account connections.
           </Text>
         </Box>
 
         <Grid
           templateColumns={{
             base: "1fr",
-            lg: "1fr 1fr",
+            md: "1fr 1fr",
           }}
           gap={6}
         >
-          {/* ACCOUNT */}
-
           <GridItem>
-            <Box borderWidth="1px" borderRadius="xl" p={6} h="100%">
-              <Heading size="md" mb={5}>
-                Account
-              </Heading>
-
-              <VStack align="stretch" spacing={3}>
-                <Button
-                  variant="ghost"
-                  justifyContent="start"
-                  onClick={() => setPasswordOpen(true)}
-                >
-                  Change Password
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  justifyContent="start"
-                  onClick={handleLogout}
-                >
-                  Logout
-                </Button>
-
-                <Button
-                  variant="ghost"
-                  justifyContent="start"
-                  onClick={() => setLogoutAllOpen(true)}
-                >
-                  Logout All Devices
-                </Button>
-
-                <Button
-                  colorScheme="red"
-                  variant="ghost"
-                  justifyContent="start"
-                  onClick={deleteModal.onOpen}
-                >
-                  Delete Account
-                </Button>
-              </VStack>
-            </Box>
+            <AccountSection username={username} onLogout={handleLogout} />
           </GridItem>
 
-          {/* LAUNCHER */}
+          <GridItem>
+            <AppearanceSection />
+          </GridItem>
+
+          <GridItem colSpan={{ base: 1, md: 2 }}>
+            <ProviderSection title="🔌 Account Connections">
+              <EpicProviderCard />
+              <ComingSoonProviderCard providerId="steam" />
+              <ComingSoonProviderCard providerId="gog" />
+            </ProviderSection>
+          </GridItem>
 
           <GridItem>
-            <Box borderWidth="1px" borderRadius="xl" p={6} h="100%">
-              <Heading size="md" mb={5}>
-                Launcher
-              </Heading>
+            <SecuritySection
+              onChangePassword={() => setPasswordOpen(true)}
+              onLogoutAllDevices={() => setLogoutAllOpen(true)}
+            />
+          </GridItem>
 
-              <VStack align="stretch" spacing={5}>
-                {/* Theme */}
-
-                <HStack justify="space-between">
-                  <Text>Dark Mode</Text>
-
-                  <Switch
-                    isChecked={colorMode === "dark"}
-                    onChange={toggleColorMode}
-                    colorScheme="purple"
-                  />
-                </HStack>
-
-                <Divider />
-
-                {/* Import */}
-
-                <Box>
-                  <Text fontWeight="bold" mb={2}>
-                    Library Import
-                  </Text>
-
-                  {!isDesktop ? (
-                    <Box
-                      p={3}
-                      borderWidth="1px"
-                      borderRadius="md"
-                      borderColor="orange.500"
-                      bg="orange.500/10"
-                    >
-                      <Text fontSize="sm" color="orange.300">
-                        Steam and Epic library scanning requires the desktop
-                        version of RoninArc.
-                      </Text>
-                    </Box>
-                  ) : (
-                    <>
-                      <VStack align="stretch" spacing={2} mb={4}>
-                        <HStack justify="space-between">
-                          <Text>Steam</Text>
-
-                          <Text color="green.400">✓</Text>
-                        </HStack>
-
-                        <HStack justify="space-between">
-                          <Text>Epic Games</Text>
-
-                          <Text color="green.400">✓</Text>
-                        </HStack>
-                      </VStack>
-
-                      <Button
-                        colorScheme="purple"
-                        onClick={() => setImportOpen(true)}
-                      >
-                        Import Games
-                      </Button>
-                    </>
-                  )}
-                </Box>
-
-              
-              </VStack>
-            </Box>
+          <GridItem>
+            <DangerZoneSection onDeleteAccount={deleteModal.onOpen} />
           </GridItem>
         </Grid>
-
-        {/* Library Import */}
       </Box>
 
       {/* Modals */}
-
       <ChangePasswordModal
         isOpen={isPasswordOpen}
         onClose={() => setPasswordOpen(false)}
@@ -208,11 +105,6 @@ export default function SettingsPage() {
       <DeleteAccountModal
         isOpen={deleteModal.isOpen}
         onClose={deleteModal.onClose}
-      />
-
-      <ImportWizardModal
-        isOpen={isImportOpen}
-        onClose={() => setImportOpen(false)}
       />
     </Box>
   );

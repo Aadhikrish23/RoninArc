@@ -18,6 +18,7 @@ import { FiPlay } from "react-icons/fi";
 import type { Game, Status } from "../types/library";
 import type { Collection } from "../../collections/types/collection";
 import { useNavigate } from "react-router-dom";
+import { PROVIDER_CONFIGS } from "../../providers/constants/providers";
 
 interface GameCardProps {
   game: Game;
@@ -47,6 +48,14 @@ export default function GameCard({
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
   const navigate = useNavigate();
 
+  const providerConfig = game.provider ? PROVIDER_CONFIGS[game.provider] : null;
+  const ProviderIcon = providerConfig?.icon;
+
+  const handleCardClick = () => {
+    const detailId = game.rawgId ? String(game.rawgId) : game._id;
+    navigate(`/library/game/${detailId}`);
+  };
+
   return (
     <Box
       borderWidth="1px"
@@ -62,7 +71,7 @@ export default function GameCard({
       }}
       transition="all .25s ease"
       cursor="pointer"
-      onClick={() => navigate(`/library/game/${game.rawgId}`)}
+      onClick={handleCardClick}
     >
       {/* COVER CONTAINER */}
       <Box position="relative">
@@ -78,20 +87,35 @@ export default function GameCard({
           bgGradient="linear(to-t, blackAlpha.900, transparent)"
         />
 
-        {/* RATING BADGE (TOP LEFT) */}
-        {game.rating && (
-          <Badge
-            position="absolute"
-            top={3}
-            left={3}
-            colorScheme="yellow"
-            borderRadius="full"
-            px={3}
-            py={1}
-          >
-            ⭐ {game.rating}/10
-          </Badge>
-        )}
+        {/* TOP LEFT BADGES */}
+        <HStack position="absolute" top={3} left={3} spacing={2} zIndex={2}>
+          {game.rating && (
+            <Badge
+              colorScheme="yellow"
+              borderRadius="full"
+              px={3}
+              py={1}
+            >
+              ⭐ {game.rating}/10
+            </Badge>
+          )}
+          {providerConfig && (
+            <Badge
+              colorScheme={providerConfig.colorScheme}
+              borderRadius="full"
+              px={3}
+              py={1}
+              display="flex"
+              alignItems="center"
+              gap={1}
+            >
+              <ProviderIcon size={12} />
+              <Text fontSize="xs" fontWeight="bold">
+                {providerConfig.name}
+              </Text>
+            </Badge>
+          )}
+        </HStack>
 
         {/* STATUS BADGE (TOP RIGHT) */}
         <Menu>

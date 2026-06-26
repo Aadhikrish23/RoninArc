@@ -53,79 +53,62 @@ async function getGameDetails(rawgId: string | number) {
   }
 
   try {
-  const [detailsResponse, screenshotsResponse] =
-  await Promise.all([
-    axios.get(
-      `${RAWG_BASE_URL}/games/${rawgId}`,
-      {
+    const [detailsResponse, screenshotsResponse, moviesResponse] = await Promise.all([
+      axios.get(`${RAWG_BASE_URL}/games/${rawgId}`, {
         params: {
           key: RAWG_API_KEY,
         },
-      }
-    ),
-
-    axios.get(
-      `${RAWG_BASE_URL}/games/${rawgId}/screenshots`,
-      {
+      }),
+      axios.get(`${RAWG_BASE_URL}/games/${rawgId}/screenshots`, {
         params: {
           key: RAWG_API_KEY,
         },
-      }
-    ),
-  ]);
+      }),
+      axios.get(`${RAWG_BASE_URL}/games/${rawgId}/movies`, {
+        params: {
+          key: RAWG_API_KEY,
+        },
+      }).catch(() => ({ data: { results: [] } })),
+    ]);
 
-const g = detailsResponse.data;
+    const g = detailsResponse.data;
 
-const screenshots =
-  screenshotsResponse.data.results?.map(
-    (s: any) => s.image
-  ) || [];
+    const screenshots = screenshotsResponse.data.results?.map((s: any) => s.image) || [];
+    const trailers = moviesResponse.data.results?.map((m: any) => m.data?.max || m.data?.["480"] || "")
+      .filter((t: string) => t !== "") || [];
+
     return {
-  id: g.id,
-  name: g.name,
-  description: g.description_raw,
+      id: g.id,
+      name: g.name,
+      description: g.description_raw,
 
-  imageURL: g.background_image,
-  imageAlt: g.background_image_additional,
+      imageURL: g.background_image,
+      imageAlt: g.background_image_additional,
 
-  screenshots:screenshots,
+      screenshots: screenshots,
+      trailers: trailers,
 
-  rating: g.rating,
-  ratingsCount: g.ratings_count,
+      rating: g.rating,
+      ratingsCount: g.ratings_count,
 
-  released: g.released,
+      released: g.released,
 
-  website: g.website,
+      website: g.website,
 
-  metacritic: g.metacritic,
+      metacritic: g.metacritic,
 
-  playtime: g.playtime,
+      playtime: g.playtime,
 
-  genres:
-    g.genres?.map(
-      (x: any) => x.name
-    ) || [],
+      genres: g.genres?.map((x: any) => x.name) || [],
 
-  platforms:
-    g.platforms?.map(
-      (p: any) => p.platform.name
-    ) || [],
+      platforms: g.platforms?.map((p: any) => p.platform.name) || [],
 
-  developers:
-    g.developers?.map(
-      (d: any) => d.name
-    ) || [],
+      developers: g.developers?.map((d: any) => d.name) || [],
 
-  publishers:
-    g.publishers?.map(
-      (p: any) => p.name
-    ) || [],
+      publishers: g.publishers?.map((p: any) => p.name) || [],
 
-  tags:
-    g.tags?.slice(0, 10).map(
-      (t: any) => t.name
-    ) || [],
-};
+      tags: g.tags?.slice(0, 10).map((t: any) => t.name) || [],
+    };
   } catch (err) {
     throw new AppError("RAWG game not found", 404);
   }

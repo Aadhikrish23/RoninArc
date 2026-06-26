@@ -16,10 +16,23 @@ contextBridge.exposeInMainWorld("electronAPI", {
       callback(gameId);
     });
   },
+
   scanEpicGames: async () => {
     return await ipcRenderer.invoke("epic:scan");
   },
+
   scanSteamGames: async () => {
     return await ipcRenderer.invoke("steam:scan");
+  },
+
+  /**
+   * Opens a child BrowserWindow for Epic OAuth.
+   * Returns:
+   *   string  → authorization code (success)
+   *   null    → user cancelled / closed the window
+   *   "ERROR:<message>" → failure during the flow
+   */
+  epicLogin: async (loginUrl) => {
+    return await ipcRenderer.invoke("epic:login", loginUrl);
   },
 });

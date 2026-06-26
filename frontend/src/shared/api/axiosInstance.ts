@@ -94,7 +94,7 @@ api.interceptors.response.use(
         sessionStorage.removeItem("roninarc_token");
         sessionStorage.removeItem("roninarc_refresh_token");
 
-        window.location.href = "/login";
+        window.location.href = "/#/login";
 
         return Promise.reject(refreshError);
       } finally {

@@ -4,6 +4,7 @@ import AppError from "../../shared/errors/AppError";
 import Review from "../review/Reviewmodel";
 import Collection from "../collection/CollectionModel";
 import activityService from "../activity/activityService";
+import metadataEnrichmentService from "./metadataEnrichmentService";
 
 async function addGameToLibrary(
   userId: string,
@@ -25,17 +26,31 @@ async function addGameToLibrary(
     rawgId: payload.rawgId,
   });
 
-if (dedupe) {
-  throw new AppError(
-    "Game already exists",
-    400
-  );
-}
+  if (dedupe) {
+    throw new AppError(
+      "Game already exists",
+      400
+    );
+  }
+
+  const artworkSources: Record<string, string> = {};
+  if (payload.imageURL) {
+    artworkSources["manual"] = payload.imageURL;
+  }
 
   const data =
     await gameLibrarymodel.create({
       userId: userId,
-      ...payload,
+      rawgId: payload.rawgId,
+      title: payload.title,
+      description: payload.description,
+      tags: payload.tags,
+      exePath: payload.exePath,
+      status: payload.status,
+      artwork: {
+        selectedSource: "manual",
+        sources: artworkSources,
+      },
     });
 
   await activityService.createActivity(
@@ -45,13 +60,11 @@ if (dedupe) {
     data._id as any
   );
 
-  return data;
+  return data.toObject();
 }
 
 async function getUserLibrary(userId: string) {
-  const games = await gameLibrarymodel
-    .find({ userId })
-    .lean();
+  const games = await gameLibrarymodel.find({ userId });
 
   const reviews = await Review.find({
     userId: userId,
@@ -64,20 +77,27 @@ async function getUserLibrary(userId: string) {
     ])
   );
 
-  return games.map((game) => ({
-    ...game,
-    rating:
-      reviewMap.get(
-        game._id.toString()
-      ) || null,
-  }));
+  return games.map((game) => {
+    const gameObj = game.toJSON();
+    return {
+      ...gameObj,
+      rating:
+        reviewMap.get(
+          game._id.toString()
+        ) || null,
+    };
+  });
 }
 async function getGameById(userId: string , gameid:string) {
   const data = await gameLibrarymodel.findOne({ _id: gameid, userId });
-    if (!data) {
+  if (!data) {
     return null;
   }
-  return data;
+  const status = data.metadataState?.status || "none";
+  if (status === "none" || status === "failed") {
+    metadataEnrichmentService.enqueueEnrichment(userId, gameid);
+  }
+  return data.toObject();
 }
 async function getGameFilter(
   userId: string,
@@ -91,7 +111,7 @@ async function getGameFilter(
   if (!data) {
     return null;
   }
-  return data;
+  return data.map((g) => g.toObject());
 }
 
 async function updateGame(
@@ -139,7 +159,7 @@ async function updateGame(
     );
   }
 
-  return data;
+  return data.toObject();
 }
 
 async function deleteGame(
@@ -178,8 +198,9 @@ async function deleteGame(
     `Removed ${data.title} from library`
   );
 
-  return data;
+  return data.toObject();
 }
+
 
 export default {
   addGameToLibrary,
