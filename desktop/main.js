@@ -82,8 +82,9 @@ ipcMain.handle("launch-game", async (event, gameId, exePath) => {
   try {
     console.log("[launch-game] Requested exePath:", exePath);
 
-    const exeDir = path.dirname(exePath);
-    const exeName = path.basename(exePath);
+    const isUri = exePath.includes("://");
+    const exeDir = isUri ? process.cwd() : path.dirname(exePath);
+    const exeName = isUri ? "" : path.basename(exePath);
 
     console.log("[launch-game] Using cwd:", exeDir);
 

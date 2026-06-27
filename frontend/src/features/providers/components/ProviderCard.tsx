@@ -4,7 +4,6 @@ import {
   Divider,
   Heading,
   HStack,
-  Spinner,
   Text,
   VStack,
   Skeleton,
@@ -37,10 +36,14 @@ export default function ProviderCard({
     "gray.700"
   );
 
+  // Loading has highest priority — never infer connected/disconnected during loading
   const isStateLoading = connectionState === "loading" || (loading && !connectionState);
-  const stateConnected = connectionState 
-    ? ["connected", "syncing", "connecting", "disconnecting"].includes(connectionState)
-    : connected;
+  const stateConnected = isStateLoading
+    ? false  // Never show as connected during loading — skeletons will render instead
+    : connectionState
+      ? ["connected", "syncing", "connecting", "disconnecting"].includes(connectionState)
+      : connected;
+
 
   return (
     <Box

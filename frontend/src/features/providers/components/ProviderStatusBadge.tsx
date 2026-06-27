@@ -10,7 +10,10 @@ export default function ProviderStatusBadge({
   connected,
   connectionState,
 }: Props) {
-  const state = connectionState || (connected ? "connected" : "disconnected");
+  // connectionState (UI lifecycle) always takes priority when provided.
+  // Only fall back to the connected boolean when connectionState is undefined.
+  const state = connectionState ?? (connected ? "connected" : "disconnected");
+
 
   let colorScheme = "gray";
   let label = "Disconnected";

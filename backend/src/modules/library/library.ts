@@ -25,5 +25,10 @@ library_router.patch("/:gameid", authMiddleware, librarycontroller.updateGame);
 
 // Delete a single game by id
 library_router.delete("/:gameid", authMiddleware, librarycontroller.deleteGame);
+library_router.post(
+  "/:gameid/enrich",
+  authMiddleware,
+  librarycontroller.enrichGame,
+);
 
 export default library_router;

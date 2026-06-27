@@ -40,15 +40,19 @@ interface Props {
 }
 
 const STATUS_COLORS: Record<Status, string> = {
+  none: "gray",
   plan: "yellow",
   playing: "purple",
+  paused: "orange",
   completed: "green",
   dropped: "red",
 };
 
 const STATUS_LABELS: Record<Status, string> = {
+  none: "No Status",
   plan: "Plan to Play",
   playing: "Playing",
+  paused: "Paused",
   completed: "Completed",
   dropped: "Dropped",
 };
@@ -121,6 +125,9 @@ export default function UserGameStats({
     (c) => !c.gameIds.some((g) => g._id === game._id)
   );
 
+  const isProviderGame = game.providers && Object.keys(game.providers).length > 0;
+  const isInstalled = isProviderGame && Object.values(game.providers || {}).some((p: any) => p.installed === true);
+
   return (
     <Box
       mt={8}
@@ -143,21 +150,28 @@ export default function UserGameStats({
             <MenuButton
               as={Button}
               size="sm"
-              colorScheme={STATUS_COLORS[game.status]}
+              colorScheme={STATUS_COLORS[game.progressStatus || "none"]}
               textTransform="capitalize"
               borderRadius="full"
               rightIcon={<span>▼</span>}
             >
-              {STATUS_LABELS[game.status]}
+              {STATUS_LABELS[game.progressStatus || "none"]}
             </MenuButton>
 
             <MenuList>
+              <MenuItem onClick={() => onStatusChange(game._id, "none")}>
+                No Status
+              </MenuItem>
               <MenuItem onClick={() => onStatusChange(game._id, "plan")}>
                 Plan To Play
               </MenuItem>
 
               <MenuItem onClick={() => onStatusChange(game._id, "playing")}>
                 Playing
+              </MenuItem>
+
+              <MenuItem onClick={() => onStatusChange(game._id, "paused")}>
+                Paused
               </MenuItem>
 
               <MenuItem onClick={() => onStatusChange(game._id, "completed")}>
@@ -293,12 +307,13 @@ export default function UserGameStats({
         {/* LAUNCH */}
         <Button
           w="100%"
-          colorScheme="green"
+          colorScheme={isProviderGame && !isInstalled ? "gray" : "green"}
           size="lg"
           leftIcon={<FiPlay />}
           onClick={onLaunch}
+          isDisabled={isProviderGame && !isInstalled}
         >
-          Launch Game
+          {isProviderGame && !isInstalled ? "Not Installed" : "Launch Game"}
         </Button>
 
         <Divider my={2} />

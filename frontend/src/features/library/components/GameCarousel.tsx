@@ -5,24 +5,21 @@ import type { Collection } from "../../collections/types/collection";
 
 interface GameCarouselProps {
   games: Game[];
-  collections: Collection[];
+  
   onLaunch: (game: Game) => void;
-  onReview: (game: Game) => void;
-  onDelete: (id: string) => void;
-  onAddToCollection: (collectionId: string, gameId: string) => void;
   onStatusChange: (id: string, status: Status) => void;
   emptyMessage?: string;
+  runningGames: Set<string>;
 }
 
 export default function GameCarousel({
   games,
-  collections,
+  
   onLaunch,
-  onReview,
-  onDelete,
-  onAddToCollection,
+  
   onStatusChange,
   emptyMessage = "No games in this section",
+  runningGames,
 }: GameCarouselProps) {
   if (games.length === 0) {
     return (
@@ -38,12 +35,9 @@ export default function GameCarousel({
         <Box key={game._id} minW="280px" maxW="280px">
           <GameCard
             game={game}
-            collections={collections}
             onLaunch={onLaunch}
-            onReview={onReview}
-            onDelete={onDelete}
-            onAddToCollection={onAddToCollection}
             onStatusChange={onStatusChange}
+            isRunning={runningGames.has(game._id)}
           />
         </Box>
       ))}

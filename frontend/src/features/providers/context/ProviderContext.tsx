@@ -1,6 +1,12 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from "react";
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useCallback,
+} from "react";
 import type { ProviderId, ProviderStatus } from "../types/provider";
-import epicApi from "../epic/api/epicApi";
+import providerApi from "../api/providerApi";
 import { createEpicStrategy } from "../epic/auth/createEpicStrategy";
 import { useAuth } from "../../auth/context/AuthContext";
 
@@ -25,10 +31,14 @@ export interface ProviderState {
 
 export interface ProviderContextType {
   authenticate: (providerId: ProviderId) => Promise<ProviderStatus>;
-  connect: (providerId: ProviderId, authorizationCode: string) => Promise<ProviderStatus>;
+  connect: (
+    providerId: ProviderId,
+    authorizationCode: string,
+  ) => Promise<ProviderStatus>;
   disconnect: (providerId: ProviderId) => Promise<void>;
   resync: (providerId: ProviderId) => Promise<any>;
   refresh: (providerId: ProviderId) => Promise<void>;
+  refreshInstallations: () => Promise<any>;
 }
 
 const initialProviderState = (providerId: ProviderId): ProviderState => ({
@@ -48,7 +58,10 @@ const initialProviderState = (providerId: ProviderId): ProviderState => ({
 });
 
 // We create separate contexts for each provider's state
-const ProviderStateContexts: Record<ProviderId, React.Context<ProviderState>> = {
+const ProviderStateContexts: Record<
+  ProviderId,
+  React.Context<ProviderState>
+> = {
   manual: createContext<ProviderState>(initialProviderState("manual")),
   epic: createContext<ProviderState>(initialProviderState("epic")),
   steam: createContext<ProviderState>(initialProviderState("steam")),
@@ -59,119 +72,165 @@ const ProviderStateContexts: Record<ProviderId, React.Context<ProviderState>> = 
 };
 
 // We create a context for the shared, stable actions
-const ProviderActionsContext = createContext<ProviderContextType | undefined>(undefined);
+const ProviderActionsContext = createContext<ProviderContextType | undefined>(
+  undefined,
+);
 
 export function ProviderProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
-  const [epicState, setEpicState] = useState<ProviderState>(initialProviderState("epic"));
-  const [steamState, setSteamState] = useState<ProviderState>(initialProviderState("steam"));
-  const [gogState, setGogState] = useState<ProviderState>(initialProviderState("gog"));
-  const [eaState, setEaState] = useState<ProviderState>(initialProviderState("ea"));
-  const [ubisoftState, setUbisoftState] = useState<ProviderState>(initialProviderState("ubisoft"));
-  const [xboxState, setXboxState] = useState<ProviderState>(initialProviderState("xbox"));
-  const [manualState, setManualState] = useState<ProviderState>(initialProviderState("manual"));
+  const [epicState, setEpicState] = useState<ProviderState>(
+    initialProviderState("epic"),
+  );
+  const [steamState, setSteamState] = useState<ProviderState>(
+    initialProviderState("steam"),
+  );
+  const [gogState, setGogState] = useState<ProviderState>(
+    initialProviderState("gog"),
+  );
+  const [eaState, setEaState] = useState<ProviderState>(
+    initialProviderState("ea"),
+  );
+  const [ubisoftState, setUbisoftState] = useState<ProviderState>(
+    initialProviderState("ubisoft"),
+  );
+  const [xboxState, setXboxState] = useState<ProviderState>(
+    initialProviderState("xbox"),
+  );
+  const [manualState, setManualState] = useState<ProviderState>(
+    initialProviderState("manual"),
+  );
 
   const getSetter = useCallback((id: ProviderId) => {
     switch (id) {
-      case "epic": return setEpicState;
-      case "steam": return setSteamState;
-      case "gog": return setGogState;
-      case "ea": return setEaState;
-      case "ubisoft": return setUbisoftState;
-      case "xbox": return setXboxState;
-      case "manual": return setManualState;
+      case "epic":
+        return setEpicState;
+      case "steam":
+        return setSteamState;
+      case "gog":
+        return setGogState;
+      case "ea":
+        return setEaState;
+      case "ubisoft":
+        return setUbisoftState;
+      case "xbox":
+        return setXboxState;
+      case "manual":
+        return setManualState;
     }
   }, []);
 
-  const updateProviderState = useCallback((id: ProviderId, updater: Partial<ProviderState> | ((prev: ProviderState) => ProviderState)) => {
-    const setter = getSetter(id);
-    if (typeof updater === "function") {
-      setter(updater);
-    } else {
-      setter(prev => ({ ...prev, ...updater }));
-    }
-  }, [getSetter]);
-
-  const refresh = useCallback(async (providerId: ProviderId) => {
-    try {
-      if (providerId === "epic") {
-        const data = await epicApi.getStatus();
-        updateProviderState("epic", {
-          status: data,
-          connectionState: data.connected ? "connected" : "disconnected",
-          loading: false,
-          error: null,
-        });
+  const updateProviderState = useCallback(
+    (
+      id: ProviderId,
+      updater:
+        | Partial<ProviderState>
+        | ((prev: ProviderState) => ProviderState),
+    ) => {
+      const setter = getSetter(id);
+      if (typeof updater === "function") {
+        setter(updater);
       } else {
-        updateProviderState(providerId, prev => ({
+        setter((prev) => ({ ...prev, ...updater }));
+      }
+    },
+    [getSetter],
+  );
+
+  const refresh = useCallback(
+    async (providerId: ProviderId) => {
+      if (providerId === "manual") {
+        updateProviderState("manual", (prev) => ({
           ...prev,
           connectionState: "disconnected",
           loading: false,
           error: null,
         }));
+        return;
       }
-    } catch (err: any) {
-      console.error(`[ProviderContext] Failed to refresh provider status for ${providerId}:`, err);
-      updateProviderState(providerId, prev => ({
+
+      try {
+        const data = await providerApi.getStatus(providerId);
+        updateProviderState(providerId, {
+          status: data,
+          connectionState: data.connected ? "connected" : "disconnected",
+          loading: false,
+          error: null,
+        });
+      } catch (err: any) {
+        console.error(
+          `[ProviderContext] Failed to refresh provider status for ${providerId}:`,
+          err,
+        );
+        updateProviderState(providerId, (prev) => ({
+          ...prev,
+          connectionState: "disconnected",
+          loading: false,
+          error: err?.message || "Failed to load provider status",
+        }));
+      }
+    },
+    [updateProviderState],
+  );
+
+  const authenticate = useCallback(
+    async (providerId: ProviderId): Promise<ProviderStatus> => {
+      updateProviderState(providerId, (prev) => ({
         ...prev,
-        connectionState: "disconnected",
-        loading: false,
-        error: err?.message || "Failed to load provider status",
+        connectionState: "connecting",
+        loading: true,
+        error: null,
       }));
-    }
-  }, [updateProviderState]);
 
-  const authenticate = useCallback(async (providerId: ProviderId): Promise<ProviderStatus> => {
-    updateProviderState(providerId, prev => ({
-      ...prev,
-      connectionState: "connecting",
-      loading: true,
-      error: null,
-    }));
+      try {
+        let authorizationCode: string | undefined;
 
-    try {
-      if (providerId === "epic") {
-        const strategy = createEpicStrategy();
-        const result = await strategy.authenticate();
+        if (providerId === "epic") {
+          const strategy = createEpicStrategy();
+          const result = await strategy.authenticate();
 
-        if (result.cancelled) {
-          let finalStatus: ProviderStatus;
-          updateProviderState(providerId, prev => {
-            finalStatus = prev.status;
-            return {
+          if (result.cancelled) {
+            let finalStatus: ProviderStatus;
+            updateProviderState(providerId, (prev) => {
+              finalStatus = prev.status;
+              return {
+                ...prev,
+                connectionState: finalStatus.connected
+                  ? "connected"
+                  : "disconnected",
+                loading: false,
+                error: null,
+              };
+            });
+            // Wait for state transition to resolve
+            return new Promise<ProviderStatus>((resolve) => {
+              setEpicState((prev) => {
+                resolve(prev.status);
+                return prev;
+              });
+            });
+          }
+
+          if (!result.success || !result.authorizationCode) {
+            const msg = result.error ?? "Authentication did not complete.";
+            updateProviderState(providerId, (prev) => ({
               ...prev,
-              connectionState: finalStatus.connected ? "connected" : "disconnected",
+              connectionState: "error",
               loading: false,
-              error: null,
-            };
-          });
-          // Wait for state transition to resolve
-          return new Promise<ProviderStatus>((resolve) => {
-            setEpicState(prev => {
-              resolve(prev.status);
-              return prev;
+              error: msg,
+              lastError: msg,
+            }));
+            return new Promise<ProviderStatus>((resolve) => {
+              setEpicState((prev) => {
+                resolve(prev.status);
+                return prev;
+              });
             });
-          });
+          }
+
+          authorizationCode = result.authorizationCode;
         }
 
-        if (!result.success || !result.authorizationCode) {
-          const msg = result.error ?? "Authentication did not complete.";
-          updateProviderState(providerId, prev => ({
-            ...prev,
-            connectionState: "error",
-            loading: false,
-            error: msg,
-            lastError: msg,
-          }));
-          return new Promise<ProviderStatus>((resolve) => {
-            setEpicState(prev => {
-              resolve(prev.status);
-              return prev;
-            });
-          });
-        }
-
-        updateProviderState(providerId, prev => ({
+        updateProviderState(providerId, (prev) => ({
           ...prev,
           connectionState: "syncing",
           loading: true,
@@ -179,48 +238,140 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
           lastSyncAttempt: new Date().toISOString(),
         }));
 
-        const updated = await epicApi.connect({ authorizationCode: result.authorizationCode });
+        const updated = await providerApi.connect(providerId, {
+          authorizationCode,
+          localGames: [],
+        });
 
         updateProviderState(providerId, {
           status: updated,
           connectionState: updated.connected ? "connected" : "disconnected",
           loading: false,
           error: null,
-          lastSuccessfulSync: updated.connected ? new Date().toISOString() : null,
+          lastSuccessfulSync: updated.connected
+            ? new Date().toISOString()
+            : null,
         });
         return updated;
-      } else {
-        throw new Error(`Authentication for provider "${providerId}" is not implemented.`);
-      }
-    } catch (err: any) {
-      const msg = err?.response?.data?.Message ?? err?.message ?? `Failed to connect to ${providerId}.`;
-      updateProviderState(providerId, prev => ({
-        ...prev,
-        connectionState: "error",
-        loading: false,
-        error: msg,
-        lastError: msg,
-      }));
-      return new Promise<ProviderStatus>((resolve) => {
-        const setter = getSetter(providerId);
-        setter(prev => {
-          resolve(prev.status);
-          return prev;
+      } catch (err: any) {
+        const msg =
+          err?.response?.data?.Message ??
+          err?.message ??
+          `Failed to connect to ${providerId}.`;
+        updateProviderState(providerId, (prev) => ({
+          ...prev,
+          connectionState: "error",
+          loading: false,
+          error: msg,
+          lastError: msg,
+        }));
+        return new Promise<ProviderStatus>((resolve) => {
+          const setter = getSetter(providerId);
+          setter((prev) => {
+            resolve(prev.status);
+            return prev;
+          });
         });
-      });
-    }
-  }, [updateProviderState, getSetter]);
+      }
+    },
+    [updateProviderState, getSetter],
+  );
 
-  const connect = useCallback(async (providerId: ProviderId, authorizationCode: string): Promise<ProviderStatus> => {
-    updateProviderState(providerId, prev => ({
-      ...prev,
-      connectionState: "connecting",
-      loading: true,
-      error: null,
-    }));
+  const connect = useCallback(
+    async (
+      providerId: ProviderId,
+      authorizationCode: string,
+    ): Promise<ProviderStatus> => {
+      updateProviderState(providerId, (prev) => ({
+        ...prev,
+        connectionState: "connecting",
+        loading: true,
+        error: null,
+      }));
 
-    try {
-      updateProviderState(providerId, prev => ({
+      try {
+        updateProviderState(providerId, (prev) => ({
+          ...prev,
+          connectionState: "syncing",
+          loading: true,
+          error: null,
+          lastSyncAttempt: new Date().toISOString(),
+        }));
+
+        const updated = await providerApi.connect(providerId, {
+          authorizationCode,
+          localGames: [],
+        });
+
+        updateProviderState(providerId, {
+          status: updated,
+          connectionState: updated.connected ? "connected" : "disconnected",
+          loading: false,
+          error: null,
+          lastSuccessfulSync: updated.connected
+            ? new Date().toISOString()
+            : null,
+        });
+        return updated;
+      } catch (err: any) {
+        const msg = err?.message ?? `Failed to connect to ${providerId}.`;
+        updateProviderState(providerId, (prev) => ({
+          ...prev,
+          connectionState: "error",
+          loading: false,
+          error: msg,
+          lastError: msg,
+        }));
+        throw err;
+      }
+    },
+    [updateProviderState],
+  );
+
+  const disconnect = useCallback(
+    async (providerId: ProviderId): Promise<void> => {
+      updateProviderState(providerId, (prev) => ({
+        ...prev,
+        connectionState: "disconnecting",
+        loading: true,
+        error: null,
+      }));
+
+      try {
+        await providerApi.disconnect(providerId);
+
+        const resetStatus: ProviderStatus = {
+          provider: providerId,
+          connected: false,
+          displayName: null,
+          importedGames: 0,
+          lastSync: null,
+        };
+
+        updateProviderState(providerId, {
+          status: resetStatus,
+          connectionState: "disconnected",
+          loading: false,
+          error: null,
+        });
+      } catch (err: any) {
+        const msg = err?.message ?? `Failed to disconnect ${providerId}.`;
+        updateProviderState(providerId, (prev) => ({
+          ...prev,
+          connectionState: "error",
+          loading: false,
+          error: msg,
+          lastError: msg,
+        }));
+        throw err;
+      }
+    },
+    [updateProviderState],
+  );
+
+  const resync = useCallback(
+    async (providerId: ProviderId): Promise<any> => {
+      updateProviderState(providerId, (prev) => ({
         ...prev,
         connectionState: "syncing",
         loading: true,
@@ -228,120 +379,94 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
         lastSyncAttempt: new Date().toISOString(),
       }));
 
-      let updated: ProviderStatus;
-      if (providerId === "epic") {
-        updated = await epicApi.connect({ authorizationCode });
-      } else {
-        throw new Error(`Connect for provider "${providerId}" is not implemented.`);
+      try {
+        const result = await providerApi.resync(providerId, { localGames: [] });
+
+        await refresh(providerId);
+        updateProviderState(providerId, (prev) => ({
+          ...prev,
+          lastSuccessfulSync: new Date().toISOString(),
+        }));
+        return result;
+      } catch (err: any) {
+        const msg = err?.message ?? `Failed to resync ${providerId}.`;
+        updateProviderState(providerId, (prev) => ({
+          ...prev,
+          connectionState: "error",
+          loading: false,
+          error: msg,
+          lastError: msg,
+        }));
+        throw err;
       }
+    },
+    [updateProviderState, refresh],
+  );
 
-      updateProviderState(providerId, {
-        status: updated,
-        connectionState: updated.connected ? "connected" : "disconnected",
-        loading: false,
-        error: null,
-        lastSuccessfulSync: updated.connected ? new Date().toISOString() : null,
-      });
-      return updated;
-    } catch (err: any) {
-      const msg = err?.message ?? `Failed to connect to ${providerId}.`;
-      updateProviderState(providerId, prev => ({
-        ...prev,
-        connectionState: "error",
-        loading: false,
-        error: msg,
-        lastError: msg,
-      }));
-      throw err;
-    }
-  }, [updateProviderState]);
-
-  const disconnect = useCallback(async (providerId: ProviderId): Promise<void> => {
-    updateProviderState(providerId, prev => ({
-      ...prev,
-      connectionState: "disconnecting",
-      loading: true,
-      error: null,
-    }));
+  const refreshInstallations = useCallback(async (): Promise<any> => {
+    // Set epic and steam states to syncing if they are connected
+    setEpicState((prev) =>
+      prev.status.connected
+        ? { ...prev, connectionState: "syncing", loading: true }
+        : prev,
+    );
+    setSteamState((prev) =>
+      prev.status.connected
+        ? { ...prev, connectionState: "syncing", loading: true }
+        : prev,
+    );
 
     try {
-      if (providerId === "epic") {
-        await epicApi.disconnect();
-      } else {
-        throw new Error(`Disconnect for provider "${providerId}" is not implemented.`);
-      }
+      const steamScanned = window.electronAPI
+        ? await window.electronAPI.scanSteamGames()
+        : [];
+      const epicScanned = window.electronAPI
+        ? await window.electronAPI.scanEpicGames()
+        : [];
 
-      const resetStatus: ProviderStatus = {
-        provider: providerId,
-        connected: false,
-        displayName: null,
-        importedGames: 0,
-        lastSync: null,
-      };
-
-      updateProviderState(providerId, {
-        status: resetStatus,
-        connectionState: "disconnected",
-        loading: false,
-        error: null,
+      const result = await providerApi.refreshInstallations({
+        steam: steamScanned,
+        epic: epicScanned,
       });
-    } catch (err: any) {
-      const msg = err?.message ?? `Failed to disconnect ${providerId}.`;
-      updateProviderState(providerId, prev => ({
-        ...prev,
-        connectionState: "error",
-        loading: false,
-        error: msg,
-        lastError: msg,
-      }));
-      throw err;
-    }
-  }, [updateProviderState]);
 
-  const resync = useCallback(async (providerId: ProviderId): Promise<any> => {
-    updateProviderState(providerId, prev => ({
-      ...prev,
-      connectionState: "syncing",
-      loading: true,
-      error: null,
-      lastSyncAttempt: new Date().toISOString(),
-    }));
+      // Refresh both statuses
+      await Promise.all([refresh("epic"), refresh("steam")]);
 
-    try {
-      let result: any;
-      if (providerId === "epic") {
-        result = await epicApi.resync();
-      } else {
-        throw new Error(`Resync for provider "${providerId}" is not implemented.`);
-      }
-
-      await refresh(providerId);
-      updateProviderState(providerId, prev => ({
-        ...prev,
-        lastSuccessfulSync: new Date().toISOString(),
-      }));
       return result;
     } catch (err: any) {
-      const msg = err?.message ?? `Failed to resync ${providerId}.`;
-      updateProviderState(providerId, prev => ({
-        ...prev,
-        connectionState: "error",
-        loading: false,
-        error: msg,
-        lastError: msg,
-      }));
+      console.error("[ProviderContext] Failed to refresh installations:", err);
+      await Promise.all([refresh("epic"), refresh("steam")]);
       throw err;
     }
-  }, [updateProviderState, refresh]);
+  }, [refresh]);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      refresh("epic");
+    if (!isAuthenticated) {
+      setEpicState(initialProviderState("epic"));
+      setSteamState(initialProviderState("steam"));
+      // setGogState(initialProviderState("gog"));
+      // setEaState(initialProviderState("ea"));
+      // setUbisoftState(initialProviderState("ubisoft"));
+      // setXboxState(initialProviderState("xbox"));
+      setManualState(initialProviderState("manual"));
+      return;
     }
-  }, [refresh, isAuthenticated]);
+
+    refresh("epic");
+    refresh("steam");
+  }, [isAuthenticated, refresh]);
 
   return (
-    <ProviderActionsContext.Provider value={{ authenticate, connect, disconnect, resync, refresh }}>
+    <ProviderActionsContext.Provider
+      value={{
+        authenticate,
+        connect,
+        disconnect,
+        resync,
+        refresh,
+        refreshInstallations,
+      }}
+    >
       <ProviderStateContexts.manual.Provider value={manualState}>
         <ProviderStateContexts.epic.Provider value={epicState}>
           <ProviderStateContexts.steam.Provider value={steamState}>
@@ -379,9 +504,11 @@ export function useProvider(providerId: ProviderId) {
     lastSyncAttempt: state.lastSyncAttempt,
     lastError: state.lastError,
     authenticate: () => actions.authenticate(providerId),
-    connect: (authorizationCode: string) => actions.connect(providerId, authorizationCode),
+    connect: (authorizationCode: string) =>
+      actions.connect(providerId, authorizationCode),
     disconnect: () => actions.disconnect(providerId),
     resync: () => actions.resync(providerId),
     refresh: () => actions.refresh(providerId),
+    refreshInstallations: actions.refreshInstallations,
   };
 }

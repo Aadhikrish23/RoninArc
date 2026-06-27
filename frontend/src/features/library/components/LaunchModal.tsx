@@ -14,6 +14,7 @@ import {
 } from "@chakra-ui/react";
 
 import type { Game } from "../types/library";
+import { getProviderLauncherUri } from "../utils/launch";
 
 interface LaunchModalProps {
   game: Game | null;
@@ -25,6 +26,8 @@ interface LaunchModalProps {
   onEditPath: () => void;
 
   onLaunch: () => void;
+
+  onLaunchLauncher?: (uri: string) => void;
 }
 
 export default function LaunchModal({
@@ -33,6 +36,7 @@ export default function LaunchModal({
   onClose,
   onEditPath,
   onLaunch,
+  onLaunchLauncher,
 }: LaunchModalProps) {
   if (!game) return null;
 
@@ -88,6 +92,25 @@ export default function LaunchModal({
                 launches.
               </Text>
             )}
+
+            {game.providers &&
+              Object.entries(game.providers).map(([providerKey, p]) => {
+                if (!p || !p.installed) return null;
+                const launcherUri = getProviderLauncherUri(providerKey, p);
+                if (!launcherUri) return null;
+                return (
+                  <Button
+                    key={providerKey}
+                    size="sm"
+                    colorScheme="teal"
+                    variant="outline"
+                    onClick={() => onLaunchLauncher?.(launcherUri)}
+                    w="100%"
+                  >
+                    Launch via {providerKey.toUpperCase()} Launcher
+                  </Button>
+                );
+              })}
           </VStack>
         </ModalBody>
 

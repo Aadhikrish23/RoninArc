@@ -26,7 +26,6 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     
     return next(new AppError("Server config error: JWT_SECRET missing", 500));
   }
-  console.log("AUTH HEADER:", req.headers.authorization);
 
   try {
     const payload = jwt.verify(token, JWT_SECRET) as JwtPayload;

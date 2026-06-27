@@ -27,6 +27,8 @@ function DashboardPage() {
   const { stats: playtimeStats, loadStats } = usePlaySession();
   const [stats, setStats] = useState<DashboardStats>({
     totalGames: 0,
+    owned: 0,
+    installed: 0,
     playing: 0,
     completed: 0,
 
@@ -65,49 +67,23 @@ function DashboardPage() {
 
         {/* Top row: stats */}
         {/* Stats Grid */}
-        <SimpleGrid columns={{ base: 1, md: 2, lg: 4 }} spacing={4} mb={6}>
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Total Games</StatLabel>
-              <StatNumber>{stats.totalGames}</StatNumber>
-              <StatHelpText>In your library</StatHelpText>
-            </Stat>
-          </Box>
-
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Playing</StatLabel>
-              <StatNumber>{stats.playing}</StatNumber>
-              <StatHelpText>Active adventures</StatHelpText>
-            </Stat>
-          </Box>
-
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Completed</StatLabel>
-              <StatNumber>{stats.completed}</StatNumber>
-              <StatHelpText>Finished journeys</StatHelpText>
-            </Stat>
-          </Box>
-
+        {/* Stats Grid */}
+        <SimpleGrid columns={{ base: 1, sm: 2, md: 4, lg: 8 }} spacing={4} mb={6}>
+          {stats.statusStats.map((item) => (
+            <Box
+              key={item.status}
+              borderWidth="1px"
+              borderRadius="xl"
+              borderColor={subtleBorder}
+              bg={cardBg}
+              p={4}
+            >
+              <Stat>
+                <StatLabel>{item.status}</StatLabel>
+                <StatNumber>{item.count}</StatNumber>
+              </Stat>
+            </Box>
+          ))}
           <Box
             borderWidth="1px"
             borderRadius="xl"
@@ -118,7 +94,6 @@ function DashboardPage() {
             <Stat>
               <StatLabel>Hours Played</StatLabel>
               <StatNumber>{playtimeStats?.totalHours ?? 0}</StatNumber>
-
               <StatHelpText>Across all games</StatHelpText>
             </Stat>
           </Box>

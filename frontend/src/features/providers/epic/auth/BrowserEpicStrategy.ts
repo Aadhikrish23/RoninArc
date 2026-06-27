@@ -110,7 +110,7 @@ export class BrowserEpicStrategy implements EpicAuthStrategy {
 
       // If for any reason the popup closes (e.g. user navigates away and closes)
       // the `popup.closed` check above catches it on the next tick.
-    }).catch(() => ({ success: false, error: "An unexpected error occurred during authentication." }))
+    }).catch(() => ({ success: false, error: "An unexpected error occurred during authentication." } as AuthenticationResult))
       .then((result) => {
         // If automatic extraction was cancelled without a code, surface the manual fallback
         if (result.cancelled) {

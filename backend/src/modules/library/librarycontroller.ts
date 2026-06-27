@@ -2,14 +2,15 @@ import libraryServices from "./libraryServices";
 import type { Request, Response, NextFunction } from "express";
 import AppError from "../../shared/errors/AppError";
 import mongoose from "mongoose";
+import metadataEnrichmentService from "./metadataEnrichmentService";
 
-const allowerstatus = ["plan", "playing", "completed", "dropped"];
-const allowedSearchParams = ["title", "tags", "status"];
+const allowerstatus = ["none", "plan", "playing", "paused", "completed", "dropped"];
+const allowedSearchParams = ["title", "tags", "progressStatus"];
 
 interface updatetype {
   tags?: string[];
   exePath?: string;
-  status: string;
+  progressStatus: string;
 }
 const addGame = async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -20,7 +21,7 @@ const addGame = async (req: Request, res: Response, next: NextFunction) => {
     let tags = req.body.tags;
     let imageURL = req.body.imageURL;
     let exePath = req.body.exePath;
-    let status = req.body.status;
+    let status = req.body.progressStatus;
 
     if (typeof rawgId !== "number" || Number.isNaN(rawgId)) {
       return next(new AppError("Valid rawgId is required", 400));
@@ -60,7 +61,7 @@ const addGame = async (req: Request, res: Response, next: NextFunction) => {
       tags: tags,
       imageURL: imageURL !== undefined ? imageURL.trim() : undefined,
       exePath: exePath !== undefined ? exePath.trim() : undefined,
-      status: status !== undefined ? status.trim() : "plan",
+      progressStatus: status !== undefined ? status.trim() : "plan",
     };
     const data = await libraryServices.addGameToLibrary(userId, payload);
 
@@ -112,7 +113,9 @@ const filterGames = async (req: Request, res: Response, next: NextFunction) => {
       return next(new AppError("Missing search value", 400));
     }
 
-    if (!allowedSearchParams.includes(searchparam)) {
+    const normalizedParam = searchparam === "status" ? "progressStatus" : searchparam;
+
+    if (!allowedSearchParams.includes(normalizedParam)) {
       return next(new AppError("Invalid Search params", 400));
     }
     if (
@@ -124,7 +127,7 @@ const filterGames = async (req: Request, res: Response, next: NextFunction) => {
     }
     const data = await libraryServices.getGameFilter(
       userId,
-      searchparam,
+      normalizedParam,
       searchvalue,
     );
 
@@ -145,7 +148,7 @@ const updateGame = async (req: Request, res: Response, next: NextFunction) => {
     const gameid = req.params.gameid;
 
     let exePath = req.body.exePath;
-    let status = req.body.status;
+    let status = req.body.progressStatus ;
     if (!mongoose.Types.ObjectId.isValid(gameid)) {
       return next(new AppError("Invalid game id", 400));
     }
@@ -168,15 +171,15 @@ const updateGame = async (req: Request, res: Response, next: NextFunction) => {
       return next(new AppError("Invalid Tags", 400));
     }
 
-    let updates = <updatetype>{};
+    let updates = <any>{};
     if (Array.isArray(tags)) {
       updates["tags"] = tags;
     }
 
     if (status) {
-      updates["status"] = status.trim();
+      updates["progressStatus"] = status.trim();
     }
-    if (exePath) {
+    if (exePath !== undefined) {
       updates["exePath"] = exePath.trim();
     }
 
@@ -209,6 +212,32 @@ const deleteGame = async (req: Request, res: Response, next: NextFunction) => {
     next(error);
   }
 };
+const enrichGame = async (
+  req: Request,
+  res: Response,
+  next: NextFunction,
+) => {
+  try {
+    const userId = req.user.id;
+    const gameid = req.params.gameid;
+
+    if (!mongoose.Types.ObjectId.isValid(gameid)) {
+      return next(new AppError("Invalid game id", 400));
+    }
+
+    const game = await metadataEnrichmentService.enrichGame(
+      userId,
+      gameid,
+    );
+
+    return res.status(200).json({
+      Status: "Success",
+      Data: game,
+    });
+  } catch (err) {
+    next(err);
+  }
+};
 export default {
   addGame,
   getLibrary,
@@ -216,4 +245,5 @@ export default {
   updateGame,
   deleteGame,
   filterGames,
+  enrichGame
 };

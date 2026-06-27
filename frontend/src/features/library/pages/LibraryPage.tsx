@@ -1,37 +1,56 @@
-import { Box, useColorModeValue, Heading, Flex, Button, Spinner, Text, VStack } from "@chakra-ui/react";
+import {
+  Box,
+  useColorModeValue,
+  Heading,
+  Flex,
+  Button,
+  Spinner,
+  Text,
+  VStack,
+  HStack,
+} from "@chakra-ui/react";
 
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@chakra-ui/react";
 
 import type { RawgGameResult, Game } from "../types/library";
-import libraryApi from "../api/libraryApi";
 import LaunchModal from "../components/LaunchModal";
 import { useLibrary } from "../hooks/useLibrary";
 import { useRawgSearch } from "../hooks/useRawgSearch";
 import { useReview } from "../../reviews/hooks/useReview";
 import ReviewModal from "../../reviews/components/ReviewModal";
 
-import { useCollections } from "../../collections/hooks/useCollections";
+import { useCollection } from "../../collections/hooks/useCollections";
 
 import CreateCollectionModal from "../../collections/components/CreateCollectionModal";
 
 import activityApi from "../../activity/api/activityApi";
 import { useAuth } from "../../auth/context/AuthContext";
-import { getErrorMessage } from "../../../shared/utils/error";
 import LibraryHeader from "../sections/LibraryHeader";
 import RawgResultsSection from "../sections/RawgResultsSection";
 import RawgSearch from "../components/RawgSearch";
 import GameAddedModal from "../components/GameAddedModal";
 import { usePlaySession } from "../../playSession/hooks/usePlaySession";
+import { getLaunchPath } from "../utils/launch";
+import { useProvider } from "../../providers/context/ProviderContext";
 
 import HorizontalSection from "../components/HorizontalSection";
 import GameCarousel from "../components/GameCarousel";
 import CollectionCarousel from "../components/CollectionCarousel";
 
 function LibraryPage() {
-  const { games, setGames, fetchLibrary, addGame, deleteGame, updateStatus } =
-    useLibrary();
+  const {
+    games,
+    loading,
+    error,
+    fetchLibrary,
+    addGame,
+    updateGame,
+    deleteGame,
+    updateStatus,
+    refreshGame,
+  } = useLibrary();
   const {
     searchText,
     setSearchText,
@@ -42,10 +61,7 @@ function LibraryPage() {
     clearSearch,
   } = useRawgSearch();
   const navigate = useNavigate();
-
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
-
+  const [runningGames, setRunningGames] = useState<Set<string>>(new Set());
   const [launchModalGame, setLaunchModalGame] = useState<Game | null>(null);
   const [showSearchResults, setShowSearchResults] = useState(false);
 
@@ -61,19 +77,53 @@ function LibraryPage() {
 
   const [showAddedModal, setShowAddedModal] = useState(false);
 
+  const { refreshInstallations } = useProvider("steam");
+  const [isRescanning, setIsRescanning] = useState(false);
+
+  const handleRescanInstallations = async () => {
+    setIsRescanning(true);
+    try {
+      const report = await refreshInstallations();
+      await fetchLibrary();
+
+      const steamReport = report?.steam || {
+        scanned: 0,
+        updated: 0,
+        installed: 0,
+        removed: 0,
+      };
+      const epicReport = report?.epic || {
+        scanned: 0,
+        updated: 0,
+        installed: 0,
+        removed: 0,
+      };
+
+      toast({
+        title: "Rescan complete",
+        description: `Steam: Scanned ${steamReport.scanned}, Installed ${steamReport.installed}, Removed ${steamReport.removed}. Epic: Scanned ${epicReport.scanned}, Installed ${epicReport.installed}, Removed ${epicReport.removed}.`,
+        status: "success",
+        duration: 5000,
+        isClosable: true,
+      });
+    } catch (err: any) {
+      console.error(err);
+      toast({
+        title: "Rescan failed",
+        description: err.message || "Failed to scan PC for installations.",
+        status: "error",
+        duration: 3000,
+        isClosable: true,
+      });
+    } finally {
+      setIsRescanning(false);
+    }
+  };
+
   console.log("Context token:", token);
 
-  const updateGameRating = (gameId: string, rating: number | null) => {
-    setGames((prev) =>
-      prev.map((game) =>
-        game._id === gameId
-          ? {
-              ...game,
-              rating,
-            }
-          : game,
-      ),
-    );
+  const updateGameRating = (gameId: string) => {
+    refreshGame(gameId);
   };
   const handleDeleteGame = async (gameId: string) => {
     await deleteGame(gameId);
@@ -92,7 +142,7 @@ function LibraryPage() {
     removeGameFromCollection,
 
     removeGameEverywhere,
-  } = useCollections();
+  } = useCollection();
 
   const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
   const {
@@ -133,28 +183,22 @@ function LibraryPage() {
     setShowSearchResults(false);
   };
   useEffect(() => {
-    const loadLibrary = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-
-        await Promise.all([fetchLibrary(), fetchCollections()]);
-      } catch (error: unknown) {
-        setError(getErrorMessage(error));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadLibrary();
-  }, []);
+    fetchLibrary();
+    fetchCollections();
+  }, [fetchLibrary, fetchCollections]);
   useEffect(() => {
     if (!window.electronAPI?.onGameExited) return;
 
-    window.electronAPI.onGameExited(async (gameId) => {
+    const unsubscribe = window.electronAPI.onGameExited(async (gameId) => {
       try {
         console.log("[END SESSION]", gameId);
+
         await endSession(gameId);
+        setRunningGames((prev) => {
+          const next = new Set(prev);
+          next.delete(gameId);
+          return next;
+        });
 
         toast({
           title: "Play session ended",
@@ -164,6 +208,10 @@ function LibraryPage() {
         console.error(error);
       }
     });
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const handleAddGame = async (rawgGame: RawgGameResult) => {
@@ -174,7 +222,7 @@ function LibraryPage() {
       imageURL: rawgGame.imageURL,
       exePath: "",
       tags: rawgGame.genres,
-      status: "plan",
+      progressStatus: "plan",
     });
 
     setAddedGameTitle(rawgGame.name);
@@ -200,16 +248,11 @@ function LibraryPage() {
 
       if (!launchModalGame) return;
 
-      await libraryApi.updateGame(launchModalGame._id, {
+      await updateGame(launchModalGame._id, {
         exePath: selectedPath,
       });
 
       setLaunchPath(selectedPath);
-      setGames((prev) =>
-        prev.map((g) =>
-          g._id === launchModalGame._id ? { ...g, exePath: selectedPath } : g,
-        ),
-      );
 
       toast({
         title: "EXE path updated",
@@ -220,7 +263,6 @@ function LibraryPage() {
       });
     } catch (error: unknown) {
       console.error("Failed to update exe path", error);
-      setError(getErrorMessage(error));
       toast({
         title: "Update failed",
         description: "Could not update EXE path.",
@@ -258,6 +300,11 @@ function LibraryPage() {
 
     try {
       await startSession(launchModalGame._id);
+      setRunningGames((prev) => {
+        const next = new Set(prev);
+        next.add(launchModalGame._id);
+        return next;
+      });
 
       const launched = await window.electronAPI.launchGame(
         launchModalGame._id,
@@ -289,8 +336,50 @@ function LibraryPage() {
     }
   };
 
-  const handleLaunchGameFromSearch = async (game: Game) => {
-    if (game.exePath) {
+  const handleLaunchLauncher = async (uri: string) => {
+    if (!launchModalGame) return;
+    if (!window.electronAPI?.launchGame) {
+      toast({
+        title: "Desktop only",
+        description: "Launching is only available inside the Electron app.",
+        status: "warning",
+        duration: 2500,
+        isClosable: true,
+      });
+      return;
+    }
+    try {
+      await startSession(launchModalGame._id);
+      const launched = await window.electronAPI.launchGame(
+        launchModalGame._id,
+        uri,
+      );
+      if (launched) {
+        await activityApi.recordLaunch(launchModalGame._id);
+      }
+      toast({
+        title: `Launching ${launchModalGame.title}`,
+        description: `Launching via URI: ${uri}`,
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+      });
+      closeLaunchModal();
+    } catch (err: unknown) {
+      console.error("Failed to launch game via URI", err);
+      toast({
+        title: "Launch failed",
+        description: "Could not start the game via launcher.",
+        status: "error",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+  };
+
+  const handleLaunchClick = async (game: Game) => {
+    const path = getLaunchPath(game);
+    if (path) {
       if (!window.electronAPI?.launchGame) {
         toast({
           title: "Desktop only",
@@ -303,16 +392,18 @@ function LibraryPage() {
       }
       try {
         await startSession(game._id);
-        const launched = await window.electronAPI.launchGame(
-          game._id,
-          game.exePath,
-        );
+        setRunningGames((prev) => {
+          const next = new Set(prev);
+          next.add(game._id);
+          return next;
+        });
+        const launched = await window.electronAPI.launchGame(game._id, path);
         if (launched) {
           await activityApi.recordLaunch(game._id);
         }
         toast({
           title: `Launching ${game.title}`,
-          description: game.exePath,
+          description: path,
           status: "info",
           duration: 2000,
           isClosable: true,
@@ -328,29 +419,31 @@ function LibraryPage() {
         });
       }
     } else {
-      setLaunchModalGame(game);
-      setLaunchPath("");
+      openLaunchModal(game);
     }
   };
 
   const continuePlayingGames = useMemo(() => {
-    return games.filter((g) => g.status === "playing");
+    return games.filter((g) => g.progressStatus === "playing");
   }, [games]);
 
   const favoriteGames = useMemo(() => {
     return games.filter(
-      (g) => g.rating !== null && g.rating !== undefined && g.rating >= 4
+      (g) => g.rating !== null && g.rating !== undefined && g.rating >= 4,
     );
   }, [games]);
 
   const recentlyAddedGames = useMemo(() => {
     return [...games]
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      )
       .slice(0, 20);
   }, [games]);
 
   const completedGames = useMemo(() => {
-    return games.filter((g) => g.status === "completed");
+    return games.filter((g) => g.progressStatus === "completed");
   }, [games]);
 
   return (
@@ -365,7 +458,7 @@ function LibraryPage() {
             loading={rawgLoading}
             error={rawgError}
             onAddGame={handleAddGame}
-            onLaunchGame={handleLaunchGameFromSearch}
+            onLaunchGame={handleLaunchClick}
             onBack={handleBackToLibrary}
           />
         ) : (
@@ -382,9 +475,23 @@ function LibraryPage() {
             />
             <Flex justify="space-between" align="flex-end" mb={8} mt={4}>
               <LibraryHeader />
-              <Button colorScheme="purple" onClick={() => navigate("/library/browse")}>
-                View All Games
-              </Button>
+              <HStack spacing={3}>
+                <Button
+                  colorScheme="teal"
+                  variant="outline"
+                  onClick={handleRescanInstallations}
+                  isLoading={isRescanning}
+                  loadingText="Scanning..."
+                >
+                  Rescan PC Games
+                </Button>
+                <Button
+                  colorScheme="purple"
+                  onClick={() => navigate("/library/browse")}
+                >
+                  View All Games
+                </Button>
+              </HStack>
             </Flex>
 
             {loading ? (
@@ -409,10 +516,13 @@ function LibraryPage() {
                 <VStack spacing={4}>
                   <Heading size="md">Welcome to your gaming dashboard!</Heading>
                   <Text color="gray.500" maxW="500px">
-                    Start search-adding games using the search bar above, or connect your
-                    Epic Games account in Settings.
+                    Start search-adding games using the search bar above, or
+                    connect your Epic Games account in Settings.
                   </Text>
-                  <Button colorScheme="purple" onClick={() => navigate("/settings")}>
+                  <Button
+                    colorScheme="purple"
+                    onClick={() => navigate("/settings")}
+                  >
                     Go to Settings
                   </Button>
                 </VStack>
@@ -423,12 +533,9 @@ function LibraryPage() {
                   <HorizontalSection title="Continue Playing">
                     <GameCarousel
                       games={continuePlayingGames}
-                      collections={collections}
-                      onLaunch={openLaunchModal}
-                      onReview={openReviewModal}
-                      onDelete={handleDeleteGame}
-                      onAddToCollection={addGameToCollection}
+                      onLaunch={handleLaunchClick}
                       onStatusChange={updateStatus}
+                      runningGames={runningGames}
                     />
                   </HorizontalSection>
                 )}
@@ -437,12 +544,11 @@ function LibraryPage() {
                   <HorizontalSection title="Favorites (★ 4+)">
                     <GameCarousel
                       games={favoriteGames}
-                      collections={collections}
-                      onLaunch={openLaunchModal}
-                      onReview={openReviewModal}
-                      onDelete={handleDeleteGame}
-                      onAddToCollection={addGameToCollection}
+                     
+                      onLaunch={handleLaunchClick}
+                      
                       onStatusChange={updateStatus}
+                      runningGames={runningGames}
                     />
                   </HorizontalSection>
                 )}
@@ -452,7 +558,12 @@ function LibraryPage() {
                     <Heading size="md" fontWeight="bold">
                       Collections
                     </Heading>
-                    <Button size="sm" colorScheme="purple" variant="outline" onClick={openCollectionModal}>
+                    <Button
+                      size="sm"
+                      colorScheme="purple"
+                      variant="outline"
+                      onClick={openCollectionModal}
+                    >
                       + New Collection
                     </Button>
                   </Flex>
@@ -477,27 +588,25 @@ function LibraryPage() {
                 </VStack>
 
                 <HorizontalSection title="Recently Added">
-                  <GameCarousel
-                    games={recentlyAddedGames}
-                    collections={collections}
-                    onLaunch={openLaunchModal}
-                    onReview={openReviewModal}
-                    onDelete={handleDeleteGame}
-                    onAddToCollection={addGameToCollection}
-                    onStatusChange={updateStatus}
-                  />
+                   <GameCarousel
+                      games={favoriteGames}
+                     
+                      onLaunch={handleLaunchClick}
+                      
+                      onStatusChange={updateStatus}
+                      runningGames={runningGames}
+                    />
                 </HorizontalSection>
 
                 {completedGames.length > 0 && (
                   <HorizontalSection title="Completed Games">
-                    <GameCarousel
-                      games={completedGames}
-                      collections={collections}
-                      onLaunch={openLaunchModal}
-                      onReview={openReviewModal}
-                      onDelete={handleDeleteGame}
-                      onAddToCollection={addGameToCollection}
+                     <GameCarousel
+                      games={favoriteGames}
+                     
+                      onLaunch={handleLaunchClick}
+                      
                       onStatusChange={updateStatus}
+                      runningGames={runningGames}
                     />
                   </HorizontalSection>
                 )}
@@ -511,6 +620,7 @@ function LibraryPage() {
           onClose={closeLaunchModal}
           onEditPath={handlePickExePath}
           onLaunch={handleLaunchGame}
+          onLaunchLauncher={handleLaunchLauncher}
         />
         <ReviewModal
           game={reviewGame}

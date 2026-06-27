@@ -43,7 +43,6 @@ const syncLibrary = async (userId: string) => {
 
   for (const game of uniqueGames.values()) {
     try {
-      console.log("[IMPORTING]", game.catalogItemId, game.sandboxName);
 
       await EpicOwnership.updateOne(
         {

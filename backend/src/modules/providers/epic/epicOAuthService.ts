@@ -28,6 +28,7 @@ export const exchangeAuthorizationCode = async (authorizationCode: string) => {
       },
     },
   );
+  console.log("auth response",response.data)
 
   return response.data;
 };

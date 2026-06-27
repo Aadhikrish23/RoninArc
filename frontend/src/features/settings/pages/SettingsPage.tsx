@@ -23,6 +23,7 @@ import DangerZoneSection from "../components/DangerZoneSection";
 
 import ProviderSection from "../../providers/components/ProviderSection";
 import EpicProviderCard from "../../providers/epic/components/EpicProviderCard";
+import SteamProviderCard from "../../providers/steam/components/SteamProviderCard";
 import ComingSoonProviderCard from "../../providers/components/ComingSoonProviderCard";
 
 export default function SettingsPage() {
@@ -73,8 +74,8 @@ export default function SettingsPage() {
           <GridItem colSpan={{ base: 1, md: 2 }}>
             <ProviderSection title="🔌 Account Connections">
               <EpicProviderCard />
-              <ComingSoonProviderCard providerId="steam" />
-              <ComingSoonProviderCard providerId="gog" />
+              <SteamProviderCard />
+              {/* <ComingSoonProviderCard providerId="gog" /> */}
             </ProviderSection>
           </GridItem>
 

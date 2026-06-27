@@ -1,4 +1,4 @@
-export type Status = "plan" | "playing" | "completed" | "dropped";
+export type Status = "none" | "plan" | "playing" | "paused" | "completed" | "dropped";
 
 export interface GameArtwork {
   selectedSource: "manual" | "rawg" | "epic" | "steam" | "gog" | "ea" | "ubisoft" | "xbox";
@@ -14,7 +14,7 @@ export interface Game {
   artwork: GameArtwork;
   developer?: string;
   exePath: string;
-  status: Status;
+  progressStatus: Status;
   tags: string[];
   rating?: number | null;
   provider?: "manual" | "epic" | "steam" | "gog" | "ea" | "ubisoft" | "xbox";
@@ -32,6 +32,7 @@ export interface Game {
     launcher?: string;
     installPath?: string;
     manifestId?: string;
+    executable?: string;
     syncedAt: string;
   }>;
 
@@ -64,7 +65,7 @@ export interface AddGamePayload {
   imageURL: string;
   exePath: string;
   tags: string[];
-  status?: Status;
+  progressStatus?: Status;
 }
 export interface UpdateGamePayload {
   title?: string;
@@ -72,7 +73,7 @@ export interface UpdateGamePayload {
   imageURL?: string;
   exePath?: string;
   tags?: string[];
-  status?: Status;
+  progressStatus?: Status;
 }
 
 export interface RawgGameResult {

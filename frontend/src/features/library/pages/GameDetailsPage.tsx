@@ -24,15 +24,15 @@ import { useLibrary } from "../hooks/useLibrary";
 import UserGameStats from "../components/UserGameStats";
 import { useEffect, useState, useRef } from "react";
 import type { Status, Game } from "../types/library";
-import { useCollections } from "../../collections/hooks/useCollections";
+import { useCollection } from "../../collections/hooks/useCollections";
 import { useReview } from "../../reviews/hooks/useReview";
 import { usePlaySession } from "../../playSession/hooks/usePlaySession";
 import * as reviewApi from "../../reviews/api/reviewApi";
 import type { Review } from "../../reviews/types/review";
 import LaunchModal from "../components/LaunchModal";
 import ReviewModal from "../../reviews/components/ReviewModal";
-import libraryApi from "../api/libraryApi";
 import activityApi from "../../activity/api/activityApi";
+import { getLaunchPath } from "../utils/launch";
 import {
   AlertDialog,
   AlertDialogBody,
@@ -45,10 +45,10 @@ import {
 export default function GameDetailsPage() {
   const { rawgId } = useParams();
 
-  const { games, setGames, fetchLibrary, addGame, updateStatus, deleteGame } =
+  const { games, fetchLibrary, addGame, updateStatus, deleteGame, updateGame, refreshGame } =
     useLibrary();
   const { collections, fetchCollections, addGameToCollection, removeGameFromCollection } =
-    useCollections();
+    useCollection();
   const { startSession, loadGameStats, gameStats } = usePlaySession();
 
   const navigate = useNavigate();
@@ -78,10 +78,8 @@ export default function GameDetailsPage() {
       imageURL: game.imageURL,
       exePath: "",
       tags: game.genres,
-      status: "plan",
+      progressStatus: "plan",
     });
-
-    await fetchLibrary();
   };
 
   const handleDeleteGame = async (gameId: string) => {
@@ -98,7 +96,6 @@ export default function GameDetailsPage() {
 
   const handleStatusChange = async (gameId: string, status: Status) => {
     await updateStatus(gameId, status);
-    await fetchLibrary();
   };
 
   const handlePickExePath = async () => {
@@ -119,12 +116,11 @@ export default function GameDetailsPage() {
 
       if (!launchModalGame) return;
 
-      await libraryApi.updateGame(launchModalGame._id, {
+      await updateGame(launchModalGame._id, {
         exePath: selectedPath,
       });
 
       setLaunchPath(selectedPath);
-      await fetchLibrary();
 
       toast({
         title: "EXE path updated",
@@ -203,6 +199,47 @@ export default function GameDetailsPage() {
     }
   };
 
+  const handleLaunchLauncher = async (uri: string) => {
+    if (!launchModalGame) return;
+    if (!window.electronAPI?.launchGame) {
+      toast({
+        title: "Desktop only",
+        description: "Launching is only available inside the Electron app.",
+        status: "warning",
+        duration: 2500,
+        isClosable: true,
+      });
+      return;
+    }
+    try {
+      await startSession(launchModalGame._id);
+      const launched = await window.electronAPI.launchGame(
+        launchModalGame._id,
+        uri
+      );
+      if (launched) {
+        await activityApi.recordLaunch(launchModalGame._id);
+      }
+      toast({
+        title: `Launching ${launchModalGame.title}`,
+        description: `Launching via URI: ${uri}`,
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+      });
+      closeLaunchModal();
+    } catch (err: unknown) {
+      console.error("Failed to launch game via URI", err);
+      toast({
+        title: "Launch failed",
+        description: "Could not start the game via launcher.",
+        status: "error",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+  };
+
   const closeLaunchModal = () => {
     setLaunchModalGame(null);
     setLaunchPath("");
@@ -210,7 +247,8 @@ export default function GameDetailsPage() {
 
   const handleLaunchClick = async () => {
     if (!libraryGame) return;
-    if (libraryGame.exePath) {
+    const resolvedPath = getLaunchPath(libraryGame);
+    if (resolvedPath) {
       if (!window.electronAPI?.launchGame) {
         toast({
           title: "Desktop only",
@@ -225,14 +263,14 @@ export default function GameDetailsPage() {
         await startSession(libraryGame._id);
         const launched = await window.electronAPI.launchGame(
           libraryGame._id,
-          libraryGame.exePath,
+          resolvedPath,
         );
         if (launched) {
           await activityApi.recordLaunch(libraryGame._id);
         }
         toast({
           title: `Launching ${libraryGame.title}`,
-          description: libraryGame.exePath,
+          description: resolvedPath,
           status: "info",
           duration: 2000,
           isClosable: true,
@@ -254,16 +292,7 @@ export default function GameDetailsPage() {
   };
 
   const updateGameRating = async (gameId: string, rating: number | null) => {
-    setGames((prev) =>
-      prev.map((g) =>
-        g._id === gameId
-          ? {
-              ...g,
-              rating,
-            }
-          : g,
-      ),
-    );
+    await refreshGame(gameId);
     if (rating === null) {
       setUserReview(null);
     } else {
@@ -319,7 +348,7 @@ export default function GameDetailsPage() {
   };
 
   useEffect(() => {
-    Promise.all([fetchLibrary(), fetchCollections()]);
+    Promise.all([fetchLibrary()]);
   }, []);
 
   useEffect(() => {
@@ -488,6 +517,7 @@ export default function GameDetailsPage() {
         onClose={closeLaunchModal}
         onEditPath={handlePickExePath}
         onLaunch={handleLaunchGame}
+        onLaunchLauncher={handleLaunchLauncher}
       />
       <ReviewModal
         game={reviewGame}

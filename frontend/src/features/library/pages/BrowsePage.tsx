@@ -13,6 +13,7 @@ import {
   Text,
   useColorModeValue,
   useToast,
+  Button,
 } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,52 +21,59 @@ import { FiGrid, FiList } from "react-icons/fi";
 import { ArrowBackIcon } from "@chakra-ui/icons";
 
 import type { Game } from "../types/library";
-import libraryApi from "../api/libraryApi";
 import GameCard from "../components/GameCard";
 import GameListRow from "../components/GameListRow";
 import LaunchModal from "../components/LaunchModal";
 import ReviewModal from "../../reviews/components/ReviewModal";
 import CreateCollectionModal from "../../collections/components/CreateCollectionModal";
-import GameAddedModal from "../components/GameAddedModal";
 
 import { useLibrary } from "../hooks/useLibrary";
 import { useReview } from "../../reviews/hooks/useReview";
-import { useCollections } from "../../collections/hooks/useCollections";
+import { useCollection } from "../../collections/hooks/useCollections";
 import { usePlaySession } from "../../playSession/hooks/usePlaySession";
 import activityApi from "../../activity/api/activityApi";
-import { getErrorMessage } from "../../../shared/utils/error";
+import { getLaunchPath } from "../utils/launch";
 
 export default function BrowsePage() {
-  const { games, setGames, fetchLibrary, deleteGame, updateStatus } = useLibrary();
-  const { collections, fetchCollections, addGameToCollection, createCollection } = useCollections();
+  const {
+    games,
+    loading,
+    error,
+    fetchLibrary,
+    deleteGame,
+    updateStatus,
+    updateGame,
+    refreshGame,
+  } = useLibrary();
+  const {
+    collections,
+    fetchCollections,
+    addGameToCollection,
+    createCollection,
+  } = useCollection();
   const { startSession, endSession } = usePlaySession();
 
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Filters State
   const [searchText, setSearchText] = useState("");
-  const [selectedStatus, setSelectedStatus] = useState("all");
-  const [selectedPlatform, setSelectedPlatform] = useState("all");
+  const [selectedProgress, setSelectedProgress] = useState("all");
+  const [selectedOwnership, setSelectedOwnership] = useState("all");
+  const [selectedInstallation, setSelectedInstallation] = useState("all");
   const [sortBy, setSortBy] = useState("title-asc");
+  const [visibleCount, setVisibleCount] = useState(24);
 
   // Modals State
   const [launchModalGame, setLaunchModalGame] = useState<Game | null>(null);
   const [launchPath, setLaunchPath] = useState("");
   const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
-  const [showAddedModal, setShowAddedModal] = useState(false);
 
   const navigate = useNavigate();
   const toast = useToast();
   const bg = useColorModeValue("gray.50", "gray.900");
 
-  const updateGameRating = (gameId: string, rating: number | null) => {
-    setGames((prev) =>
-      prev.map((game) =>
-        game._id === gameId ? { ...game, rating } : game
-      )
-    );
+  const updateGameRating = (gameId: string) => {
+    refreshGame(gameId);
   };
 
   const {
@@ -109,16 +117,11 @@ export default function BrowsePage() {
 
       if (!launchModalGame) return;
 
-      await libraryApi.updateGame(launchModalGame._id, {
+      await updateGame(launchModalGame._id, {
         exePath: selectedPath,
       });
 
       setLaunchPath(selectedPath);
-      setGames((prev) =>
-        prev.map((g) =>
-          g._id === launchModalGame._id ? { ...g, exePath: selectedPath } : g
-        )
-      );
 
       toast({
         title: "EXE path updated",
@@ -169,7 +172,7 @@ export default function BrowsePage() {
 
       const launched = await window.electronAPI.launchGame(
         launchModalGame._id,
-        launchPath
+        launchPath,
       );
 
       if (launched) {
@@ -197,21 +200,92 @@ export default function BrowsePage() {
     }
   };
 
-  useEffect(() => {
-    const loadLibrary = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        await Promise.all([fetchLibrary(), fetchCollections()]);
-      } catch (err: unknown) {
-        setError(getErrorMessage(err));
-      } finally {
-        setLoading(false);
+  const handleLaunchLauncher = async (uri: string) => {
+    if (!launchModalGame) return;
+    if (!window.electronAPI?.launchGame) {
+      toast({
+        title: "Desktop only",
+        description: "Launching is only available inside the Electron app.",
+        status: "warning",
+        duration: 2500,
+        isClosable: true,
+      });
+      return;
+    }
+    try {
+      await startSession(launchModalGame._id);
+      const launched = await window.electronAPI.launchGame(
+        launchModalGame._id,
+        uri,
+      );
+      if (launched) {
+        await activityApi.recordLaunch(launchModalGame._id);
       }
-    };
+      toast({
+        title: `Launching ${launchModalGame.title}`,
+        description: `Launching via URI: ${uri}`,
+        status: "info",
+        duration: 2000,
+        isClosable: true,
+      });
+      closeLaunchModal();
+    } catch (err: unknown) {
+      console.error("Failed to launch game via URI", err);
+      toast({
+        title: "Launch failed",
+        description: "Could not start the game via launcher.",
+        status: "error",
+        duration: 2000,
+        isClosable: true,
+      });
+    }
+  };
 
-    loadLibrary();
-  }, []);
+  const handleLaunchClick = async (game: Game) => {
+    const path = getLaunchPath(game);
+    if (path) {
+      if (!window.electronAPI?.launchGame) {
+        toast({
+          title: "Desktop only",
+          description: "Launching is only available inside the Electron app.",
+          status: "warning",
+          duration: 2500,
+          isClosable: true,
+        });
+        return;
+      }
+      try {
+        await startSession(game._id);
+        const launched = await window.electronAPI.launchGame(game._id, path);
+        if (launched) {
+          await activityApi.recordLaunch(game._id);
+        }
+        toast({
+          title: `Launching ${game.title}`,
+          description: path,
+          status: "info",
+          duration: 2000,
+          isClosable: true,
+        });
+      } catch (err: unknown) {
+        console.error("Failed to launch game", err);
+        toast({
+          title: "Launch failed",
+          description: "Could not start the game.",
+          status: "error",
+          duration: 2000,
+          isClosable: true,
+        });
+      }
+    } else {
+      openLaunchModal(game);
+    }
+  };
+
+  useEffect(() => {
+    fetchLibrary();
+    fetchCollections();
+  }, [fetchLibrary, fetchCollections]);
 
   useEffect(() => {
     if (!window.electronAPI?.onGameExited) return;
@@ -232,22 +306,44 @@ export default function BrowsePage() {
   // Filtered & Sorted Games list
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
-      const matchStatus =
-        selectedStatus === "all" || game.status === selectedStatus;
+      // 1. Progress Status
+      const matchProgress =
+        selectedProgress === "all" || game.progressStatus === selectedProgress;
 
+      // 2. Search Text
       const matchSearch = game.title
         .toLowerCase()
         .includes(searchText.toLowerCase());
 
-      const matchPlatform =
-        selectedPlatform === "all" ||
-        (selectedPlatform === "epic" && game.provider === "epic") ||
-        (selectedPlatform === "manual" && (!game.provider || game.provider === "manual")) ||
-        (game.provider === selectedPlatform);
+      // 3. Ownership
+      const isOwned = game.providers && Object.keys(game.providers).length > 0;
+      const matchOwnership =
+        selectedOwnership === "all" ||
+        (selectedOwnership === "owned" && isOwned) ||
+        (selectedOwnership === "manual" && !isOwned);
 
-      return matchStatus && matchSearch && matchPlatform;
+      // 4. Installation
+      const isInstalled =
+        isOwned &&
+        Object.values(game.providers || {}).some(
+          (p: any) => p.installed === true,
+        );
+      const matchInstallation =
+        selectedInstallation === "all" ||
+        (selectedInstallation === "installed" && isInstalled) ||
+        (selectedInstallation === "uninstalled" && !isInstalled);
+
+      return (
+        matchProgress && matchSearch && matchOwnership && matchInstallation
+      );
     });
-  }, [games, selectedStatus, searchText, selectedPlatform]);
+  }, [
+    games,
+    selectedProgress,
+    searchText,
+    selectedOwnership,
+    selectedInstallation,
+  ]);
 
   const sortedGames = useMemo(() => {
     const result = [...filteredGames];
@@ -256,14 +352,24 @@ export default function BrowsePage() {
     } else if (sortBy === "title-desc") {
       result.sort((a, b) => b.title.localeCompare(a.title));
     } else if (sortBy === "date-desc") {
-      result.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      result.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
     } else if (sortBy === "date-asc") {
-      result.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      result.sort(
+        (a, b) =>
+          new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+      );
     } else if (sortBy === "rating-desc") {
       result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
     }
     return result;
   }, [filteredGames, sortBy]);
+  const visibleGames = useMemo(
+    () => sortedGames.slice(0, visibleCount),
+    [sortedGames, visibleCount],
+  );
 
   return (
     <Box minH="100vh" bg={bg}>
@@ -286,30 +392,42 @@ export default function BrowsePage() {
               placeholder="Search library..."
               value={searchText}
               onChange={(e) => setSearchText(e.target.value)}
-              maxW="300px"
+              maxW="250px"
               bg={useColorModeValue("white", "gray.800")}
             />
             <Select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
+              value={selectedProgress}
+              onChange={(e) => setSelectedProgress(e.target.value)}
               maxW="150px"
               bg={useColorModeValue("white", "gray.800")}
             >
-              <option value="all">All Statuses</option>
+              <option value="all">All Progress</option>
+              <option value="none">No Status</option>
               <option value="plan">Plan to Play</option>
               <option value="playing">Playing</option>
+              <option value="paused">Paused</option>
               <option value="completed">Completed</option>
               <option value="dropped">Dropped</option>
             </Select>
             <Select
-              value={selectedPlatform}
-              onChange={(e) => setSelectedPlatform(e.target.value)}
-              maxW="180px"
+              value={selectedOwnership}
+              onChange={(e) => setSelectedOwnership(e.target.value)}
+              maxW="160px"
               bg={useColorModeValue("white", "gray.800")}
             >
-              <option value="all">All Platforms</option>
-              <option value="epic">Epic Games</option>
+              <option value="all">All Ownership</option>
+              <option value="owned">Owned</option>
               <option value="manual">Manual / Local</option>
+            </Select>
+            <Select
+              value={selectedInstallation}
+              onChange={(e) => setSelectedInstallation(e.target.value)}
+              maxW="160px"
+              bg={useColorModeValue("white", "gray.800")}
+            >
+              <option value="all">All Installation</option>
+              <option value="installed">Installed</option>
+              <option value="uninstalled">Not Installed</option>
             </Select>
             <Select
               value={sortBy}
@@ -330,68 +448,60 @@ export default function BrowsePage() {
             <IconButton
               icon={<FiGrid />}
               aria-label="Grid View"
-              isActive={viewMode === "grid"}
+              colorScheme={viewMode === "grid" ? "purple" : undefined}
               onClick={() => setViewMode("grid")}
             />
             <IconButton
               icon={<FiList />}
               aria-label="List View"
-              isActive={viewMode === "list"}
+              colorScheme={viewMode === "list" ? "purple" : undefined}
               onClick={() => setViewMode("list")}
             />
           </ButtonGroup>
         </Flex>
 
-        {/* Loading / Error States */}
         {loading ? (
-          <Box w="100%" py={20} textAlign="center" color="gray.500">
-            <Spinner size="xl" thickness="4px" speed="0.6s" />
-            <Text mt={4}>Loading your library catalog...</Text>
-          </Box>
-        ) : error ? (
-          <Box
-            w="100%"
-            py={10}
-            textAlign="center"
-            color="red.400"
-            borderWidth="1px"
-            borderColor="red.300"
-            borderRadius="lg"
-            bg="red.50"
-            _dark={{ bg: "red.900", borderColor: "red.700" }}
+          <Flex
+            minH="50vh"
+            justify="center"
+            align="center"
+            direction="column"
+            gap={4}
           >
-            <Text fontWeight="semibold">Something went wrong!</Text>
-            <Text>{error}</Text>
-          </Box>
+            <Spinner size="xl" thickness="4px" speed="0.6s" />
+            <Text color="gray.500">Loading library...</Text>
+          </Flex>
+        ) : error ? (
+          <Text color="red.500" textAlign="center" py={10}>
+            {error}
+          </Text>
         ) : sortedGames.length === 0 ? (
-          <Box p={10} borderWidth="1px" borderStyle="dashed" borderRadius="lg" textAlign="center">
-            <Text color="gray.500">No games matched your active filters.</Text>
-          </Box>
+          <Text color="gray.500" textAlign="center" py={10}>
+            No games found.
+          </Text>
         ) : (
           /* Game Grid / List Output */
           <Box w="100%">
             {viewMode === "grid" ? (
-              <SimpleGrid columns={{ base: 1, sm: 2, md: 3, lg: 4 }} spacing={6}>
-                {sortedGames.map((game) => (
+              <SimpleGrid
+                columns={{ base: 1, sm: 2, md: 3, lg: 4 }}
+                spacing={6}
+              >
+                {visibleGames.map((game) => (
                   <GameCard
-                    key={game._id}
                     game={game}
-                    collections={collections}
-                    onDelete={handleDeleteGame}
+                    onLaunch={handleLaunchClick}
                     onStatusChange={updateStatus}
-                    onLaunch={openLaunchModal}
-                    onReview={openReviewModal}
-                    onAddToCollection={addGameToCollection}
                   />
                 ))}
               </SimpleGrid>
             ) : (
               <VStack spacing={3} align="stretch">
-                {sortedGames.map((game) => (
+                {visibleGames.map((game) => (
                   <GameListRow
                     key={game._id}
                     game={game}
-                    onLaunch={openLaunchModal}
+                    onLaunch={handleLaunchClick}
                     onStatusChange={updateStatus}
                   />
                 ))}
@@ -399,6 +509,9 @@ export default function BrowsePage() {
             )}
           </Box>
         )}
+        <Button mt={6} onClick={() => setVisibleCount((v) => v + 24)}>
+          Load More
+        </Button>
 
         {/* Interactive Overlay Modals */}
         <LaunchModal
@@ -407,6 +520,7 @@ export default function BrowsePage() {
           onClose={closeLaunchModal}
           onEditPath={handlePickExePath}
           onLaunch={handleLaunchGame}
+          onLaunchLauncher={handleLaunchLauncher}
         />
         <ReviewModal
           game={reviewGame}
@@ -419,16 +533,7 @@ export default function BrowsePage() {
         <CreateCollectionModal
           isOpen={isCreateCollectionOpen}
           onClose={() => setIsCreateCollectionOpen(false)}
-          onCreate={async (name, description) => {
-            await createCollection(name, description);
-            setIsCreateCollectionOpen(false);
-          }}
-        />
-        <GameAddedModal
-          isOpen={showAddedModal}
-          gameTitle=""
-          onContinue={() => setShowAddedModal(false)}
-          onViewLibrary={() => setShowAddedModal(false)}
+          onCreate={createCollection}
         />
       </Box>
     </Box>

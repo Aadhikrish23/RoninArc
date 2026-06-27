@@ -49,8 +49,6 @@ export default function LibraryGamesSection({
   onAddToCollection,
   onOpenCollectionModal,
 }: Props) {
-
-
   return (
     <>
       <Flex justify="space-between" align="center" mb={6} wrap="wrap" gap={4}>
@@ -114,12 +112,8 @@ export default function LibraryGamesSection({
             <GameCard
               key={game._id}
               game={game}
-              collections={collections}
-              onDelete={onDeleteGame}
               onStatusChange={onGameStatusChange}
               onLaunch={onLaunch}
-              onReview={onReview}
-              onAddToCollection={onAddToCollection}
               isHighlighted={game._id === selectedGameId}
             />
           ))}

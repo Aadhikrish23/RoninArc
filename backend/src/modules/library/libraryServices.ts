@@ -15,7 +15,7 @@ async function addGameToLibrary(
     tags?: string[];
     imageURL?: string;
     exePath?: string;
-    status: string;
+    progressStatus: string;
   }>
 ) {
   const title = payload.title?.trim();
@@ -46,7 +46,7 @@ async function addGameToLibrary(
       description: payload.description,
       tags: payload.tags,
       exePath: payload.exePath,
-      status: payload.status,
+      progressStatus: payload.progressStatus,
       artwork: {
         selectedSource: "manual",
         sources: artworkSources,
@@ -64,6 +64,7 @@ async function addGameToLibrary(
 }
 
 async function getUserLibrary(userId: string) {
+ 
   const games = await gameLibrarymodel.find({ userId });
 
   const reviews = await Review.find({
@@ -88,16 +89,41 @@ async function getUserLibrary(userId: string) {
     };
   });
 }
-async function getGameById(userId: string , gameid:string) {
-  const data = await gameLibrarymodel.findOne({ _id: gameid, userId });
+async function getGameById(userId: string, gameid: string) {
+   console.log("========== GET GAME BY ID ==========");
+  const data = await gameLibrarymodel.findOne({
+    _id: gameid,
+    userId,
+  });
+
   if (!data) {
     return null;
   }
-  const status = data.metadataState?.status || "none";
-  if (status === "none" || status === "failed") {
-    metadataEnrichmentService.enqueueEnrichment(userId, gameid);
+
+  const metadataState = data.metadataState?.status;
+
+  const needsEnrichment =
+    !data.rawgId &&
+    metadataState !== "pending" &&
+    metadataState !== "enriching" &&
+    metadataState !== "complete";
+    let enriched ;
+
+  if (needsEnrichment) {
+    console.log(
+      `[Library] Queueing metadata enrichment for ${data.title}`
+    );
+
+     enriched = metadataEnrichmentService.enrichGame(
+      userId,
+      data._id.toString()
+    );
   }
-  return data.toObject();
+
+  
+    
+
+return enriched ?? data.toObject();
 }
 async function getGameFilter(
   userId: string,
@@ -120,7 +146,7 @@ async function updateGame(
   payload: Partial<{
     tags?: string[];
     exePath?: string;
-    status?: string;
+    progressStatus?: string;
   }>
 ) {
   const oldGame =
@@ -147,14 +173,14 @@ async function updateGame(
   }
 
   if (
-    payload.status &&
+    payload.progressStatus &&
     oldGame &&
-    oldGame.status !== payload.status
+    oldGame.progressStatus !== payload.progressStatus
   ) {
     await activityService.createActivity(
       userId,
       "STATUS_CHANGED",
-      `${data.title} marked as ${payload.status}`,
+      `${data.title} marked as ${payload.progressStatus}`,
       data._id as any
     );
   }

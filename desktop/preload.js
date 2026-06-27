@@ -12,9 +12,13 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
 
   onGameExited: (callback) => {
-    ipcRenderer.on("game-exited", (_event, gameId) => {
-      callback(gameId);
-    });
+    const listener = (_event, gameId) => callback(gameId);
+
+    ipcRenderer.on("game-exited", listener);
+
+    return () => {
+      ipcRenderer.removeListener("game-exited", listener);
+    };
   },
 
   scanEpicGames: async () => {

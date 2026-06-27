@@ -12,12 +12,15 @@ import {
   MenuButton,
   MenuList,
   MenuItem,
+  Portal,
   useColorModeValue,
 } from "@chakra-ui/react";
 import { FiPlay } from "react-icons/fi";
 import type { Game, Status } from "../types/library";
 import { useNavigate } from "react-router-dom";
 import { PROVIDER_CONFIGS } from "../../providers/constants/providers";
+import type { ProviderId } from "../../providers/types/provider";
+import { memo } from "react";
 
 interface GameListRowProps {
   game: Game;
@@ -26,19 +29,33 @@ interface GameListRowProps {
 }
 
 const STATUS_COLOR = {
+  none: "gray",
   plan: "yellow",
   playing: "purple",
+  paused: "orange",
   completed: "green",
   dropped: "red",
 };
 
-export default function GameListRow({ game, onLaunch, onStatusChange }: GameListRowProps) {
+const STATUS_LABEL = {
+  none: "No Status",
+  plan: "Plan to Play",
+  playing: "Playing",
+  paused: "Paused",
+  completed: "Completed",
+  dropped: "Dropped",
+};
+
+function GameListRow({ game, onLaunch, onStatusChange }: GameListRowProps) {
   const rowBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
   const navigate = useNavigate();
 
-  const providerConfig = game.provider ? PROVIDER_CONFIGS[game.provider] : null;
-  const ProviderIcon = providerConfig?.icon;
+  const isProviderGame =
+    game.providers && Object.keys(game.providers).length > 0;
+  const isInstalled =
+    isProviderGame &&
+    Object.values(game.providers || {}).some((p) => p.installed === true);
 
   const handleRowClick = () => {
     const detailId = game.rawgId ? String(game.rawgId) : game._id;
@@ -49,14 +66,14 @@ export default function GameListRow({ game, onLaunch, onStatusChange }: GameList
     <Box
       borderWidth="1px"
       borderRadius="lg"
-      overflow="hidden"
+      overflow="visible"
       bg={rowBg}
       borderColor={subtleBorder}
       p={3}
       _hover={{
-        transform: "translateX(4px)",
         borderColor: "purple.400",
-        boxShadow: "sm",
+        boxShadow: "md",
+        bg: "gray.750",
       }}
       transition="all 0.2s ease"
       cursor="pointer"
@@ -79,22 +96,46 @@ export default function GameListRow({ game, onLaunch, onStatusChange }: GameList
               <Text fontWeight="semibold" fontSize="md">
                 {game.title}
               </Text>
-              {providerConfig && (
+
+              {isProviderGame && (
+                <Badge colorScheme="blue" borderRadius="full" px={2} py={0.5}>
+                  Owned
+                </Badge>
+              )}
+
+              {isProviderGame && (
                 <Badge
-                  colorScheme={providerConfig.colorScheme}
+                  colorScheme={isInstalled ? "green" : "gray"}
                   borderRadius="full"
                   px={2}
                   py={0.5}
-                  display="flex"
-                  alignItems="center"
-                  gap={1}
                 >
-                  <ProviderIcon size={10} />
-                  <Text fontSize="10px" fontWeight="bold">
-                    {providerConfig.name}
-                  </Text>
+                  {isInstalled ? "Installed" : "Not Installed"}
                 </Badge>
               )}
+
+              {Object.keys(game.providers || {}).map((providerKey) => {
+                const config = PROVIDER_CONFIGS[providerKey as ProviderId];
+                if (!config) return null;
+                const Icon = config.icon;
+                return (
+                  <Badge
+                    key={providerKey}
+                    colorScheme={config.colorScheme}
+                    borderRadius="full"
+                    px={2}
+                    py={0.5}
+                    display="flex"
+                    alignItems="center"
+                    gap={1}
+                  >
+                    <Icon size={10} />
+                    <Text fontSize="10px" fontWeight="bold">
+                      {config.name}
+                    </Text>
+                  </Badge>
+                );
+              })}
             </HStack>
             <HStack spacing={1} flexWrap="wrap">
               {game.tags.slice(0, 3).map((tag) => (
@@ -113,44 +154,60 @@ export default function GameListRow({ game, onLaunch, onStatusChange }: GameList
             <MenuButton
               as={Button}
               size="sm"
-              colorScheme={STATUS_COLOR[game.status]}
+              colorScheme={STATUS_COLOR[game.progressStatus || "none"]}
               variant="outline"
               borderRadius="full"
               textTransform="capitalize"
               fontSize="xs"
               px={3}
             >
-              {game.status}
+              {STATUS_LABEL[game.progressStatus || "none"]}
             </MenuButton>
-            <MenuList>
-              <MenuItem onClick={() => onStatusChange(game._id, "plan")}>
-                🟡 Plan To Play
-              </MenuItem>
-              <MenuItem onClick={() => onStatusChange(game._id, "playing")}>
-                🟣 Playing
-              </MenuItem>
-              <MenuItem onClick={() => onStatusChange(game._id, "completed")}>
-                🟢 Completed
-              </MenuItem>
-              <MenuItem onClick={() => onStatusChange(game._id, "dropped")}>
-                🔴 Dropped
-              </MenuItem>
-            </MenuList>
+
+            <Portal>
+              <MenuList>
+                <MenuItem onClick={() => onStatusChange(game._id, "none")}>
+                  ⚪ No Status
+                </MenuItem>
+
+                <MenuItem onClick={() => onStatusChange(game._id, "plan")}>
+                  🟡 Plan To Play
+                </MenuItem>
+
+                <MenuItem onClick={() => onStatusChange(game._id, "playing")}>
+                  🟣 Playing
+                </MenuItem>
+
+                <MenuItem onClick={() => onStatusChange(game._id, "paused")}>
+                  🟠 Paused
+                </MenuItem>
+
+                <MenuItem onClick={() => onStatusChange(game._id, "completed")}>
+                  🟢 Completed
+                </MenuItem>
+
+                <MenuItem onClick={() => onStatusChange(game._id, "dropped")}>
+                  🔴 Dropped
+                </MenuItem>
+              </MenuList>
+            </Portal>
           </Menu>
 
           {/* Launch button */}
           <Button
-            colorScheme="purple"
+            colorScheme={isProviderGame && !isInstalled ? "gray" : "purple"}
             leftIcon={<FiPlay />}
             size="sm"
+            isDisabled={isProviderGame && !isInstalled}
             onClick={() => onLaunch(game)}
             fontSize="xs"
             borderRadius="md"
           >
-            Launch
+            {isProviderGame && !isInstalled ? "Not Installed" : "Launch"}
           </Button>
         </HStack>
       </HStack>
     </Box>
   );
 }
+export default memo(GameListRow);

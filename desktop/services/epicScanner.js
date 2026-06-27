@@ -1,8 +1,38 @@
 const fs = require("fs");
 const path = require("path");
+const cp = require("child_process");
 
-const MANIFEST_DIR =
-  "C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\Manifests";
+function queryRegistry(key, value) {
+  try {
+    const output = cp.execSync(`reg query "${key}" /v "${value}"`, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "ignore"],
+    });
+    const lines = output.split("\r\n");
+    for (const line of lines) {
+      if (line.includes(value)) {
+        const index = line.indexOf("REG_SZ");
+        if (index !== -1) {
+          return line.substring(index + 6).trim();
+        }
+        const indexExpand = line.indexOf("REG_EXPAND_SZ");
+        if (indexExpand !== -1) {
+          return line.substring(indexExpand + 13).trim();
+        }
+      }
+    }
+  } catch (e) {
+    // Registry query failed
+  }
+  return null;
+}
+
+const regEpicPath = queryRegistry("HKLM\\SOFTWARE\\WOW6432Node\\Epic Games\\EpicGamesLauncher", "AppDataPath") ||
+                    queryRegistry("HKLM\\SOFTWARE\\Epic Games\\EpicGamesLauncher", "AppDataPath");
+
+const MANIFEST_DIR = regEpicPath
+  ? path.join(regEpicPath, "Manifests")
+  : "C:\\ProgramData\\Epic\\EpicGamesLauncher\\Data\\Manifests";
 
 function scanEpicGames() {
   try {
@@ -34,6 +64,9 @@ function scanEpicGames() {
             manifest.LaunchExecutable,
           ),
           epicId: manifest.InstallationGuid,
+          catalogItemId: manifest.CatalogItemId,
+          catalogNamespace: manifest.CatalogNamespace,
+          appName: manifest.AppName,
         });
       } catch (err) {
         console.error("Failed parsing", file, err);

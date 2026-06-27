@@ -5,6 +5,9 @@ interface EpicGame {
   installPath: string;
   executable: string;
   epicId: string;
+  catalogItemId: string;
+  catalogNamespace: string;
+  appName: string;
 }
 
 declare global {
@@ -16,7 +19,7 @@ declare global {
 
       scanEpicGames: () => Promise<EpicGame[]>;
 
-      onGameExited?: (callback: (gameId: string) => void) => void;
+      onGameExited?: (callback: (gameId: string) => void) => () => void;
 
       scanSteamGames: () => Promise<
         {

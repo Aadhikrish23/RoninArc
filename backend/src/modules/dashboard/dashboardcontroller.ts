@@ -9,9 +9,9 @@ const getDashboardStats = async (req: Request, res: Response) => {
     const games = await LibraryGame.find({
       userId: userId,
     });
-    const continuePlaying = await LibraryGame.find({
+        const continuePlaying = await LibraryGame.find({
       userId: userId,
-      status: "playing",
+      progressStatus: "playing",
     }).limit(5);
     const recentGames = await LibraryGame.find({
       userId: userId,
@@ -58,31 +58,51 @@ const getDashboardStats = async (req: Request, res: Response) => {
       .sort((a, b) => b.count - a.count)
       .slice(0, 8);
 
+    const ownedCount = games.filter((g) => g.providers && Object.keys(g.providers).length > 0).length;
+    const installedCount = games.filter((g) => {
+      if (!g.providers) return false;
+      return Object.values(g.providers).some((p: any) => p.installed === true);
+    }).length;
+
     const statusStats = [
       {
-        status: "Playing",
-        count: games.filter((g) => g.status === "playing").length,
+        status: "Owned Games",
+        count: ownedCount,
+      },
+      {
+        status: "Installed Games",
+        count: installedCount,
+      },
+      {
+        status: "Currently Playing",
+        count: games.filter((g) => g.progressStatus === "playing").length,
+      },
+      {
+        status: "Planned",
+        count: games.filter((g) => g.progressStatus === "plan").length,
       },
       {
         status: "Completed",
-        count: games.filter((g) => g.status === "completed").length,
+        count: games.filter((g) => g.progressStatus === "completed").length,
       },
       {
-        status: "Plan",
-        count: games.filter((g) => g.status === "plan").length,
+        status: "Paused",
+        count: games.filter((g) => g.progressStatus === "paused").length,
       },
       {
         status: "Dropped",
-        count: games.filter((g) => g.status === "dropped").length,
+        count: games.filter((g) => g.progressStatus === "dropped").length,
       },
     ];
 
     const stats = {
       totalGames: games.length,
 
-      playing: games.filter((g) => g.status === "playing").length,
+      owned: ownedCount,
+      installed: installedCount,
+      playing: games.filter((g) => g.progressStatus === "playing").length,
 
-      completed: games.filter((g) => g.status === "completed").length,
+      completed: games.filter((g) => g.progressStatus === "completed").length,
 
       continuePlaying,
 

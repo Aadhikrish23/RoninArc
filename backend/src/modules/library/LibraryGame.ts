@@ -8,6 +8,7 @@ export interface IProviderOwnership {
   launcher?: string;
   installPath?: string;
   manifestId?: string;
+  executable?: string;
   syncedAt: Date;
 }
 
@@ -33,7 +34,7 @@ export interface IGameLibrary extends mongoose.Document {
   imageURL?: string;
   developer?: string;
   exePath: string;
-  status: string;
+  progressStatus: string;
 
   // Multi-provider ownership
   providers: Record<string, IProviderOwnership>;
@@ -103,10 +104,10 @@ const gameLibraryschema = new mongoose.Schema<IGameLibrary>(
       type: String,
       default: "",
     },
-    status: {
+    progressStatus: {
       type: String,
-      enum: ["plan", "playing", "completed", "dropped"],
-      default: "plan",
+      enum: ["none", "plan", "playing", "paused", "completed", "dropped"],
+      default: "none",
     },
 
     // Multi-provider ownership

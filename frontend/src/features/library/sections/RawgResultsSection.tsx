@@ -41,95 +41,109 @@ export default function RawgResultsSection({
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const navigate = useNavigate();
 
-  const renderOwnedGrid = (game: Game) => (
-    <Box
-      key={game._id}
-      borderWidth="1px"
-      borderRadius="lg"
-      overflow="hidden"
-      cursor="pointer"
-      onClick={() => navigate(`/library/game/${game._id}`)}
-      _hover={{ shadow: "md" }}
-    >
-      <Image
-        src={game.imageURL || "https://placehold.co/120x80?text=No+Image"}
-        h="180px"
-        w="100%"
-        objectFit="cover"
-      />
-      <Box p={4}>
-        <Text fontWeight="bold" noOfLines={1}>
-          {game.title}
-        </Text>
-        <Text color="gray.500" fontSize="sm">
-          {game.developer || "Unknown Developer"}
-        </Text>
-        <Text color="gray.500" fontSize="sm" noOfLines={1}>
-          {game.tags.join(", ")}
-        </Text>
-        <Button
-          mt={3}
+  const renderOwnedGrid = (game: Game) => {
+    const isOwned = game.providers && Object.keys(game.providers).length > 0;
+    const isInstalled = isOwned && Object.values(game.providers || {}).some((p: any) => p.installed === true);
+    const disableLaunch = isOwned && !isInstalled;
+
+    return (
+      <Box
+        key={game._id}
+        borderWidth="1px"
+        borderRadius="lg"
+        overflow="hidden"
+        cursor="pointer"
+        onClick={() => navigate(`/library/game/${game._id}`)}
+        _hover={{ shadow: "md" }}
+      >
+        <Image
+          src={game.imageURL || "https://placehold.co/120x80?text=No+Image"}
+          h="180px"
           w="100%"
-          colorScheme="purple"
+          objectFit="cover"
+        />
+        <Box p={4}>
+          <Text fontWeight="bold" noOfLines={1}>
+            {game.title}
+          </Text>
+          <Text color="gray.500" fontSize="sm">
+            {game.developer || "Unknown Developer"}
+          </Text>
+          <Text color="gray.500" fontSize="sm" noOfLines={1}>
+            {game.tags.join(", ")}
+          </Text>
+          <Button
+            mt={3}
+            w="100%"
+            colorScheme={disableLaunch ? "gray" : "purple"}
+            isDisabled={disableLaunch}
+            onClick={(e) => {
+              e.stopPropagation();
+              onLaunchGame(game);
+            }}
+          >
+            {disableLaunch ? "Not Installed" : "Launch"}
+          </Button>
+        </Box>
+      </Box>
+    );
+  };
+
+  const renderOwnedList = (game: Game) => {
+    const isOwned = game.providers && Object.keys(game.providers).length > 0;
+    const isInstalled = isOwned && Object.values(game.providers || {}).some((p: any) => p.installed === true);
+    const disableLaunch = isOwned && !isInstalled;
+
+    return (
+      <Flex
+        key={game._id}
+        gap={4}
+        p={4}
+        borderWidth="1px"
+        borderRadius="lg"
+        align="center"
+        cursor="pointer"
+        transition="all .2s"
+        _hover={{
+          transform: "translateY(-2px)",
+          shadow: "md",
+        }}
+        onClick={() => navigate(`/library/game/${game._id}`)}
+      >
+        <Image
+          src={game.imageURL || "https://placehold.co/120x80?text=No+Image"}
+          alt={game.title}
+          boxSize="140px"
+          objectFit="cover"
+          borderRadius="md"
+        />
+        <Box flex={1}>
+          <Text fontWeight="bold" fontSize="lg">
+            {game.title}
+          </Text>
+          <Text color="gray.500" mt={1}>
+            {game.developer || "Unknown Developer"}
+          </Text>
+          <Text color="gray.500" mt={1}>
+            {game.tags.join(", ")}
+          </Text>
+          <Text color="gray.500" mt={1}>
+            Provider: {game.provider ? game.provider.toUpperCase() : "MANUAL"}
+          </Text>
+        </Box>
+        <Button
+          colorScheme={disableLaunch ? "gray" : "purple"}
+          isDisabled={disableLaunch}
           onClick={(e) => {
             e.stopPropagation();
             onLaunchGame(game);
           }}
         >
-          Launch
+          {disableLaunch ? "Not Installed" : "Launch"}
         </Button>
-      </Box>
-    </Box>
-  );
-
-  const renderOwnedList = (game: Game) => (
-    <Flex
-      key={game._id}
-      gap={4}
-      p={4}
-      borderWidth="1px"
-      borderRadius="lg"
-      align="center"
-      cursor="pointer"
-      transition="all .2s"
-      _hover={{
-        transform: "translateY(-2px)",
-        shadow: "md",
-      }}
-      onClick={() => navigate(`/library/game/${game._id}`)}
-    >
-      <Image
-        src={game.imageURL || "https://placehold.co/120x80?text=No+Image"}
-        alt={game.title}
-        boxSize="140px"
-        objectFit="cover"
-        borderRadius="md"
-      />
-      <Box flex={1}>
-        <Text fontWeight="bold" fontSize="lg">
-          {game.title}
-        </Text>
-        <Text color="gray.500" mt={1}>
-          {game.developer || "Unknown Developer"}
-        </Text>
-        <Text color="gray.500" mt={1}>
-          {game.tags.join(", ")}
-        </Text>
-        <Text color="gray.500" mt={1}>
-          Provider: {game.provider ? game.provider.toUpperCase() : "MANUAL"}
-        </Text>
-      </Box>
-      <Button
-        colorScheme="purple"
-        onClick={(e) => {
-          e.stopPropagation();
-          onLaunchGame(game);
-        }}
-      >
-        Launch
-      </Button>
-    </Flex>
-  );
+      </Flex>
+    );
+  };
 
   const renderDiscoverGrid = (game: RawgGameResult) => (
     <Box
