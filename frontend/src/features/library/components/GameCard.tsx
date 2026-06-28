@@ -126,17 +126,22 @@ function GameCard({
               position="absolute"
               top={3}
               left={3}
-              colorScheme={config.colorScheme}
               borderRadius="full"
               px={3}
               py={1}
               display="flex"
               alignItems="center"
-              gap={1}
+              gap={1.5}
               zIndex={2}
+              bg="blackAlpha.700"
+              backdropFilter="blur(8px)"
+              color="white"
+              border="1px solid"
+              borderColor={`${config.colorScheme}.300`}
             >
-              <Icon size={12} />
-              <Text fontSize="10px" fontWeight="bold">
+              <Icon size={12} color="currentColor" />
+
+              <Text fontSize="10px" fontWeight="700" letterSpacing="0.4px">
                 {config.name.toUpperCase()}
               </Text>
             </Badge>
@@ -155,8 +160,14 @@ function GameCard({
             <MenuButton
               as={Button}
               size="xs"
-              colorScheme={STATUS_COLOR[game.progressStatus || "none"]}
               borderRadius="full"
+              backdropFilter="blur(12px)"
+              color="white"
+              border="1px solid"
+              borderColor={`${STATUS_COLOR[game.progressStatus || "none"]}.300`}
+              _hover={{
+                bg: "blackAlpha.800",
+              }}
             >
               {STATUS_LABEL[game.progressStatus || "none"]}
             </MenuButton>
@@ -206,6 +217,10 @@ function GameCard({
           }
           leftIcon={<FiPlay />}
           isDisabled={isRunning || (isProviderGame && !isInstalled)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onLaunch(game);
+          }}
         >
           {isRunning
             ? "Running"

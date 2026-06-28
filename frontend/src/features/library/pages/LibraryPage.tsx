@@ -15,7 +15,6 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@chakra-ui/react";
 
 import type { RawgGameResult, Game } from "../types/library";
-import LaunchModal from "../components/LaunchModal";
 import { useLibrary } from "../hooks/useLibrary";
 import { useRawgSearch } from "../hooks/useRawgSearch";
 import { useReview } from "../../reviews/hooks/useReview";
@@ -25,19 +24,18 @@ import { useCollection } from "../../collections/hooks/useCollections";
 
 import CreateCollectionModal from "../../collections/components/CreateCollectionModal";
 
-import activityApi from "../../activity/api/activityApi";
 import { useAuth } from "../../auth/context/AuthContext";
 import LibraryHeader from "../sections/LibraryHeader";
 import RawgResultsSection from "../sections/RawgResultsSection";
 import RawgSearch from "../components/RawgSearch";
 import GameAddedModal from "../components/GameAddedModal";
-import { usePlaySession } from "../../playSession/hooks/usePlaySession";
-import { getLaunchPath } from "../utils/launch";
 import { useProvider } from "../../providers/context/ProviderContext";
 
 import HorizontalSection from "../components/HorizontalSection";
 import GameCarousel from "../components/GameCarousel";
 import CollectionCarousel from "../components/CollectionCarousel";
+import { useLaunchGame } from "../hooks/useLaunchGame";
+import LaunchModal from "../components/LaunchModal";
 
 function LibraryPage() {
   const {
@@ -59,19 +57,16 @@ function LibraryPage() {
     loading: rawgLoading,
     error: rawgError,
     clearSearch,
+    performSearch,
   } = useRawgSearch();
   const navigate = useNavigate();
-  const [runningGames, setRunningGames] = useState<Set<string>>(new Set());
-  const [launchModalGame, setLaunchModalGame] = useState<Game | null>(null);
-  const [showSearchResults, setShowSearchResults] = useState(false);
 
-  const [launchPath, setLaunchPath] = useState<string>("");
+  const [showSearchResults, setShowSearchResults] = useState(false);
 
   const bg = useColorModeValue("gray.50", "gray.900");
 
   const toast = useToast();
   const { token } = useAuth();
-  const { startSession, endSession } = usePlaySession();
 
   const [addedGameTitle, setAddedGameTitle] = useState("");
 
@@ -79,6 +74,7 @@ function LibraryPage() {
 
   const { refreshInstallations } = useProvider("steam");
   const [isRescanning, setIsRescanning] = useState(false);
+  const { openLaunchModal, runningGames, modalProps } = useLaunchGame();
 
   const handleRescanInstallations = async () => {
     setIsRescanning(true);
@@ -155,15 +151,7 @@ function LibraryPage() {
     saveReview,
     deleteReview: deleteReviewHandler,
   } = useReview(updateGameRating);
-  const openLaunchModal = (game: Game) => {
-    setLaunchModalGame(game);
-    setLaunchPath(game.exePath || "");
-  };
 
-  const closeLaunchModal = () => {
-    setLaunchModalGame(null);
-    setLaunchPath("");
-  };
   const openCollectionModal = () => {
     setIsCreateCollectionOpen(true);
   };
@@ -186,33 +174,6 @@ function LibraryPage() {
     fetchLibrary();
     fetchCollections();
   }, [fetchLibrary, fetchCollections]);
-  useEffect(() => {
-    if (!window.electronAPI?.onGameExited) return;
-
-    const unsubscribe = window.electronAPI.onGameExited(async (gameId) => {
-      try {
-        console.log("[END SESSION]", gameId);
-
-        await endSession(gameId);
-        setRunningGames((prev) => {
-          const next = new Set(prev);
-          next.delete(gameId);
-          return next;
-        });
-
-        toast({
-          title: "Play session ended",
-          status: "success",
-        });
-      } catch (error) {
-        console.error(error);
-      }
-    });
-
-    return () => {
-      unsubscribe();
-    };
-  }, []);
 
   const handleAddGame = async (rawgGame: RawgGameResult) => {
     await addGame({
@@ -226,202 +187,12 @@ function LibraryPage() {
     });
 
     setAddedGameTitle(rawgGame.name);
+    await fetchLibrary();
+    await performSearch();
 
     setShowAddedModal(true);
   };
-
-  const handlePickExePath = async () => {
-    if (!window.electronAPI?.selectExePath) {
-      toast({
-        title: "Desktop only",
-        description: "EXE path editing works only inside the Electron app.",
-        status: "warning",
-        duration: 2500,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      const selectedPath = await window.electronAPI.selectExePath();
-      if (!selectedPath) return; // user cancelled
-
-      if (!launchModalGame) return;
-
-      await updateGame(launchModalGame._id, {
-        exePath: selectedPath,
-      });
-
-      setLaunchPath(selectedPath);
-
-      toast({
-        title: "EXE path updated",
-        description: "Launch path saved successfully.",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-      });
-    } catch (error: unknown) {
-      console.error("Failed to update exe path", error);
-      toast({
-        title: "Update failed",
-        description: "Could not update EXE path.",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleLaunchGame = async () => {
-    if (!launchModalGame) return;
-
-    if (!launchPath) {
-      toast({
-        title: "No EXE path set",
-        description: "Please choose an EXE path before launching.",
-        status: "warning",
-        duration: 2000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (!window.electronAPI?.launchGame) {
-      toast({
-        title: "Desktop only",
-        description: "Launching is only available inside the Electron app.",
-        status: "warning",
-        duration: 2500,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      await startSession(launchModalGame._id);
-      setRunningGames((prev) => {
-        const next = new Set(prev);
-        next.add(launchModalGame._id);
-        return next;
-      });
-
-      const launched = await window.electronAPI.launchGame(
-        launchModalGame._id,
-        launchPath,
-      );
-
-      if (launched) {
-        await activityApi.recordLaunch(launchModalGame._id);
-      }
-
-      toast({
-        title: `Launching ${launchModalGame.title}`,
-        description: launchPath,
-        status: "info",
-        duration: 2000,
-        isClosable: true,
-      });
-
-      closeLaunchModal();
-    } catch (error: unknown) {
-      console.error("Failed to launch game", error);
-      toast({
-        title: "Launch failed",
-        description: "Could not start the game.",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleLaunchLauncher = async (uri: string) => {
-    if (!launchModalGame) return;
-    if (!window.electronAPI?.launchGame) {
-      toast({
-        title: "Desktop only",
-        description: "Launching is only available inside the Electron app.",
-        status: "warning",
-        duration: 2500,
-        isClosable: true,
-      });
-      return;
-    }
-    try {
-      await startSession(launchModalGame._id);
-      const launched = await window.electronAPI.launchGame(
-        launchModalGame._id,
-        uri,
-      );
-      if (launched) {
-        await activityApi.recordLaunch(launchModalGame._id);
-      }
-      toast({
-        title: `Launching ${launchModalGame.title}`,
-        description: `Launching via URI: ${uri}`,
-        status: "info",
-        duration: 2000,
-        isClosable: true,
-      });
-      closeLaunchModal();
-    } catch (err: unknown) {
-      console.error("Failed to launch game via URI", err);
-      toast({
-        title: "Launch failed",
-        description: "Could not start the game via launcher.",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleLaunchClick = async (game: Game) => {
-    const path = getLaunchPath(game);
-    if (path) {
-      if (!window.electronAPI?.launchGame) {
-        toast({
-          title: "Desktop only",
-          description: "Launching is only available inside the Electron app.",
-          status: "warning",
-          duration: 2500,
-          isClosable: true,
-        });
-        return;
-      }
-      try {
-        await startSession(game._id);
-        setRunningGames((prev) => {
-          const next = new Set(prev);
-          next.add(game._id);
-          return next;
-        });
-        const launched = await window.electronAPI.launchGame(game._id, path);
-        if (launched) {
-          await activityApi.recordLaunch(game._id);
-        }
-        toast({
-          title: `Launching ${game.title}`,
-          description: path,
-          status: "info",
-          duration: 2000,
-          isClosable: true,
-        });
-      } catch (error: unknown) {
-        console.error("Failed to launch game", error);
-        toast({
-          title: "Launch failed",
-          description: "Could not start the game.",
-          status: "error",
-          duration: 2000,
-          isClosable: true,
-        });
-      }
-    } else {
-      openLaunchModal(game);
-    }
-  };
+  const onLaunch={openLaunchModal}
 
   const continuePlayingGames = useMemo(() => {
     return games.filter((g) => g.progressStatus === "playing");
@@ -458,7 +229,7 @@ function LibraryPage() {
             loading={rawgLoading}
             error={rawgError}
             onAddGame={handleAddGame}
-            onLaunchGame={handleLaunchClick}
+            onLaunchGame={openLaunchModal}
             onBack={handleBackToLibrary}
           />
         ) : (
@@ -533,7 +304,7 @@ function LibraryPage() {
                   <HorizontalSection title="Continue Playing">
                     <GameCarousel
                       games={continuePlayingGames}
-                      onLaunch={handleLaunchClick}
+                      onLaunch={openLaunchModal}
                       onStatusChange={updateStatus}
                       runningGames={runningGames}
                     />
@@ -544,9 +315,7 @@ function LibraryPage() {
                   <HorizontalSection title="Favorites (★ 4+)">
                     <GameCarousel
                       games={favoriteGames}
-                     
-                      onLaunch={handleLaunchClick}
-                      
+                      onLaunch={openLaunchModal}
                       onStatusChange={updateStatus}
                       runningGames={runningGames}
                     />
@@ -588,23 +357,19 @@ function LibraryPage() {
                 </VStack>
 
                 <HorizontalSection title="Recently Added">
-                   <GameCarousel
-                      games={favoriteGames}
-                     
-                      onLaunch={handleLaunchClick}
-                      
-                      onStatusChange={updateStatus}
-                      runningGames={runningGames}
-                    />
+                  <GameCarousel
+                    games={favoriteGames}
+                    onLaunch={openLaunchModal}
+                    onStatusChange={updateStatus}
+                    runningGames={runningGames}
+                  />
                 </HorizontalSection>
 
                 {completedGames.length > 0 && (
                   <HorizontalSection title="Completed Games">
-                     <GameCarousel
-                      games={favoriteGames}
-                     
-                      onLaunch={handleLaunchClick}
-                      
+                    <GameCarousel
+                      games={completedGames}
+                      onLaunch={openLaunchModal}
                       onStatusChange={updateStatus}
                       runningGames={runningGames}
                     />
@@ -614,14 +379,7 @@ function LibraryPage() {
             )}
           </>
         )}
-        <LaunchModal
-          game={launchModalGame}
-          launchPath={launchPath}
-          onClose={closeLaunchModal}
-          onEditPath={handlePickExePath}
-          onLaunch={handleLaunchGame}
-          onLaunchLauncher={handleLaunchLauncher}
-        />
+       <LaunchModal {...modalProps} />
         <ReviewModal
           game={reviewGame}
           review={currentReview}

@@ -1,67 +1,95 @@
 import {
   Box,
+  Button,
   Flex,
   Heading,
   Text,
   Badge,
-  Button,
-  VStack,
 } from "@chakra-ui/react";
 
+import { useNavigate } from "react-router-dom";
+
 import type { Collection } from "../types/collection";
+import CollectionCover from "./CollectionCover";
 
 interface Props {
   collection: Collection;
 
   onDelete: (collectionId: string) => void;
 
-  onRemoveGame: (collectionId: string, gameId: string) => void;
+  onRemoveGame: (
+    collectionId: string,
+    gameId: string
+  ) => void;
 }
 
-export default function CollectionCard({ collection, onDelete,onRemoveGame }: Props) {
-    
+export default function CollectionCard({
+  collection,
+  onDelete,
+}: Props) {
+  const navigate = useNavigate();
 
   return (
-    <Box borderWidth="1px" borderRadius="xl" p={4}>
-      <Flex justify="space-between" align="center" mb={3}>
-        <Heading size="sm">{collection.name}</Heading>
+    <Box
+      borderWidth="1px"
+      borderRadius="xl"
+      overflow="hidden"
+      cursor="pointer"
+      transition=".2s"
+      _hover={{
+        transform: "translateY(-4px)",
+        shadow: "lg",
+        borderColor: "purple.400",
+      }}
+      onClick={() =>
+        navigate(`/collections/${collection._id}`)
+      }
+    >
+      <CollectionCover games={collection.gameIds} />
 
-        <Button
-          size="xs"
-          colorScheme="red"
-          variant="ghost"
-          onClick={() => onDelete(collection._id)}
+      <Box p={4}>
+        <Flex
+          justify="space-between"
+          align="start"
+          mb={3}
         >
-          Delete
-        </Button>
-      </Flex>
+          <Box>
+            <Heading size="sm">
+              {collection.name}
+            </Heading>
 
-      <Text fontSize="sm" color="gray.500" mb={3}>
-        {collection.description || "No description"}
-      </Text>
+            <Text
+              color="gray.500"
+              fontSize="sm"
+              mt={1}
+              noOfLines={2}
+            >
+              {collection.description ||
+                "No description"}
+            </Text>
+          </Box>
 
-      <VStack align="stretch" spacing={2}>
-        <Badge colorScheme="purple" width="fit-content">
+          {/* <Button
+            size="xs"
+            colorScheme="red"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(collection._id);
+            }}
+          >
+            Delete
+          </Button> */}
+        </Flex>
+
+        <Badge
+          colorScheme="purple"
+          borderRadius="full"
+          px={2}
+        >
           {collection.gameIds.length} Games
         </Badge>
-
-        {collection.gameIds.map((game) => (
-          <Flex key={game._id} justify="space-between" align="center">
-            <Text fontSize="sm" noOfLines={1}>
-              {game.title}
-            </Text>
-
-            <Button
-              size="xs"
-              colorScheme="red"
-              variant="ghost"
-              onClick={() => onRemoveGame(collection._id, game._id)}
-            >
-              Remove
-            </Button>
-          </Flex>
-        ))}
-      </VStack>
+      </Box>
     </Box>
   );
 }

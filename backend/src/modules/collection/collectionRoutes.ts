@@ -9,6 +9,7 @@ import {
   addGameToCollection,
   removeGameFromCollection,
   deleteCollection,
+  updateCollection,
 } from "./collectionController";
 
 const collectionRouter = express.Router();
@@ -22,6 +23,7 @@ collectionRouter.get("/", getCollections);
 collectionRouter.get("/:collectionId", getCollection);
 
 collectionRouter.post("/:collectionId/games", addGameToCollection);
+collectionRouter.patch("/:collectionId", updateCollection);
 
 collectionRouter.delete("/:collectionId/games/:gameId", removeGameFromCollection);
 

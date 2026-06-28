@@ -26,6 +26,7 @@ interface GameListRowProps {
   game: Game;
   onLaunch: (game: Game) => void;
   onStatusChange: (id: string, status: Status) => void;
+  isRunning?: boolean;
 }
 
 const STATUS_COLOR = {
@@ -46,7 +47,12 @@ const STATUS_LABEL = {
   dropped: "Dropped",
 };
 
-function GameListRow({ game, onLaunch, onStatusChange }: GameListRowProps) {
+function GameListRow({
+  game,
+  onLaunch,
+  onStatusChange,
+  isRunning,
+}: GameListRowProps) {
   const rowBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
   const navigate = useNavigate();
@@ -195,15 +201,25 @@ function GameListRow({ game, onLaunch, onStatusChange }: GameListRowProps) {
 
           {/* Launch button */}
           <Button
-            colorScheme={isProviderGame && !isInstalled ? "gray" : "purple"}
+            colorScheme={
+              isRunning
+                ? "green"
+                : isProviderGame && !isInstalled
+                  ? "gray"
+                  : "purple"
+            }
             leftIcon={<FiPlay />}
             size="sm"
-            isDisabled={isProviderGame && !isInstalled}
+            isDisabled={isRunning || (isProviderGame && !isInstalled)}
             onClick={() => onLaunch(game)}
             fontSize="xs"
             borderRadius="md"
           >
-            {isProviderGame && !isInstalled ? "Not Installed" : "Launch"}
+            {isRunning
+              ? "Running"
+              : isProviderGame && !isInstalled
+                ? "Not Installed"
+                : "Launch"}
           </Button>
         </HStack>
       </HStack>

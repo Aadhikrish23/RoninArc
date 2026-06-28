@@ -26,7 +26,7 @@ class MetadataEnrichmentService {
     try {
       const normalizedTitle = normalizeTitle(game.title);
 
-      const searchResults = await rawgService.searchGames(game.title, 10);
+      const searchResults = await rawgService.searchBestMatch(game.title, 1);
       console.log("RAWG Results:", searchResults?.length);
 
       if (searchResults?.length) {

@@ -6,9 +6,8 @@ dotenv.config();
 const RAWG_BASE_URL = process.env.RAWG_BASE_URL;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
 
-async function searchGames(query: string, pageSize : number) {
+async function searchGames(query: string, page: number) {
   console.log(">>> RAWG SERVICE searchGames HIT <<<");
-  console.log("Searching RAWG for:", query);
 
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
@@ -20,10 +19,10 @@ async function searchGames(query: string, pageSize : number) {
       params: {
         key: RAWG_API_KEY,
         search: query,
-        page_size: pageSize,
+        page,
 
         search_precise: true,
-        
+        ordering: "-added",
       },
     });
 
@@ -47,7 +46,44 @@ async function searchGames(query: string, pageSize : number) {
     throw new AppError("Failed to fetch RAWG data", 502);
   }
 }
+async function searchBestMatch(query: string, pageSize: number) {
+  console.log(">>> RAWG SERVICE searchGames HIT <<<");
 
+  if (!RAWG_BASE_URL || !RAWG_API_KEY) {
+    throw new AppError("RAWG API is not configured", 500);
+  }
+
+  try {
+    const url = `${RAWG_BASE_URL}/games`;
+    const response = await axios.get(url, {
+     params: {
+    key: RAWG_API_KEY,
+    search: query,
+    page_size: pageSize,
+    search_precise: true,
+}
+    });
+
+    const results = response.data.results;
+
+    const cleaned = results.map((g: any) => ({
+      id: g.id,
+      name: g.name,
+      imageURL: g.background_image,
+      rating: g.rating,
+      released: g.released,
+      genres: g.genres?.map((x: any) => x.name) || [],
+      added: g.added,
+      ratingsCount: g.ratings_count,
+      suggestionsCount: g.suggestions_count,
+      metacritic: g.metacritic,
+    }));
+
+    return cleaned;
+  } catch (err) {
+    throw new AppError("Failed to fetch RAWG data", 502);
+  }
+}
 async function getGameDetails(rawgId: string | number) {
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
@@ -118,4 +154,5 @@ async function getGameDetails(rawgId: string | number) {
 export default {
   searchGames,
   getGameDetails,
+  searchBestMatch
 };

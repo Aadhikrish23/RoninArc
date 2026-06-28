@@ -15,6 +15,7 @@ import NotFound from "./NotFound";
 import { useAuth } from "../../features/auth/context/AuthContext";
 import GameDetailsPage from "../../features/library/pages/GameDetailsPage";
 import EpicOAuthCallback from "../../features/providers/epic/pages/EpicOAuthCallback";
+import CollectionDetailsPage from "../../features/collections/pages/CollectionDetailsPage";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -50,8 +51,15 @@ export default function AppRouter() {
         <Route path="/dashboard" element={<DashboardPage />} />
 
         <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/providers/epic/callback" element={<EpicOAuthCallback />} />
+        <Route
+          path="/providers/epic/callback"
+          element={<EpicOAuthCallback />}
+        />
         <Route path="/library/game/:rawgId" element={<GameDetailsPage />} />
+        <Route
+          path="/collections/:collectionId"
+          element={<CollectionDetailsPage />}
+        />
       </Route>
       <Route path="*" element={<NotFound />} />
     </Routes>

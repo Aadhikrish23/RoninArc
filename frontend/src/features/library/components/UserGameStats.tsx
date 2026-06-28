@@ -36,7 +36,7 @@ interface Props {
   collections: Collection[];
   onAddToCollection(collectionId: string, gameId: string): void;
   onRemoveFromCollection(collectionId: string, gameId: string): void;
-  onLaunch(): void;
+  onLaunch(): void;isRunning?: boolean;
 }
 
 const STATUS_COLORS: Record<Status, string> = {
@@ -91,7 +91,7 @@ export default function UserGameStats({
   collections,
   onAddToCollection,
   onRemoveFromCollection,
-  onLaunch,
+  onLaunch,isRunning
 }: Props) {
   const bg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
@@ -305,15 +305,26 @@ export default function UserGameStats({
         <Divider my={2} />
 
         {/* LAUNCH */}
-        <Button
-          w="100%"
-          colorScheme={isProviderGame && !isInstalled ? "gray" : "green"}
-          size="lg"
+       <Button
+          colorScheme={
+            isRunning
+              ? "green"
+              : isProviderGame && !isInstalled
+                ? "gray"
+                : "purple"
+          }
           leftIcon={<FiPlay />}
-          onClick={onLaunch}
-          isDisabled={isProviderGame && !isInstalled}
+          isDisabled={isRunning || (isProviderGame && !isInstalled)}
+          onClick={(e) => {
+            e.stopPropagation();
+            onLaunch();
+          }}
         >
-          {isProviderGame && !isInstalled ? "Not Installed" : "Launch Game"}
+          {isRunning
+            ? "Running"
+            : isProviderGame && !isInstalled
+              ? "Not Installed"
+              : "Launch"}
         </Button>
 
         <Divider my={2} />

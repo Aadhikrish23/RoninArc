@@ -93,7 +93,7 @@ export default function LaunchModal({
               </Text>
             )}
 
-            {game.providers &&
+            {/* {game.providers &&
               Object.entries(game.providers).map(([providerKey, p]) => {
                 if (!p || !p.installed) return null;
                 const launcherUri = getProviderLauncherUri(providerKey, p);
@@ -110,7 +110,7 @@ export default function LaunchModal({
                     Launch via {providerKey.toUpperCase()} Launcher
                   </Button>
                 );
-              })}
+              })} */}
           </VStack>
         </ModalBody>
 

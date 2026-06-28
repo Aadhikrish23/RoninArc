@@ -23,7 +23,7 @@ import GameScreenshots from "../components/GameScreenshots";
 import { useLibrary } from "../hooks/useLibrary";
 import UserGameStats from "../components/UserGameStats";
 import { useEffect, useState, useRef } from "react";
-import type { Status, Game } from "../types/library";
+import type { Status } from "../types/library";
 import { useCollection } from "../../collections/hooks/useCollections";
 import { useReview } from "../../reviews/hooks/useReview";
 import { usePlaySession } from "../../playSession/hooks/usePlaySession";
@@ -31,8 +31,9 @@ import * as reviewApi from "../../reviews/api/reviewApi";
 import type { Review } from "../../reviews/types/review";
 import LaunchModal from "../components/LaunchModal";
 import ReviewModal from "../../reviews/components/ReviewModal";
-import activityApi from "../../activity/api/activityApi";
-import { getLaunchPath } from "../utils/launch";
+
+import { useLaunchGame } from "../../library/hooks/useLaunchGame";
+
 import {
   AlertDialog,
   AlertDialogBody,
@@ -45,19 +46,26 @@ import {
 export default function GameDetailsPage() {
   const { rawgId } = useParams();
 
-  const { games, fetchLibrary, addGame, updateStatus, deleteGame, updateGame, refreshGame } =
-    useLibrary();
-  const { collections, fetchCollections, addGameToCollection, removeGameFromCollection } =
-    useCollection();
-  const { startSession, loadGameStats, gameStats } = usePlaySession();
-
+  const {
+    games,
+    fetchLibrary,
+    addGame,
+    updateStatus,
+    deleteGame,
+    refreshGame,
+  } = useLibrary();
+  const {
+    collections,
+    addGameToCollection,
+    removeGameFromCollection,
+  } = useCollection();
+  const { loadGameStats, gameStats } = usePlaySession();
+  const { openLaunchModal, modalProps,runningGames } = useLaunchGame();
   const navigate = useNavigate();
   const toast = useToast();
-  
-  const [launchModalGame, setLaunchModalGame] = useState<Game | null>(null);
-  const [launchPath, setLaunchPath] = useState<string>("");
+
   const [userReview, setUserReview] = useState<Review | null>(null);
-  
+
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
 
@@ -96,199 +104,6 @@ export default function GameDetailsPage() {
 
   const handleStatusChange = async (gameId: string, status: Status) => {
     await updateStatus(gameId, status);
-  };
-
-  const handlePickExePath = async () => {
-    if (!window.electronAPI?.selectExePath) {
-      toast({
-        title: "Desktop only",
-        description: "EXE path editing works only inside the Electron app.",
-        status: "warning",
-        duration: 2500,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      const selectedPath = await window.electronAPI.selectExePath();
-      if (!selectedPath) return; // user cancelled
-
-      if (!launchModalGame) return;
-
-      await updateGame(launchModalGame._id, {
-        exePath: selectedPath,
-      });
-
-      setLaunchPath(selectedPath);
-
-      toast({
-        title: "EXE path updated",
-        description: "Launch path saved successfully.",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-      });
-    } catch (error: unknown) {
-      console.error("Failed to update exe path", error);
-      toast({
-        title: "Update failed",
-        description: "Could not update EXE path.",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleLaunchGame = async () => {
-    if (!launchModalGame) return;
-
-    if (!launchPath) {
-      toast({
-        title: "No EXE path set",
-        description: "Please choose an EXE path before launching.",
-        status: "warning",
-        duration: 2000,
-        isClosable: true,
-      });
-      return;
-    }
-
-    if (!window.electronAPI?.launchGame) {
-      toast({
-        title: "Desktop only",
-        description: "Launching is only available inside the Electron app.",
-        status: "warning",
-        duration: 2500,
-        isClosable: true,
-      });
-      return;
-    }
-
-    try {
-      await startSession(launchModalGame._id);
-
-      const launched = await window.electronAPI.launchGame(
-        launchModalGame._id,
-        launchPath,
-      );
-
-      if (launched) {
-        await activityApi.recordLaunch(launchModalGame._id);
-      }
-
-      toast({
-        title: `Launching ${launchModalGame.title}`,
-        description: launchPath,
-        status: "info",
-        duration: 2000,
-        isClosable: true,
-      });
-
-      closeLaunchModal();
-    } catch (error: unknown) {
-      console.error("Failed to launch game", error);
-      toast({
-        title: "Launch failed",
-        description: "Could not start the game.",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const handleLaunchLauncher = async (uri: string) => {
-    if (!launchModalGame) return;
-    if (!window.electronAPI?.launchGame) {
-      toast({
-        title: "Desktop only",
-        description: "Launching is only available inside the Electron app.",
-        status: "warning",
-        duration: 2500,
-        isClosable: true,
-      });
-      return;
-    }
-    try {
-      await startSession(launchModalGame._id);
-      const launched = await window.electronAPI.launchGame(
-        launchModalGame._id,
-        uri
-      );
-      if (launched) {
-        await activityApi.recordLaunch(launchModalGame._id);
-      }
-      toast({
-        title: `Launching ${launchModalGame.title}`,
-        description: `Launching via URI: ${uri}`,
-        status: "info",
-        duration: 2000,
-        isClosable: true,
-      });
-      closeLaunchModal();
-    } catch (err: unknown) {
-      console.error("Failed to launch game via URI", err);
-      toast({
-        title: "Launch failed",
-        description: "Could not start the game via launcher.",
-        status: "error",
-        duration: 2000,
-        isClosable: true,
-      });
-    }
-  };
-
-  const closeLaunchModal = () => {
-    setLaunchModalGame(null);
-    setLaunchPath("");
-  };
-
-  const handleLaunchClick = async () => {
-    if (!libraryGame) return;
-    const resolvedPath = getLaunchPath(libraryGame);
-    if (resolvedPath) {
-      if (!window.electronAPI?.launchGame) {
-        toast({
-          title: "Desktop only",
-          description: "Launching is only available inside the Electron app.",
-          status: "warning",
-          duration: 2500,
-          isClosable: true,
-        });
-        return;
-      }
-      try {
-        await startSession(libraryGame._id);
-        const launched = await window.electronAPI.launchGame(
-          libraryGame._id,
-          resolvedPath,
-        );
-        if (launched) {
-          await activityApi.recordLaunch(libraryGame._id);
-        }
-        toast({
-          title: `Launching ${libraryGame.title}`,
-          description: resolvedPath,
-          status: "info",
-          duration: 2000,
-          isClosable: true,
-        });
-      } catch (error: unknown) {
-        console.error("Failed to launch game", error);
-        toast({
-          title: "Launch failed",
-          description: "Could not start the game.",
-          status: "error",
-          duration: 2000,
-          isClosable: true,
-        });
-      }
-    } else {
-      setLaunchModalGame(libraryGame);
-      setLaunchPath("");
-    }
   };
 
   const updateGameRating = async (gameId: string, rating: number | null) => {
@@ -404,19 +219,28 @@ export default function GameDetailsPage() {
       {/* Hero */}
       <GameDetailHero game={game} />
       <UserGameStats
-        game={libraryGame}
-        onReview={handleReviewClick}
-        onDeleteReview={handleDeleteReviewClick}
-        review={userReview}
-        playtimeHours={gameStats?.totalHours ?? 0}
-        lastPlayed={gameStats?.lastPlayed ?? null}
-        onDelete={handleDeleteGame}
-        onStatusChange={handleStatusChange}
-        collections={collections}
-        onAddToCollection={addGameToCollection}
-        onRemoveFromCollection={removeGameFromCollection}
-        onLaunch={handleLaunchClick}
-      />
+    game={libraryGame}
+    onReview={handleReviewClick}
+    onDeleteReview={handleDeleteReviewClick}
+    review={userReview}
+    playtimeHours={gameStats?.totalHours ?? 0}
+    lastPlayed={gameStats?.lastPlayed ?? null}
+    onDelete={handleDeleteGame}
+    onStatusChange={handleStatusChange}
+    collections={collections}
+    onAddToCollection={addGameToCollection}
+    onRemoveFromCollection={removeGameFromCollection}
+    onLaunch={() => {
+        if (libraryGame) {
+            openLaunchModal(libraryGame);
+        }
+    }}
+    isRunning={
+        libraryGame
+            ? runningGames.has(libraryGame._id)
+            : false
+    }
+/>
       {/* Stats */}
       <GameStats game={game} />
 
@@ -511,14 +335,7 @@ export default function GameDetailsPage() {
       {/* Screenshots */}
       <GameScreenshots screenshots={game.screenshots} />
 
-      <LaunchModal
-        game={launchModalGame}
-        launchPath={launchPath}
-        onClose={closeLaunchModal}
-        onEditPath={handlePickExePath}
-        onLaunch={handleLaunchGame}
-        onLaunchLauncher={handleLaunchLauncher}
-      />
+      <LaunchModal {...modalProps} />
       <ReviewModal
         game={reviewGame}
         review={currentReview}
@@ -542,15 +359,20 @@ export default function GameDetailsPage() {
               Delete Review?
             </AlertDialogHeader>
 
-            <AlertDialogBody>
-              This action cannot be undone.
-            </AlertDialogBody>
+            <AlertDialogBody>This action cannot be undone.</AlertDialogBody>
 
             <AlertDialogFooter>
-              <Button ref={cancelRef} onClick={() => setIsDeleteAlertOpen(false)}>
+              <Button
+                ref={cancelRef}
+                onClick={() => setIsDeleteAlertOpen(false)}
+              >
                 Cancel
               </Button>
-              <Button colorScheme="red" onClick={handleConfirmDeleteReview} ml={3}>
+              <Button
+                colorScheme="red"
+                onClick={handleConfirmDeleteReview}
+                ml={3}
+              >
                 Delete
               </Button>
             </AlertDialogFooter>

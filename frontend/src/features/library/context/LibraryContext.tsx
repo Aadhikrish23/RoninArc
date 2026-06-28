@@ -13,7 +13,7 @@ export interface LibraryContextType {
   fetchLibrary: (force?: boolean) => Promise<void>;
   addGame: (payload: AddGamePayload) => Promise<Game>;
   updateGame: (id: string, payload: UpdateGamePayload) => Promise<Game>;
-  updateStatus: (id: string, status: Status) => Promise<void>;
+  updateStatus: (id: string, status: Status) => Promise<Game>;
   deleteGame: (id: string) => Promise<void>;
   refreshGame: (id: string) => Promise<void>;
   replaceGame: (updatedGame: Game) => void;
@@ -78,12 +78,18 @@ const fetchLibrary = useCallback(async () => {
     return updated;
   };
 
-  const updateStatus = async (id: string, status: Status): Promise<void> => {
-    const updated = await libraryApi.updateGame(id, {
-      progressStatus: status,
-    });
-    replaceGame(updated);
-  };
+const updateStatus = async (
+  id: string,
+  status: Status
+): Promise<Game> => {
+  const updated = await libraryApi.updateGame(id, {
+    progressStatus: status,
+  });
+
+  replaceGame(updated);
+
+  return updated;
+};
 
   const deleteGame = async (id: string): Promise<void> => {
     await libraryApi.deleteGame(id);

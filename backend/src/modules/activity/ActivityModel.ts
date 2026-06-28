@@ -43,7 +43,7 @@ const activitySchema = new mongoose.Schema<IActivity>(
         "GAME_ADDED_TO_COLLECTION",
         "GAME_REMOVED_FROM_COLLECTION",
 
-        "GAME_LAUNCHED",
+        "GAME_LAUNCHED","COLLECTION_UPDATED"
       ],
     },
 

@@ -39,6 +39,11 @@ interface CollectionContextType {
   removeGameEverywhere: (
     gameId: string
   ) => void;
+  updateCollection(
+  collectionId: string,
+  name: string,
+  description?: string,
+): Promise<Collection>;
 }
 
 const CollectionContext =
@@ -181,6 +186,35 @@ export function CollectionProvider({
       }))
     );
   };
+  const updateCollection = async (
+  collectionId: string,
+  name: string,
+  description?: string,
+) => {
+  const updated =
+    await collectionApi.updateCollection(
+      collectionId,
+      name,
+      description,
+    );
+
+  setCollections((prev) =>
+    prev.map((collection) =>
+      collection._id === collectionId
+        ? updated
+        : collection,
+    ),
+  );
+
+  toast({
+    title: "Collection Updated",
+    status: "success",
+    duration: 2000,
+    isClosable: true,
+  });
+  return updated
+};
+
 
   return (
     <CollectionContext.Provider
@@ -198,7 +232,7 @@ export function CollectionProvider({
 
         removeGameFromCollection,
 
-        removeGameEverywhere,
+        removeGameEverywhere,updateCollection
       }}
     >
       {children}

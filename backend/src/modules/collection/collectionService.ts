@@ -161,6 +161,58 @@ const deleteCollection = async (
 
   return collection;
 };
+const updateCollection = async (
+  userId: string,
+  collectionId: string,
+  name: string,
+  description?: string,
+) => {
+  const duplicate = await Collection.findOne({
+    userId,
+    name: name.trim(),
+    _id: {
+      $ne: collectionId,
+    },
+  });
+
+  if (duplicate) {
+    throw new Error(
+      "Collection with this name already exists",
+    );
+  }
+
+  const collection =
+    await Collection.findOneAndUpdate(
+      {
+        _id: collectionId,
+        userId,
+      },
+      {
+        name: name.trim(),
+        description:
+          description?.trim() || "",
+      },
+      {
+        new: true,
+      },
+    ).populate("gameIds");
+
+  if (!collection) {
+    throw new Error(
+      "Collection not found",
+    );
+  }
+
+  await activityService.createActivity(
+    userId,
+    "COLLECTION_UPDATED",
+    `Updated collection "${collection.name}"`,
+    undefined,
+    collection._id as any,
+  );
+
+  return collection;
+};
 
 export default {
   createCollection,
@@ -173,5 +225,5 @@ export default {
 
   removeGameFromCollection,
 
-  deleteCollection,
+  deleteCollection,updateCollection
 };

@@ -142,3 +142,38 @@ export const deleteCollection = async (req: Request, res: Response) => {
     });
   }
 };
+export const updateCollection = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    const userId = req.user.id;
+
+    const { collectionId } = req.params;
+
+    const { name, description } = req.body;
+
+    const collection =
+      await collectionService.updateCollection(
+        userId,
+        collectionId,
+        name,
+        description,
+      );
+
+    return res.status(200).json({
+      Status: "Success",
+      Data: collection,
+    });
+  } catch (error) {
+    const message =
+      error instanceof Error
+        ? error.message
+        : "Unknown error";
+
+    return res.status(400).json({
+      Status: "Failed",
+      Message: message,
+    });
+  }
+};

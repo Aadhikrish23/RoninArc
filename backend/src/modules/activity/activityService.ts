@@ -20,7 +20,8 @@ const createActivity = async (
   | "GAME_ADDED_TO_COLLECTION"
   | "GAME_REMOVED_FROM_COLLECTION"
 
-  | "GAME_LAUNCHED",
+  | "GAME_LAUNCHED"
+  | "COLLECTION_UPDATED",
   message: string,
   gameId?: Types.ObjectId,
   collectionId?: Types.ObjectId

@@ -18,8 +18,8 @@ export function useRawgSearch() {
 
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // 1. Immediately reset state if search text is too short
+  // ---------- Reusable search ----------
+  const performSearch = async () => {
     if (searchText.trim().length < 3) {
       setResults({
         owned: [],
@@ -27,34 +27,33 @@ export function useRawgSearch() {
         totalOwned: 0,
         totalDiscover: 0,
       });
-      setError(null);
-      setLoading(false);
       return;
     }
 
-    // 2. Single debounce timer for all search activities
-    const timer = setTimeout(async () => {
-      try {
-        setLoading(true);
-        setError(null);
+    try {
+      setLoading(true);
+      setError(null);
 
-        // Trigger the API call
-        const data = await libraryApi.searchRawgGames(searchText, 1);
+      const data = await libraryApi.searchRawgGames(searchText, 1);
 
-        if (!data) {
-          setError("Failed to search RAWG");
-          return;
-        }
-
-        setResults(data);
-      } catch (error: unknown) {
-        setError(getErrorMessage(error));
-      } finally {
-        setLoading(false);
+      if (!data) {
+        setError("Failed to search RAWG");
+        return;
       }
-    }, 400); // Standardized to a 400ms delay
 
-    // 4. Cleanup function cancels the timer if user keeps typing
+      setResults(data);
+    } catch (error) {
+      setError(getErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      performSearch();
+    }, 400);
+
     return () => clearTimeout(timer);
   }, [searchText]);
 
@@ -80,5 +79,6 @@ export function useRawgSearch() {
     loading,
     error,
     clearSearch,
+    performSearch,
   };
 }
