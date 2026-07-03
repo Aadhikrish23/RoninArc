@@ -1,6 +1,8 @@
 import { Types } from "mongoose";
 
 import PlaySession from "./PlaySessionModel";
+import libraryServices from "../library/libraryServices";
+import activityService from "../activity/activityService";
 
 const startSession = async (userId: Types.ObjectId, gameId: string) => {
   const existingSession = await PlaySession.findOne({
@@ -152,6 +154,25 @@ const getGamePlaytime = async (userId: Types.ObjectId, gameId: string) => {
   };
 };
 
+const launchGame = async (userId: string, gameId: string) => {
+  const games = await libraryServices.getGameFilter(userId, "_id", gameId);
+  const game = games?.[0];
+  if (!game) {
+    throw new Error("Game not found.");
+  }
+
+  const session = await startSession(new Types.ObjectId(userId), gameId);
+
+  await activityService.createActivity(
+    userId,
+    "GAME_LAUNCHED",
+    `Launched ${game.title}`,
+    new Types.ObjectId(gameId),
+  );
+
+  return session;
+};
+
 export default {
   startSession,
 
@@ -162,5 +183,6 @@ export default {
   getUserPlaytimeStats,
 
   getGamePlaytime,
-};
 
+  launchGame,
+};

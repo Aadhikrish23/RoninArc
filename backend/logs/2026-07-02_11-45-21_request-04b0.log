@@ -1,0 +1,522 @@
+====================================================
+RONINARC AI TRACE
+
+Request ID:
+04b0bafb-64ff-4725-bea2-7c86623864e0
+
+Started:
+2026-07-02T06:15:21.616Z
+
+User:
+6a3f52105fc10c4ffe4b9279
+
+Request:
+Mark Fallout Shelter as completed
+====================================================
+
+---------------------------------------------------
+[2026-07-02T06:15:21.620Z]
+
+Layer:
+Provider
+
+Event:
+Prompt Generated
+
+Payload:
+{
+    "model": "gemma3:4b",
+    "promptLength": 1288,
+    "capabilityCount": 4,
+    "requestLength": 33
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:31.944Z]
+
+Layer:
+Provider
+
+Event:
+Raw LLM Response Received
+
+Payload:
+{
+    "characterCount": 209
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:31.946Z]
+
+Layer:
+Provider
+
+Event:
+LLMIntentResponse
+
+Payload:
+{
+    "intents": [
+        {
+            "type": "CompleteGame",
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Shelter"
+                }
+            ],
+            "parameters": []
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:31.946Z]
+
+Layer:
+Provider
+
+Event:
+Normalized IntentPlan
+
+Duration:
+10326 ms
+
+Payload:
+{
+    "id": "b6681140-c45b-4ac5-957d-116a314bca51",
+    "requestId": "04b0bafb-64ff-4725-bea2-7c86623864e0",
+    "intents": [
+        {
+            "type": "CompleteGame",
+            "confidence": 1,
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Shelter"
+                }
+            ],
+            "parameters": []
+        }
+    ],
+    "reasoning": "Normalized by backend runtime."
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:31.947Z]
+
+Layer:
+CapabilityResolver
+
+Event:
+ResolvedCapabilities
+
+Duration:
+0 ms
+
+Payload:
+[
+    {
+        "capability": {
+            "id": "complete-game",
+            "name": "Complete Game",
+            "description": "Marks a game as completed.",
+            "intentType": "CompleteGame",
+            "requirements": [
+                {
+                    "contextCategory": "Library"
+                },
+                {
+                    "contextCategory": "PlaySessions"
+                }
+            ]
+        },
+        "intent": {
+            "type": "CompleteGame",
+            "confidence": 1,
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Shelter"
+                }
+            ],
+            "parameters": []
+        },
+        "confidence": 1
+    }
+]
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:31.947Z]
+
+Layer:
+ContextRequestBuilder
+
+Event:
+ContextRequest
+
+Duration:
+0 ms
+
+Payload:
+{
+    "requestId": "04b0bafb-64ff-4725-bea2-7c86623864e0",
+    "userId": "6a3f52105fc10c4ffe4b9279",
+    "requiredCategories": [
+        "Library",
+        "PlaySessions"
+    ],
+    "targets": [
+        {
+            "type": "Game",
+            "name": "Fallout Shelter"
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:31.961Z]
+
+Layer:
+ContextBuilder
+
+Event:
+ContextSnapshot Summary
+
+Duration:
+13 ms
+
+Payload:
+{
+    "categoriesSummarized": {
+        "Library Facts": 1
+    }
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:31.962Z]
+
+Layer:
+PlanningEngine
+
+Event:
+Planning Completed
+
+Duration:
+0 ms
+
+Payload:
+{
+    "status": "PARTIALLY_RESOLVED",
+    "explanation": "Some capabilities lack required context categories.",
+    "executionCandidates": [
+        {
+            "capability": {
+                "id": "complete-game",
+                "name": "Complete Game",
+                "description": "Marks a game as completed.",
+                "intentType": "CompleteGame",
+                "requirements": [
+                    {
+                        "contextCategory": "Library"
+                    },
+                    {
+                        "contextCategory": "PlaySessions"
+                    }
+                ]
+            },
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Shelter"
+                }
+            ],
+            "parameters": []
+        }
+    ],
+    "missingFacts": [
+        "PlaySessions"
+    ],
+    "suggestions": [
+        "Additional information is required."
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:31.962Z]
+
+Layer:
+ExecutionPlanner
+
+Event:
+ExecutionPlan Generated
+
+Duration:
+0 ms
+
+Payload:
+{
+    "id": "9121cab4-273c-49f5-85d4-b29f5283fdbc",
+    "steps": [
+        {
+            "id": "37646ec2-acdb-457c-a688-5459bec8a635",
+            "toolName": "update_status",
+            "input": {
+                "targets": [
+                    {
+                        "type": "Game",
+                        "name": "Fallout Shelter"
+                    }
+                ],
+                "parameters": [],
+                "capabilityId": "complete-game"
+            }
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:31.963Z]
+
+Layer:
+EntityResolver
+
+Event:
+Resolve Game
+
+Payload:
+{
+    "query": "Fallout Shelter"
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:32.057Z]
+
+Layer:
+EntityResolver
+
+Event:
+Resolve Game
+
+Payload:
+{
+    "query": "Fallout Shelter",
+    "resolvedId": "6a3f528d6b12236c2fb5f27f"
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:32.058Z]
+
+Layer:
+ExecutionAdapter
+
+Event:
+Adapted Legacy AIPlan
+
+Duration:
+95 ms
+
+Payload:
+{
+    "id": "9121cab4-273c-49f5-85d4-b29f5283fdbc",
+    "steps": [
+        {
+            "id": "37646ec2-acdb-457c-a688-5459bec8a635",
+            "tool": "update_status",
+            "input": {
+                "gameId": "6a3f528d6b12236c2fb5f27f",
+                "progressStatus": "completed",
+                "_capabilityId": "complete-game"
+            }
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:32.059Z]
+
+Layer:
+ActionExecutor
+
+Event:
+Execution Started
+
+Payload:
+{
+    "planId": "9121cab4-273c-49f5-85d4-b29f5283fdbc"
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:32.108Z]
+
+Layer:
+ActionExecutor
+
+Event:
+Execution Step
+
+Duration:
+49 ms
+
+Payload:
+{
+    "stepNumber": 1,
+    "capability": "complete-game",
+    "mappedTool": "update_status",
+    "input": {
+        "gameId": "6a3f528d6b12236c2fb5f27f",
+        "progressStatus": "completed"
+    },
+    "result": "Success",
+    "details": {
+        "success": true,
+        "message": "Updated status to \"completed\".",
+        "data": {
+            "artwork": {
+                "selectedSource": "steam",
+                "sources": {
+                    "steam": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/588430/library_600x900_2x.jpg"
+                }
+            },
+            "metadataState": {
+                "status": "complete",
+                "lastAttempt": "2026-06-27T14:02:18.699Z",
+                "lastSuccess": "2026-06-27T14:02:18.699Z"
+            },
+            "_id": "6a3f528d6b12236c2fb5f27f",
+            "userId": "6a3f52105fc10c4ffe4b9279",
+            "providers": {
+                "steam": {
+                    "providerGameId": "588430",
+                    "providerTitle": "Fallout Shelter",
+                    "owned": true,
+                    "installed": true,
+                    "installPath": "D:\\games\\fallout\\steamapps\\common\\Fallout Shelter",
+                    "launcher": "steam",
+                    "manifestId": "588430",
+                    "executable": "D:\\games\\fallout\\steamapps\\common\\Fallout Shelter\\FalloutShelter.exe",
+                    "syncedAt": "2026-06-27T09:34:27.608Z"
+                }
+            },
+            "__v": 0,
+            "createdAt": "2026-06-27T04:33:17.613Z",
+            "description": "",
+            "developer": "",
+            "developers": [
+                "Bethesda Softworks",
+                "Bethesda Game Studios"
+            ],
+            "exePath": "",
+            "metacritic": 63,
+            "normalizedTitle": "fallout shelter",
+            "playtime": 3,
+            "progressStatus": "completed",
+            "provider": "steam",
+            "providerGameId": "588430",
+            "providerTitle": "Fallout Shelter",
+            "publishers": [
+                "Bethesda Softworks"
+            ],
+            "rawgId": 559,
+            "rawgRating": 3.43,
+            "screenshots": [
+                "https://media.rawg.io/media/screenshots/06a/06a7f6095c54f3626b5346794e6cd049.jpg",
+                "https://media.rawg.io/media/screenshots/0c6/0c6ed1b4b8bdf0933f93708f9b47fed9.jpg",
+                "https://media.rawg.io/media/screenshots/b1d/b1d5f6c67477d8a31bf67b2d9de66e86.jpg",
+                "https://media.rawg.io/media/screenshots/c79/c79bc068b92314ff4e1e139e5667e070.jpg",
+                "https://media.rawg.io/media/screenshots/751/7516f82455a38cb292a781726784c562.jpg",
+                "https://media.rawg.io/media/screenshots/eae/eaedd89c469739cf930f53e136c53fb3.jpg"
+            ],
+            "tags": [],
+            "title": "Fallout Shelter",
+            "trailers": [
+                "https://steamcdn-a.akamaihd.net/steam/apps/256680659/movie_max.mp4"
+            ],
+            "updatedAt": "2026-07-02T06:15:32.069Z",
+            "website": "http://www.falloutshelter.com/",
+            "imageURL": "https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/588430/library_600x900_2x.jpg",
+            "id": "6a3f528d6b12236c2fb5f27f"
+        }
+    }
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:32.110Z]
+
+Layer:
+ActionExecutor
+
+Event:
+Execution Finished
+
+Duration:
+51 ms
+
+Payload:
+{
+    "planId": "9121cab4-273c-49f5-85d4-b29f5283fdbc",
+    "resultsCount": 1
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:15:32.111Z]
+
+Layer:
+AIService
+
+Event:
+Final Response
+
+Payload:
+{
+    "success": true,
+    "message": "AI Layer Ready"
+}
+---------------------------------------------------
+
+====================================================
+TRACE SUMMARY
+====================================================
+
+Request ID
+04b0bafb-64ff-4725-bea2-7c86623864e0
+
+User
+6a3f52105fc10c4ffe4b9279
+
+Request
+Mark Fallout Shelter as completed
+
+Status
+SUCCESS
+
+Total Duration
+10496 ms
+
+Intent Count
+1
+
+Resolved Capabilities
+complete-game
+
+Context Categories
+Library, PlaySessions
+
+Execution Steps
+1
+====================================================

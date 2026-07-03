@@ -1,0 +1,107 @@
+====================================================
+RONINARC AI TRACE
+
+Request ID:
+d2e9bd83-b181-4d41-a97e-b0d829d2dd1f
+
+Started:
+2026-07-03T05:59:01.793Z
+
+User:
+6a3f52105fc10c4ffe4b9279
+
+Request:
+Start Fallout Sheltr
+====================================================
+
+---------------------------------------------------
+[2026-07-03T05:59:01.795Z]
+
+Layer:
+Provider
+
+Event:
+Prompt Generated
+
+Payload:
+{
+    "model": "gemma3:4b",
+    "promptLength": 1275,
+    "capabilityCount": 4,
+    "requestLength": 20
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T05:59:01.877Z]
+
+Layer:
+Provider
+
+Event:
+Exception
+
+Message:
+Ollama is not running. Connection refused at http://localhost:11434. Please start the Ollama service.
+
+Stack:
+Error: Ollama is not running. Connection refused at http://localhost:11434. Please start the Ollama service.
+    at OllamaClient.generate (E:\RoninArc\backend\src\modules\ai\clients\OllamaClient.ts:67:17)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at OllamaProvider.plan (E:\RoninArc\backend\src\modules\ai\providers\OllamaProvider.ts:34:27)
+    at E:\RoninArc\backend\src\modules\ai\aiService.ts:40:28
+    at AIController.chat (E:\RoninArc\backend\src\modules\ai\aiController.ts:32:20)
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T05:59:01.878Z]
+
+Layer:
+AIService
+
+Event:
+Exception
+
+Message:
+Ollama is not running. Connection refused at http://localhost:11434. Please start the Ollama service.
+
+Stack:
+Error: Ollama is not running. Connection refused at http://localhost:11434. Please start the Ollama service.
+    at OllamaClient.generate (E:\RoninArc\backend\src\modules\ai\clients\OllamaClient.ts:67:17)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at OllamaProvider.plan (E:\RoninArc\backend\src\modules\ai\providers\OllamaProvider.ts:34:27)
+    at E:\RoninArc\backend\src\modules\ai\aiService.ts:40:28
+    at AIController.chat (E:\RoninArc\backend\src\modules\ai\aiController.ts:32:20)
+---------------------------------------------------
+
+====================================================
+TRACE SUMMARY
+====================================================
+
+Request ID
+d2e9bd83-b181-4d41-a97e-b0d829d2dd1f
+
+User
+6a3f52105fc10c4ffe4b9279
+
+Request
+Start Fallout Sheltr
+
+Status
+FAILED
+
+Total Duration
+86 ms
+
+Intent Count
+0
+
+Resolved Capabilities
+None
+
+Context Categories
+None
+
+Execution Steps
+0
+====================================================

@@ -13,6 +13,7 @@ import collectionRoutes from "./modules/collection/collectionRoutes";
 import activityRouter from "./modules/activity/activity";
 import playSessionRoutes from "./modules/playSession/playSession";
 import providerRoutes from "./modules/providers/providerRoutes";
+import { aiRoutes } from "./modules/ai";
 dotenv.config();
 const app = express();
 app.use(helmet());
@@ -35,6 +36,7 @@ app.use("/activity", activityRouter);
 app.use("/play-session", playSessionRoutes);
 
 app.use("/provider", providerRoutes);
+app.use("/ai", aiRoutes);
 
 app.use((req: Request, res: Response, next: NextFunction) => {
   return res.status(404).json({ Status: "fail", error: "Route not found" });

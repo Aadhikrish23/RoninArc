@@ -1,0 +1,438 @@
+====================================================
+RONINARC AI TRACE
+
+Request ID:
+158aa85e-61e1-4c75-92fa-5f82d71a82ea
+
+Started:
+2026-07-02T06:08:35.982Z
+
+User:
+6a3f52105fc10c4ffe4b9279
+
+Request:
+Mark Fallout Shelter as completed
+====================================================
+
+---------------------------------------------------
+[2026-07-02T06:08:35.985Z]
+
+Layer:
+Provider
+
+Event:
+Prompt Generated
+
+Payload:
+{
+    "model": "gemma3:4b",
+    "promptLength": 1288,
+    "capabilityCount": 4,
+    "requestLength": 33
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.916Z]
+
+Layer:
+Provider
+
+Event:
+Raw LLM Response Received
+
+Payload:
+{
+    "characterCount": 197
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.917Z]
+
+Layer:
+Provider
+
+Event:
+LLMIntentResponse
+
+Payload:
+{
+    "intents": [
+        {
+            "type": "CompleteGame",
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Shelter"
+                }
+            ],
+            "parameters": []
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.918Z]
+
+Layer:
+Provider
+
+Event:
+Normalized IntentPlan
+
+Duration:
+5933 ms
+
+Payload:
+{
+    "id": "ca41050f-d09f-4147-bc41-a3078b055d0b",
+    "requestId": "158aa85e-61e1-4c75-92fa-5f82d71a82ea",
+    "intents": [
+        {
+            "type": "CompleteGame",
+            "confidence": 1,
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Shelter"
+                }
+            ],
+            "parameters": []
+        }
+    ],
+    "reasoning": "Normalized by backend runtime."
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.918Z]
+
+Layer:
+CapabilityResolver
+
+Event:
+ResolvedCapabilities
+
+Duration:
+0 ms
+
+Payload:
+[
+    {
+        "capability": {
+            "id": "complete-game",
+            "name": "Complete Game",
+            "description": "Marks a game as completed.",
+            "intentType": "CompleteGame",
+            "requirements": [
+                {
+                    "contextCategory": "Library"
+                },
+                {
+                    "contextCategory": "PlaySessions"
+                }
+            ]
+        },
+        "intent": {
+            "type": "CompleteGame",
+            "confidence": 1,
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Shelter"
+                }
+            ],
+            "parameters": []
+        },
+        "confidence": 1
+    }
+]
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.919Z]
+
+Layer:
+ContextRequestBuilder
+
+Event:
+ContextRequest
+
+Duration:
+0 ms
+
+Payload:
+{
+    "requestId": "158aa85e-61e1-4c75-92fa-5f82d71a82ea",
+    "userId": "6a3f52105fc10c4ffe4b9279",
+    "requiredCategories": [
+        "Library",
+        "PlaySessions"
+    ],
+    "targets": [
+        {
+            "type": "Game",
+            "name": "Fallout Shelter"
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.934Z]
+
+Layer:
+ContextBuilder
+
+Event:
+ContextSnapshot Summary
+
+Duration:
+15 ms
+
+Payload:
+{
+    "categoriesSummarized": {
+        "Library Facts": 1
+    }
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.935Z]
+
+Layer:
+PlanningEngine
+
+Event:
+Planning Completed
+
+Duration:
+0 ms
+
+Payload:
+{
+    "status": "PARTIALLY_RESOLVED",
+    "explanation": "Some capabilities lack required context categories.",
+    "executionCandidates": [
+        {
+            "capability": {
+                "id": "complete-game",
+                "name": "Complete Game",
+                "description": "Marks a game as completed.",
+                "intentType": "CompleteGame",
+                "requirements": [
+                    {
+                        "contextCategory": "Library"
+                    },
+                    {
+                        "contextCategory": "PlaySessions"
+                    }
+                ]
+            },
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Shelter"
+                }
+            ],
+            "parameters": []
+        }
+    ],
+    "missingFacts": [
+        "PlaySessions"
+    ],
+    "suggestions": [
+        "Additional information is required."
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.937Z]
+
+Layer:
+ExecutionPlanner
+
+Event:
+ExecutionPlan Generated
+
+Duration:
+1 ms
+
+Payload:
+{
+    "id": "ccaa8cc3-9919-4572-bbfb-567cfde46d78",
+    "steps": [
+        {
+            "id": "80a13b52-0a54-44be-8fc9-6088b7a6b98d",
+            "toolName": "update_status",
+            "input": {
+                "targets": [
+                    {
+                        "type": "Game",
+                        "name": "Fallout Shelter"
+                    }
+                ],
+                "parameters": [],
+                "capabilityId": "complete-game"
+            }
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.938Z]
+
+Layer:
+ExecutionAdapter
+
+Event:
+Adapted Legacy AIPlan
+
+Duration:
+1 ms
+
+Payload:
+{
+    "id": "ccaa8cc3-9919-4572-bbfb-567cfde46d78",
+    "steps": [
+        {
+            "id": "80a13b52-0a54-44be-8fc9-6088b7a6b98d",
+            "tool": "update_status",
+            "input": {
+                "gameId": "Fallout Shelter",
+                "progressStatus": "completed",
+                "_capabilityId": "complete-game"
+            }
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.939Z]
+
+Layer:
+ActionExecutor
+
+Event:
+Execution Started
+
+Payload:
+{
+    "planId": "ccaa8cc3-9919-4572-bbfb-567cfde46d78"
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.941Z]
+
+Layer:
+ActionExecutor
+
+Event:
+Execution Step (Exception)
+
+Duration:
+1 ms
+
+Payload:
+{
+    "stepNumber": 1,
+    "capability": "complete-game",
+    "mappedTool": "update_status",
+    "input": {
+        "gameId": "Fallout Shelter",
+        "progressStatus": "completed"
+    },
+    "exception": "Cast to ObjectId failed for value \"Fallout Shelter\" (type string) at path \"_id\" for model \"GameLibrary\""
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.943Z]
+
+Layer:
+ActionExecutor
+
+Event:
+Exception
+
+Message:
+Cast to ObjectId failed for value "Fallout Shelter" (type string) at path "_id" for model "GameLibrary"
+
+Stack:
+CastError: Cast to ObjectId failed for value "Fallout Shelter" (type string) at path "_id" for model "GameLibrary"
+    at SchemaObjectId.cast (E:\RoninArc\backend\node_modules\mongoose\lib\schema\objectId.js:253:11)
+    at SchemaObjectId.SchemaType.applySetters (E:\RoninArc\backend\node_modules\mongoose\lib\schemaType.js:1280:12)
+    at SchemaObjectId.SchemaType.castForQuery (E:\RoninArc\backend\node_modules\mongoose\lib\schemaType.js:1706:17)
+    at cast (E:\RoninArc\backend\node_modules\mongoose\lib\cast.js:390:32)
+    at model.Query.Query.cast (E:\RoninArc\backend\node_modules\mongoose\lib\query.js:5016:12)
+    at model.Query.Query._castConditions (E:\RoninArc\backend\node_modules\mongoose\lib\query.js:2380:10)
+    at model.Query._findOne (E:\RoninArc\backend\node_modules\mongoose\lib\query.js:2708:8)
+    at model.Query.exec (E:\RoninArc\backend\node_modules\mongoose\lib\query.js:4627:80)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at Object.updateGame (E:\RoninArc\backend\src\modules\library\libraryServices.ts:153:5)
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-02T06:08:41.948Z]
+
+Layer:
+AIService
+
+Event:
+Exception
+
+Message:
+Cast to ObjectId failed for value "Fallout Shelter" (type string) at path "_id" for model "GameLibrary"
+
+Stack:
+CastError: Cast to ObjectId failed for value "Fallout Shelter" (type string) at path "_id" for model "GameLibrary"
+    at SchemaObjectId.cast (E:\RoninArc\backend\node_modules\mongoose\lib\schema\objectId.js:253:11)
+    at SchemaObjectId.SchemaType.applySetters (E:\RoninArc\backend\node_modules\mongoose\lib\schemaType.js:1280:12)
+    at SchemaObjectId.SchemaType.castForQuery (E:\RoninArc\backend\node_modules\mongoose\lib\schemaType.js:1706:17)
+    at cast (E:\RoninArc\backend\node_modules\mongoose\lib\cast.js:390:32)
+    at model.Query.Query.cast (E:\RoninArc\backend\node_modules\mongoose\lib\query.js:5016:12)
+    at model.Query.Query._castConditions (E:\RoninArc\backend\node_modules\mongoose\lib\query.js:2380:10)
+    at model.Query._findOne (E:\RoninArc\backend\node_modules\mongoose\lib\query.js:2708:8)
+    at model.Query.exec (E:\RoninArc\backend\node_modules\mongoose\lib\query.js:4627:80)
+    at processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at Object.updateGame (E:\RoninArc\backend\src\modules\library\libraryServices.ts:153:5)
+---------------------------------------------------
+
+====================================================
+TRACE SUMMARY
+====================================================
+
+Request ID
+158aa85e-61e1-4c75-92fa-5f82d71a82ea
+
+User
+6a3f52105fc10c4ffe4b9279
+
+Request
+Mark Fallout Shelter as completed
+
+Status
+FAILED
+
+Total Duration
+5967 ms
+
+Intent Count
+1
+
+Resolved Capabilities
+complete-game
+
+Context Categories
+Library, PlaySessions
+
+Execution Steps
+1
+====================================================

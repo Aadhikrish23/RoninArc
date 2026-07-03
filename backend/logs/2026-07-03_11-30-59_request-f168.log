@@ -1,0 +1,497 @@
+====================================================
+RONINARC AI TRACE
+
+Request ID:
+f1682834-0f56-4027-b2c6-ed8a14f22403
+
+Started:
+2026-07-03T06:00:59.338Z
+
+User:
+6a3f52105fc10c4ffe4b9279
+
+Request:
+Start Fallout Sheltr
+====================================================
+
+---------------------------------------------------
+[2026-07-03T06:00:59.339Z]
+
+Layer:
+Provider
+
+Event:
+Prompt Generated
+
+Payload:
+{
+    "model": "gemma3:4b",
+    "promptLength": 1275,
+    "capabilityCount": 4,
+    "requestLength": 20
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.140Z]
+
+Layer:
+Provider
+
+Event:
+Raw LLM Response Received
+
+Payload:
+{
+    "characterCount": 206
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.142Z]
+
+Layer:
+Provider
+
+Event:
+LLMIntentResponse
+
+Payload:
+{
+    "intents": [
+        {
+            "type": "LaunchGame",
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Sheltr"
+                }
+            ],
+            "parameters": []
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.144Z]
+
+Layer:
+Provider
+
+Event:
+Normalized IntentPlan
+
+Duration:
+13805 ms
+
+Payload:
+{
+    "id": "932f7ad1-a1f5-4c6e-bdcc-e0e4d4b3fd99",
+    "requestId": "f1682834-0f56-4027-b2c6-ed8a14f22403",
+    "intents": [
+        {
+            "type": "LaunchGame",
+            "confidence": 1,
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Sheltr"
+                }
+            ],
+            "parameters": []
+        }
+    ],
+    "reasoning": "Normalized by backend runtime."
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.145Z]
+
+Layer:
+CapabilityResolver
+
+Event:
+ResolvedCapabilities
+
+Duration:
+0 ms
+
+Payload:
+[
+    {
+        "capability": {
+            "id": "launch-game",
+            "name": "Launch Game",
+            "description": "Launches a game.",
+            "intentType": "LaunchGame",
+            "requirements": [
+                {
+                    "contextCategory": "Library"
+                },
+                {
+                    "contextCategory": "PlaySessions"
+                }
+            ]
+        },
+        "intent": {
+            "type": "LaunchGame",
+            "confidence": 1,
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Sheltr"
+                }
+            ],
+            "parameters": []
+        },
+        "confidence": 1
+    }
+]
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.147Z]
+
+Layer:
+ContextRequestBuilder
+
+Event:
+ContextRequest
+
+Duration:
+0 ms
+
+Payload:
+{
+    "requestId": "f1682834-0f56-4027-b2c6-ed8a14f22403",
+    "userId": "6a3f52105fc10c4ffe4b9279",
+    "requiredCategories": [
+        "Library",
+        "PlaySessions"
+    ],
+    "targets": [
+        {
+            "type": "Game",
+            "name": "Fallout Sheltr"
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.173Z]
+
+Layer:
+ContextBuilder
+
+Event:
+ContextSnapshot Summary
+
+Duration:
+25 ms
+
+Payload:
+{
+    "categoriesSummarized": {
+        "Library Facts": 1
+    }
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.328Z]
+
+Layer:
+EntityResolver
+
+Event:
+Resolution Trace
+
+Payload:
+{
+    "originalQuery": "Fallout Sheltr",
+    "normalizedQuery": "fallout sheltr",
+    "exactMatchResult": "NONE",
+    "learningMemoryResult": "NONE",
+    "fuzzyCandidates": [
+        {
+            "title": "Fallout Shelter",
+            "score": 0.9333333333333333
+        },
+        {
+            "title": "Cat Quest",
+            "score": 0.3571428571428571
+        },
+        {
+            "title": "Mortal Shell",
+            "score": 0.3571428571428571
+        },
+        {
+            "title": "Blood West",
+            "score": 0.3571428571428571
+        },
+        {
+            "title": "Fallout Tactics: Brotherhood of Steel",
+            "score": 0.33333333333333337
+        }
+    ],
+    "chosenStrategy": "Fuzzy Match (Resolved)",
+    "finalConfidence": 0.9333333333333333,
+    "finalResolutionStatus": "RESOLVED"
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.330Z]
+
+Layer:
+EntityResolutionLayer
+
+Event:
+Entity Resolution Completed
+
+Duration:
+155 ms
+
+Payload:
+{
+    "requestId": "f1682834-0f56-4027-b2c6-ed8a14f22403",
+    "resolvedTargetsCount": 1,
+    "clarificationRequestsCount": 0
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.332Z]
+
+Layer:
+PlanningEngine
+
+Event:
+Planning Completed
+
+Duration:
+0 ms
+
+Payload:
+{
+    "status": "PARTIALLY_RESOLVED",
+    "explanation": "Some capabilities lack required context categories.",
+    "executionCandidates": [
+        {
+            "capability": {
+                "id": "launch-game",
+                "name": "Launch Game",
+                "description": "Launches a game.",
+                "intentType": "LaunchGame",
+                "requirements": [
+                    {
+                        "contextCategory": "Library"
+                    },
+                    {
+                        "contextCategory": "PlaySessions"
+                    }
+                ]
+            },
+            "targets": [
+                {
+                    "type": "Game",
+                    "name": "Fallout Sheltr"
+                }
+            ],
+            "parameters": []
+        }
+    ],
+    "missingFacts": [
+        "PlaySessions"
+    ],
+    "suggestions": [
+        "Additional information is required."
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.333Z]
+
+Layer:
+ExecutionPlanner
+
+Event:
+ExecutionPlan Generated
+
+Duration:
+0 ms
+
+Payload:
+{
+    "id": "3a4a294e-dd31-4e68-8a8b-d3023bd92547",
+    "steps": [
+        {
+            "id": "f5f6f642-856a-4c5c-b26a-25d54fb3d517",
+            "toolName": "launch_game",
+            "input": {
+                "targets": [
+                    {
+                        "type": "Game",
+                        "name": "Fallout Sheltr"
+                    }
+                ],
+                "parameters": [],
+                "capabilityId": "launch-game"
+            }
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.335Z]
+
+Layer:
+ExecutionAdapter
+
+Event:
+Adapted Legacy AIPlan
+
+Duration:
+0 ms
+
+Payload:
+{
+    "id": "3a4a294e-dd31-4e68-8a8b-d3023bd92547",
+    "steps": [
+        {
+            "id": "f5f6f642-856a-4c5c-b26a-25d54fb3d517",
+            "tool": "launch_game",
+            "input": {
+                "gameId": "6a3f528d6b12236c2fb5f27f",
+                "_capabilityId": "launch-game"
+            }
+        }
+    ]
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.336Z]
+
+Layer:
+ActionExecutor
+
+Event:
+Execution Started
+
+Payload:
+{
+    "planId": "3a4a294e-dd31-4e68-8a8b-d3023bd92547"
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.507Z]
+
+Layer:
+ActionExecutor
+
+Event:
+Execution Step
+
+Duration:
+169 ms
+
+Payload:
+{
+    "stepNumber": 1,
+    "capability": "launch-game",
+    "mappedTool": "launch_game",
+    "input": {
+        "gameId": "6a3f528d6b12236c2fb5f27f"
+    },
+    "result": "Success",
+    "details": {
+        "success": true,
+        "message": "Game launched successfully.",
+        "data": {
+            "_id": "6a4602df5f6e7ae309821d82",
+            "userId": "6a3f52105fc10c4ffe4b9279",
+            "gameId": "6a3f528d6b12236c2fb5f27f",
+            "endedAt": null,
+            "durationMinutes": 0,
+            "startedAt": "2026-07-02T06:19:11.243Z",
+            "createdAt": "2026-07-02T06:19:11.244Z",
+            "updatedAt": "2026-07-02T06:19:11.244Z",
+            "__v": 0
+        }
+    }
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.508Z]
+
+Layer:
+ActionExecutor
+
+Event:
+Execution Finished
+
+Duration:
+172 ms
+
+Payload:
+{
+    "planId": "3a4a294e-dd31-4e68-8a8b-d3023bd92547",
+    "resultsCount": 1
+}
+---------------------------------------------------
+
+---------------------------------------------------
+[2026-07-03T06:01:13.509Z]
+
+Layer:
+AIService
+
+Event:
+Final Response
+
+Payload:
+{
+    "success": true,
+    "message": "AI Layer Ready"
+}
+---------------------------------------------------
+
+====================================================
+TRACE SUMMARY
+====================================================
+
+Request ID
+f1682834-0f56-4027-b2c6-ed8a14f22403
+
+User
+6a3f52105fc10c4ffe4b9279
+
+Request
+Start Fallout Sheltr
+
+Status
+SUCCESS
+
+Total Duration
+14172 ms
+
+Intent Count
+1
+
+Resolved Capabilities
+launch-game
+
+Context Categories
+Library, PlaySessions
+
+Execution Steps
+1
+====================================================
