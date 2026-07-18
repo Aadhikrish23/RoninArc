@@ -16,6 +16,7 @@ interface AIContextType {
   isTyping: boolean;
   sendMessage: (text: string) => Promise<void>;
   clearConversation: () => void;
+  retry: (failedMessageId: string) => Promise<void>;
 }
 
 const AIContext = createContext<AIContextType | undefined>(undefined);
@@ -39,6 +40,11 @@ export function AIProvider({ children }: { children: ReactNode }) {
             timestamp: string;
             status?: "sending" | "sent" | "error";
             clarificationRequest?: ClarificationRequest | null;
+            metrics?: {
+              overallMs: number;
+              layers: Record<string, number>;
+            };
+            assistantStatus?: string;
           }
           const parsed = JSON.parse(stored);
           // Convert stored ISO string timestamps back to Date objects
@@ -100,6 +106,8 @@ export function AIProvider({ children }: { children: ReactNode }) {
         timestamp: new Date(),
         status: "sent",
         clarificationRequest: response.clarificationRequest || null,
+        metrics: response.metrics || undefined,
+        assistantStatus: response.status || (response.success ? "SUCCESS" : "FAILED"),
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
@@ -130,6 +138,23 @@ export function AIProvider({ children }: { children: ReactNode }) {
     setMessages([]);
   }, []);
 
+  const retry = useCallback(async (failedMessageId: string) => {
+    setMessages((prev) => {
+      const idx = prev.findIndex((m) => m.id === failedMessageId);
+      if (idx === -1) return prev;
+      const userMsgIdx = idx - 1;
+      if (userMsgIdx >= 0 && prev[userMsgIdx].sender === "user") {
+        const userText = prev[userMsgIdx].text;
+        const cleaned = prev.filter((m) => m.id !== failedMessageId);
+        setTimeout(() => {
+          sendMessage(userText);
+        }, 0);
+        return cleaned;
+      }
+      return prev;
+    });
+  }, [sendMessage]);
+
   return (
     <AIContext.Provider
       value={{
@@ -137,6 +162,7 @@ export function AIProvider({ children }: { children: ReactNode }) {
         isTyping,
         sendMessage,
         clearConversation,
+        retry,
       }}
     >
       {children}

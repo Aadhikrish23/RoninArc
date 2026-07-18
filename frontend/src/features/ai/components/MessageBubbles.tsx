@@ -1,18 +1,28 @@
 import { Box, Flex, Avatar, Text, Icon } from "@chakra-ui/react";
 import type { JSX } from "react";
-import type { Message } from "../types/conversation";
+import type { Message, ClarificationOption } from "../types/conversation";
 import { IoSparklesOutline } from "react-icons/io5";
 import MarkdownRenderer from "./MarkdownRenderer";
+import ToolTimeline from "./ToolTimeline";
+import ClarificationCard from "./ClarificationCard";
+import ErrorCard from "./ErrorCard";
 
 interface MessageBubblesProps {
   messages: Message[];
+  onSelectClarification: (option: ClarificationOption) => void;
+  onRetry: (index: number) => void;
 }
 
-export default function MessageBubbles({ messages }: MessageBubblesProps): JSX.Element {
+export default function MessageBubbles({
+  messages,
+  onSelectClarification,
+  onRetry,
+}: MessageBubblesProps): JSX.Element {
   return (
     <Box display="flex" flexDirection="column" gap={4} w="full">
-      {messages.map((message) => {
+      {messages.map((message, index) => {
         const isUser = message.sender === "user";
+        const isFailed = message.assistantStatus === "FAILED" || message.status === "error";
 
         return (
           <Flex
@@ -26,7 +36,7 @@ export default function MessageBubbles({ messages }: MessageBubblesProps): JSX.E
             {!isUser && (
               <Avatar
                 size="sm"
-                bg="purple.600"
+                bg={isFailed ? "red.600" : "purple.600"}
                 icon={<Icon as={IoSparklesOutline} color="white" />}
                 shadow="md"
               />
@@ -35,45 +45,78 @@ export default function MessageBubbles({ messages }: MessageBubblesProps): JSX.E
             {/* Bubble Container */}
             <Box
               maxW={{ base: "85%", md: "70%" }}
-              px={4}
-              py={3}
-              borderRadius="2xl"
-              borderBottomRightRadius={isUser ? "sm" : "2xl"}
-              borderBottomLeftRadius={isUser ? "2xl" : "sm"}
-              bg={isUser ? "purple.600" : "gray.800"}
-              color={isUser ? "white" : "gray.100"}
-              borderWidth="1px"
-              borderColor={isUser ? "purple.500" : "gray.700"}
-              shadow="md"
-              position="relative"
+              w="full"
+              display="flex"
+              flexDirection="column"
+              alignItems={isUser ? "flex-end" : "flex-start"}
             >
-              {isUser ? (
-                <Text fontSize="md" whiteSpace="pre-wrap" lineHeight="tall">
-                  {message.text}
-                </Text>
+              {isFailed && !isUser ? (
+                <ErrorCard
+                  message={message.text}
+                  onRetry={() => onRetry(index)}
+                />
               ) : (
-                <MarkdownRenderer content={message.text} />
+                <Box
+                  w="full"
+                  px={4}
+                  py={3}
+                  borderRadius="2xl"
+                  borderBottomRightRadius={isUser ? "sm" : "2xl"}
+                  borderBottomLeftRadius={isUser ? "2xl" : "sm"}
+                  bg={isUser ? "purple.600" : "gray.800"}
+                  color={isUser ? "white" : "gray.100"}
+                  borderWidth="1px"
+                  borderColor={isUser ? "purple.500" : "gray.700"}
+                  shadow="md"
+                  position="relative"
+                >
+                  {isUser ? (
+                    <Text fontSize="md" whiteSpace="pre-wrap" lineHeight="tall">
+                      {message.text}
+                    </Text>
+                  ) : (
+                    <>
+                      <MarkdownRenderer content={message.text} />
+                      {message.metrics && (
+                        <ToolTimeline
+                          metrics={message.metrics}
+                          status={message.assistantStatus}
+                        />
+                      )}
+                    </>
+                  )}
+
+                  {/* Status and Timestamp */}
+                  <Flex justify="flex-end" align="center" gap={1} mt={1.5}>
+                    <Text fontSize="10px" color={isUser ? "purple.200" : "gray.500"}>
+                      {new Date(message.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </Text>
+                    {isUser && message.status === "sending" && (
+                      <Text fontSize="9px" color="purple.200">
+                        •••
+                      </Text>
+                    )}
+                    {isUser && message.status === "error" && (
+                      <Text fontSize="10px" color="red.300">
+                        Error
+                      </Text>
+                    )}
+                  </Flex>
+                </Box>
               )}
 
-              {/* Status and Timestamp */}
-              <Flex justify="flex-end" align="center" gap={1} mt={1.5}>
-                <Text fontSize="10px" color={isUser ? "purple.200" : "gray.500"}>
-                  {new Date(message.timestamp).toLocaleTimeString([], {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
-                </Text>
-                {isUser && message.status === "sending" && (
-                  <Text fontSize="9px" color="purple.200">
-                    •••
-                  </Text>
-                )}
-                {isUser && message.status === "error" && (
-                  <Text fontSize="10px" color="red.300">
-                    Error
-                  </Text>
-                )}
-              </Flex>
+              {/* Clarification Request Card */}
+              {!isUser && message.clarificationRequest && (
+                <Box w="full" mt={2}>
+                  <ClarificationCard
+                    request={message.clarificationRequest}
+                    onSelectOption={onSelectClarification}
+                  />
+                </Box>
+              )}
             </Box>
 
             {/* User Avatar */}

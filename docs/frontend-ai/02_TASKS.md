@@ -38,15 +38,15 @@
 
 ## Sprint 3
 
-[ ] Tool Timeline
+[x] Tool Timeline
 
-[ ] Tool Cards
+[x] Tool Cards
 
-[ ] Clarification UI
+[x] Clarification UI
 
-[ ] Retry
+[x] Retry
 
-[ ] Error UI
+[x] Error UI
 
 ---
 
@@ -100,4 +100,10 @@
 - **Typing indicator**: Built `frontend/src/features/ai/components/TypingIndicator.tsx` using a three-dot bouncing keyframe pure-CSS animation.
 - **Input**: Developed `frontend/src/features/ai/components/ChatInput.tsx` providing a multi-line input container that triggers submission on `Enter` without `Shift` and automatically disables while the assistant is processing.
 - **Conversation history**: Configured local state lists in `AIContext.tsx` maintaining the array of turns and status metadata for the active discussion.
-- **Persistence**: Implemented local storage caching logic in `AIContext.tsx` keyed dynamically by the logged-in user ID, converting timestamps and preserving state across tab refreshes automatically.
+- **Persistence**: Implemented local storage caching logic in `AIContext.tsx` keyed dynamically by the logged-in user ID, converting timestamps and preserving state across tab refreshes automatically.
+
+### Sprint 3
+- **Tool Timeline & Tool Cards**: Created `frontend/src/features/ai/components/ToolTimeline.tsx` displaying the exact execution layers (Session loading, Memory access, Intent planning, Action execution) and metrics.
+- **Clarification UI & Clarification cards**: Created `frontend/src/features/ai/components/ClarificationCard.tsx` showing the reason/question for requested clarifications and rendering a responsive grid of candidates as clickable options that automatically post selections back to the AI.
+- **Error UI**: Created `frontend/src/features/ai/components/ErrorCard.tsx` to handle failures gracefully in a stylized red card format.
+- **Retry**: Implemented a global `retry` method in `AIContext.tsx` and mapped it to the `Retry Action` buttons in `ErrorCard` to automatically trigger re-execution of the last failed message query. All layouts integrate cleanly in `MessageBubbles.tsx` and compile without type errors.

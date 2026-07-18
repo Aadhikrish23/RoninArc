@@ -16,7 +16,7 @@ import TypingIndicator from "../components/TypingIndicator";
 import ChatInput from "../components/ChatInput";
 
 export default function AIPage(): JSX.Element {
-  const { messages, isTyping, sendMessage, clearConversation } = useAI();
+  const { messages, isTyping, sendMessage, clearConversation, retry } = useAI();
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const bg = useColorModeValue("gray.50", "gray.900");
@@ -105,7 +105,18 @@ export default function AIPage(): JSX.Element {
                 </Text>
               </Flex>
             ) : (
-              <MessageBubbles messages={messages} />
+              <MessageBubbles
+                messages={messages}
+                onSelectClarification={(option) => {
+                  sendMessage(option.label);
+                }}
+                onRetry={(index) => {
+                  const failedMsg = messages[index];
+                  if (failedMsg) {
+                    retry(failedMsg.id);
+                  }
+                }}
+              />
             )}
 
             {/* Typing Indicator */}

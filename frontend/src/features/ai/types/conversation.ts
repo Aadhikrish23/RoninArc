@@ -58,4 +58,9 @@ export interface Message {
   timestamp: Date;
   status?: "sending" | "sent" | "error";
   clarificationRequest?: ClarificationRequest | null;
+  metrics?: {
+    overallMs: number;
+    layers: Record<string, number>;
+  };
+  assistantStatus?: string;
 }
