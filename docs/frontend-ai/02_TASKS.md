@@ -120,5 +120,5 @@
 - **Notifications**: Integrated system-wide reactive updates and toasts verifying backend task completions.
 - **Optimistic updates & Loading states**: Preserved optimistic `"sending"` styles and animated bouncing three-dot loaders for responsive latency representation.
 - **Empty states**: Kept the high-fidelity pulsing sparks vector banner when starting new discussions.
-- **AI Settings**: Created the `frontend/src/features/ai/components/AISettingsModal.tsx` overlay handling persistent configurations for Assistant Persona and Creativity Temperature sliders, bound via the context hooks and rendered cleanly in `AIPage.tsx`.
-- **Final QA**: Verified structural code alignments, resolved type compile checks, ran full ESLint inspections, and successfully built optimized production assets using Vite.
+- **AI Settings**: Created the `frontend/src/features/ai/components/AISettingsModal.tsx` overlay, updated to hide model parameters (such as creativity temperature and system prompt persona) that are not yet supported by the backend local Ollama instance.
+- **Execution Summary & QA**: Refactored `ToolTimeline` to `ExecutionSummary.tsx` to display real-time execution duration breakdowns of backend layers only after completion, removing artificial steps and any UI implying streaming or live planning. Ran final lint check and built the production asset pipeline successfully.

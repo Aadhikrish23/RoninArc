@@ -3,7 +3,7 @@ import type { JSX } from "react";
 import type { Message, ClarificationOption } from "../types/conversation";
 import { IoSparklesOutline } from "react-icons/io5";
 import MarkdownRenderer from "./MarkdownRenderer";
-import ToolTimeline from "./ToolTimeline";
+import ExecutionSummary from "./ExecutionSummary";
 import ClarificationCard from "./ClarificationCard";
 import ErrorCard from "./ErrorCard";
 
@@ -77,10 +77,9 @@ export default function MessageBubbles({
                   ) : (
                     <>
                       <MarkdownRenderer content={message.text} />
-                      {message.metrics && (
-                        <ToolTimeline
+                      {message.status === "sent" && message.metrics && (
+                        <ExecutionSummary
                           metrics={message.metrics}
-                          status={message.assistantStatus}
                         />
                       )}
                     </>

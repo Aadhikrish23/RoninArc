@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 import { useState, useEffect } from "react";
 import {
   Modal,
@@ -8,21 +9,13 @@ import {
   ModalBody,
   ModalCloseButton,
   Button,
-  FormControl,
-  FormLabel,
-  Select,
-  Slider,
-  SliderTrack,
-  SliderFilledTrack,
-  SliderThumb,
   Text,
   VStack,
-  HStack,
   Icon,
   useColorModeValue,
 } from "@chakra-ui/react";
 import type { JSX } from "react";
-import { FiSettings, FiSliders } from "react-icons/fi";
+import { FiSettings } from "react-icons/fi";
 
 export interface AISettings {
   systemPersona: "default" | "technical" | "gamer";
@@ -79,64 +72,10 @@ export default function AISettingsModal({
         <ModalCloseButton color={headerText} />
 
         <ModalBody py={6}>
-          <VStack spacing={6} align="stretch">
-            {/* System Persona */}
-            <FormControl>
-              <FormLabel fontSize="sm" fontWeight="bold" display="flex" alignItems="center" gap={2}>
-                <Icon as={FiSliders} color="purple.500" />
-                Assistant Persona
-              </FormLabel>
-              <Select
-                value={localSettings.systemPersona}
-                onChange={(e) =>
-                  setLocalSettings((prev) => ({
-                    ...prev,
-                    systemPersona: e.target.value as AISettings["systemPersona"],
-                  }))
-                }
-                borderRadius="xl"
-                size="md"
-              >
-                <option value="default">Default (Balanced & Friendly)</option>
-                <option value="technical">Technical (Detailed & Direct)</option>
-                <option value="gamer">Gamer (Casual & Playful)</option>
-              </Select>
-              <Text fontSize="xs" color="gray.500" mt={2}>
-                Customize how the AI phrases explanations, steps, and game reviews.
-              </Text>
-            </FormControl>
-
-            {/* Temperature Slider */}
-            <FormControl>
-              <HStack justify="space-between" mb={2}>
-                <FormLabel fontSize="sm" fontWeight="bold" mb={0}>
-                  Creativity (Temperature)
-                </FormLabel>
-                <Text fontSize="xs" fontWeight="bold" color="purple.500">
-                  {localSettings.temperature.toFixed(1)}
-                </Text>
-              </HStack>
-              <Slider
-                min={0}
-                max={1}
-                step={0.1}
-                value={localSettings.temperature}
-                onChange={(val) =>
-                  setLocalSettings((prev) => ({
-                    ...prev,
-                    temperature: val,
-                  }))
-                }
-              >
-                <SliderTrack bg="purple.100">
-                  <SliderFilledTrack bg="purple.500" />
-                </SliderTrack>
-                <SliderThumb boxSize={6} bg="purple.500" borderWidth="2px" borderColor="white" />
-              </Slider>
-              <Text fontSize="xs" color="gray.500" mt={2}>
-                Lower values are more factual and direct; higher values are more creative and varied.
-              </Text>
-            </FormControl>
+          <VStack spacing={4} align="stretch">
+            <Text fontSize="sm" color="gray.500">
+              Model parameters (such as creativity temperature and system prompt persona) are pre-configured on the backend Ollama service and cannot be modified dynamically.
+            </Text>
           </VStack>
         </ModalBody>
 
