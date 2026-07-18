@@ -35,19 +35,19 @@ export default function ExecutionSummary({
   const layers = metrics.layers || {};
   const overallMs = metrics.overallMs || 1;
 
-  // Filter out any layer with 0ms or not present, and map names to friendly labels
-  const layerLabels: Record<string, string> = {
-    conversation: "Conversation Parsing",
-    memory: "Context / Memory Loading",
-    planning: "Intent Planning",
-    execution: "Action Execution",
-    clarification: "Clarification Processing",
+  const formatKey = (key: string): string => {
+    return key
+      .replace(/[-_]+/g, " ")
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(" ");
   };
 
   const activeLayers = Object.entries(layers)
     .filter(([, value]) => value > 0)
     .map(([key, value]) => ({
-      name: layerLabels[key] || key.charAt(0).toUpperCase() + key.slice(1),
+      name: formatKey(key),
       duration: value,
       percentage: Math.min(100, Math.round((value / overallMs) * 100)),
     }));

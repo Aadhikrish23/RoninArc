@@ -63,7 +63,7 @@ export default function AIPage(): JSX.Element {
           <Box>
             <Heading size="sm">RoninArc AI Assistant</Heading>
             <Text fontSize="xs" color="gray.500">
-              {isTyping ? "AI is thinking..." : "Online & ready to help"}
+              {isTyping ? "Processing..." : "Online & ready to help"}
             </Text>
           </Box>
         </Flex>

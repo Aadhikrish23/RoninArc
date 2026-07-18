@@ -49,7 +49,7 @@ export default function ChatInput({
     >
       <InputGroup size="lg" maxW="800px" mx="auto">
         <Textarea
-          placeholder={isDisabled ? "AI Assistant is thinking..." : "Type a message..."}
+          placeholder={isDisabled ? "Processing..." : "Type a message..."}
           value={text}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
