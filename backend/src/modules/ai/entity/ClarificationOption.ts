@@ -6,4 +6,9 @@ export interface ClarificationOption {
   subtitle?: string;
   confidence?: number;
   payload?: Record<string, unknown>;
+  
+  // Phase 7 properties
+  description?: string;
+  metadata?: Record<string, unknown>;
 }
+

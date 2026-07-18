@@ -2,6 +2,7 @@ import { BaseTool } from "../BaseTool";
 import { AIToolContext } from "../../sdk/AIToolContext";
 import { AIToolResult } from "../../sdk/AIToolResult";
 import providerToolService from "../../services/ProviderToolService";
+import epicAuthService from "../../../providers/epic/epicAuthService";
 
 interface ConnectEpicInput {
   authorizationCode: string;
@@ -10,7 +11,7 @@ interface ConnectEpicInput {
 
 export class ConnectEpicTool extends BaseTool<
   ConnectEpicInput,
-  Awaited<ReturnType<typeof providerToolService.connectEpic>>
+  any
 > {
   readonly category = "provider";
 
@@ -23,8 +24,16 @@ export class ConnectEpicTool extends BaseTool<
     input: ConnectEpicInput,
     context: AIToolContext,
   ): Promise<
-    AIToolResult<Awaited<ReturnType<typeof providerToolService.connectEpic>>>
+    AIToolResult<any>
   > {
+    const status = await epicAuthService.getStatus(context.userId);
+    if (status.connected) {
+      return this.success(
+        { connected: true, displayName: status.displayName, alreadyConnected: true },
+        "Epic Games account is already connected."
+      );
+    }
+
     const result = await providerToolService.connectEpic(
       context.userId,
       input.authorizationCode,
@@ -32,16 +41,9 @@ export class ConnectEpicTool extends BaseTool<
     );
 
     if (!result) {
-      return {
-        success: false,
-        error: "Failed to connect Epic Games account.",
-      };
+      return this.failure("Failed to connect Epic Games account.");
     }
 
-    return {
-      success: true,
-      message: "Epic Games account connected successfully.",
-      data: result,
-    };
+    return this.success(result, "Epic Games account connected successfully.");
   }
 }

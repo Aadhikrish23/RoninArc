@@ -22,7 +22,12 @@ export class CapabilityResolver {
       for (const intent of intentPlan.intents) {
         const match = this.registry
           .list()
-          .find((cap) => cap.intentType === intent.type);
+          .find((cap) => {
+            if (cap.intentType === intent.type) return true;
+            if (cap.id === "review-game" && intent.type === "RateGame") return true;
+            if (cap.id === "collection" && intent.type === "CreateCollection") return true;
+            return false;
+          });
 
         if (match) {
           resolved.push({

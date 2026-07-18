@@ -30,16 +30,9 @@ export class LaunchGameTool extends BaseTool<
     );
 
     if (!session) {
-      return {
-        success: false,
-        error: "Failed to launch game.",
-      };
+      return this.failure("Failed to launch game.");
     }
 
-    return {
-      success: true,
-      message: "Game launched successfully.",
-      data: session,
-    };
+    return this.success(session, "Game launched successfully.");
   }
 }

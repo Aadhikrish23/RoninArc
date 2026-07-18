@@ -2,6 +2,8 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./config/swagger";
 import authRouter from "./modules/auth/auth";
 import type { Request, Response, NextFunction } from "express";
 import AppError from "./shared/errors/AppError";
@@ -16,12 +18,20 @@ import providerRoutes from "./modules/providers/providerRoutes";
 import { aiRoutes } from "./modules/ai";
 dotenv.config();
 const app = express();
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
 const allowedOrgin = process.env.ALLOWED_ORIGIN || "http://localhost:3000";
 
 app.use(cors({ origin: allowedOrgin }));
 
 app.use(express.json());
+
+// Swagger Documentation Route
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 
 app.get("/health", (req: Request, res: Response) => {
   return res.json({ Status: "ok", message: "RoninArc was healthy " });

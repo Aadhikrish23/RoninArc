@@ -1,6 +1,6 @@
 import { AITool } from "../sdk/AITool";
 import { AIToolContext } from "../sdk/AIToolContext";
-import { AIToolResult } from "../sdk/AIToolResult";
+import { ToolExecutionResult } from "../sdk/ToolExecutionResult";
 
 export abstract class BaseTool<TInput = unknown, TOutput = unknown>
   implements AITool<TInput, TOutput>
@@ -14,5 +14,57 @@ export abstract class BaseTool<TInput = unknown, TOutput = unknown>
   abstract execute(
     input: TInput,
     context: AIToolContext
-  ): Promise<AIToolResult<TOutput>>;
+  ): Promise<ToolExecutionResult<TOutput>>;
+
+  /**
+   * Helper to return standard success outcome.
+   */
+  success(
+    data: TOutput,
+    message?: string,
+    metadata?: Record<string, unknown>
+  ): ToolExecutionResult<TOutput> {
+    return {
+      success: true,
+      status: "SUCCESS",
+      message,
+      metadata,
+      data,
+    };
+  }
+
+  /**
+   * Helper to return standard failure outcome.
+   */
+  failure(
+    error: string,
+    errors?: string[],
+    metadata?: Record<string, unknown>
+  ): ToolExecutionResult<TOutput> {
+    return {
+      success: false,
+      status: "FAILED",
+      error,
+      errors: errors || [error],
+      metadata,
+    };
+  }
+
+  /**
+   * Helper to return warning outcomes.
+   */
+  warning(
+    message: string,
+    warnings?: string[],
+    data?: TOutput
+  ): ToolExecutionResult<TOutput> {
+    return {
+      success: true,
+      status: "SUCCESS_WITH_WARNINGS",
+      message,
+      warnings: warnings || [message],
+      data,
+    };
+  }
 }
+export default BaseTool;

@@ -34,16 +34,9 @@ export class CreateCollectionTool extends BaseTool<
     );
 
     if (!collection) {
-      return {
-        success: false,
-        error: "Failed to create collection.",
-      };
+      return this.failure("Failed to create collection.");
     }
 
-    return {
-      success: true,
-      message: `Collection "${input.name}" created successfully.`,
-      data: collection,
-    };
+    return this.success(collection, `Collection "${input.name}" created successfully.`);
   }
 }

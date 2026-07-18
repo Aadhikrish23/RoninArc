@@ -15,7 +15,7 @@ export const AIConfig = {
   ollamaModel: process.env.OLLAMA_MODEL,
   ollamaTimeout: process.env.OLLAMA_TIMEOUT
     ? parseInt(process.env.OLLAMA_TIMEOUT, 10)
-    : 30000,
+    : 90000,
 };
 
 export default AIConfig;

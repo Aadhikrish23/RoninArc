@@ -1,45 +1,23 @@
-// TEMP DEBUG ONLY
-
 import { PlanningResult } from "../planning/PlanningResult";
-import { PlanningStatus } from "../planning/PlanningStatus";
 import { ExecutionPlan } from "./ExecutionPlan";
 import { ExecutionStep } from "./ExecutionStep";
 import { ResolvedIntentPlan } from "../entity/ResolvedIntentPlan";
-import toolMapper from "./ToolMapper";
 import crypto from "crypto";
-import aiTraceLogger from "../debug/AITraceLogger";
 
 export class ExecutionPlanner {
   /**
    * Translates a PlanningResult into an abstract deterministic ExecutionPlan.
+   * Pure translator: no validations, mapping, or runtime decisions.
    */
   plan(planningResult: PlanningResult, resolvedIntentPlan: ResolvedIntentPlan): ExecutionPlan {
-    const trace = aiTraceLogger.current();
-    const startTime = Date.now();
+    const steps: ExecutionStep[] = [];
 
-    try {
-      const steps: ExecutionStep[] = [];
-
-      if (planningResult.status === PlanningStatus.CLARIFICATION_REQUIRED) {
-        const emptyPlan = {
-          id: crypto.randomUUID(),
-          steps,
-        };
-
-        if (trace) {
-          const elapsed = Date.now() - startTime;
-          trace.log("ExecutionPlanner", "ExecutionPlan Skipped (Clarification Required)", emptyPlan, elapsed);
-        }
-
-        return emptyPlan;
-      }
-
+    if (planningResult.executionCandidates) {
       for (const candidate of planningResult.executionCandidates) {
-        const toolName = toolMapper.mapCapabilityToTool(candidate.capability.id);
-
+        console.log(steps);
         steps.push({
           id: crypto.randomUUID(),
-          toolName,
+          toolName: "", // ToolName is resolved during prepare stage in execution pipeline
           input: {
             targets: candidate.targets,
             parameters: candidate.parameters,
@@ -47,24 +25,12 @@ export class ExecutionPlanner {
           },
         });
       }
-
-      const executionPlan = {
-        id: crypto.randomUUID(),
-        steps,
-      };
-
-      if (trace) {
-        const elapsed = Date.now() - startTime;
-        trace.log("ExecutionPlanner", "ExecutionPlan Generated", executionPlan, elapsed);
-      }
-
-      return executionPlan;
-    } catch (error) {
-      if (trace) {
-        trace.error("ExecutionPlanner", error);
-      }
-      throw error;
     }
+
+    return {
+      id: crypto.randomUUID(),
+      steps,
+    };
   }
 }
 

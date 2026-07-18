@@ -11,11 +11,11 @@ const createCollection = async (
 ) => {
   const existingCollection = await Collection.findOne({
     userId,
-    name: name.trim(),
+    name: { $regex: new RegExp("^" + name.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&") + "$", "i") },
   });
 
   if (existingCollection) {
-    throw new Error("Collection with this name already exists");
+    return existingCollection;
   }
 
   const collection = await Collection.create({
@@ -65,6 +65,20 @@ const addGameToCollection = async (
   collectionId: string,
   gameId: string,
 ) => {
+  const existing = await Collection.findOne({
+    _id: collectionId,
+    userId,
+  });
+
+  if (!existing) {
+    throw new Error("Collection not found");
+  }
+
+  const hasGame = existing.gameIds.some(id => id.toString() === gameId.toString());
+  if (hasGame) {
+    return existing.populate("gameIds");
+  }
+
   const collection = await Collection.findOneAndUpdate(
     {
       _id: collectionId,
@@ -84,8 +98,8 @@ const addGameToCollection = async (
     throw new Error("Collection not found");
   }
   const game = await gameLibrarymodel.findById(
-  gameId
-);
+    gameId
+  );
   
   await activityService.createActivity(
     userId,
@@ -103,6 +117,20 @@ const removeGameFromCollection = async (
   collectionId: string,
   gameId: string,
 ) => {
+  const existing = await Collection.findOne({
+    _id: collectionId,
+    userId,
+  });
+
+  if (!existing) {
+    throw new Error("Collection not found");
+  }
+
+  const hasGame = existing.gameIds.some(id => id.toString() === gameId.toString());
+  if (!hasGame) {
+    return existing.populate("gameIds");
+  }
+
   const collection = await Collection.findOneAndUpdate(
     {
       _id: collectionId,
@@ -121,16 +149,16 @@ const removeGameFromCollection = async (
   if (!collection) {
     throw new Error("Collection not found");
   }
-   const game = await gameLibrarymodel.findById(
-  gameId
-);
-await activityService.createActivity(
-  userId,
-  "GAME_REMOVED_FROM_COLLECTION",
-  `Removed ${game?.title || "Game"} from ${collection.name}`,
-  new Types.ObjectId(gameId),
-  new Types.ObjectId(collectionId),
-);
+  const game = await gameLibrarymodel.findById(
+    gameId
+  );
+  await activityService.createActivity(
+    userId,
+    "GAME_REMOVED_FROM_COLLECTION",
+    `Removed ${game?.title || "Game"} from ${collection.name}`,
+    new Types.ObjectId(gameId),
+    new Types.ObjectId(collectionId),
+  );
 
   return collection;
 };

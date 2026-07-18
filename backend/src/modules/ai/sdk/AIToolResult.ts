@@ -1,6 +1,3 @@
-export interface AIToolResult<T = unknown> {
-  success: boolean;
-  message?: string;
-  data?: T;
-  error?: string;
-}
+import { ToolExecutionResult } from "./ToolExecutionResult";
+
+export interface AIToolResult<T = unknown> extends ToolExecutionResult<T> {}

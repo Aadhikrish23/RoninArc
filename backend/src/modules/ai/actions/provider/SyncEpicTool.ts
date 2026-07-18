@@ -30,16 +30,9 @@ export class SyncEpicTool extends BaseTool<
     );
 
     if (!result) {
-      return {
-        success: false,
-        error: "Failed to sync Epic Games account.",
-      };
+      return this.failure("Failed to sync Epic Games account.");
     }
 
-    return {
-      success: true,
-      message: "Epic Games account synced successfully.",
-      data: result,
-    };
+    return this.success(result, "Epic Games account synced successfully.");
   }
 }

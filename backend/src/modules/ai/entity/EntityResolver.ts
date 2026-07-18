@@ -1,11 +1,10 @@
-// TEMP DEBUG ONLY
-
 import libraryServices from "../../library/libraryServices";
 import { LibraryGame } from "./LibraryGame";
 import { EntityResolutionStatus } from "./EntityResolutionStatus";
 import { EntityResolutionResult } from "./EntityResolutionResult";
 import { GameNameNormalizer } from "./GameNameNormalizer";
-import entityLearningResolver from "./EntityLearningResolver";
+import memoryAliasResolver from "../memory/MemoryAliasResolver";
+import conversationManager from "../conversation/ConversationManager";
 import { EXACT_CONFIDENCE, FUZZY_RESOLVED_THRESHOLD, FUZZY_AMBIGUOUS_THRESHOLD } from "./EntityResolutionConstants";
 import { distance } from "fastest-levenshtein";
 import aiTraceLogger from "../debug/AITraceLogger";
@@ -17,10 +16,33 @@ export class EntityResolver {
   async resolveGame(
     userId: string,
     gameName: string,
+    options?: { isBulk?: boolean },
   ): Promise<EntityResolutionResult<LibraryGame>> {
     const trace = aiTraceLogger.current();
     
     const normQuery = this.normalizeQuery(gameName);
+
+    if (options?.isBulk) {
+      const games = (await libraryServices.getUserLibrary(userId)) as LibraryGame[];
+      const matched = games.filter(g => {
+        const titleNorm = this.normalizeQuery(g.title);
+        return titleNorm.includes(normQuery) || normQuery.includes(titleNorm);
+      });
+      if (matched.length > 0) {
+        const result = this.buildResult(
+          EntityResolutionStatus.RESOLVED,
+          1.0,
+          matched[0],
+          matched,
+          `Bulk resolved ${matched.length} entities for query: "${gameName}"`
+        );
+        (result as any).isBulk = true;
+        if (trace) {
+          trace.log("EntityResolver", "Bulk Match Resolved", { count: matched.length });
+        }
+        return result;
+      }
+    }
 
     const traceInfo = {
       originalQuery: gameName,
@@ -34,22 +56,21 @@ export class EntityResolver {
     };
 
     const games = (await libraryServices.getUserLibrary(userId)) as LibraryGame[];
+    const session = await conversationManager.getOrCreateSession(userId);
 
-    // 1. Exact Match (with normalized names)
-    const exactMatches = this.tryExactMatch(games, normQuery);
+    // Order: Conversation References -> Learned Memory Aliases -> Static Aliases -> Fuzzy Matching
+    const resolved = (await memoryAliasResolver.resolve(userId, gameName, games, session)) as LibraryGame | null;
 
-    if (exactMatches.length === 1) {
-      const resolvedGame = exactMatches[0];
+    if (resolved) {
       const result = this.buildResult(
         EntityResolutionStatus.RESOLVED,
         EXACT_CONFIDENCE,
-        resolvedGame,
+        resolved,
         undefined,
-        `Exactly one exact match found: "${resolvedGame.title}"`,
+        `Resolved via alias resolution hierarchy: "${resolved.title}"`,
       );
 
-      traceInfo.exactMatchResult = `RESOLVED: ${resolvedGame.title}`;
-      traceInfo.chosenStrategy = "Exact Match";
+      traceInfo.chosenStrategy = "Alias Resolution Hierarchy";
       traceInfo.finalConfidence = EXACT_CONFIDENCE;
       traceInfo.finalResolutionStatus = "RESOLVED";
 
@@ -60,6 +81,8 @@ export class EntityResolver {
       return result;
     }
 
+    // Fallback: If memoryAliasResolver didn't find any unique match, check if there are multiple candidates
+    const exactMatches = this.tryExactMatch(games, normQuery);
     if (exactMatches.length > 1) {
       const result = this.buildResult(
         EntityResolutionStatus.AMBIGUOUS,
@@ -70,7 +93,7 @@ export class EntityResolver {
       );
 
       traceInfo.exactMatchResult = `AMBIGUOUS: ${exactMatches.length} candidates`;
-      traceInfo.chosenStrategy = "Exact Match";
+      traceInfo.chosenStrategy = "Exact Match (Ambiguous)";
       traceInfo.finalConfidence = 0.5;
       traceInfo.finalResolutionStatus = "AMBIGUOUS";
 
@@ -81,32 +104,7 @@ export class EntityResolver {
       return result;
     }
 
-    // 2. Learning Memory Lookup
-    const learnedGame = await this.tryLearnedMatch(userId, normQuery, games);
-    if (learnedGame) {
-      const result = this.buildResult(
-        EntityResolutionStatus.RESOLVED,
-        EXACT_CONFIDENCE,
-        learnedGame,
-        undefined,
-        `Resolved via learned alias memory: "${learnedGame.title}"`,
-      );
-
-      traceInfo.learningMemoryResult = `RESOLVED: ${learnedGame.title}`;
-      traceInfo.chosenStrategy = "Learning Memory";
-      traceInfo.finalConfidence = EXACT_CONFIDENCE;
-      traceInfo.finalResolutionStatus = "RESOLVED";
-
-      if (trace) {
-        trace.log("EntityResolver", "Resolution Trace", traceInfo);
-      }
-
-      return result;
-    }
-
-    // 3. Fuzzy Match
     const scoredGames = this.tryFuzzyMatch(games, normQuery);
-
     traceInfo.fuzzyCandidates = scoredGames.slice(0, 5).map(c => ({
       title: c.game.title,
       score: c.score,
@@ -182,7 +180,6 @@ export class EntityResolver {
       }
     }
 
-    // 4. Default: NOT_FOUND
     const result = this.buildResult(
       EntityResolutionStatus.NOT_FOUND,
       0,
@@ -210,14 +207,6 @@ export class EntityResolver {
     return games.filter(
       (game) => GameNameNormalizer.normalize(game.title) === normQuery,
     );
-  }
-
-  private async tryLearnedMatch(userId: string, normQuery: string, games: LibraryGame[]): Promise<LibraryGame | null> {
-    const learnedId = await entityLearningResolver.resolve(userId, normQuery);
-    if (learnedId) {
-      return games.find((g) => g.title.toLowerCase() === learnedId.toLowerCase() || g._id.toString() === learnedId) || null;
-    }
-    return null;
   }
 
   private tryFuzzyMatch(games: LibraryGame[], normQuery: string): { game: LibraryGame; score: number }[] {

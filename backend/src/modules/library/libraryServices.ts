@@ -155,6 +155,14 @@ async function updateGame(
       userId: userId,
     });
 
+  if (!oldGame) {
+    return null;
+  }
+
+  if (payload.progressStatus !== undefined && oldGame.progressStatus === payload.progressStatus) {
+    return oldGame.toObject();
+  }
+
   const data =
     await gameLibrarymodel.findOneAndUpdate(
       {

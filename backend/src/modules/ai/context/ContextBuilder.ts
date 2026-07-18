@@ -27,12 +27,16 @@ export class ContextBuilder {
         const provider = this.registry.get(category);
 
         if (!provider) {
+          facts[category] = [];
           continue;
         }
 
-        const result = await provider.build(request);
-
-        facts[category] = result.facts;
+        try {
+          const result = await provider.build(request);
+          facts[category] = result.facts || [];
+        } catch {
+          facts[category] = [];
+        }
       }
 
       const contextSnapshot = {

@@ -2,10 +2,11 @@ import { BaseTool } from "../BaseTool";
 import { AIToolContext } from "../../sdk/AIToolContext";
 import { AIToolResult } from "../../sdk/AIToolResult";
 import providerToolService from "../../services/ProviderToolService";
+import epicAuthService from "../../../providers/epic/epicAuthService";
 
 export class DisconnectEpicTool extends BaseTool<
   void,
-  Awaited<ReturnType<typeof providerToolService.disconnectEpic>>
+  any
 > {
   readonly category = "provider";
 
@@ -17,13 +18,18 @@ export class DisconnectEpicTool extends BaseTool<
     input: void,
     context: AIToolContext,
   ): Promise<
-    AIToolResult<Awaited<ReturnType<typeof providerToolService.disconnectEpic>>>
+    AIToolResult<any>
   > {
+    const status = await epicAuthService.getStatus(context.userId);
+    if (!status.connected) {
+      return this.success(
+        { connected: false, alreadyDisconnected: true },
+        "Epic Games account is already disconnected."
+      );
+    }
+
     await providerToolService.disconnectEpic(context.userId);
 
-    return {
-      success: true,
-      message: "Epic Games account disconnected successfully.",
-    };
+    return this.success(undefined, "Epic Games account disconnected successfully.");
   }
 }

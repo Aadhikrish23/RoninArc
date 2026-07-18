@@ -1,7 +1,7 @@
 // TEMP DEBUG ONLY
 
 import { AIProvider } from "./AIProvider";
-import { AIToolContext } from "../sdk/AIToolContext";
+import { AIRequestContext } from "../conversation/AIRequestContext";
 import { Capability } from "../planning/Capability";
 import { IntentPlan } from "../intent/IntentPlan";
 import promptBuilder from "../prompts/PromptBuilder";
@@ -9,25 +9,28 @@ import ollamaClient from "../clients/OllamaClient";
 import intentParser from "../parser/IntentParser";
 import intentNormalizer from "../intent/IntentNormalizer";
 import aiTraceLogger from "../debug/AITraceLogger";
+import AIConfig from "../config/AIConfig";
 
 export class OllamaProvider implements AIProvider {
   async plan(
     request: string,
-    context: AIToolContext,
+    context: AIRequestContext,
     capabilities: Capability[],
   ): Promise<IntentPlan> {
     const trace = aiTraceLogger.current();
     const startTime = Date.now();
+    const toolContext = context.toolContext;
+
 
     try {
-      const prompt = promptBuilder.build(request, context, capabilities);
+      const prompt = promptBuilder.build(request, toolContext, capabilities);
       if (trace) {
         trace.log("Provider", "Prompt Generated", {
-          model: "gemma3:4b",
+          model: AIConfig.ollamaModel,
           promptLength: prompt.length,
           capabilityCount: capabilities.length,
           requestLength: request.length,
-          ...(process.env.DEBUG_AI === "true" ? { fullPrompt: prompt } : {}),
+          fullPrompt: prompt,
         });
       }
       
@@ -35,7 +38,7 @@ export class OllamaProvider implements AIProvider {
       if (trace) {
         trace.log("Provider", "Raw LLM Response Received", {
           characterCount: rawResponse.length,
-          ...(process.env.DEBUG_AI === "true" ? { fullResponse: rawResponse } : {}),
+          fullResponse: rawResponse,
         });
       }
 
@@ -44,7 +47,8 @@ export class OllamaProvider implements AIProvider {
         trace.log("Provider", "LLMIntentResponse", llmIntentResponse);
       }
 
-      const parsedPlan = intentNormalizer.normalize(llmIntentResponse, context.requestId || "");
+      const parsedPlan = intentNormalizer.normalize(llmIntentResponse, toolContext.requestId || "");
+
       if (trace) {
         const elapsed = Date.now() - startTime;
         trace.log("Provider", "Normalized IntentPlan", parsedPlan, elapsed);

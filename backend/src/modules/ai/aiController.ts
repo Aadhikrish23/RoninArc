@@ -29,13 +29,23 @@ export class AIController {
     const { message } = req.body;
     const requestId = crypto.randomUUID();
 
-    const result = await aiService.chat(
-      req.user!.id,
-      message ?? "",
-      requestId,
-    );
-
-    res.status(200).json(result);
+    try {
+      const result = await aiService.chat(
+        req.user!.id,
+        message ?? "",
+        requestId,
+      );
+      res.status(200).json(result);
+    } catch (error: any) {
+      if (error && (error.code === "PROVIDER_VALIDATION_ERROR" || error.code === "POLICY_VIOLATION")) {
+        res.status(200).json({
+          success: false,
+          message: error.message || "Validation failed."
+        });
+        return;
+      }
+      throw error;
+    }
   }
 }
 

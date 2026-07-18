@@ -2,9 +2,10 @@ import { BaseTool } from "../BaseTool";
 import { AIToolContext } from "../../sdk/AIToolContext";
 import { AIToolResult } from "../../sdk/AIToolResult";
 import collectionToolService from "../../services/CollectionToolService";
+import Collection from "../../../collection/CollectionModel";
 
 interface RemoveFromCollectionInput {
-  collectionId: string;
+  collectionName: string;
   gameId: string;
 }
 
@@ -26,23 +27,25 @@ export class RemoveFromCollectionTool extends BaseTool<
       Awaited<ReturnType<typeof collectionToolService.removeGameFromCollection>>
     >
   > {
-    const collection = await collectionToolService.removeGameFromCollection(
+    const collection = await Collection.findOne({
+      userId: context.userId,
+      name: input.collectionName.trim(),
+    });
+
+    if (!collection) {
+      return this.failure(`Collection "${input.collectionName}" not found.`);
+    }
+
+    const resultCollection = await collectionToolService.removeGameFromCollection(
       context.userId,
-      input.collectionId,
+      collection._id.toString(),
       input.gameId,
     );
 
-    if (!collection) {
-      return {
-        success: false,
-        error: "Failed to remove game from collection.",
-      };
+    if (!resultCollection) {
+      return this.failure("Failed to remove game from collection.");
     }
 
-    return {
-      success: true,
-      message: "Game removed from collection successfully.",
-      data: collection,
-    };
+    return this.success(resultCollection, "Game removed from collection successfully.");
   }
 }

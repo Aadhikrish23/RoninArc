@@ -29,10 +29,6 @@ export class SearchRawgTool extends BaseTool<
       input.page || 1,
     );
 
-    return {
-      success: true,
-      message: `Found ${results.length} games.`,
-      data: results,
-    };
+    return this.success(results, `Found ${results.length} games.`);
   }
 }

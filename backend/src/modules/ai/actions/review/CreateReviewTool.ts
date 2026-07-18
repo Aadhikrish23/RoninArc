@@ -32,16 +32,9 @@ export class CreateReviewTool extends BaseTool<
     );
 
     if (!review) {
-      return {
-        success: false,
-        error: "Failed to create review.",
-      };
+      return this.failure("Failed to create review.");
     }
 
-    return {
-      success: true,
-      message: "Review created successfully.",
-      data: review,
-    };
+    return this.success(review, "Review created successfully.");
   }
 }

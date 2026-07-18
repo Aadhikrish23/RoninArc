@@ -27,16 +27,9 @@ export class DeleteReviewTool extends BaseTool<
     );
 
     if (!review) {
-      return {
-        success: false,
-        error: "Review not found.",
-      };
+      return this.failure("Review not found.");
     }
 
-    return {
-      success: true,
-      message: "Review deleted successfully.",
-      data: review,
-    };
+    return this.success(review, "Review deleted successfully.");
   }
 }

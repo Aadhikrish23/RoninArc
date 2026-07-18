@@ -13,6 +13,23 @@ import { LibraryGame } from "./LibraryGame";
 import { IntentTarget } from "../intent/IntentTarget";
 import aiTraceLogger from "../debug/AITraceLogger";
 
+function getBulkQueryInfo(targetName: string): { isBulk: boolean; cleanQuery: string } {
+  const nameLower = targetName.toLowerCase().trim();
+  
+  if (nameLower.startsWith("all ") || nameLower.startsWith("every ")) {
+    let query = nameLower.replace(/^(all|every)\s+/, "");
+    query = query.replace(/\s+games?(\s+in\s+library)?$/, "");
+    return { isBulk: true, cleanQuery: query.trim() };
+  }
+  
+  if (nameLower.endsWith(" games") || nameLower.endsWith(" game")) {
+    const query = nameLower.replace(/\s+games?$/, "");
+    return { isBulk: true, cleanQuery: query.trim() };
+  }
+  
+  return { isBulk: false, cleanQuery: targetName };
+}
+
 export class EntityResolutionLayer {
   /**
    * Resolves entity targets in resolved capabilities.
@@ -35,17 +52,39 @@ export class EntityResolutionLayer {
 
       for (const target of intent.targets) {
         if (target.type === IntentTargetType.Game) {
-          const resolutionResult = await entityResolver.resolveGame(userId, target.name);
+          const { isBulk, cleanQuery } = getBulkQueryInfo(target.name);
+          const resolutionResult = await entityResolver.resolveGame(userId, cleanQuery, { isBulk });
 
           const resolvedTarget: ResolvedTarget<LibraryGame> = {
             originalTarget: target,
             resolution: resolutionResult,
           };
+          if (isBulk) {
+            (resolvedTarget as any).isBulk = true;
+          }
 
           resolvedTargets.push(resolvedTarget);
           allResolvedTargets.push(resolvedTarget);
 
-          if (resolutionResult.status === EntityResolutionStatus.AMBIGUOUS) {
+          if (isBulk && resolutionResult.status === EntityResolutionStatus.RESOLVED) {
+            for (const cand of resolutionResult.candidates || []) {
+              const candTarget: IntentTarget = {
+                type: IntentTargetType.Game,
+                name: cand.title,
+              };
+              allResolvedTargets.push({
+                originalTarget: candTarget,
+                resolution: {
+                  status: EntityResolutionStatus.RESOLVED,
+                  confidence: 1.0,
+                  entity: cand,
+                  reasoning: "Bulk match candidate resolution.",
+                },
+              });
+            }
+          }
+
+          if (!isBulk && resolutionResult.status === EntityResolutionStatus.AMBIGUOUS) {
             const candidates = (resolutionResult.candidates || []).map((c) => ({
               id: c._id.toString(),
               label: c.title,

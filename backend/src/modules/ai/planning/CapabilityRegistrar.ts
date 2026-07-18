@@ -47,5 +47,29 @@ export function registerCapabilities() {
     ],
   });
 
+  registry.register({
+    id: "connect-account",
+    name: "Connect Account",
+    description: "Connects a provider account.",
+    intentType: IntentType.ConnectAccount,
+    requirements: [],
+  });
+
+  registry.register({
+    id: "disconnect-account",
+    name: "Disconnect Account",
+    description: "Disconnects a provider account.",
+    intentType: IntentType.DisconnectAccount,
+    requirements: [],
+  });
+
+  registry.register({
+    id: "sync-library",
+    name: "Sync Library",
+    description: "Syncs game library with provider.",
+    intentType: IntentType.SyncLibrary,
+    requirements: [],
+  });
+
   return registry;
 }

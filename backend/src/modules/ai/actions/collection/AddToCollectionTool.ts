@@ -2,9 +2,11 @@ import { BaseTool } from "../BaseTool";
 import { AIToolContext } from "../../sdk/AIToolContext";
 import { AIToolResult } from "../../sdk/AIToolResult";
 import collectionToolService from "../../services/CollectionToolService";
+import Collection from "../../../collection/CollectionModel";
+import collectionService from "../../../collection/collectionService";
 
 interface AddToCollectionInput {
-  collectionId: string;
+  collectionName: string;
   gameId: string;
 }
 
@@ -26,23 +28,28 @@ export class AddToCollectionTool extends BaseTool<
       Awaited<ReturnType<typeof collectionToolService.addGameToCollection>>
     >
   > {
-    const collection = await collectionToolService.addGameToCollection(
+    let collection = await Collection.findOne({
+      userId: context.userId,
+      name: input.collectionName.trim(),
+    });
+
+    if (!collection) {
+      collection = await collectionService.createCollection(
+        context.userId,
+        input.collectionName,
+      );
+    }
+
+    const resultCollection = await collectionToolService.addGameToCollection(
       context.userId,
-      input.collectionId,
+      collection._id.toString(),
       input.gameId,
     );
 
-    if (!collection) {
-      return {
-        success: false,
-        error: "Failed to add game to collection.",
-      };
+    if (!resultCollection) {
+      return this.failure("Failed to add game to collection.");
     }
 
-    return {
-      success: true,
-      message: "Game added to collection successfully.",
-      data: collection,
-    };
+    return this.success(resultCollection, "Game added to collection successfully.");
   }
 }

@@ -21,6 +21,11 @@ const upsertReview = async (
     gameId,
   });
 
+  const cleanText = reviewText?.trim() || "";
+  if (existingReview && existingReview.rating === rating && existingReview.reviewText === cleanText) {
+    return existingReview;
+  }
+
   const review = await Review.findOneAndUpdate(
     {
       userId,

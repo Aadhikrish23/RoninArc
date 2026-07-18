@@ -32,16 +32,9 @@ export class UpdateReviewTool extends BaseTool<
     );
 
     if (!review) {
-      return {
-        success: false,
-        error: "Failed to update review.",
-      };
+      return this.failure("Failed to update review.");
     }
 
-    return {
-      success: true,
-      message: "Review updated successfully.",
-      data: review,
-    };
+    return this.success(review, "Review updated successfully.");
   }
 }
