@@ -5,9 +5,11 @@ import {
   useState,
   type ReactNode,
   useCallback,
+  useEffect,
 } from "react";
-import type { Message } from "../types/conversation";
+import type { Message, ClarificationRequest } from "../types/conversation";
 import aiApi from "../api/aiApi";
+import { useAuth } from "../../auth/context/AuthContext";
 
 interface AIContextType {
   messages: Message[];
@@ -21,6 +23,49 @@ const AIContext = createContext<AIContextType | undefined>(undefined);
 export function AIProvider({ children }: { children: ReactNode }) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isTyping, setIsTyping] = useState(false);
+  const { user } = useAuth();
+  const storageKey = user?.name ? `roninarc_ai_messages_${user.name}` : "";
+
+  // Load conversation from localStorage on mount or when user changes
+  useEffect(() => {
+    if (storageKey) {
+      const stored = localStorage.getItem(storageKey);
+      if (stored) {
+        try {
+          interface StoredMessage {
+            id: string;
+            sender: "user" | "assistant";
+            text: string;
+            timestamp: string;
+            status?: "sending" | "sent" | "error";
+            clarificationRequest?: ClarificationRequest | null;
+          }
+          const parsed = JSON.parse(stored);
+          // Convert stored ISO string timestamps back to Date objects
+          const messagesWithDates = (parsed as StoredMessage[]).map((m) => ({
+            ...m,
+            timestamp: new Date(m.timestamp),
+          }));
+          setMessages(messagesWithDates);
+        } catch (e) {
+          console.error("[AI Context] Failed to parse stored messages:", e);
+        }
+      } else {
+        setMessages([]);
+      }
+    } else {
+      setMessages([]);
+    }
+  }, [storageKey]);
+
+  // Save conversation to localStorage when messages change
+  useEffect(() => {
+    if (storageKey && messages.length > 0) {
+      localStorage.setItem(storageKey, JSON.stringify(messages));
+    } else if (storageKey && messages.length === 0) {
+      localStorage.removeItem(storageKey);
+    }
+  }, [messages, storageKey]);
 
   const sendMessage = useCallback(async (text: string) => {
     if (!text.trim()) return;
