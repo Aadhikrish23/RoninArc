@@ -8,10 +8,12 @@ import {
   Text,
   Spacer,
   useColorModeValue,
+  Icon,
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 // import { getCurrentUser } from "../utils/auth";
 import { useAuth } from "../../features/auth/context/AuthContext";
+import { IoSparklesOutline } from "react-icons/io5";
 
 function Navbar() {
   const navigate = useNavigate();
@@ -65,6 +67,16 @@ function Navbar() {
             onClick={() => navigate("/settings")}
           >
             Settings
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            colorScheme="purple"
+            leftIcon={<Icon as={IoSparklesOutline} />}
+            onClick={() => navigate("/ai")}
+          >
+            AI Assistant
           </Button>
         </HStack>
 

@@ -8,6 +8,7 @@ import LibraryPage from "../../features/library/pages/LibraryPage";
 import BrowsePage from "../../features/library/pages/BrowsePage";
 import DashboardPage from "../../features/dashboard/pages/Dashboard";
 import SettingsPage from "../../features/settings/pages/SettingsPage";
+import AIPage from "../../features/ai/pages/AIPage";
 import ProtectedLayout from "../layouts/ProtectedLayout";
 
 import NotFound from "./NotFound";
@@ -51,6 +52,7 @@ export default function AppRouter() {
         <Route path="/dashboard" element={<DashboardPage />} />
 
         <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/ai" element={<AIPage />} />
         <Route
           path="/providers/epic/callback"
           element={<EpicOAuthCallback />}
