@@ -12,12 +12,16 @@ import aiApi from "../api/aiApi";
 import { useAuth } from "../../auth/context/AuthContext";
 import { eventBus } from "../../../shared/events/EventBus";
 
+import type { AISettings } from "../components/AISettingsModal";
+
 interface AIContextType {
   messages: Message[];
   isTyping: boolean;
   sendMessage: (text: string) => Promise<void>;
   clearConversation: () => void;
   retry: (failedMessageId: string) => Promise<void>;
+  settings: AISettings;
+  updateSettings: (settings: AISettings) => void;
 }
 
 const AIContext = createContext<AIContextType | undefined>(undefined);
@@ -27,6 +31,26 @@ export function AIProvider({ children }: { children: ReactNode }) {
   const [isTyping, setIsTyping] = useState(false);
   const { user } = useAuth();
   const storageKey = user?.name ? `roninarc_ai_messages_${user.name}` : "";
+
+  const [settings, setSettings] = useState<AISettings>(() => {
+    const stored = localStorage.getItem("roninarc_ai_settings");
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    return {
+      systemPersona: "default",
+      temperature: 0.7,
+    };
+  });
+
+  const updateSettings = useCallback((newSettings: AISettings) => {
+    setSettings(newSettings);
+    localStorage.setItem("roninarc_ai_settings", JSON.stringify(newSettings));
+  }, []);
 
   // Load conversation from localStorage on mount or when user changes
   useEffect(() => {
@@ -185,6 +209,8 @@ export function AIProvider({ children }: { children: ReactNode }) {
         sendMessage,
         clearConversation,
         retry,
+        settings,
+        updateSettings,
       }}
     >
       {children}

@@ -11,19 +11,21 @@ import {
   Badge,
 } from "@chakra-ui/react";
 import type { JSX } from "react";
-import { FiTrash2, FiPlus, FiMessageSquare } from "react-icons/fi";
+import { FiTrash2, FiPlus, FiMessageSquare, FiSettings } from "react-icons/fi";
 import { IoSparklesOutline } from "react-icons/io5";
 
 interface ChatSidebarProps {
   onNewChat: () => void;
   messageCount: number;
   isTyping: boolean;
+  onOpenSettings: () => void;
 }
 
 export default function ChatSidebar({
   onNewChat,
   messageCount,
   isTyping,
+  onOpenSettings,
 }: ChatSidebarProps): JSX.Element {
   const sidebarBg = useColorModeValue("white", "gray.900");
   const borderColor = useColorModeValue("gray.200", "gray.800");
@@ -100,21 +102,35 @@ export default function ChatSidebar({
         </Box>
       </VStack>
 
-      {/* Footer Controls */}
       <Box pt={4}>
         <Divider borderColor={borderColor} mb={4} />
-        <Button
-          leftIcon={<FiTrash2 />}
-          variant="ghost"
-          colorScheme="red"
-          size="sm"
-          w="full"
-          borderRadius="xl"
-          onClick={onNewChat}
-          isDisabled={messageCount === 0 || isTyping}
-        >
-          Clear History
-        </Button>
+        <HStack spacing={2}>
+          <Button
+            leftIcon={<FiTrash2 />}
+            variant="outline"
+            colorScheme="red"
+            size="sm"
+            flex="1"
+            borderRadius="xl"
+            onClick={onNewChat}
+            isDisabled={messageCount === 0 || isTyping}
+            _hover={{ bg: "red.500", color: "white" }}
+          >
+            Clear
+          </Button>
+          <Button
+            leftIcon={<FiSettings />}
+            variant="outline"
+            colorScheme="purple"
+            size="sm"
+            flex="1"
+            borderRadius="xl"
+            onClick={onOpenSettings}
+            isDisabled={isTyping}
+          >
+            Settings
+          </Button>
+        </HStack>
       </Box>
     </Box>
   );

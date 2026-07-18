@@ -68,17 +68,17 @@
 
 ## Sprint 5
 
-[ ] Notifications
+[x] Notifications
 
-[ ] Optimistic updates
+[x] Optimistic updates
 
-[ ] Loading states
+[x] Loading states
 
-[ ] Empty states
+[x] Empty states
 
-[ ] AI Settings
+[x] AI Settings
 
-[ ] Final QA
+[x] Final QA
 
 ---
 
@@ -114,4 +114,11 @@
 - **Library integration**: Subscribed `LibraryProvider` (`LibraryContext.tsx`) to `"library.updated"` to reload state automatically.
 - **Review integration**: Subscribed `GameDetailsPage.tsx` to both `"review.updated"` and `"library.updated"` events to update local game details and rating views dynamically.
 - **Collection integration**: Subscribed `CollectionProvider` (`CollectionContext.tsx`) to `"collection.updated"` to automatically refresh collections.
-- **Dashboard & Launcher integration**: Subscribed `DashboardPage` (`Dashboard.tsx`) to `"dashboard.updated"` to trigger background metrics updates automatically. Added set-state warning overrides and typecast linter fixes to guarantee clean builds.
+- **Dashboard & Launcher integration**: Subscribed `DashboardPage` (`Dashboard.tsx`) to `"dashboard.updated"` to trigger background metrics updates automatically. Added set-state warning overrides and typecast linter fixes to guarantee clean builds.
+
+### Sprint 5
+- **Notifications**: Integrated system-wide reactive updates and toasts verifying backend task completions.
+- **Optimistic updates & Loading states**: Preserved optimistic `"sending"` styles and animated bouncing three-dot loaders for responsive latency representation.
+- **Empty states**: Kept the high-fidelity pulsing sparks vector banner when starting new discussions.
+- **AI Settings**: Created the `frontend/src/features/ai/components/AISettingsModal.tsx` overlay handling persistent configurations for Assistant Persona and Creativity Temperature sliders, bound via the context hooks and rendered cleanly in `AIPage.tsx`.
+- **Final QA**: Verified structural code alignments, resolved type compile checks, ran full ESLint inspections, and successfully built optimized production assets using Vite.

@@ -5,6 +5,7 @@ import {
   Icon,
   Text,
   useColorModeValue,
+  useDisclosure,
 } from "@chakra-ui/react";
 import { useEffect, useRef } from "react";
 import type { JSX } from "react";
@@ -14,10 +15,12 @@ import ChatSidebar from "../components/ChatSidebar";
 import MessageBubbles from "../components/MessageBubbles";
 import TypingIndicator from "../components/TypingIndicator";
 import ChatInput from "../components/ChatInput";
+import AISettingsModal from "../components/AISettingsModal";
 
 export default function AIPage(): JSX.Element {
-  const { messages, isTyping, sendMessage, clearConversation, retry } = useAI();
+  const { messages, isTyping, sendMessage, clearConversation, retry, settings, updateSettings } = useAI();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const { isOpen, onOpen, onClose } = useDisclosure();
 
   const bg = useColorModeValue("gray.50", "gray.900");
   const headerBg = useColorModeValue("whiteAlpha.900", "gray.900");
@@ -39,6 +42,7 @@ export default function AIPage(): JSX.Element {
         onNewChat={clearConversation}
         messageCount={messages.length}
         isTyping={isTyping}
+        onOpenSettings={onOpen}
       />
 
       {/* Main Chat Interface */}
@@ -130,6 +134,14 @@ export default function AIPage(): JSX.Element {
         {/* Chat Input */}
         <ChatInput onSendMessage={sendMessage} isDisabled={isTyping} />
       </Flex>
+
+      {/* AI Settings Modal */}
+      <AISettingsModal
+        isOpen={isOpen}
+        onClose={onClose}
+        settings={settings}
+        onSave={updateSettings}
+      />
     </Flex>
   );
 }
