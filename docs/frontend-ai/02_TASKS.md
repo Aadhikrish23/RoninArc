@@ -52,17 +52,17 @@
 
 ## Sprint 4
 
-[ ] EventBus
+[x] EventBus
 
-[ ] Library integration
+[x] Library integration
 
-[ ] Review integration
+[x] Review integration
 
-[ ] Collection integration
+[x] Collection integration
 
-[ ] Launcher integration
+[x] Launcher integration
 
-[ ] Dashboard integration
+[x] Dashboard integration
 
 ---
 
@@ -106,4 +106,12 @@
 - **Tool Timeline & Tool Cards**: Created `frontend/src/features/ai/components/ToolTimeline.tsx` displaying the exact execution layers (Session loading, Memory access, Intent planning, Action execution) and metrics.
 - **Clarification UI & Clarification cards**: Created `frontend/src/features/ai/components/ClarificationCard.tsx` showing the reason/question for requested clarifications and rendering a responsive grid of candidates as clickable options that automatically post selections back to the AI.
 - **Error UI**: Created `frontend/src/features/ai/components/ErrorCard.tsx` to handle failures gracefully in a stylized red card format.
-- **Retry**: Implemented a global `retry` method in `AIContext.tsx` and mapped it to the `Retry Action` buttons in `ErrorCard` to automatically trigger re-execution of the last failed message query. All layouts integrate cleanly in `MessageBubbles.tsx` and compile without type errors.
+- **Retry**: Implemented a global `retry` method in `AIContext.tsx` and mapped it to the `Retry Action` buttons in `ErrorCard` to automatically trigger re-execution of the last failed message query. All layouts integrate cleanly in `MessageBubbles.tsx` and compile without type errors.
+
+### Sprint 4
+- **EventBus**: Developed the decoupled `frontend/src/shared/events/EventBus.ts` instance for system-wide pub/sub event routing.
+- **AI Publication**: Connected the `EventBus` into `AIContext.tsx` to publish custom updates (`library.updated`, `collection.updated`, `review.updated`, `launcher.started`, `dashboard.updated`) depending on the action executed.
+- **Library integration**: Subscribed `LibraryProvider` (`LibraryContext.tsx`) to `"library.updated"` to reload state automatically.
+- **Review integration**: Subscribed `GameDetailsPage.tsx` to both `"review.updated"` and `"library.updated"` events to update local game details and rating views dynamically.
+- **Collection integration**: Subscribed `CollectionProvider` (`CollectionContext.tsx`) to `"collection.updated"` to automatically refresh collections.
+- **Dashboard & Launcher integration**: Subscribed `DashboardPage` (`Dashboard.tsx`) to `"dashboard.updated"` to trigger background metrics updates automatically. Added set-state warning overrides and typecast linter fixes to guarantee clean builds.

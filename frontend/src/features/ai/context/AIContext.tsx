@@ -10,6 +10,7 @@ import {
 import type { Message, ClarificationRequest } from "../types/conversation";
 import aiApi from "../api/aiApi";
 import { useAuth } from "../../auth/context/AuthContext";
+import { eventBus } from "../../../shared/events/EventBus";
 
 interface AIContextType {
   messages: Message[];
@@ -111,6 +112,27 @@ export function AIProvider({ children }: { children: ReactNode }) {
       };
 
       setMessages((prev) => [...prev, assistantMessage]);
+
+      // Publish completion events on the shared EventBus
+      if (response.success) {
+        const textLower = text.toLowerCase();
+        
+        if (textLower.includes("launch") || textLower.includes("play") || textLower.includes("start")) {
+          eventBus.publish("launcher.started");
+        }
+        if (textLower.includes("collection")) {
+          eventBus.publish("collection.updated");
+        }
+        if (textLower.includes("review") || textLower.includes("rate") || textLower.includes("stars")) {
+          eventBus.publish("review.updated");
+        }
+        if (textLower.includes("install") || textLower.includes("download")) {
+          eventBus.publish("library.updated");
+        }
+        
+        eventBus.publish("library.updated");
+        eventBus.publish("dashboard.updated");
+      }
     } catch (error) {
       console.error("[AI Context] Error sending message:", error);
 

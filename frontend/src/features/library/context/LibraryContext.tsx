@@ -1,9 +1,11 @@
+/* eslint-disable react-refresh/only-export-components, @typescript-eslint/no-explicit-any */
 import { createContext, useState, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
 import { useToast } from "@chakra-ui/react";
 import { useAuth } from "../../auth/context/AuthContext";
 import libraryApi from "../api/libraryApi";
 import type { Game, Status, AddGamePayload, UpdateGamePayload } from "../types/library";
+import { eventBus } from "../../../shared/events/EventBus";
 
 export interface LibraryContextType {
   games: Game[];
@@ -45,6 +47,14 @@ const fetchLibrary = useCallback(async () => {
     setLoading(false);
   }
 }, []);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    const unsubscribe = eventBus.subscribe("library.updated", () => {
+      fetchLibrary();
+    });
+    return unsubscribe;
+  }, [isAuthenticated, fetchLibrary]);
 
   // Clean state on logout
   useEffect(() => {

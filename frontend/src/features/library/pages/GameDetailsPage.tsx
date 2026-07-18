@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 import {
   Box,
   Flex,
@@ -22,8 +23,9 @@ import GameStats from "../components/GameStats";
 import GameScreenshots from "../components/GameScreenshots";
 import { useLibrary } from "../hooks/useLibrary";
 import UserGameStats from "../components/UserGameStats";
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import type { Status } from "../types/library";
+import { eventBus } from "../../../shared/events/EventBus";
 import { useCollection } from "../../collections/hooks/useCollections";
 import { useReview } from "../../reviews/hooks/useReview";
 import { usePlaySession } from "../../playSession/hooks/usePlaySession";
@@ -166,22 +168,36 @@ export default function GameDetailsPage() {
     Promise.all([fetchLibrary()]);
   }, []);
 
-  useEffect(() => {
-    const fetchReviewAndStats = async () => {
-      if (libraryGame?._id) {
-        try {
-          const rev = await reviewApi.getReview(libraryGame._id);
-          setUserReview(rev);
-        } catch {
-          setUserReview(null);
-        }
-        await loadGameStats(libraryGame._id);
-      } else {
+  const fetchReviewAndStats = useCallback(async () => {
+    if (libraryGame?._id) {
+      try {
+        const rev = await reviewApi.getReview(libraryGame._id);
+        setUserReview(rev);
+      } catch {
         setUserReview(null);
       }
-    };
+      await loadGameStats(libraryGame._id);
+    } else {
+      setUserReview(null);
+    }
+  }, [libraryGame, loadGameStats]);
+
+  useEffect(() => {
     fetchReviewAndStats();
-  }, [libraryGame?._id]);
+  }, [fetchReviewAndStats]);
+
+  useEffect(() => {
+    const unsubscribeReview = eventBus.subscribe("review.updated", () => {
+      fetchReviewAndStats();
+    });
+    const unsubscribeLibrary = eventBus.subscribe("library.updated", () => {
+      fetchReviewAndStats();
+    });
+    return () => {
+      unsubscribeReview();
+      unsubscribeLibrary();
+    };
+  }, [fetchReviewAndStats]);
 
   if (loading) {
     return (

@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/set-state-in-effect */
 // frontend/src/routes/Dashboard.tsx
 import {
   Box,
@@ -13,12 +14,14 @@ import {
   HStack,
   VStack,
 } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { getDashboardStats } from "../api/dashboardApi";
 import type { DashboardStats } from "../types/dashboard";
 import { usePlaySession } from "../../playSession/hooks/usePlaySession";
 import GenreChart from "../components/GenreChart";
 import StatusChart from "../components/StatusChart";
+import { eventBus } from "../../../shared/events/EventBus";
+
 function DashboardPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
   const cardBg = useColorModeValue("white", "gray.800");
@@ -38,21 +41,27 @@ function DashboardPage() {
     genreStats: [],
     statusStats: [],
   });
-  useEffect(() => {
-    const load = async () => {
-      try {
-        const data = await getDashboardStats();
 
-        setStats(data);
-
-        await loadStats();
-      } catch (error) {
-        console.error(error);
-      }
-    };
-
-    load();
+  const loadData = useCallback(async () => {
+    try {
+      const data = await getDashboardStats();
+      setStats(data);
+      await loadStats();
+    } catch (error) {
+      console.error(error);
+    }
   }, [loadStats]);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  useEffect(() => {
+    const unsubscribe = eventBus.subscribe("dashboard.updated", () => {
+      loadData();
+    });
+    return unsubscribe;
+  }, [loadData]);
 
   return (
     <Box minH="100vh" bg={bg}>

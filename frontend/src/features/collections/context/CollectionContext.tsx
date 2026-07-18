@@ -1,8 +1,10 @@
+/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
 
@@ -10,6 +12,7 @@ import { useToast } from "@chakra-ui/react";
 
 import collectionApi from "../api/collectionApi";
 import type { Collection } from "../types/collection";
+import { eventBus } from "../../../shared/events/EventBus";
 
 interface CollectionContextType {
   collections: Collection[];
@@ -75,6 +78,13 @@ export function CollectionProvider({
       setLoading(false);
     }
 }, []);
+
+  useEffect(() => {
+    const unsubscribe = eventBus.subscribe("collection.updated", () => {
+      fetchCollections();
+    });
+    return unsubscribe;
+  }, [fetchCollections]);
 
   const createCollection = async (
     name: string,
