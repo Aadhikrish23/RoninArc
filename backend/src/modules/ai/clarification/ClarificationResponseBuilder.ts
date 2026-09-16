@@ -31,6 +31,7 @@ export class ClarificationResponseBuilder {
     return {
       success: false,
       status: "CLARIFICATION_REQUIRED",
+      message: updatedClarification.question,
       clarificationRequest: updatedClarification,
     };
   }

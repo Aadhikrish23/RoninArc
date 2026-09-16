@@ -65,7 +65,7 @@ export class ExecutionPipeline {
 
     const resolvedPlan = await toolParameterResolver.resolve(context);
 
-    const validationErrors = this.toolValidator.validate(resolvedPlan, context.resolvedIntentPlan);
+    const validationErrors = [...new Set(this.toolValidator.validate(resolvedPlan, context.resolvedIntentPlan))];
     if (validationErrors.length > 0) {
       errors.push(...validationErrors);
 
@@ -77,7 +77,7 @@ export class ExecutionPipeline {
         startedAt: new Date(startTime),
         finishedAt: new Date(),
         steps: [],
-        summary: "Execution validation failed.",
+        summary: `Execution validation failed: ${validationErrors.join(" ")}`,
         errors,
         warnings,
       };

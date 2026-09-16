@@ -41,7 +41,10 @@ export class AIResponseBuilder {
     };
 
     for (const step of executionResult.steps) {
-      if (step.status !== "SUCCESS") continue;
+      if (step.status !== "SUCCESS") {
+        sentences.push(`However, "${step.tool}" failed${step.error ? `: ${step.error}` : "."}`);
+        continue;
+      }
 
       const params = (step.input.parameters as Record<string, unknown>) || {};
       const gameName = getGameName(step);

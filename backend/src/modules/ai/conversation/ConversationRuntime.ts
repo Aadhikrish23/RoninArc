@@ -65,11 +65,13 @@ export class ConversationRuntime {
   ): Promise<{
     success: boolean;
     status: string;
+    message: string;
     clarificationRequest: ClarificationRequest;
   }> {
     const response = {
       success: false,
       status: "CLARIFICATION_REQUIRED",
+      message: clarificationRequest.question || clarificationRequest.reason,
       clarificationRequest,
     };
 

@@ -15,8 +15,10 @@ export class ExecutionSummaryBuilder {
     const failed = result.steps.filter((s) => s.status === ExecutionConstants.STATUS_FAILED).length;
 
     const stepSummaries = result.steps.map((s) => {
-      const statusText = s.status === ExecutionConstants.STATUS_SUCCESS ? "succeeded" : "failed";
-      return `Step "${s.tool}" ${statusText}.`;
+      if (s.status === ExecutionConstants.STATUS_SUCCESS) {
+        return `Step "${s.tool}" succeeded.`;
+      }
+      return `Step "${s.tool}" failed${s.error ? `: ${s.error}` : "."}`;
     });
 
     if (result.status === ExecutionConstants.STATUS_SUCCESS) {

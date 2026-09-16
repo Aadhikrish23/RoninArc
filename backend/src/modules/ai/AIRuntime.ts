@@ -229,18 +229,21 @@ export class AIRuntime {
         // Map raw execution result details into a natural user summary
         const friendlyMessage = aiResponseBuilder.buildResponse(executionResult);
         profiler.stopOverall();
+        const isFullSuccess = executionResult.status === "SUCCESS";
         response = {
           ...conversationResult,
+          success: isFullSuccess,
+          status: executionResult.status,
           message: friendlyMessage,
           metrics: profiler.getMetrics(),
         };
 
         if (trace) {
           trace.updateStats({
-            status: "SUCCESS",
+            status: executionResult.status,
           });
           trace.log("FinalResponse", "Completed", response);
-          trace.log("AIRuntime", "Runtime Finished", { status: "SUCCESS" });
+          trace.log("AIRuntime", "Runtime Finished", { status: executionResult.status });
           trace.end();
         }
 
