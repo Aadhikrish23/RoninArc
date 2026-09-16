@@ -171,6 +171,7 @@ export class ExecutionPipeline {
       }
 
       let attempt = 0;
+      let retryCount = 0;
       let success = false;
       let stepError: string | null = null;
       let stepOutput: Record<string, unknown> | null = null;
@@ -199,6 +200,7 @@ export class ExecutionPipeline {
           const action = await this.recoveryService.attemptRecovery(step, err, attempt);
 
           if (action === "RETRY") {
+            retryCount += 1;
             await executionEventBus.publish(ExecutionConstants.EVENT_STEP_RETRIED, { stepId: step.id, attempt, error: stepError });
             continue;
           }
@@ -227,7 +229,7 @@ export class ExecutionPipeline {
         input: step.input,
         output: stepOutput,
         error: stepError,
-        retryCount: Math.max(0, attempt - 1),
+        retryCount,
       };
 
       stepResults.push(stepResult);
@@ -245,9 +247,12 @@ export class ExecutionPipeline {
     }
 
     // --- STAGE 4: FINALIZATION ---
-    if (overallStatus === ExecutionConstants.STATUS_SUCCESS) {
+    if (overallStatus === ExecutionConstants.STATUS_SUCCESS && stepResults.length > 0) {
       const hasFailures = stepResults.some((r) => r.status === ExecutionConstants.STATUS_FAILED);
-      if (hasFailures) {
+      const allFailed = stepResults.every((r) => r.status === ExecutionConstants.STATUS_FAILED);
+      if (allFailed) {
+        overallStatus = ExecutionConstants.STATUS_FAILED;
+      } else if (hasFailures) {
         overallStatus = ExecutionConstants.STATUS_PARTIAL_SUCCESS;
       }
     }

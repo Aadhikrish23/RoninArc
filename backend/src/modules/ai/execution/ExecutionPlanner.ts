@@ -14,7 +14,6 @@ export class ExecutionPlanner {
 
     if (planningResult.executionCandidates) {
       for (const candidate of planningResult.executionCandidates) {
-        console.log(steps);
         steps.push({
           id: crypto.randomUUID(),
           toolName: "", // ToolName is resolved during prepare stage in execution pipeline

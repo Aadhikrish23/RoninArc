@@ -2,7 +2,6 @@ export class ToolMapper {
   private readonly map: Record<string, string> = {
     "complete-game": "update_status",
     "launch-game": "launch_game",
-    "review-game": "create_review",
     "collection": "create_collection",
     "connect-account": "connect_epic",
     "disconnect-account": "disconnect_epic",
@@ -17,6 +16,18 @@ export class ToolMapper {
     targetsOrInput?: any[] | Record<string, unknown>,
     queryOrIntentType?: string
   ): string {
+    if (capabilityId === "review-game") {
+      const queryText = (queryOrIntentType || "").toLowerCase();
+      if (
+        queryText.includes("delete") ||
+        queryText.includes("remove") ||
+        queryText.includes("erase")
+      ) {
+        return "delete_review";
+      }
+      return "create_review";
+    }
+
     if (capabilityId === "collection") {
       let targets: any[] = [];
       if (Array.isArray(targetsOrInput)) {

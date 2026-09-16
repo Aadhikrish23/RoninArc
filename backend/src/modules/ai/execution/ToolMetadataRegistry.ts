@@ -123,6 +123,18 @@ export class ToolMetadataRegistry {
         ],
       },
       {
+        id: "delete_review",
+        supportedIntent: "delete_review",
+        supportedEntityTypes: ["Game"],
+        executionPolicy: "SEQUENTIAL",
+        requiredParameters: ["gameId"],
+        optionalParameters: [],
+        description: "Deletes a review for a game",
+        parameters: [
+          { name: "gameId", type: "string", required: true },
+        ],
+      },
+      {
         id: "connect_epic",
         supportedIntent: "connect_epic",
         supportedEntityTypes: ["Provider"],

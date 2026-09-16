@@ -54,6 +54,13 @@ export class ToolInputFactory {
           };
         }
 
+        case "delete_review": {
+          const gameIdVal = getParamValue("gameId", "GameId") || getParamValue("gameId", "gameId");
+          return {
+            gameId: gameIdVal !== undefined ? String(gameIdVal) : (gameTarget ? gameTarget.name : ""),
+          };
+        }
+
         case "launch_game": {
           const gameIdVal = getParamValue("gameId", "GameId") || getParamValue("gameId", "gameId");
           return {
