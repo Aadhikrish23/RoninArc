@@ -105,6 +105,27 @@ Response JSON:
 }`
     },
     {
+      id: "delete-review",
+      capabilityId: "review-game",
+      keywords: ["delete", "remove review", "erase review"],
+      text: `User Request: Delete my review for Fallout Shelter
+Response JSON:
+{
+  "intents": [
+    {
+      "type": "DeleteReview",
+      "targets": [
+        {
+          "type": "Game",
+          "name": "Fallout Shelter"
+        }
+      ],
+      "parameters": []
+    }
+  ]
+}`
+    },
+    {
       id: "create-collection",
       capabilityId: "collection",
       keywords: ["create", "collection", "group"],
@@ -323,7 +344,7 @@ ${capabilityDetails}
 Note:
 - Goal "Complete Game" maps to intent type "CompleteGame" and accepts parameter "Status" (value: "completed").
 - Goal "Review Game" maps to intent type "ReviewGame" (for text review comments) or "RateGame" (for numeric 1-10 rating scores).
-- If the user specifies a rating number or stars (e.g. "9", "10", "5 stars"), you MUST use intent type "RateGame" and include the "Rating" parameter. If the user only says "Review" without a rating number, use "ReviewGame".
+- If the user specifies a rating number or stars (e.g. "9", "10", "5 stars"), you MUST use intent type "RateGame" and include the "Rating" parameter. If the user only says "Review" without a rating number, use "ReviewGame". If the user asks to delete, remove, or erase their review, use intent type "DeleteReview".
 - Goal "Manage Collection" maps to intent type "CreateCollection" or "OrganizeCollection" and accepts Collection and Game targets.
 
 User Context:
@@ -337,7 +358,7 @@ Understand the user request and map it to player-centric intents.
 You must return ONLY a valid JSON object matching the following structure without any markdown formatting, explanations, comments, reasoning, or additional text.
 
 Allowed Enum Values:
-- intent type: CompleteGame, LaunchGame, RateGame, ReviewGame, CreateCollection, OrganizeCollection, SyncLibrary, ConnectAccount, DisconnectAccount, AskQuestion, Help
+- intent type: CompleteGame, LaunchGame, RateGame, ReviewGame, DeleteReview, CreateCollection, OrganizeCollection, SyncLibrary, ConnectAccount, DisconnectAccount, AskQuestion, Help
 - target type: Game, Collection, Provider, Library, Review
 - parameter type: Rating, Status, Platform, Provider, Date, Boolean, Text
 

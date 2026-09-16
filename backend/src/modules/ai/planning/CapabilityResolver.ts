@@ -22,7 +22,7 @@ export class CapabilityResolver {
           .list()
           .find((cap) => {
             if (cap.intentType === intent.type) return true;
-            if (cap.id === "review-game" && intent.type === "RateGame") return true;
+            if (cap.id === "review-game" && (intent.type === "RateGame" || intent.type === "DeleteReview")) return true;
             if (cap.id === "collection" && intent.type === "CreateCollection") return true;
             return false;
           });

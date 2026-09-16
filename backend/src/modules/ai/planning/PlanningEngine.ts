@@ -9,6 +9,7 @@ import toolMapper from "../execution/ToolMapper";
 import toolMetadataRegistry from "../execution/ToolMetadataRegistry";
 import { ConversationReferences } from "../conversation/ConversationReferences";
 import { ContextCategory } from "../context/ContextCategory";
+import { NO_REFERENCE_FALLBACK_TOOLS } from "../execution/NoReferenceFallbackTools";
 
 export class PlanningEngine {
   /**
@@ -110,8 +111,9 @@ export class PlanningEngine {
                   }
                 }
 
-                // C. Check conversation references
-                if (!isSupplied && conversationReferences) {
+                // C. Check conversation references (skipped for tools that must not
+                // silently act on a stale reference -- see NoReferenceFallbackTools)
+                if (!isSupplied && conversationReferences && !NO_REFERENCE_FALLBACK_TOOLS.has(toolName)) {
                   if (paramNameLower === "gameid" && conversationReferences.currentGame) {
                     isSupplied = true;
                   } else if (paramNameLower === "collectionname" && conversationReferences.currentCollection) {

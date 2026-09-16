@@ -2,6 +2,7 @@ import { ExecutionContext } from "./ExecutionContext";
 import { ExecutionPlan } from "./ExecutionPlan";
 import toolMetadataRegistry from "./ToolMetadataRegistry";
 import conversationStore from "../conversation/ConversationStore";
+import { NO_REFERENCE_FALLBACK_TOOLS } from "./NoReferenceFallbackTools";
 
 export class ToolParameterResolver {
   /**
@@ -78,7 +79,10 @@ export class ToolParameterResolver {
         }
 
         // If still not resolved, check session references
-        if (parameters[param.name] === undefined || parameters[param.name] === null || parameters[param.name] === "") {
+        if (
+          (parameters[param.name] === undefined || parameters[param.name] === null || parameters[param.name] === "") &&
+          !NO_REFERENCE_FALLBACK_TOOLS.has(step.toolName)
+        ) {
           if (session && session.references) {
             if (param.name === "gameId" && session.references.currentGame) {
               parameters[param.name] = session.references.currentGame.entityId;
