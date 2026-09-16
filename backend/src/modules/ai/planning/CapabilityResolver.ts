@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 import { IntentPlan } from "../intent/IntentPlan";
 import { ResolvedCapability } from "./ResolvedCapability";
 import { CapabilityRegistry } from "./CapabilityRegistry";

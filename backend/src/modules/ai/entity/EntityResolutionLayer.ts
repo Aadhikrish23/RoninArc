@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 import { ResolvedCapability } from "../planning/ResolvedCapability";
 import { ResolvedIntentPlan } from "./ResolvedIntentPlan";
 import { ResolvedIntent } from "./ResolvedIntent";
@@ -67,7 +65,9 @@ export class EntityResolutionLayer {
           allResolvedTargets.push(resolvedTarget);
 
           if (isBulk && resolutionResult.status === EntityResolutionStatus.RESOLVED) {
-            for (const cand of resolutionResult.candidates || []) {
+            // candidates[0] is the same entity already pushed above as the primary
+            // resolvedTarget, so skip it here to avoid double-counting/double-acting on it.
+            for (const cand of (resolutionResult.candidates || []).slice(1)) {
               const candTarget: IntentTarget = {
                 type: IntentTargetType.Game,
                 name: cand.title,

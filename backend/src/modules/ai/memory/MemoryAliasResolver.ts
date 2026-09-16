@@ -44,9 +44,11 @@ export class MemoryAliasResolver {
       }
     }
 
-    // 2. Learned Memory Aliases
+    // 2. Learned Memory Aliases (only trust aliases at/above the same confidence
+    // floor MemoryLoader applies elsewhere, so a weakened/low-confidence alias
+    // doesn't get auto-applied instead of falling through to fuzzy matching).
     const aliasEntry = await memoryStore.findAlias(userId, normQuery);
-    if (aliasEntry && aliasEntry.value) {
+    if (aliasEntry && aliasEntry.value && aliasEntry.confidence >= 0.3) {
       const canonicalName = aliasEntry.value.toLowerCase().trim();
       const match = candidates.find(
         (c) =>
