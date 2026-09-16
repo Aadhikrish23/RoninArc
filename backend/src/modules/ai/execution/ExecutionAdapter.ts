@@ -41,7 +41,6 @@ export class ExecutionAdapter {
           legacyInput.gameId = entity._id.toString();
         }
       }
-      console.log("ExecutionAdapter", step);
       steps.push({
         id: step.id,
         tool: step.toolName,

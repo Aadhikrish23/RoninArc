@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 import { EntityResolutionStatus } from "./EntityResolutionStatus";
 
 export interface EntityResolutionResult<T> {

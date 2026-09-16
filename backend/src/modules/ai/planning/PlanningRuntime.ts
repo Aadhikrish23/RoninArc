@@ -40,7 +40,6 @@ export class PlanningRuntime {
           capabilities: resolvedCapabilities.map((rc) => rc.capability.id),
         });
       }
-      console.log("PlanningRuntime capabilities:", resolvedCapabilities);
 
       // Stage 2: Context Request Building
       const contextRequest = contextRequestBuilder.build(

@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 import { IntentType } from "../intent/IntentType";
 import { IntentParameter } from "../intent/IntentParameter";
 import { IntentTarget } from "../intent/IntentTarget";

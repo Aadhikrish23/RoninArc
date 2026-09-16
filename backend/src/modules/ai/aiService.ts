@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 import { AIExecutor } from "./sdk/AIExecutor";
 import { AIProvider } from "./providers/AIProvider";
 import { AIToolRegistry } from "./sdk/AIToolRegistry";

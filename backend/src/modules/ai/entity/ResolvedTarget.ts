@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 import { IntentTarget } from "../intent/IntentTarget";
 import { EntityResolutionResult } from "./EntityResolutionResult";
 

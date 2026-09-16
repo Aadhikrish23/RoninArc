@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 export interface ClarificationOption {
   id: string;
   label: string;

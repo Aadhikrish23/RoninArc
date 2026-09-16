@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 import { IGameLibrary } from "../../library/LibraryGame";
 import mongoose from "mongoose";
 

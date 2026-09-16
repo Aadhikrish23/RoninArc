@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 export const EXACT_CONFIDENCE = 1.0;
 export const FUZZY_RESOLVED_THRESHOLD = 0.90;
 export const FUZZY_AMBIGUOUS_THRESHOLD = 0.75;

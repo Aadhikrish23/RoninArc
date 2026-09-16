@@ -57,7 +57,6 @@ export class ExecutionRuntime {
         runtimeMetadata: {},
         traceMetadata: {},
       };
-      console.log(executionPlan);
 
       const result = await this.pipeline.run(context, toolContext, userQuery);
 

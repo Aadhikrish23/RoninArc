@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 import { ContextRequest } from "./ContextRequest";
 import { ContextSnapshot } from "./ContextSnapshot";
 import { ContextFact } from "./ContextFact";

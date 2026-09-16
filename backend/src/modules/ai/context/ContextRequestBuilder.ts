@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 import { ContextRequest } from "./ContextRequest";
 import { ContextCategory } from "./ContextCategory";
 import { ResolvedCapability } from "../planning/ResolvedCapability";

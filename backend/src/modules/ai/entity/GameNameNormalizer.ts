@@ -1,5 +1,3 @@
-// TEMP DEBUG ONLY
-
 export class GameNameNormalizer {
   /**
    * Normalizes a game name string by:
