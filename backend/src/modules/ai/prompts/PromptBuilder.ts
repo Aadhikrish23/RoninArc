@@ -337,7 +337,7 @@ Understand the user request and map it to player-centric intents.
 You must return ONLY a valid JSON object matching the following structure without any markdown formatting, explanations, comments, reasoning, or additional text.
 
 Allowed Enum Values:
-- intent type: CompleteGame, StartGame, PauseGame, DropGame, LaunchGame, RateGame, ReviewGame, FindGame, RecommendGame, CompareGames, OrganizeLibrary, CreateCollection, OrganizeCollection, SyncLibrary, ConnectAccount, DisconnectAccount, AskQuestion, Help
+- intent type: CompleteGame, LaunchGame, RateGame, ReviewGame, CreateCollection, OrganizeCollection, SyncLibrary, ConnectAccount, DisconnectAccount, AskQuestion, Help
 - target type: Game, Collection, Provider, Library, Review
 - parameter type: Rating, Status, Platform, Provider, Date, Boolean, Text
 

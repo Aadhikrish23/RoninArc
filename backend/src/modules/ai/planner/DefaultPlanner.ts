@@ -1,6 +1,7 @@
 import { AIPlanner } from "../sdk/AIPlanner";
 import { AIToolContext } from "../sdk/AIToolContext";
 import { AIPlan } from "../types/AIPlan";
+import crypto from "crypto";
 
 export class DefaultPlanner implements AIPlanner {
   async plan(
