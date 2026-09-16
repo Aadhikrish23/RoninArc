@@ -116,13 +116,18 @@ export class ClarificationRuntime {
       // Check if this is a completely new command/intent or general conversation instead of a clarification reply.
       const normRequest = request.trim().toLowerCase();
       const words = normRequest.split(/\s+/);
-      
+
       const actionVerbs = ["launch", "complete", "rate", "review", "create", "add", "remove", "update", "sync", "connect", "disconnect", "open", "play", "start", "finish", "actually"];
       const conversationalGreetings = ["hi", "hello", "thanks", "thank you", "good morning", "how are you", "what can you do", "help"];
-      
-      const isAction = actionVerbs.some(verb => normRequest.includes(verb));
-      const isGreeting = conversationalGreetings.some(greet => normRequest.includes(greet));
-      const looksLikeChoice = ["1", "2", "3", "first", "second", "third", "last", "one", "this", "that"].includes(normRequest) || 
+
+      // Match on word/phrase boundaries, not raw substrings, so short tokens like
+      // "hi" or "add" don't false-positive inside unrelated words (e.g. "think", "ladder").
+      const containsPhrase = (phrase: string) =>
+        new RegExp(`(?:^|\\s)${phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:$|\\s)`).test(normRequest);
+
+      const isAction = actionVerbs.some(verb => words.includes(verb));
+      const isGreeting = conversationalGreetings.some(greet => words.includes(greet) || containsPhrase(greet));
+      const looksLikeChoice = ["1", "2", "3", "first", "second", "third", "last", "one", "this", "that"].includes(normRequest) ||
                              (session.pendingClarification.candidates && session.pendingClarification.candidates.some(c => c.label.toLowerCase().includes(normRequest) || normRequest.includes(c.label.toLowerCase())));
       
       const isNewCommand = (isAction || isGreeting || !looksLikeChoice);

@@ -37,10 +37,19 @@ export class SessionLifecycleManager {
   }
 
   /**
-   * Resets status to active / closed state.
+   * Resets an expired session back to a fresh active state, clearing stale
+   * turn history and entity references so they don't leak into the new session.
    */
   closeSession(session: ConversationSession): void {
     session.status = ConversationStatus.ACTIVE;
+    session.turns = [];
+    session.references = {
+      currentGame: null,
+      lastEntity: null,
+      pendingEntity: null,
+      currentCollection: null,
+      currentProvider: null,
+    };
     session.pendingClarification = null;
     session.pendingState = null;
     session.updatedAt = new Date();

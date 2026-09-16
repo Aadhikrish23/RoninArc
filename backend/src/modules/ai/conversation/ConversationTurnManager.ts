@@ -11,7 +11,7 @@ export class ConversationTurnManager {
     session.updatedAt = new Date();
     session.expiresAt = new Date(Date.now() + ConversationRuntimeConfig.SESSION_TIMEOUT_MS);
 
-    const maxHistory = 10;
+    const maxHistory = ConversationRuntimeConfig.MAX_TURNS;
     if (session.turns.length > maxHistory) {
       session.turns = session.turns.slice(session.turns.length - maxHistory);
     }
