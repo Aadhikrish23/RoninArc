@@ -65,9 +65,15 @@ export class EntityResolutionLayer {
           allResolvedTargets.push(resolvedTarget);
 
           if (isBulk && resolutionResult.status === EntityResolutionStatus.RESOLVED) {
-            // candidates[0] is the same entity already pushed above as the primary
-            // resolvedTarget, so skip it here to avoid double-counting/double-acting on it.
-            for (const cand of (resolutionResult.candidates || []).slice(1)) {
+            // Every candidate (including index 0, the same entity as the primary
+            // resolvedTarget above) needs its own entry keyed by its actual title:
+            // PlanningEngine's bulk expansion renames each execution candidate's
+            // target to candidate.title and looks it up here by that exact name.
+            // Skipping index 0 (an earlier "fix" for a cosmetic duplicate-reference
+            // concern) silently broke gameId resolution for the first bulk item,
+            // since the primary entry above is only keyed by the generic bulk
+            // phrase (e.g. "all Batman games"), never by matched[0]'s own title.
+            for (const cand of resolutionResult.candidates || []) {
               const candTarget: IntentTarget = {
                 type: IntentTargetType.Game,
                 name: cand.title,
