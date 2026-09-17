@@ -185,20 +185,24 @@ export function AIProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const retry = useCallback(async (failedMessageId: string) => {
+    // sendMessage must run as a side effect *after* setMessages settles, never
+    // inside the updater itself: React 18 Strict Mode (dev) invokes updater
+    // functions twice to surface exactly this kind of impurity, which was
+    // silently sending the retried request twice on every click.
+    let userText: string | null = null;
     setMessages((prev) => {
       const idx = prev.findIndex((m) => m.id === failedMessageId);
       if (idx === -1) return prev;
       const userMsgIdx = idx - 1;
       if (userMsgIdx >= 0 && prev[userMsgIdx].sender === "user") {
-        const userText = prev[userMsgIdx].text;
-        const cleaned = prev.filter((m) => m.id !== failedMessageId);
-        setTimeout(() => {
-          sendMessage(userText);
-        }, 0);
-        return cleaned;
+        userText = prev[userMsgIdx].text;
+        return prev.filter((m) => m.id !== failedMessageId);
       }
       return prev;
     });
+    if (userText !== null) {
+      await sendMessage(userText);
+    }
   }, [sendMessage]);
 
   return (
