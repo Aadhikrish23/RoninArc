@@ -36,6 +36,11 @@ export class ToolMapper {
         targets = (targetsOrInput.targets as any[]) || [];
       }
 
+      const queryTextForCreate = (queryOrIntentType || "").toLowerCase();
+      if (queryTextForCreate.includes("create")) {
+        return "create_collection";
+      }
+
       const hasGame = targets.some((t) => t.type === "Game" || t.type?.toLowerCase() === "game");
       if (hasGame) {
         const queryText = (queryOrIntentType || "").toLowerCase();

@@ -12,6 +12,7 @@ import conversationRuntime from "./conversation/ConversationRuntime";
 import clarificationRuntime from "./clarification/ClarificationRuntime";
 import memoryRuntime from "./memory/MemoryRuntime";
 import { PlanningRuntime } from "./planning/PlanningRuntime";
+import { PlanningStatus } from "./planning/PlanningStatus";
 import { ExecutionRuntime } from "./execution/ExecutionRuntime";
 import { IntentPlan } from "./intent/IntentPlan";
 
@@ -150,6 +151,29 @@ export class AIRuntime {
         const planningResult = planningResultWrapper.planningResult;
         const resolvedIntentPlan = planningResultWrapper.resolvedIntentPlan;
         profiler.stopLayer("planning");
+
+        // PlanningEngine already computes a specific, user-facing explanation when
+        // nothing matched (e.g. "No resolved capabilities matched the user's intent.
+        // Try rephrasing your request."). Without this check, that explanation was
+        // discarded and execution proceeded anyway with zero candidates, surfacing
+        // the far less helpful "Validation failed: Empty execution plan." instead.
+        if (planningResult.status === PlanningStatus.FAILED) {
+          profiler.stopOverall();
+          const response = {
+            success: false,
+            message: planningResult.explanation,
+            metrics: profiler.getMetrics(),
+          };
+          if (trace) {
+            trace.updateStats({
+              status: "FAILED",
+            });
+            trace.log("FinalResponse", "Completed", response);
+            trace.log("AIRuntime", "Runtime Finished", { status: "FAILED" });
+            trace.end();
+          }
+          return response;
+        }
 
         // 6. Clarification Runtime: Evaluate planning result & handle pause if needed
         profiler.startLayer("clarification");
