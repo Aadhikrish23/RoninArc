@@ -29,7 +29,11 @@ export class ToolParameterResolver {
             if (pType === "text") {
               // "Text" is shared by multiple tools' free-text parameters -- which
               // concrete key it becomes depends on which tool this step is for.
-              key = step.toolName === "search_library" ? "searchValue" : "reviewText";
+              const TEXT_PARAM_KEY_BY_TOOL: Record<string, string> = {
+                search_library: "searchValue",
+                add_note: "content",
+              };
+              key = TEXT_PARAM_KEY_BY_TOOL[step.toolName] || "reviewText";
             }
             parameters[key] = p.value;
           }

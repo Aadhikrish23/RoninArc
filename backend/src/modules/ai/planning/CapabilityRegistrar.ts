@@ -72,6 +72,14 @@ export function registerCapabilities() {
   });
 
   registry.register({
+    id: "add-note",
+    name: "Add Note",
+    description: "Adds a personal note to a game.",
+    intentType: IntentType.AddNote,
+    requirements: [{ contextCategory: ContextCategory.Library }],
+  });
+
+  registry.register({
     id: "connect-account",
     name: "Connect Account",
     description: "Connects a provider account.",

@@ -33,6 +33,8 @@ import * as reviewApi from "../../reviews/api/reviewApi";
 import type { Review } from "../../reviews/types/review";
 import LaunchModal from "../components/LaunchModal";
 import ReviewModal from "../../reviews/components/ReviewModal";
+import NotesSection from "../../notes/components/NotesSection";
+import { useNotes } from "../../notes/hooks/useNotes";
 
 import { useLaunchGame } from "../../library/hooks/useLaunchGame";
 
@@ -77,6 +79,7 @@ export default function GameDetailsPage() {
     : (games.find((g) => g.rawgId === Number(rawgId)) ?? null);
 
   const { game, loading, error } = useGameDetails(rawgId, libraryGame);
+  const { notes, loading: notesLoading, saving: notesSaving, addNote, removeNote } = useNotes(libraryGame?._id);
 
   const handleAddGame = async () => {
     if (!game) return;
@@ -270,6 +273,17 @@ export default function GameDetailsPage() {
           {game.description}
         </Text>
       </Box>
+
+      {/* Notes */}
+      {libraryGame && (
+        <NotesSection
+          notes={notes}
+          loading={notesLoading}
+          saving={notesSaving}
+          onAdd={addNote}
+          onDelete={removeNote}
+        />
+      )}
 
       {/* Genres */}
       <Box mt={10}>

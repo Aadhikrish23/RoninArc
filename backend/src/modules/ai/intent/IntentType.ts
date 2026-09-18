@@ -10,6 +10,7 @@ export enum IntentType {
   AddGame = "AddGame",
   RemoveGame = "RemoveGame",
   SearchLibrary = "SearchLibrary",
+  AddNote = "AddNote",
   FindGame = "FindGame",
   RecommendGame = "RecommendGame",
   CompareGames = "CompareGames",

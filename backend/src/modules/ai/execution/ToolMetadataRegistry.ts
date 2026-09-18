@@ -133,6 +133,19 @@ export class ToolMetadataRegistry {
         ],
       },
       {
+        id: "add_note",
+        supportedIntent: "add_note",
+        supportedEntityTypes: ["Game"],
+        executionPolicy: "SEQUENTIAL",
+        requiredParameters: ["gameId", "content"],
+        optionalParameters: [],
+        description: "Adds a personal note to a game",
+        parameters: [
+          { name: "gameId", type: "string", required: true },
+          { name: "content", type: "string", required: true },
+        ],
+      },
+      {
         id: "update_status",
         supportedIntent: "update_status",
         supportedEntityTypes: ["Game"],

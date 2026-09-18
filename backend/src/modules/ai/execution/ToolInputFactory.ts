@@ -89,6 +89,15 @@ export class ToolInputFactory {
           };
         }
 
+        case "add_note": {
+          const contentVal = getParamValue("content", "Text");
+          const gameIdVal = getParamValue("gameId", "GameId") || getParamValue("gameId", "gameId");
+          return {
+            gameId: gameIdVal !== undefined ? String(gameIdVal) : (gameTarget ? gameTarget.name : ""),
+            content: contentVal !== undefined ? String(contentVal) : "",
+          };
+        }
+
         case "launch_game": {
           const gameIdVal = getParamValue("gameId", "GameId") || getParamValue("gameId", "gameId");
           return {

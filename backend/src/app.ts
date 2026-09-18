@@ -14,6 +14,7 @@ import reviewRouter from "./modules/review/review";
 import collectionRoutes from "./modules/collection/collectionRoutes";
 import activityRouter from "./modules/activity/activity";
 import playSessionRoutes from "./modules/playSession/playSession";
+import noteRouter from "./modules/notes/notes";
 import providerRoutes from "./modules/providers/providerRoutes";
 import { aiRoutes } from "./modules/ai";
 dotenv.config();
@@ -44,6 +45,7 @@ app.use("/review", reviewRouter);
 app.use("/collection", collectionRoutes);
 app.use("/activity", activityRouter);
 app.use("/play-session", playSessionRoutes);
+app.use("/notes", noteRouter);
 
 app.use("/provider", providerRoutes);
 app.use("/ai", aiRoutes);

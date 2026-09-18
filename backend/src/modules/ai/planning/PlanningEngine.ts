@@ -111,6 +111,7 @@ export class PlanningEngine {
                     if (paramNameLower === "platform" && pType === "platform") return true;
                     if (paramNameLower === "provider" && pType === "provider") return true;
                     if (paramNameLower === "searchvalue" && pType === "text") return true;
+                    if (paramNameLower === "content" && pType === "text") return true;
                     return false;
                   });
                   if (matched && matched.value !== undefined && matched.value !== null && matched.value !== "") {
