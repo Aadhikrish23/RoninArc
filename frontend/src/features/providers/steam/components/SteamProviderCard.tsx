@@ -1,12 +1,29 @@
-import { Button, VStack } from "@chakra-ui/react";
+import { Button, VStack, useToast } from "@chakra-ui/react";
 import { FaSteam } from "react-icons/fa";
 import ProviderCard from "../../components/ProviderCard";
 import { useProvider } from "../../context/ProviderContext";
 
 export default function SteamProviderCard() {
   const { provider, connectionState, loading, disconnect, resync, authenticate } = useProvider("steam");
+  const toast = useToast();
 
   const isConnected = ["connected", "syncing"].includes(connectionState);
+
+  const handleConnect = async () => {
+    const result = await authenticate();
+
+    if (result.connected) {
+      toast({
+        title: "Steam Connected",
+        description: `Imported ${result.importedGames ?? 0} game(s) from your local Steam library.`,
+        status: "success",
+        duration: 4000,
+        isClosable: true,
+      });
+    }
+    // Errors (e.g. not running in the desktop app) are surfaced by the
+    // "Error" status badge -- no toast needed for them.
+  };
 
   return (
     <ProviderCard
@@ -45,7 +62,7 @@ export default function SteamProviderCard() {
         <VStack align="stretch" spacing={3} w="100%">
           <Button
             colorScheme="purple"
-            onClick={() => authenticate()}
+            onClick={handleConnect}
             isLoading={loading || connectionState === "connecting"}
             loadingText="Connecting..."
           >

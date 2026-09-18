@@ -62,7 +62,11 @@ export default function FirstLaunchModal() {
             </Text>
 
             <Text fontSize="sm" color="gray.500">
-              🔜 Steam, GOG, and more — coming soon
+              ✓ Steam — available now (desktop app required)
+            </Text>
+
+            <Text fontSize="sm" color="gray.500">
+              🔜 GOG and more — coming soon
             </Text>
           </VStack>
         </ModalBody>

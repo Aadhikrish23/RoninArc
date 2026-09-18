@@ -8,6 +8,7 @@ import React, {
 import type { ProviderId, ProviderStatus } from "../types/provider";
 import providerApi from "../api/providerApi";
 import { createEpicStrategy } from "../epic/auth/createEpicStrategy";
+import { scanLocalSteamLibrary } from "../steam/utils/scanLocalSteamLibrary";
 import { useAuth } from "../../auth/context/AuthContext";
 
 export type ProviderConnectionState =
@@ -230,6 +231,30 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
           authorizationCode = result.authorizationCode;
         }
 
+        let localGames: any[] = [];
+
+        if (providerId === "steam") {
+          try {
+            localGames = await scanLocalSteamLibrary();
+          } catch (scanErr: any) {
+            const msg = scanErr?.message || "Failed to scan local Steam library.";
+            updateProviderState(providerId, (prev) => ({
+              ...prev,
+              connectionState: "error",
+              loading: false,
+              error: msg,
+              lastError: msg,
+            }));
+            return new Promise<ProviderStatus>((resolve) => {
+              const setter = getSetter(providerId);
+              setter((prev) => {
+                resolve(prev.status);
+                return prev;
+              });
+            });
+          }
+        }
+
         updateProviderState(providerId, (prev) => ({
           ...prev,
           connectionState: "syncing",
@@ -240,7 +265,7 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
 
         const updated = await providerApi.connect(providerId, {
           authorizationCode,
-          localGames: [],
+          localGames,
         });
 
         updateProviderState(providerId, {
@@ -380,7 +405,9 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
       }));
 
       try {
-        const result = await providerApi.resync(providerId, { localGames: [] });
+        const localGames =
+          providerId === "steam" ? await scanLocalSteamLibrary() : [];
+        const result = await providerApi.resync(providerId, { localGames });
 
         await refresh(providerId);
         updateProviderState(providerId, (prev) => ({
