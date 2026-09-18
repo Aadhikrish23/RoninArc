@@ -1,6 +1,7 @@
 // desktop/main.js
 const { app, BrowserWindow, ipcMain, dialog } = require("electron");
 const path = require("node:path");
+const fs = require("node:fs");
 const { spawn, exec } = require("node:child_process");
 const activeGames = new Map();
 const { scanEpicGames } = require("./services/epicScanner");
@@ -8,6 +9,182 @@ const { scanSteamGames } = require("./services/steamScanner");
 
 const DEV_SERVER_URL = "http://localhost:5173";
 const isDev = !app.isPackaged;
+
+// ── Single instance lock ──────────────────────────────────────────────────
+// Two RoninArc processes both spawning their own embedded mongod against the
+// same data directory would corrupt it, so a second launch must never reach
+// app.whenReady() at all -- it hands off to the already-running instance
+// and quits immediately instead.
+const gotSingleInstanceLock = app.requestSingleInstanceLock();
+if (!gotSingleInstanceLock) {
+  app.quit();
+} else {
+  app.on("second-instance", () => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (win) {
+      if (win.isMinimized()) win.restore();
+      win.focus();
+    }
+  });
+}
+
+// ── Embedded backend + local database (packaged builds only) ─────────────
+// In dev, the backend and its MongoDB are started separately (npm run dev /
+// .claude/launch.json) exactly as they always have been -- none of this
+// runs unless the app is actually packaged.
+const EMBEDDED_MONGO_PORT = 27018;
+const BACKEND_PORT = 5000;
+let mongodProcess = null;
+let backendProcess = null;
+
+function resourcePath(...segments) {
+  const base = isDev ? __dirname : process.resourcesPath;
+  return path.join(base, ...segments);
+}
+
+// Packaged GUI-subsystem apps have no visible console, so this is the only
+// way to diagnose a "won't start" report from a real installed copy -- kept
+// as permanent, minimal startup logging, not a temporary dev hack. Capped
+// so it can't grow unbounded across the life of an install.
+const DEBUG_LOG_PATH = path.join(app.getPath("userData"), "startup.log");
+const MAX_LOG_SIZE_BYTES = 1024 * 1024; // 1MB
+function debugLog(...args) {
+  const line = `[${new Date().toISOString()}] ${args.join(" ")}\n`;
+  try {
+    if (fs.existsSync(DEBUG_LOG_PATH) && fs.statSync(DEBUG_LOG_PATH).size > MAX_LOG_SIZE_BYTES) {
+      fs.writeFileSync(DEBUG_LOG_PATH, "");
+    }
+    fs.mkdirSync(path.dirname(DEBUG_LOG_PATH), { recursive: true });
+    fs.appendFileSync(DEBUG_LOG_PATH, line);
+  } catch {
+    // ignore
+  }
+}
+
+function startEmbeddedMongo() {
+  return new Promise((resolve, reject) => {
+    const dataDir = path.join(app.getPath("userData"), "mongodb-data");
+    fs.mkdirSync(dataDir, { recursive: true });
+
+    const mongodPath = resourcePath("mongodb-bin", "mongod.exe");
+    debugLog("startEmbeddedMongo: dataDir=", dataDir, "mongodPath=", mongodPath, "exists=", fs.existsSync(mongodPath));
+    mongodProcess = spawn(mongodPath, [
+      "--dbpath", dataDir,
+      "--port", String(EMBEDDED_MONGO_PORT),
+      "--bind_ip", "127.0.0.1",
+    ]);
+    debugLog("startEmbeddedMongo: spawned, pid=", mongodProcess.pid);
+
+    let settled = false;
+    mongodProcess.stdout.on("data", (chunk) => {
+      debugLog("[mongod stdout]", chunk.toString().slice(0, 300));
+      if (!settled && chunk.toString().includes("Waiting for connections")) {
+        settled = true;
+        resolve();
+      }
+    });
+    mongodProcess.stderr.on("data", (chunk) => debugLog("[mongod stderr]", chunk.toString().slice(0, 300)));
+    mongodProcess.on("error", (err) => {
+      debugLog("startEmbeddedMongo: process error", err.message || String(err));
+      if (!settled) {
+        settled = true;
+        reject(err);
+      }
+    });
+    mongodProcess.on("exit", (code) => {
+      debugLog("[mongod] exited with code", code);
+      mongodProcess = null;
+    });
+
+    setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        debugLog("startEmbeddedMongo: TIMED OUT after 20s");
+        reject(new Error("mongod startup timed out after 20s"));
+      }
+    }, 20000);
+  });
+}
+
+// Every packaged install needs its own JWT signing secret -- shipping one
+// hardcoded value baked into the installer would let anyone who extracts it
+// forge auth tokens for every other install of the app. Generated once on
+// first launch and persisted in the OS's per-user app data folder, not in
+// the (world-readable, reinstallable) app directory itself.
+function getOrCreateJwtSecret() {
+  const secretPath = path.join(app.getPath("userData"), "jwt-secret");
+  if (fs.existsSync(secretPath)) {
+    return fs.readFileSync(secretPath, "utf8").trim();
+  }
+  const secret = require("node:crypto").randomBytes(48).toString("hex");
+  fs.writeFileSync(secretPath, secret, "utf8");
+  return secret;
+}
+
+function startBackend() {
+  return new Promise((resolve, reject) => {
+    const backendEntry = resourcePath("backend", "dist", "server.js");
+    debugLog("startBackend: backendEntry=", backendEntry, "exists=", fs.existsSync(backendEntry), "execPath=", process.execPath);
+
+    // ELECTRON_RUN_AS_NODE makes Electron's own bundled binary behave as a
+    // plain Node runtime for this one child process -- the end user never
+    // needs Node.js installed separately.
+    backendProcess = spawn(process.execPath, [backendEntry], {
+      env: {
+        ...process.env,
+        ELECTRON_RUN_AS_NODE: "1",
+        ELECTRON_EMBEDDED: "1",
+        MONGO_URI: `mongodb://127.0.0.1:${EMBEDDED_MONGO_PORT}/RoninArc`,
+        PORT: String(BACKEND_PORT),
+        JWT_SECRET: getOrCreateJwtSecret(),
+      },
+    });
+    debugLog("startBackend: spawned, pid=", backendProcess.pid);
+
+    let settled = false;
+    backendProcess.stdout.on("data", (chunk) => {
+      const text = chunk.toString();
+      debugLog("[backend stdout]", text.slice(0, 300));
+      if (!settled && text.includes("Server is up and running")) {
+        settled = true;
+        resolve();
+      }
+    });
+    backendProcess.stderr.on("data", (chunk) => debugLog("[backend stderr]", chunk.toString().slice(0, 300)));
+    backendProcess.on("error", (err) => {
+      debugLog("startBackend: process error", err.message || String(err));
+      if (!settled) {
+        settled = true;
+        reject(err);
+      }
+    });
+    backendProcess.on("exit", (code) => {
+      debugLog("[backend] exited with code", code);
+      backendProcess = null;
+    });
+
+    setTimeout(() => {
+      if (!settled) {
+        settled = true;
+        debugLog("startBackend: TIMED OUT after 20s");
+        reject(new Error("backend startup timed out after 20s"));
+      }
+    }, 20000);
+  });
+}
+
+function stopChildProcesses() {
+  if (backendProcess) {
+    backendProcess.kill();
+    backendProcess = null;
+  }
+  if (mongodProcess) {
+    // mongod handles SIGTERM as a clean shutdown request (flushes to disk,
+    // closes its journal) -- do not force-kill it under normal shutdown.
+    mongodProcess.kill();
+    mongodProcess = null;
+  }
+}
 
 function createMainWindow() {
   const win = new BrowserWindow({
@@ -170,7 +347,27 @@ ipcMain.handle("launch-game", async (event, gameId, exePath) => {
   }
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  debugLog("app.whenReady: isDev=", isDev, "resourcesPath=", process.resourcesPath, "__dirname=", __dirname);
+  if (!isDev) {
+    try {
+      debugLog("app.whenReady: starting embedded mongo...");
+      await startEmbeddedMongo();
+      debugLog("app.whenReady: embedded mongo ready, starting backend...");
+      await startBackend();
+      debugLog("app.whenReady: backend ready");
+    } catch (err) {
+      debugLog("app.whenReady: FAILED", err.message || String(err));
+      console.error("[startup] Failed to start embedded backend/database:", err);
+      dialog.showErrorBox(
+        "RoninArc failed to start",
+        `RoninArc's local backend or database could not be started.\n\n${err.message || err}`,
+      );
+      app.quit();
+      return;
+    }
+  }
+
   createMainWindow();
 
   app.on("activate", () => {
@@ -181,9 +378,14 @@ app.whenReady().then(() => {
 });
 
 app.on("window-all-closed", () => {
+  stopChildProcesses();
   if (process.platform !== "darwin") {
     app.quit();
   }
+});
+
+app.on("before-quit", () => {
+  stopChildProcesses();
 });
 
 setInterval(() => {

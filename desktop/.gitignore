@@ -1,3 +1,13 @@
 dist/
 node_modules/
 .env
+
+# Portable mongod binary -- ~64MB, fetched by scripts/fetch-mongod.js
+# (run automatically before packaging), never committed.
+mongodb-bin/
+
+# Built frontend bundle -- regenerated fresh by predist (see package.json)
+# from ../frontend on every package build. Was a stale, manually-committed
+# copy from the project's very first commit until this was added; never
+# commit a build artifact here again.
+frontend/

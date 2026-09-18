@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "electron .",
     "start": "electron .",
+    "predist": "node scripts/fetch-mongod.js && npm --prefix ../backend run build && npm --prefix ../frontend run build && node scripts/copy-frontend.js",
     "dist": "electron-builder"
   },
   "keywords": [],
@@ -25,8 +26,15 @@
     "files": [
       "main.js",
       "preload.js",
+      "services/**/*",
       "frontend/**/*",
       "package.json"
+    ],
+    "extraResources": [
+      { "from": "mongodb-bin", "to": "mongodb-bin" },
+      { "from": "../backend/dist", "to": "backend/dist" },
+      { "from": "../backend/node_modules", "to": "backend/node_modules" },
+      { "from": "../backend/package.json", "to": "backend/package.json" }
     ],
     "win": {
       "target": "nsis",
