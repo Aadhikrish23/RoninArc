@@ -3,7 +3,7 @@ import syncService from "../syncService";
 import User from "../../auth/models/User";
 import gameLibrarymodel from "../../library/LibraryGame";
 import steamOpenIdService from "./steamOpenIdService";
-import steamWebApiService from "./steamWebApiService";
+import steamWebApiService, { SteamOwnedGame } from "./steamWebApiService";
 import AppError from "../../../shared/errors/AppError";
 
 const STEAM_RETURN_URL =
@@ -23,9 +23,7 @@ function formatLocalGames(localGames: any[]) {
   }));
 }
 
-async function syncOwnedLibrary(userId: string, steamId64: string) {
-  const owned = await steamWebApiService.getOwnedGames(steamId64);
-
+async function applyOwnedLibrary(userId: string, owned: SteamOwnedGame[]) {
   const ownerships = owned.map((g) => ({
     providerGameId: String(g.appid),
     title: g.name,
@@ -38,6 +36,11 @@ async function syncOwnedLibrary(userId: string, steamId64: string) {
   await syncService.syncProviderGames({ provider: "steam", userId, ownerships });
 
   return owned.length;
+}
+
+async function syncOwnedLibrary(userId: string, steamId64: string) {
+  const owned = await steamWebApiService.getOwnedGames(steamId64);
+  return applyOwnedLibrary(userId, owned);
 }
 
 class SteamProvider implements GameProvider {
@@ -71,6 +74,11 @@ class SteamProvider implements GameProvider {
       throw new AppError("Steam sign-in could not be verified. Please try again.", 401);
     }
 
+    // Fetch BEFORE writing anything -- a missing STEAM_API_KEY or a private
+    // profile must fail the whole connect, not leave the account marked
+    // connected with an empty library (getStatus has no other way to tell
+    // "connected with 0 games" apart from "connected but sync failed").
+    const owned = await steamWebApiService.getOwnedGames(steamId64);
     const summary = await steamWebApiService.getPlayerSummary(steamId64).catch(() => null);
     const displayName = summary?.personaname || "Steam User";
 
@@ -85,7 +93,7 @@ class SteamProvider implements GameProvider {
       },
     });
 
-    await syncOwnedLibrary(userId, steamId64);
+    await applyOwnedLibrary(userId, owned);
 
     if (localGames.length > 0) {
       await syncService.syncInstallationsOnly(userId, "steam", formatLocalGames(localGames));
