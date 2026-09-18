@@ -14,7 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@chakra-ui/react";
 
-import type { RawgGameResult, Game } from "../types/library";
+import type { RawgGameResult } from "../types/library";
 import { useLibrary } from "../hooks/useLibrary";
 import { useRawgSearch } from "../hooks/useRawgSearch";
 import { useReview } from "../../reviews/hooks/useReview";
@@ -44,8 +44,6 @@ function LibraryPage() {
     error,
     fetchLibrary,
     addGame,
-    updateGame,
-    deleteGame,
     updateStatus,
     refreshGame,
   } = useLibrary();
@@ -121,11 +119,6 @@ function LibraryPage() {
   const updateGameRating = (gameId: string) => {
     refreshGame(gameId);
   };
-  const handleDeleteGame = async (gameId: string) => {
-    await deleteGame(gameId);
-
-    removeGameEverywhere(gameId);
-  };
   const {
     collections,
     fetchCollections,
@@ -134,10 +127,7 @@ function LibraryPage() {
 
     deleteCollection: deleteCollectionHandler,
 
-    addGameToCollection,
     removeGameFromCollection,
-
-    removeGameEverywhere,
   } = useCollection();
 
   const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
@@ -145,7 +135,6 @@ function LibraryPage() {
     reviewGame,
     currentReview,
 
-    openReviewModal,
     closeReviewModal,
 
     saveReview,
@@ -192,8 +181,6 @@ function LibraryPage() {
 
     setShowAddedModal(true);
   };
-  const onLaunch={openLaunchModal}
-
   const continuePlayingGames = useMemo(() => {
     return games.filter((g) => g.progressStatus === "playing");
   }, [games]);
@@ -358,7 +345,7 @@ function LibraryPage() {
 
                 <HorizontalSection title="Recently Added">
                   <GameCarousel
-                    games={favoriteGames}
+                    games={recentlyAddedGames}
                     onLaunch={openLaunchModal}
                     onStatusChange={updateStatus}
                     runningGames={runningGames}

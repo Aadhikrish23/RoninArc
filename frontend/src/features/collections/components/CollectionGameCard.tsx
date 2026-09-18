@@ -1,4 +1,4 @@
-import { Box, Button, VStack } from "@chakra-ui/react";
+import { Button, VStack } from "@chakra-ui/react";
 
 import GameCard from "../../library/components/GameCard";
 
@@ -20,7 +20,6 @@ interface Props {
 
 export default function CollectionGameCard({
   game,
-  collectionId,
   onLaunch,
   onStatusChange,
   onRemove,

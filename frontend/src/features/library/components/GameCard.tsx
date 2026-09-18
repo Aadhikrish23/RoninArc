@@ -2,9 +2,6 @@ import {
   Box,
   VStack,
   Text,
-  HStack,
-  Tag,
-  TagLabel,
   Badge,
   Button,
   useColorModeValue,
@@ -13,7 +10,6 @@ import {
   MenuList,
   MenuItem,
   Image,
-  Skeleton,
 } from "@chakra-ui/react";
 
 import { FiPlay } from "react-icons/fi";

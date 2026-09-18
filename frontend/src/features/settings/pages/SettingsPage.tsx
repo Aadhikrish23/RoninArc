@@ -24,7 +24,6 @@ import DangerZoneSection from "../components/DangerZoneSection";
 import ProviderSection from "../../providers/components/ProviderSection";
 import EpicProviderCard from "../../providers/epic/components/EpicProviderCard";
 import SteamProviderCard from "../../providers/steam/components/SteamProviderCard";
-import ComingSoonProviderCard from "../../providers/components/ComingSoonProviderCard";
 
 export default function SettingsPage() {
   const bg = useColorModeValue("gray.50", "gray.900");

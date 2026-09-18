@@ -1,7 +1,6 @@
 import { HStack, Box, Text } from "@chakra-ui/react";
 import GameCard from "./GameCard";
 import type { Game, Status } from "../types/library";
-import type { Collection } from "../../collections/types/collection";
 
 interface GameCarouselProps {
   games: Game[];

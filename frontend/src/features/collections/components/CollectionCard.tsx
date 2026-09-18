@@ -1,6 +1,5 @@
 import {
   Box,
-  Button,
   Flex,
   Heading,
   Text,
@@ -25,7 +24,6 @@ interface Props {
 
 export default function CollectionCard({
   collection,
-  onDelete,
 }: Props) {
   const navigate = useNavigate();
 

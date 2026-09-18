@@ -14,7 +14,6 @@ import {
 } from "@chakra-ui/react";
 
 import type { Game } from "../types/library";
-import { getProviderLauncherUri } from "../utils/launch";
 
 interface LaunchModalProps {
   game: Game | null;
@@ -36,7 +35,6 @@ export default function LaunchModal({
   onClose,
   onEditPath,
   onLaunch,
-  onLaunchLauncher,
 }: LaunchModalProps) {
   if (!game) return null;
 

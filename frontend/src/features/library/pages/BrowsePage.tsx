@@ -12,7 +12,6 @@ import {
   Spinner,
   Text,
   useColorModeValue,
-  useToast,
   Button,
 } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
@@ -20,7 +19,6 @@ import { useNavigate } from "react-router-dom";
 import { FiGrid, FiList } from "react-icons/fi";
 import { ArrowBackIcon } from "@chakra-ui/icons";
 
-import type { Game } from "../types/library";
 import GameCard from "../components/GameCard";
 import GameListRow from "../components/GameListRow";
 import LaunchModal from "../components/LaunchModal";
@@ -30,9 +28,6 @@ import CreateCollectionModal from "../../collections/components/CreateCollection
 import { useLibrary } from "../hooks/useLibrary";
 import { useReview } from "../../reviews/hooks/useReview";
 import { useCollection } from "../../collections/hooks/useCollections";
-import { usePlaySession } from "../../playSession/hooks/usePlaySession";
-import activityApi from "../../activity/api/activityApi";
-import { getLaunchPath } from "../utils/launch";
 import { useLaunchGame } from "../hooks/useLaunchGame";
 
 export default function BrowsePage() {
@@ -41,15 +36,11 @@ export default function BrowsePage() {
     loading,
     error,
     fetchLibrary,
-    deleteGame,
     updateStatus,
-    updateGame,
     refreshGame,
   } = useLibrary();
   const {
-    collections,
     fetchCollections,
-    addGameToCollection,
     createCollection,
   } = useCollection();
 
@@ -68,7 +59,6 @@ export default function BrowsePage() {
   const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
 
   const navigate = useNavigate();
-  const toast = useToast();
   const bg = useColorModeValue("gray.50", "gray.900");
 
   const updateGameRating = (gameId: string) => {
@@ -78,15 +68,10 @@ export default function BrowsePage() {
   const {
     reviewGame,
     currentReview,
-    openReviewModal,
     closeReviewModal,
     saveReview,
     deleteReview: deleteReviewHandler,
   } = useReview(updateGameRating);
-
-  const handleDeleteGame = async (gameId: string) => {
-    await deleteGame(gameId);
-  };
 
   useEffect(() => {
     fetchLibrary();

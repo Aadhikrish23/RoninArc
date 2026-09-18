@@ -5,7 +5,6 @@ import {
   Spinner,
   Text,
   Select,
-  useToast,
 } from "@chakra-ui/react";
 import { ArrowBackIcon } from "@chakra-ui/icons";
 import { useNavigate, useParams } from "react-router-dom";
@@ -21,7 +20,6 @@ import { useCollection } from "../hooks/useCollections";
 import LaunchModal from "../../library/components/LaunchModal";
 import { useLaunchGame } from "../../library/hooks/useLaunchGame";
 import DeleteCollectionModal from "../components/DeleteCollectionModal";
-import collectionApi from "../api/collectionApi";
 import EditCollectionModal from "../components/EditCollectionModal";
 
 export default function CollectionDetailsPage() {
@@ -29,7 +27,6 @@ export default function CollectionDetailsPage() {
   const navigate = useNavigate();
 
   const { updateStatus } = useLibrary();
-  const toast = useToast();
   const { removeGameFromCollection, deleteCollection, updateCollection } =
     useCollection();
 
