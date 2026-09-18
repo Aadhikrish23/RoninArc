@@ -27,7 +27,9 @@ export class ToolParameterResolver {
             const pType = String(p.type).toLowerCase();
             let key = pType;
             if (pType === "text") {
-              key = "reviewText";
+              // "Text" is shared by multiple tools' free-text parameters -- which
+              // concrete key it becomes depends on which tool this step is for.
+              key = step.toolName === "search_library" ? "searchValue" : "reviewText";
             }
             parameters[key] = p.value;
           }
@@ -75,6 +77,15 @@ export class ToolParameterResolver {
             } else {
               parameters[param.name] = collectionTarget.name;
             }
+          }
+        }
+
+        // C. Resolve gameName from a Library target (a search query for a game the
+        // user doesn't own yet, not a resolved library entity -- take it as-is).
+        if (param.name === "gameName") {
+          const libraryTarget = targets.find((t) => t.type === "Library" || t.type?.toLowerCase() === "library");
+          if (libraryTarget) {
+            parameters[param.name] = libraryTarget.name;
           }
         }
 

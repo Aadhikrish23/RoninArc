@@ -6,6 +6,9 @@ export class ToolMapper {
     "connect-account": "connect_epic",
     "disconnect-account": "disconnect_epic",
     "sync-library": "sync_epic",
+    "add-game": "add_game",
+    "remove-game": "remove_game",
+    "search-library": "search_library",
   };
 
   /**

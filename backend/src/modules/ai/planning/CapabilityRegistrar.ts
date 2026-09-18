@@ -48,6 +48,30 @@ export function registerCapabilities() {
   });
 
   registry.register({
+    id: "add-game",
+    name: "Add Game",
+    description: "Searches RAWG and adds a game to your library.",
+    intentType: IntentType.AddGame,
+    requirements: [{ contextCategory: ContextCategory.Library }],
+  });
+
+  registry.register({
+    id: "remove-game",
+    name: "Remove Game",
+    description: "Removes a game from your library.",
+    intentType: IntentType.RemoveGame,
+    requirements: [{ contextCategory: ContextCategory.Library }],
+  });
+
+  registry.register({
+    id: "search-library",
+    name: "Search Library",
+    description: "Searches your library by title, tag, or status.",
+    intentType: IntentType.SearchLibrary,
+    requirements: [{ contextCategory: ContextCategory.Library }],
+  });
+
+  registry.register({
     id: "connect-account",
     name: "Connect Account",
     description: "Connects a provider account.",

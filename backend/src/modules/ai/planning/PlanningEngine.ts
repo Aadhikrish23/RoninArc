@@ -11,6 +11,21 @@ import { ConversationReferences } from "../conversation/ConversationReferences";
 import { ContextCategory } from "../context/ContextCategory";
 import { NO_REFERENCE_FALLBACK_TOOLS } from "../execution/NoReferenceFallbackTools";
 
+// The prompt instructs the LLM not to invent a placeholder name when the user
+// didn't give one, but that's a probabilistic instruction, not a guarantee --
+// live testing found it still happens (e.g. "Create Collection" -> a target
+// literally named "Collection"). A target whose name is just the entity's own
+// category word (or the action verb itself) is treated as not really supplied,
+// so it falls through to a clarification instead of acting on a placeholder.
+const GENERIC_PLACEHOLDER_NAMES = new Set([
+  "game", "collection", "library",
+  "launch", "create", "add", "remove", "search", "complete", "rate", "review", "delete",
+]);
+
+function isMeaningfulTargetName(name: unknown): boolean {
+  return typeof name === "string" && name.trim() !== "" && !GENERIC_PLACEHOLDER_NAMES.has(name.trim().toLowerCase());
+}
+
 export class PlanningEngine {
   /**
    * Evaluates resolved capabilities, gathered context snapshot, and resolved intent plan to produce a PlanningResult.
@@ -95,6 +110,7 @@ export class PlanningEngine {
                     if (paramNameLower === "reviewtext" && pType === "text") return true;
                     if (paramNameLower === "platform" && pType === "platform") return true;
                     if (paramNameLower === "provider" && pType === "provider") return true;
+                    if (paramNameLower === "searchvalue" && pType === "text") return true;
                     return false;
                   });
                   if (matched && matched.value !== undefined && matched.value !== null && matched.value !== "") {
@@ -105,9 +121,11 @@ export class PlanningEngine {
                 // B. Check intent targets
                 if (!isSupplied && resolved.intent.targets) {
                   if (paramNameLower === "gameid") {
-                    isSupplied = resolved.intent.targets.some(t => t.type === "Game");
+                    isSupplied = resolved.intent.targets.some(t => t.type === "Game" && isMeaningfulTargetName(t.name));
                   } else if (paramNameLower === "collectionname" || paramNameLower === "name") {
-                    isSupplied = resolved.intent.targets.some(t => t.type === "Collection");
+                    isSupplied = resolved.intent.targets.some(t => t.type === "Collection" && isMeaningfulTargetName(t.name));
+                  } else if (paramNameLower === "gamename") {
+                    isSupplied = resolved.intent.targets.some(t => t.type === "Library" && isMeaningfulTargetName(t.name));
                   }
                 }
 

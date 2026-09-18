@@ -85,6 +85,11 @@ export class AIResponseBuilder {
         }
       } else if (step.tool === "SyncEpicTool" || step.tool === "sync_epic") {
         sentences.push("I've synced your Epic Games library.");
+      } else if (step.output && (step.output as any).message) {
+        // Every tool already builds a specific message via this.success(data,
+        // message) -- use it instead of a generic placeholder for any tool
+        // (present or future) that doesn't have its own template above.
+        sentences.push((step.output as any).message as string);
       } else {
         sentences.push(`Completed step for ${step.tool}.`);
       }

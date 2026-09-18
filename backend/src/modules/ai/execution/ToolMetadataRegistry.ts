@@ -96,6 +96,43 @@ export class ToolMetadataRegistry {
         ],
       },
       {
+        id: "add_game",
+        supportedIntent: "add_game",
+        supportedEntityTypes: ["Library"],
+        executionPolicy: "SEQUENTIAL",
+        requiredParameters: ["gameName"],
+        optionalParameters: [],
+        description: "Searches RAWG and adds a game to the user's library",
+        parameters: [
+          { name: "gameName", type: "string", required: true },
+        ],
+      },
+      {
+        id: "remove_game",
+        supportedIntent: "remove_game",
+        supportedEntityTypes: ["Game"],
+        executionPolicy: "SEQUENTIAL",
+        requiredParameters: ["gameId"],
+        optionalParameters: [],
+        description: "Removes a game from the user's library",
+        parameters: [
+          { name: "gameId", type: "string", required: true },
+        ],
+      },
+      {
+        id: "search_library",
+        supportedIntent: "search_library",
+        supportedEntityTypes: [],
+        executionPolicy: "SEQUENTIAL",
+        requiredParameters: ["searchValue"],
+        optionalParameters: ["searchParam"],
+        description: "Searches the user's library by title, tag, or status",
+        parameters: [
+          { name: "searchValue", type: "string", required: true },
+          { name: "searchParam", type: "string", required: false },
+        ],
+      },
+      {
         id: "update_status",
         supportedIntent: "update_status",
         supportedEntityTypes: ["Game"],

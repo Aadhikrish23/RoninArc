@@ -12,6 +12,7 @@ export class ToolInputFactory {
 
     const gameTarget = targets.find((t) => t.type === "Game" || t.type?.toLowerCase() === "game");
     const collectionTarget = targets.find((t) => t.type === "Collection" || t.type?.toLowerCase() === "collection");
+    const libraryTarget = targets.find((t) => t.type === "Library" || t.type?.toLowerCase() === "library");
 
     const getParamValue = (name: string, type: string) => {
       if (Array.isArray(parameters)) {
@@ -58,6 +59,33 @@ export class ToolInputFactory {
           const gameIdVal = getParamValue("gameId", "GameId") || getParamValue("gameId", "gameId");
           return {
             gameId: gameIdVal !== undefined ? String(gameIdVal) : (gameTarget ? gameTarget.name : ""),
+          };
+        }
+
+        case "add_game": {
+          const nameVal = getParamValue("gameName", "Text");
+          return {
+            gameName: nameVal !== undefined ? String(nameVal) : (libraryTarget ? libraryTarget.name : ""),
+          };
+        }
+
+        case "remove_game": {
+          const gameIdVal = getParamValue("gameId", "GameId") || getParamValue("gameId", "gameId");
+          return {
+            gameId: gameIdVal !== undefined ? String(gameIdVal) : (gameTarget ? gameTarget.name : ""),
+          };
+        }
+
+        case "search_library": {
+          const searchValueVal = getParamValue("searchValue", "Text");
+          const searchParamVal = getParamValue("searchParam", "Status");
+          return {
+            searchValue: searchValueVal !== undefined ? String(searchValueVal) : "",
+            // Leave searchParam unset when the LLM didn't supply one -- forcing
+            // a default here (this used to default to "tags") overrides
+            // SearchLibraryTool's own, better fallback of searching every
+            // allowed field when the field to search wasn't specified.
+            searchParam: searchParamVal !== undefined ? String(searchParamVal) : undefined,
           };
         }
 
