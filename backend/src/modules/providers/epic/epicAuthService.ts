@@ -31,10 +31,6 @@ const connect = async (
     accessTokenExpiresAt?: Date;
   },
 ) => {
-  console.log("CONNECT USER", userId);
-
-  console.log(provider);
-
   const user = await User.findByIdAndUpdate(
     userId,
     {
@@ -49,7 +45,6 @@ const connect = async (
       new: true,
     },
   );
-  console.log(user);
 
   return user?.providers?.epic;
 };

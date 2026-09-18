@@ -46,23 +46,33 @@ const userSchema = new mongoose.Schema<UserDocument>(
     },
     providers: {
       epic: {
-        epicAccountId: String,
-        displayName: String,
+        type: {
+          epicAccountId: String,
+          displayName: String,
 
-        refreshToken: String,
+          refreshToken: String,
 
-        accessToken: String,
+          accessToken: String,
 
-        accessTokenExpiresAt: Date,
+          accessTokenExpiresAt: Date,
 
-        connectedAt: Date,
+          connectedAt: Date,
 
-        lastSyncAt: Date,
+          lastSyncAt: Date,
+        },
+        // Without an explicit default, Mongoose auto-vivifies a nested object
+        // path like this into an empty {} on every document -- making
+        // `!!user.providers.epic` (used by getStatus/verifyConnection/etc. to
+        // mean "is connected") true for every user, connected or not.
+        default: undefined,
       },
       steam: {
-        displayName: String,
-        connectedAt: Date,
-        lastSyncAt: Date,
+        type: {
+          displayName: String,
+          connectedAt: Date,
+          lastSyncAt: Date,
+        },
+        default: undefined,
       },
     },
   },
