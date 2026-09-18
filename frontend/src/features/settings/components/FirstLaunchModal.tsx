@@ -62,7 +62,7 @@ export default function FirstLaunchModal() {
             </Text>
 
             <Text fontSize="sm" color="gray.500">
-              ✓ Steam — available now (desktop app required)
+              ✓ Steam — available now
             </Text>
 
             <Text fontSize="sm" color="gray.500">

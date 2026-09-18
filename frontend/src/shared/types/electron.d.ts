@@ -41,6 +41,18 @@ declare global {
        *   - "ERROR:<message>" → an error occurred during the flow
        */
       epicLogin: (loginUrl: string) => Promise<string | null>;
+
+      /**
+       * Opens a child BrowserWindow for Steam's "Sign in through Steam"
+       * (OpenID), monitors navigation until it reaches our own backend's
+       * relay route, and returns that URL's raw query string.
+       *
+       * Returns:
+       *   - string  → raw openid.* query string (success, still unverified)
+       *   - null    → user cancelled / closed the window
+       *   - "ERROR:<message>" → an error occurred during the flow
+       */
+      steamLogin: (loginUrl: string) => Promise<string | null>;
     };
   }
 }

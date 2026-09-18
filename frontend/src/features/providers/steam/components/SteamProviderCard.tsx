@@ -15,7 +15,7 @@ export default function SteamProviderCard() {
     if (result.connected) {
       toast({
         title: "Steam Connected",
-        description: `Imported ${result.importedGames ?? 0} game(s) from your local Steam library.`,
+        description: `Imported ${result.importedGames ?? 0} game(s) from your Steam library.`,
         status: "success",
         duration: 4000,
         isClosable: true,
@@ -35,7 +35,7 @@ export default function SteamProviderCard() {
       lastSync={provider.lastSync}
       importedGames={provider.importedGames}
       loading={loading}
-      description="Sync your locally installed Steam games automatically by scanning your Steam library directories."
+      description="Sign in with Steam to import your full library -- including games you haven't installed -- and detect which ones are installed on this PC."
     >
       {isConnected ? (
         <>
@@ -45,7 +45,7 @@ export default function SteamProviderCard() {
             isLoading={loading || connectionState === "syncing"}
             loadingText="Syncing..."
           >
-            Scan & Sync Library
+            Resync Library
           </Button>
 
           <Button

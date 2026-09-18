@@ -39,4 +39,15 @@ contextBridge.exposeInMainWorld("electronAPI", {
   epicLogin: async (loginUrl) => {
     return await ipcRenderer.invoke("epic:login", loginUrl);
   },
+
+  /**
+   * Opens a child BrowserWindow for Steam's "Sign in through Steam" (OpenID).
+   * Returns:
+   *   string  → raw openid.* query string from our backend's return_to hit (success)
+   *   null    → user cancelled / closed the window
+   *   "ERROR:<message>" → failure during the flow
+   */
+  steamLogin: async (loginUrl) => {
+    return await ipcRenderer.invoke("steam:login", loginUrl);
+  },
 });

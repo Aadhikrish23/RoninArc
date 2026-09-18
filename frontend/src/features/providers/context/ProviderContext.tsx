@@ -8,8 +8,18 @@ import React, {
 import type { ProviderId, ProviderStatus } from "../types/provider";
 import providerApi from "../api/providerApi";
 import { createEpicStrategy } from "../epic/auth/createEpicStrategy";
+import { createSteamStrategy } from "../steam/auth/createSteamStrategy";
 import { scanLocalSteamLibrary } from "../steam/utils/scanLocalSteamLibrary";
 import { useAuth } from "../../auth/context/AuthContext";
+
+/** Best-effort only: local installed-state enrichment, never blocks connect/resync. */
+async function tryScanLocalSteamLibrary(): Promise<any[]> {
+  try {
+    return await scanLocalSteamLibrary();
+  } catch {
+    return [];
+  }
+}
 
 export type ProviderConnectionState =
   | "loading"
@@ -184,6 +194,7 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
 
       try {
         let authorizationCode: string | undefined;
+        let openIdParams: string | undefined;
 
         if (providerId === "epic") {
           const strategy = createEpicStrategy();
@@ -231,13 +242,32 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
           authorizationCode = result.authorizationCode;
         }
 
-        let localGames: any[] = [];
-
         if (providerId === "steam") {
-          try {
-            localGames = await scanLocalSteamLibrary();
-          } catch (scanErr: any) {
-            const msg = scanErr?.message || "Failed to scan local Steam library.";
+          const strategy = createSteamStrategy();
+          const result = await strategy.authenticate();
+
+          if (result.cancelled) {
+            let finalStatus: ProviderStatus;
+            updateProviderState(providerId, (prev) => {
+              finalStatus = prev.status;
+              return {
+                ...prev,
+                connectionState: finalStatus.connected ? "connected" : "disconnected",
+                loading: false,
+                error: null,
+              };
+            });
+            return new Promise<ProviderStatus>((resolve) => {
+              const setter = getSetter(providerId);
+              setter((prev) => {
+                resolve(prev.status);
+                return prev;
+              });
+            });
+          }
+
+          if (!result.success || !result.openIdParams) {
+            const msg = result.error ?? "Steam sign-in did not complete.";
             updateProviderState(providerId, (prev) => ({
               ...prev,
               connectionState: "error",
@@ -253,7 +283,13 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
               });
             });
           }
+
+          openIdParams = result.openIdParams;
         }
+
+        // Opportunistic only: if we're running in the desktop app, also seed
+        // installed-state in this same connect call. Never blocks on failure.
+        const localGames = providerId === "steam" ? await tryScanLocalSteamLibrary() : [];
 
         updateProviderState(providerId, (prev) => ({
           ...prev,
@@ -265,6 +301,7 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
 
         const updated = await providerApi.connect(providerId, {
           authorizationCode,
+          openIdParams,
           localGames,
         });
 
@@ -405,8 +442,11 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
       }));
 
       try {
-        const localGames =
-          providerId === "steam" ? await scanLocalSteamLibrary() : [];
+        // Best-effort only: resync's ownership data comes from the Steam Web
+        // API server-side (via the account's stored steamId64), this just
+        // opportunistically refreshes installed-state when running in the
+        // desktop app.
+        const localGames = providerId === "steam" ? await tryScanLocalSteamLibrary() : [];
         const result = await providerApi.resync(providerId, { localGames });
 
         await refresh(providerId);

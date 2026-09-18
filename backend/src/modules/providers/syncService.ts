@@ -269,73 +269,66 @@ export async function syncProviderGames({
 });
 
   if (missingGames.length > 0) {
-    if (provider === "steam") {
-      // For Steam, missing from scan means it's uninstalled, but still owned.
-      // Set installed to false, keep ownership.
-      console.log(
-        `[SyncService] Marking ${missingGames.length} Steam games as uninstalled.`,
-      );
-      await gameLibrarymodel.updateMany(
-        { _id: { $in: missingGames.map((g) => g._id) } },
-        { $set: { "providers.steam.installed": false } },
-      );
-    } else {
-      console.log(
-        `[SyncService] Cleaning up ${missingGames.length} games no longer owned on provider "${provider}"...`,
+    // Steam ownership is now sourced from the Steam Web API (full owned
+    // library, like Epic), so "missing" genuinely means no longer owned --
+    // not "not currently installed" (that's tracked separately, only from a
+    // local scan, via syncInstallationsOnly). Every provider is cleaned up
+    // the same way.
+    console.log(
+      `[SyncService] Cleaning up ${missingGames.length} games no longer owned on provider "${provider}"...`,
+    );
+
+    for (const game of missingGames) {
+      // Check if there are other providers
+      const otherProviders = Object.keys(game.providers || {}).filter(
+        (p) => p !== provider,
       );
 
-      for (const game of missingGames) {
-        // Check if there are other providers
-        const otherProviders = Object.keys(game.providers || {}).filter(
-          (p) => p !== provider,
-        );
-
-        if (otherProviders.length === 0) {
-          // No other providers. If the game has no user modifications (e.g. progressStatus is "none"/"plan", no ratings, no custom play session),
-          // we can safely delete it. Otherwise, we just clear the provider fields.
-          const reviewExists = await Review.exists({
-            userId,
-            gameId: game._id,
-          });
-          if (
-            (game.progressStatus === "none" ||
-              game.progressStatus === "plan") &&
-            !reviewExists &&
-            !game.exePath
-          ) {
-            await gameLibrarymodel.deleteOne({ _id: game._id });
-            console.log(
-              `[SyncService] Deleted game document for no-longer-owned game: "${game.title}"`,
-            );
-          } else {
-            // Keep the game but make it a manual game
-            await gameLibrarymodel.updateOne(
-              { _id: game._id },
-              {
-                $unset: { [`providers.${provider}`]: "" },
-                $set: {
-                  provider: "manual",
-                  providerGameId: null,
-                  providerTitle: null,
-                },
-              },
-            );
-            console.log(
-              `[SyncService] Converted game to manual: "${game.title}"`,
-            );
-          }
+      if (otherProviders.length === 0) {
+        // No other providers. If the game has no user modifications (e.g. progressStatus is "none"/"plan", no ratings, no custom play session),
+        // we can safely delete it. Otherwise, we just clear the provider fields.
+        const reviewExists = await Review.exists({
+          userId,
+          gameId: game._id,
+        });
+        if (
+          (game.progressStatus === "none" ||
+            game.progressStatus === "plan") &&
+          !reviewExists &&
+          !game.exePath
+        ) {
+          await gameLibrarymodel.deleteOne({ _id: game._id });
+          console.log(
+            `[SyncService] Deleted game document for no-longer-owned game: "${game.title}"`,
+          );
         } else {
-          // Other providers exist, just remove this provider's ownership info
+          // Keep the game but make it a manual game
           await gameLibrarymodel.updateOne(
             { _id: game._id },
             {
               $unset: { [`providers.${provider}`]: "" },
+              $set: {
+                provider: "manual",
+                providerGameId: null,
+                providerTitle: null,
+              },
             },
           );
           console.log(
-            `[SyncService] Removed provider "${provider}" from game: "${game.title}"`,
+            `[SyncService] Converted game to manual: "${game.title}"`,
           );
         }
+      } else {
+        // Other providers exist, just remove this provider's ownership info
+        await gameLibrarymodel.updateOne(
+          { _id: game._id },
+          {
+            $unset: { [`providers.${provider}`]: "" },
+          },
+        );
+        console.log(
+          `[SyncService] Removed provider "${provider}" from game: "${game.title}"`,
+        );
       }
     }
   }
@@ -383,31 +376,6 @@ export async function syncEpicGames(userId: string, localGames: any[] = []) {
 console.log("Calling syncProviderGames...");
   await syncProviderGames({
     provider: "epic",
-    userId,
-    ownerships: gamesInput,
-  });
-}
-
-/**
- * Steam Games synchronization wrapper.
- */
-export async function syncSteamGames(userId: string, localGames: any[] = []) {
-  const gamesInput: SyncGameInput[] = localGames.map((g) => ({
-    providerGameId: g.appId,
-    title: g.name,
-    description: "",
-    imageURL: `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${g.appId}/library_600x900_2x.jpg`,
-    developer: "",
-    tags: [],
-    installed: true,
-    installPath: g.installPath,
-    manifestId: g.appId,
-    executable: g.executable || "",
-    launcher: "steam",
-  }));
-
-  await syncProviderGames({
-    provider: "steam",
     userId,
     ownerships: gamesInput,
   });
@@ -650,7 +618,6 @@ export async function syncInstallationsOnly(
 export default {
   syncProviderGames,
   syncEpicGames,
-  syncSteamGames,
   disconnectProviderGames,
   syncInstallationsOnly,
 };

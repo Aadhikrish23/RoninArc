@@ -391,3 +391,86 @@ ipcMain.handle("epic:login", async (_event, loginUrl) => {
   });
 });
 
+// ── Steam OpenID: BrowserWindow-based redirect capture ───────────────────
+//
+// Steam's "Sign in through Steam" flow:
+//   1. User visits the OpenID login URL (steamProvider.getLoginUrl()).
+//   2. After successful login, Steam redirects to OUR OWN backend relay
+//      route (http://localhost:<port>/provider/steam/oauth/return) with the
+//      full signed OpenID response in the query string.
+// Unlike Epic's redirect target, we control this URL, so a single
+// interception layer (URL query params) is enough -- no JSON body scrape
+// needed. Verification of the captured params happens server-side, inside
+// the authenticated /connect call (see steamOpenIdService.verifyAssertion).
+
+ipcMain.handle("steam:login", async (_event, loginUrl) => {
+  return new Promise((resolve) => {
+    const TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
+
+    function isReturnPage(urlString) {
+      try {
+        const u = new URL(urlString);
+        return (
+          (u.hostname === "localhost" || u.hostname === "127.0.0.1") &&
+          u.pathname === "/provider/steam/oauth/return"
+        );
+      } catch {
+        return false;
+      }
+    }
+
+    let settled = false;
+
+    function settle(result) {
+      if (settled) return;
+      settled = true;
+      clearTimeout(hardTimeout);
+      if (authWindow && !authWindow.isDestroyed()) {
+        authWindow.close();
+      }
+      resolve(result);
+    }
+
+    const hardTimeout = setTimeout(() => {
+      settle(null); // null → renderer treats as cancellation
+    }, TIMEOUT_MS);
+
+    const authWindow = new BrowserWindow({
+      width: 560,
+      height: 700,
+      title: "Steam — Sign In",
+      show: true,
+      webPreferences: {
+        contextIsolation: true,
+        nodeIntegration: false,
+        // Do NOT attach a preload — this is an external OpenID window.
+      },
+    });
+
+    authWindow.setParentWindow(BrowserWindow.getAllWindows()[0] ?? null);
+
+    authWindow.loadURL(loginUrl);
+
+    function handleNavigation(url) {
+      if (!url || settled) return;
+      if (isReturnPage(url)) {
+        // Preserve the query string exactly as Steam sent it (no
+        // re-encoding) since it's part of a signature the backend verifies.
+        const queryIndex = url.indexOf("?");
+        const params = queryIndex >= 0 ? url.slice(queryIndex + 1) : null;
+        if (params) {
+          settle(params);
+        }
+      }
+    }
+
+    authWindow.webContents.on("will-navigate", (_e, url) => handleNavigation(url));
+    authWindow.webContents.on("will-redirect", (_e, url) => handleNavigation(url));
+    authWindow.webContents.on("did-navigate", (_e, url) => handleNavigation(url));
+
+    authWindow.on("closed", () => {
+      settle(null);
+    });
+  });
+});
+

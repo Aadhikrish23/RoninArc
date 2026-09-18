@@ -16,6 +16,7 @@ interface UserDocument extends mongoose.Document {
       lastSyncAt?: Date;
     };
     steam?: {
+      steamId64: string;
       displayName: string;
       connectedAt: Date;
       lastSyncAt?: Date;
@@ -68,6 +69,7 @@ const userSchema = new mongoose.Schema<UserDocument>(
       },
       steam: {
         type: {
+          steamId64: String,
           displayName: String,
           connectedAt: Date,
           lastSyncAt: Date,
