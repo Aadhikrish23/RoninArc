@@ -1,35 +1,31 @@
 const aiProvider = process.env.AI_PROVIDER || "ollama";
 
+// This file is imported at server startup (well before any request exists),
+// so it must never throw -- an installation with no AI provider configured
+// at all (e.g. a fresh packaged install before the user has set anything
+// up) still needs auth/library/launcher/etc. to work. Missing config is
+// logged here and surfaced as a normal, catchable error only when an actual
+// chat request tries to use the misconfigured provider (see OllamaClient /
+// NvidiaNimClient), the same lazy-validation pattern used elsewhere
+// (steamWebApiService.getApiKey(), atlasConnection.getAtlasConnection()).
 if (aiProvider !== "ollama" && aiProvider !== "nvidia") {
-  throw new Error(
-    `Invalid configuration: AI_PROVIDER must be "ollama" or "nvidia", got "${aiProvider}".`,
+  console.warn(
+    `[AIConfig] AI_PROVIDER must be "ollama" or "nvidia", got "${aiProvider}" -- AI features will be unavailable.`,
   );
 }
 
 if (aiProvider === "ollama") {
-  if (!process.env.OLLAMA_BASE_URL) {
-    throw new Error(
-      "Missing required configuration: OLLAMA_BASE_URL environment variable is not defined.",
-    );
-  }
-
-  if (!process.env.OLLAMA_MODEL) {
-    throw new Error(
-      "Missing required configuration: OLLAMA_MODEL environment variable is not defined.",
+  if (!process.env.OLLAMA_BASE_URL || !process.env.OLLAMA_MODEL) {
+    console.warn(
+      "[AIConfig] OLLAMA_BASE_URL/OLLAMA_MODEL are not set -- AI chat will fail until they're configured.",
     );
   }
 }
 
 if (aiProvider === "nvidia") {
-  if (!process.env.NVIDIA_API_KEY) {
-    throw new Error(
-      "Missing required configuration: NVIDIA_API_KEY environment variable is not defined.",
-    );
-  }
-
-  if (!process.env.NVIDIA_MODEL) {
-    throw new Error(
-      "Missing required configuration: NVIDIA_MODEL environment variable is not defined.",
+  if (!process.env.NVIDIA_API_KEY || !process.env.NVIDIA_MODEL) {
+    console.warn(
+      "[AIConfig] NVIDIA_API_KEY/NVIDIA_MODEL are not set -- AI chat will fail until they're configured.",
     );
   }
 }
