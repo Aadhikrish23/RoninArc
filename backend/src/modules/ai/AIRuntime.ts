@@ -9,6 +9,7 @@ import aiResponseBuilder from "./response/AIResponseBuilder";
 import { AIRuntimeError } from "./runtime/errors/AIRuntimeError";
 
 import conversationRuntime from "./conversation/ConversationRuntime";
+import { matchGreeting, GREETING_REPLIES, GreetingKind } from "./conversation/GreetingMatcher";
 import clarificationRuntime from "./clarification/ClarificationRuntime";
 import memoryRuntime from "./memory/MemoryRuntime";
 import { PlanningRuntime } from "./planning/PlanningRuntime";
@@ -109,24 +110,16 @@ export class AIRuntime {
           intentPlan = conversationRuntime.resolveReferences(intentPlan, session);
         }
 
-        // Intercept general conversation
-        const conversationalGreetings = ["hi", "hello", "thanks", "thank you", "good morning", "how are you", "what can you do", "help"];
-        const hasConversationalIntent = intentPlan?.intents?.some(i => i.type === "AskQuestion" || i.type === "Help");
-        const isGeneralConversation = conversationalGreetings.includes(cleanRequest.toLowerCase().trim().replace(/[?.!]/g, "")) || 
-                                     conversationalGreetings.some(greet => cleanRequest.toLowerCase().trim().includes(greet)) || 
-                                     hasConversationalIntent;
+        // Intercept general conversation: the whole message is a greeting, or the
+        // LLM itself classified the request as AskQuestion/Help.
+        const greetingKind = matchGreeting(cleanRequest);
+        const llmConversationalIntents = intentPlan?.intents?.filter(i => i.type === "AskQuestion" || i.type === "Help") ?? [];
 
-        if (isGeneralConversation) {
+        if (greetingKind || llmConversationalIntents.length > 0) {
           profiler.stopOverall();
-          let conversationalMessage = "Hello! I am your RoninArc AI assistant. How can I help you today?";
-          const reqLower = cleanRequest.toLowerCase().trim();
-          if (reqLower.includes("thanks") || reqLower.includes("thank you")) {
-            conversationalMessage = "You're welcome! Let me know if there's anything else I can do for you.";
-          } else if (reqLower.includes("how are you")) {
-            conversationalMessage = "I'm doing great, thank you! Ready to help you manage your library, launch games, rate or review them, or manage your collections. What's on your mind?";
-          } else if (reqLower.includes("what can you do") || reqLower.includes("help")) {
-            conversationalMessage = "I can help you manage your gaming library. You can ask me to: launch a game (e.g. 'Launch Fallout Shelter'), complete a game, rate or review games, manage collections (create, add/remove games), or connect provider accounts like Epic Games. What would you like to do?";
-          }
+          const replyKind: GreetingKind =
+            greetingKind ?? (llmConversationalIntents.some(i => i.type === "Help") ? "capabilities" : "hello");
+          const conversationalMessage = GREETING_REPLIES[replyKind];
 
           const response = {
             success: true,
