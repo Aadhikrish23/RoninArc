@@ -7,6 +7,9 @@ import { OllamaProvider } from "./providers/OllamaProvider";
 import { NvidiaNimProvider } from "./providers/NvidiaNimProvider";
 import { createToolRegistry } from "./registry/ToolRegistrar";
 import { registerCapabilities } from "./planning/CapabilityRegistrar";
+import { checkRegistryConsistency, reportRegistryConsistency } from "./registry/RegistryConsistencyCheck";
+import toolMapper from "./execution/ToolMapper";
+import toolMetadataRegistry from "./execution/ToolMetadataRegistry";
 import { Request, Response } from "express";
 import crypto from "crypto";
 import AIConfig from "./config/AIConfig";
@@ -14,6 +17,10 @@ import AIConfig from "./config/AIConfig";
 const toolRegistry = createToolRegistry();
 const contextRegistry = registerContextProviders();
 const capabilityRegistry = registerCapabilities();
+
+reportRegistryConsistency(
+  checkRegistryConsistency(capabilityRegistry, toolRegistry, toolMapper, toolMetadataRegistry),
+);
 
 const provider: AIProvider =
   AIConfig.aiProvider === "nvidia" ? new NvidiaNimProvider() : new OllamaProvider();

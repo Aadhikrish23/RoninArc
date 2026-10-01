@@ -1,3 +1,10 @@
+// Capabilities whose tool is chosen per request inside mapCapabilityToTool().
+// Keep in sync with the branches there; the startup check relies on it.
+const MULTI_TOOL_CAPABILITIES: Record<string, string[]> = {
+  "review-game": ["create_review", "delete_review"],
+  "collection": ["create_collection", "add_to_collection", "remove_from_collection"],
+};
+
 export class ToolMapper {
   private readonly map: Record<string, string> = {
     "complete-game": "update_status",
@@ -11,6 +18,16 @@ export class ToolMapper {
     "search-library": "search_library",
     "add-note": "add_note",
   };
+
+  /**
+   * Every tool this capability can ever resolve to (empty if unmapped).
+   */
+  possibleToolsFor(capabilityId: string): string[] {
+    const multi = MULTI_TOOL_CAPABILITIES[capabilityId];
+    if (multi) return [...multi];
+    const single = this.map[capabilityId];
+    return single ? [single] : [];
+  }
 
   /**
    * Maps a Capability ID to the corresponding tool name.

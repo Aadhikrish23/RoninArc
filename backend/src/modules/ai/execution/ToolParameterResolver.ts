@@ -4,6 +4,14 @@ import toolMetadataRegistry from "./ToolMetadataRegistry";
 import conversationStore from "../conversation/ConversationStore";
 import { NO_REFERENCE_FALLBACK_TOOLS } from "./NoReferenceFallbackTools";
 
+// "Text" is shared by multiple tools' free-text parameters -- which concrete key
+// it becomes depends on which tool the step is for. Tools not listed get reviewText.
+export const TEXT_PARAM_KEY_BY_TOOL: Record<string, string> = {
+  search_library: "searchValue",
+  add_note: "content",
+};
+export const DEFAULT_TEXT_PARAM_KEY = "reviewText";
+
 export class ToolParameterResolver {
   /**
    * Automatically resolves missing step parameters based on precedence order.
@@ -27,13 +35,7 @@ export class ToolParameterResolver {
             const pType = String(p.type).toLowerCase();
             let key = pType;
             if (pType === "text") {
-              // "Text" is shared by multiple tools' free-text parameters -- which
-              // concrete key it becomes depends on which tool this step is for.
-              const TEXT_PARAM_KEY_BY_TOOL: Record<string, string> = {
-                search_library: "searchValue",
-                add_note: "content",
-              };
-              key = TEXT_PARAM_KEY_BY_TOOL[step.toolName] || "reviewText";
+              key = TEXT_PARAM_KEY_BY_TOOL[step.toolName] || DEFAULT_TEXT_PARAM_KEY;
             }
             parameters[key] = p.value;
           }

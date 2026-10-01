@@ -22,6 +22,20 @@ const GENERIC_PLACEHOLDER_NAMES = new Set([
   "launch", "create", "add", "remove", "search", "complete", "rate", "review", "delete",
 ]);
 
+// Which IntentParameterType (lowercased) supplies which tool parameter (lowercased).
+export const INTENT_PARAM_TYPE_BY_TOOL_PARAM: Record<string, string> = {
+  rating: "rating",
+  status: "status",
+  reviewtext: "text",
+  platform: "platform",
+  provider: "provider",
+  searchvalue: "text",
+  content: "text",
+};
+
+// Tool parameters (lowercased) supplied from the intent's targets instead.
+export const TARGET_SUPPLIED_TOOL_PARAMS = new Set(["gameid", "collectionname", "name", "gamename"]);
+
 function isMeaningfulTargetName(name: unknown): boolean {
   return typeof name === "string" && name.trim() !== "" && !GENERIC_PLACEHOLDER_NAMES.has(name.trim().toLowerCase());
 }
@@ -104,15 +118,7 @@ export class PlanningEngine {
                 // A. Check intent parameters
                 if (resolved.intent.parameters) {
                   const matched = resolved.intent.parameters.find(p => {
-                    const pType = p.type.toLowerCase();
-                    if (paramNameLower === "rating" && pType === "rating") return true;
-                    if (paramNameLower === "status" && pType === "status") return true;
-                    if (paramNameLower === "reviewtext" && pType === "text") return true;
-                    if (paramNameLower === "platform" && pType === "platform") return true;
-                    if (paramNameLower === "provider" && pType === "provider") return true;
-                    if (paramNameLower === "searchvalue" && pType === "text") return true;
-                    if (paramNameLower === "content" && pType === "text") return true;
-                    return false;
+                    return INTENT_PARAM_TYPE_BY_TOOL_PARAM[paramNameLower] === p.type.toLowerCase();
                   });
                   if (matched && matched.value !== undefined && matched.value !== null && matched.value !== "") {
                     isSupplied = true;
