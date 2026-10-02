@@ -1,0 +1,18 @@
+{
+  "name": "roninarc-e2e",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Playwright API + UI test suite for RoninArc",
+  "scripts": {
+    "test": "playwright test",
+    "test:api": "playwright test --project=api",
+    "test:ui": "playwright test --project=ui",
+    "report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/node": "^26.6.3",
+    "jsonwebtoken": "^9.0.3"
+  }
+}
