@@ -200,6 +200,13 @@ test.describe("Library API (/game)", () => {
       expect((await json(await api.get(`/review/${game._id}`))).Data).toBeNull();
     });
 
+    test("deleting a game also deletes its notes @positive", async ({ api }) => {
+      const game = await api.addGame(hades);
+      await api.post(`/notes/${game._id}`, { content: "orphan me?" });
+      await api.delete(`/game/${game._id}`);
+      expect((await json(await api.get(`/notes/${game._id}`))).Data).toEqual([]);
+    });
+
     test("rejects a malformed id and a missing game @negative", async ({ api }) => {
       expect((await api.delete("/game/abc")).status()).toBe(400);
       expect((await api.delete(`/game/${MISSING_ID}`)).status()).toBe(404);
@@ -230,8 +237,9 @@ test.describe("Library API (/game)", () => {
     });
 
     test("returns 404 for a game that does not exist @negative", async ({ api }) => {
-      test.fail(true, "Known bug: enrichGame throws a plain Error, so a missing game surfaces as 500 instead of 404");
-      expect((await api.post(`/game/${MISSING_ID}/enrich`)).status()).toBe(404);
+      const res = await api.post(`/game/${MISSING_ID}/enrich`);
+      expect(res.status()).toBe(404);
+      expect((await json(res)).error).toBe("Game not found");
     });
   });
 });

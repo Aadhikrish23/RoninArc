@@ -104,9 +104,16 @@ test.describe("Play Session API (/play-session)", () => {
   });
 
   test("cannot start a session for a game that is not in the library @negative", async ({ api }) => {
-    test.fail(true, "Known bug: startSession never checks the game exists in the caller's library");
     const res = await api.post(`/play-session/start/${MISSING_ID}`);
-    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBe(404);
+    expect((await json(res)).Message).toBe("Game not found in your library");
+  });
+
+  test("cannot start a session on another user's game @negative", async ({ api, request }) => {
+    const other = new Api(request, API_URL, (await registerUser(request, API_URL)).accessToken);
+    const foreign = await other.addGame(hades);
+    expect((await api.post(`/play-session/start/${foreign._id}`)).status()).toBe(404);
+    expect((await json(await api.get("/play-session/recent"))).Data).toEqual([]);
   });
 
   test("requires authentication @negative", async ({ anon }) => {

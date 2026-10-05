@@ -114,6 +114,13 @@ test.describe("Settings", () => {
 });
 
 test.describe("AI assistant page", () => {
+  test("greets back even when the model is offline @positive", async ({ authedPage: page }) => {
+    await open(page, "/ai");
+    await page.getByPlaceholder("Type a message...").fill("hi");
+    await page.keyboard.press("Enter");
+    await expect(page.getByText("Hello! I am your RoninArc AI assistant.", { exact: false })).toBeVisible();
+  });
+
   test("sends a message and shows the assistant's reply @positive", async ({ authedPage: page, api }) => {
     const g = await api.addGame(byName("Fallout Shelter"));
     await open(page, "/ai");
@@ -130,11 +137,12 @@ test.describe("AI assistant page", () => {
     await expect(page.getByRole("button", { name: "Send message" })).toBeDisabled();
   });
 
-  test("an AI failure shows an error with a retry option @negative", async ({ authedPage: page }) => {
+  test("an offline AI explains itself and offers a retry @negative", async ({ authedPage: page }) => {
     await open(page, "/ai");
     await page.getByPlaceholder("Type a message...").fill("zxqv blorp");
     await page.keyboard.press("Enter");
     await expect(page.getByRole("heading", { name: "Execution Failed" })).toBeVisible();
+    await expect(page.getByText(/The AI assistant is offline right now/)).toBeVisible();
     await expect(page.getByRole("button", { name: "Retry Action" })).toBeVisible();
   });
 

@@ -74,7 +74,8 @@ test.describe("Notes API (/notes)", () => {
   test("rejects a note longer than 2000 characters @negative", async ({ api }) => {
     const game = await api.addGame(hades);
     const res = await api.post(`/notes/${game._id}`, { content: "x".repeat(2001) });
-    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBe(400);
+    expect((await json(res)).Message).toBe("Note must be 2000 characters or fewer");
     expect((await json(await api.get(`/notes/${game._id}`))).Data).toEqual([]);
   });
 
@@ -96,15 +97,31 @@ test.describe("Notes API (/notes)", () => {
 
   test("rejects a malformed game id @negative", async ({ api }) => {
     const res = await api.post("/notes/not-an-id", { content: "x" });
-    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBe(400);
+    expect((await json(res)).Message).toBe("Invalid game id");
+    expect((await api.get("/notes/not-an-id")).status()).toBe(400);
+  });
+
+  test("cannot add a note to a game that is not in the user's library @negative", async ({ api, request }) => {
+    const other = new Api(request, API_URL, (await registerUser(request, API_URL)).accessToken);
+    const foreign = await other.addGame(hades);
+    const res = await api.post(`/notes/${foreign._id}`, { content: "drive-by" });
+    expect(res.status()).toBe(404);
+    expect((await json(res)).Message).toBe("Game not found in your library");
+    expect((await json(await other.get(`/notes/${foreign._id}`))).Data).toEqual([]);
+  });
+
+  test("malformed note ids return 404 rather than 500 @negative", async ({ api }) => {
+    expect((await api.patch("/notes/bogus", { content: "x" })).status()).toBe(404);
+    expect((await api.delete("/notes/bogus")).status()).toBe(404);
   });
 
   test("rejects an update longer than 2000 characters @negative", async ({ api }) => {
-    test.fail(true, "Known bug: updateNote uses findOneAndUpdate without runValidators, so maxLength is skipped");
     const game = await api.addGame(hades);
     const note = (await json(await api.post(`/notes/${game._id}`, { content: "short" }))).Data;
     const res = await api.patch(`/notes/${note._id}`, { content: "x".repeat(2001) });
-    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBe(400);
+    expect((await json(await api.get(`/notes/${game._id}`))).Data[0].content).toBe("short");
   });
 
   test("requires authentication @negative", async ({ anon }) => {

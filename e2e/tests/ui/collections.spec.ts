@@ -1,7 +1,7 @@
 import { test, expect } from "../../fixtures/test";
 import { json } from "../../helpers/api";
 import { byName } from "../../fixtures/catalog.mjs";
-import { open } from "../../helpers/ui";
+import { expectToast, open } from "../../helpers/ui";
 
 test.describe("Collections", () => {
   test("creates a collection from the library page @positive", async ({ authedPage: page, api }) => {
@@ -80,7 +80,6 @@ test.describe("Collections", () => {
     });
 
     test("a refused rename tells the user why @negative", async ({ authedPage: page, api }) => {
-      test.fail(true, "UX gap: CollectionDetailsPage doesn't catch updateCollection errors, so a duplicate-name rename fails silently");
       await api.createCollection("Taken");
       const c = await api.createCollection("Mine");
       await open(page, `/collections/${c._id}`);
@@ -88,7 +87,8 @@ test.describe("Collections", () => {
       const dialog = page.getByRole("dialog", { name: "Edit Collection" });
       await dialog.getByRole("textbox", { name: "Name" }).fill("Taken");
       await dialog.getByRole("button", { name: "Save Changes" }).click();
-      await expect(page.getByText("Collection with this name already exists").first()).toBeVisible({ timeout: 3000 });
+      await expectToast(page, "Couldn't update collection", "Collection with this name already exists");
+      await expect(dialog).toBeVisible();
     });
 
     test("removes a game from the collection but keeps it in the library @positive", async ({ authedPage: page, api }) => {

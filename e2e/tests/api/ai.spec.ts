@@ -34,12 +34,22 @@ test.describe("AI chat API (/ai/chat)", () => {
   });
 
   test.describe("small talk", () => {
-    test("answers a greeting even when the LLM is unavailable @positive", async ({ api }) => {
-      test.fail(true, "Known bug: AIRuntime only checks for greetings AFTER calling the LLM, so with the model offline even 'hi' fails");
-      const { status, body } = await chat(api, "hi");
-      expect(status).toBe(200);
-      expect(body.message).toContain("Hello! I am your RoninArc AI assistant.");
-    });
+    // The suite's "LLM" is unreachable for anything the mock doesn't match, so
+    // these prove greetings are answered without calling the model at all.
+    for (const [message, expected] of [
+      ["hi", "Hello! I am your RoninArc AI assistant."],
+      ["Hello!", "Hello! I am your RoninArc AI assistant."],
+      ["thanks", "You're welcome!"],
+      ["How are you?", "I'm doing great"],
+      ["What can you do?", "I can help you manage your gaming library."],
+    ] as const) {
+      test(`answers "${message}" even when the LLM is offline @positive`, async ({ api }) => {
+        const { status, body } = await chat(api, message);
+        expect(status).toBe(200);
+        expect(body.success).toBe(true);
+        expect(body.message).toContain(expected);
+      });
+    }
 
     test("a game title containing 'hi' is not mistaken for a greeting @negative", async ({ api }) => {
       await api.addGame(byName("Hitman"));
@@ -109,12 +119,15 @@ test.describe("AI chat API (/ai/chat)", () => {
       // No mock rule matches this, so the client falls through to a "live"
       // Ollama call against an unreachable port.
       const res = await api.post("/ai/chat", { message: "zxqv blorp" });
-      expect(res.status()).toBeGreaterThanOrEqual(400);
-      expect((await json(res)).error).toContain("Ollama is not running");
+      expect(res.status()).toBe(503);
+      const body = await json(res);
+      expect(body).toMatchObject({ success: false, offline: true });
+      expect(body.message).toContain("The AI assistant is offline right now");
+      expect(body.message).not.toContain("127.0.0.1");
 
       expect((await api.get("/health")).status()).toBe(200);
-      const { body } = await chat(api, "rate fallout shelter 9");
-      expect(body.success, body.message).toBe(true);
+      const after = await chat(api, "rate fallout shelter 9");
+      expect(after.body.success, after.body.message).toBe(true);
     });
 
     test("concurrent requests from one user are serialised, not corrupted @positive", async ({ api }) => {

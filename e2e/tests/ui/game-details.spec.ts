@@ -123,7 +123,6 @@ test.describe("Game details page", () => {
     });
 
     test("opening a game directly still offers the user's collections @negative", async ({ authedPage: page, api }) => {
-      test.fail(true, "Known bug: GameDetailsPage never fetches collections, so on a direct visit/refresh the menu wrongly says 'Already in all collections'");
       await api.addGame(hades);
       await api.createCollection("Roguelikes");
       await open(page, `/library/game/${hades.id}`);
@@ -179,17 +178,29 @@ test.describe("Game details page", () => {
     await api.addGame(hades);
     await open(page, `/library/game/${hades.id}`);
     await page.getByRole("button", { name: "Remove From Library" }).click();
+    await page.getByRole("alertdialog", { name: "Remove Hades from your library?" }).getByRole("button", { name: "Remove" }).click();
     await expectToast(page, "Game Removed", "Game has been removed from library.");
     await expect(page).toHaveURL(/#\/$/);
     expect((await json(await api.get("/game"))).Data).toEqual([]);
   });
 
   test("asks for confirmation before removing a game @negative", async ({ authedPage: page, api }) => {
-    test.fail(true, "UX gap: 'Remove From Library' deletes immediately with no confirmation step");
     await api.addGame(hades);
     await open(page, `/library/game/${hades.id}`);
     await page.getByRole("button", { name: "Remove From Library" }).click();
-    await expect(page.getByRole("dialog")).toBeVisible({ timeout: 3000 });
+    const confirm = page.getByRole("alertdialog", { name: "Remove Hades from your library?" });
+    await expect(confirm).toContainText("This action cannot be undone.");
+    // Nothing is deleted until the user confirms.
+    expect((await json(await api.get("/game"))).Data).toHaveLength(1);
+  });
+
+  test("cancelling removal keeps the game @negative", async ({ authedPage: page, api }) => {
+    await api.addGame(hades);
+    await open(page, `/library/game/${hades.id}`);
+    await page.getByRole("button", { name: "Remove From Library" }).click();
+    await page.getByRole("alertdialog", { name: "Remove Hades from your library?" }).getByRole("button", { name: "Cancel" }).click();
+    await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
+    expect((await json(await api.get("/game"))).Data).toHaveLength(1);
   });
 
   test("'Back' returns to the previous page @positive", async ({ authedPage: page, api }) => {

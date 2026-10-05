@@ -49,10 +49,12 @@ test.describe("Collection API (/collection)", () => {
       expect((await json(res)).Data.name).toBe("Single");
     });
 
-    test("rejects a missing name @negative", async ({ api }) => {
-      const res = await api.post("/collection", { description: "no name" });
-      expect(res.status()).toBe(400);
-      expect((await json(res)).Status).toBe("Failed");
+    test("rejects a missing or blank name @negative", async ({ api }) => {
+      for (const body of [{ description: "no name" }, { name: "   " }, { name: 42 }]) {
+        const res = await api.post("/collection", body);
+        expect(res.status()).toBe(400);
+        expect((await json(res)).Message).toBe("Collection name is required");
+      }
     });
 
     test("returns 404 for a missing or malformed collection id @negative", async ({ api }) => {
@@ -123,9 +125,12 @@ test.describe("Collection API (/collection)", () => {
     });
 
     test("rejects a request with no game id @negative", async ({ api }) => {
-      test.fail(true, "Known bug: a missing gameId is accepted with 200 (and logs an activity for a random ObjectId) when the collection is empty");
       const c = await api.createCollection("No id");
-      expect((await api.post(`/collection/${c._id}/games`, {})).status()).toBe(400);
+      const res = await api.post(`/collection/${c._id}/games`, {});
+      expect(res.status()).toBe(400);
+      expect((await json(res)).Message).toBe("A valid gameId is required");
+      const added = (await json(await api.get("/activity"))).Data.filter((a: any) => a.type === "GAME_ADDED_TO_COLLECTION");
+      expect(added).toEqual([]);
     });
 
     test("cannot add a game to another user's collection @negative", async ({ api, request }) => {
@@ -138,12 +143,20 @@ test.describe("Collection API (/collection)", () => {
     });
 
     test("cannot put another user's game into your own collection @negative", async ({ api, request }) => {
-      test.fail(true, "Known bug: addGameToCollection never checks the game belongs to the caller");
       const other = new Api(request, API_URL, (await registerUser(request, API_URL)).accessToken);
       const foreignGame = await other.addGame(hades);
       const c = await api.createCollection("Sneaky");
       const res = await api.post(`/collection/${c._id}/games`, { gameId: foreignGame._id });
-      expect(res.status()).toBeGreaterThanOrEqual(400);
+      expect(res.status()).toBe(400);
+      expect((await json(res)).Message).toBe("Game not found in your library");
+      expect((await json(await api.get(`/collection/${c._id}`))).Data.gameIds).toEqual([]);
+    });
+
+    test("rejects renaming to a blank name @negative", async ({ api }) => {
+      const c = await api.createCollection("Named");
+      const res = await api.patch(`/collection/${c._id}`, { name: "  " });
+      expect(res.status()).toBe(400);
+      expect((await json(res)).Message).toBe("Collection name is required");
     });
   });
 

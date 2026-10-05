@@ -75,12 +75,11 @@ test.describe("Review API (/review)", () => {
     expect(activity.some((a: any) => a.type === "REVIEW_DELETED")).toBe(false);
   });
 
-  test("a malformed game id is rejected @negative", async ({ api }) => {
-    const get = await api.get("/review/not-an-id");
-    expect(get.status()).toBeGreaterThanOrEqual(400);
-    const put = await api.put("/review/not-an-id", { rating: 5 });
-    expect(put.status()).toBeGreaterThanOrEqual(400);
-    expect((await json(put)).Message).toBe("Failed to save review");
+  test("a malformed game id is rejected with 400 @negative", async ({ api }) => {
+    for (const res of [await api.get("/review/not-an-id"), await api.put("/review/not-an-id", { rating: 5 }), await api.delete("/review/not-an-id")]) {
+      expect(res.status()).toBe(400);
+      expect((await json(res)).Message).toBe("Invalid game id");
+    }
   });
 
   test("users cannot read each other's reviews @negative", async ({ api, request }) => {
@@ -91,25 +90,40 @@ test.describe("Review API (/review)", () => {
   });
 
   test("rejects a rating above 10 @negative", async ({ api }) => {
-    test.fail(true, "Known bug: upsert uses findOneAndUpdate without runValidators, so min/max on rating are never enforced");
     const game = await api.addGame(hades);
     const res = await api.put(`/review/${game._id}`, { rating: 99 });
-    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBe(400);
+    expect((await json(res)).Message).toBe("Rating must be a whole number from 1 to 10");
+    expect((await json(await api.get(`/review/${game._id}`))).Data).toBeNull();
   });
 
   test("rejects a rating below 1 @negative", async ({ api }) => {
-    test.fail(true, "Known bug: rating min (1) is not enforced on upsert");
     const game = await api.addGame(hades);
     const res = await api.put(`/review/${game._id}`, { rating: 0 });
-    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBe(400);
+  });
+
+  for (const [label, rating] of [["fractional", 7.5], ["string", "8"], ["missing", undefined]] as const) {
+    test(`rejects a ${label} rating @negative`, async ({ api }) => {
+      const game = await api.addGame(hades);
+      const res = await api.put(`/review/${game._id}`, { rating, reviewText: "x" });
+      expect(res.status()).toBe(400);
+    });
+  }
+
+  test("rejects non-text review text @negative", async ({ api }) => {
+    const game = await api.addGame(hades);
+    const res = await api.put(`/review/${game._id}`, { rating: 5, reviewText: { evil: true } });
+    expect(res.status()).toBe(400);
   });
 
   test("rejects reviewing a game that is not in the user's library @negative", async ({ api, request }) => {
-    test.fail(true, "Known bug: upsertReview never checks the game belongs to the caller");
     const other = new Api(request, API_URL, (await registerUser(request, API_URL)).accessToken);
     const foreignGame = await other.addGame(hades);
     const res = await api.put(`/review/${foreignGame._id}`, { rating: 1, reviewText: "drive-by" });
-    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBe(404);
+    expect((await json(res)).Message).toBe("Game not found in your library");
+    expect((await json(await other.get("/game"))).Data[0].rating).toBeNull();
   });
 
   test("requires authentication @negative", async ({ anon }) => {

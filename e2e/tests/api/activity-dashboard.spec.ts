@@ -48,7 +48,8 @@ test.describe("Activity API (/activity)", () => {
 
   test("a malformed id does not record anything @negative", async ({ api }) => {
     const res = await api.post("/activity/launch/not-an-id");
-    expect(res.status()).toBeGreaterThanOrEqual(400);
+    expect(res.status()).toBe(400);
+    expect((await json(res)).Message).toBe("Invalid game id");
     expect((await json(await api.get("/activity"))).Data).toEqual([]);
   });
 

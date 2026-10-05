@@ -12,14 +12,11 @@ test.describe("Providers API (/provider)", () => {
       });
     }
 
-    test("an unknown provider is rejected @negative", async ({ api }) => {
-      const res = await api.get("/provider/gog/status");
-      expect(res.status()).toBeGreaterThanOrEqual(400);
-    });
-
-    test("an unknown provider returns 404 rather than 500 @negative", async ({ api }) => {
-      test.fail(true, "Known bug: ProviderRegistry.get throws a plain Error, so unknown providers surface as 500");
-      expect((await api.get("/provider/gog/status")).status()).toBe(404);
+    test("an unknown provider returns 404 @negative", async ({ api }) => {
+      for (const res of [await api.get("/provider/gog/status"), await api.post("/provider/gog/connect", {}), await api.get("/provider/gog/oauth/start")]) {
+        expect(res.status()).toBe(404);
+        expect((await json(res)).error).toBe("Unknown provider: gog");
+      }
     });
 
     test("requires authentication @negative", async ({ anon }) => {
@@ -96,15 +93,17 @@ test.describe("Providers API (/provider)", () => {
       expect((await json(res)).error).toBe("Steam account is not connected. Please reconnect.");
     });
 
-    test("epic connect without an authorization code is rejected @negative", async ({ api }) => {
+    test("epic connect without an authorization code is rejected with 400 @negative", async ({ api }) => {
       const res = await api.post("/provider/epic/connect", {});
-      expect(res.status()).toBeGreaterThanOrEqual(400);
+      expect(res.status()).toBe(400);
+      expect((await json(res)).error).toBe("Missing Epic Games authorization code. Please try connecting again.");
       expect((await json(await api.get("/provider/epic/status"))).Data.connected).toBe(false);
     });
 
-    test("epic connect without a code returns 400 rather than 500 @negative", async ({ api }) => {
-      test.fail(true, "Known bug: epicProvider.connect throws a plain Error, so a missing code surfaces as 500");
-      expect((await api.post("/provider/epic/connect", {})).status()).toBe(400);
+    test("epic resync when not connected asks the user to reconnect @negative", async ({ api }) => {
+      const res = await api.post("/provider/epic/resync", {});
+      expect(res.status()).toBe(400);
+      expect((await json(res)).error).toBe("Epic account is not connected. Please reconnect.");
     });
 
     test("disconnecting a provider that was never connected is a harmless no-op @positive", async ({ api }) => {
