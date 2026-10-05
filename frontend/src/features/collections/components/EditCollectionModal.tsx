@@ -58,6 +58,9 @@ export default function EditCollectionModal({
       await onSave(name.trim(), description.trim());
 
       onClose();
+    } catch {
+      // The caller already told the user what went wrong; stay open so the
+      // name can be corrected in place.
     } finally {
       setLoading(false);
     }

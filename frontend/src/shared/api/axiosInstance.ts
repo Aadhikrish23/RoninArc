@@ -65,13 +65,6 @@ api.interceptors.response.use(
 
         const { accessToken, refreshToken: newRefreshToken } =
           refreshResponse.data.Data;
-        console.log("[AUTH] New Access Token:", accessToken);
-
-        console.log(
-          "[AUTH] LocalStorage Token BEFORE:",
-          localStorage.getItem("roninarc_token"),
-        );
-
         const usingLocalStorage = !!localStorage.getItem(
           "roninarc_refresh_token",
         );

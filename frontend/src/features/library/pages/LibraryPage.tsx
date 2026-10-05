@@ -24,7 +24,6 @@ import { useCollection } from "../../collections/hooks/useCollections";
 
 import CreateCollectionModal from "../../collections/components/CreateCollectionModal";
 
-import { useAuth } from "../../auth/context/AuthContext";
 import LibraryHeader from "../sections/LibraryHeader";
 import RawgResultsSection from "../sections/RawgResultsSection";
 import RawgSearch from "../components/RawgSearch";
@@ -64,7 +63,6 @@ function LibraryPage() {
   const bg = useColorModeValue("gray.50", "gray.900");
 
   const toast = useToast();
-  const { token } = useAuth();
 
   const [addedGameTitle, setAddedGameTitle] = useState("");
 
@@ -113,8 +111,6 @@ function LibraryPage() {
       setIsRescanning(false);
     }
   };
-
-  console.log("Context token:", token);
 
   const updateGameRating = (gameId: string) => {
     refreshGame(gameId);

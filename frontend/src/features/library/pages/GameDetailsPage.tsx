@@ -60,6 +60,7 @@ export default function GameDetailsPage() {
   } = useLibrary();
   const {
     collections,
+    fetchCollections,
     addGameToCollection,
     removeGameFromCollection,
   } = useCollection();
@@ -72,6 +73,8 @@ export default function GameDetailsPage() {
 
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
+  const [isRemoveGameOpen, setIsRemoveGameOpen] = useState(false);
+  const cancelRemoveRef = useRef<HTMLButtonElement>(null);
 
   const isMongoId = /^[0-9a-fA-F]{24}$/.test(rawgId || "");
   const libraryGame = isMongoId
@@ -168,7 +171,9 @@ export default function GameDetailsPage() {
   };
 
   useEffect(() => {
-    Promise.all([fetchLibrary()]);
+    // Collections live in a shared context that only the Library page used to
+    // load, so a direct visit/refresh here showed an empty "Add To Collection".
+    Promise.all([fetchLibrary(), fetchCollections()]);
   }, []);
 
   const fetchReviewAndStats = useCallback(async () => {
@@ -244,7 +249,7 @@ export default function GameDetailsPage() {
     review={userReview}
     playtimeHours={gameStats?.totalHours ?? 0}
     lastPlayed={gameStats?.lastPlayed ?? null}
-    onDelete={handleDeleteGame}
+    onDelete={() => setIsRemoveGameOpen(true)}
     onStatusChange={handleStatusChange}
     collections={collections}
     onAddToCollection={addGameToCollection}
@@ -404,6 +409,40 @@ export default function GameDetailsPage() {
                 ml={3}
               >
                 Delete
+              </Button>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialogOverlay>
+      </AlertDialog>
+
+      <AlertDialog
+        isOpen={isRemoveGameOpen}
+        leastDestructiveRef={cancelRemoveRef}
+        onClose={() => setIsRemoveGameOpen(false)}
+      >
+        <AlertDialogOverlay>
+          <AlertDialogContent>
+            <AlertDialogHeader fontSize="lg" fontWeight="bold">
+              Remove {game.name} from your library?
+            </AlertDialogHeader>
+
+            <AlertDialogBody>
+              Its review, notes and collection memberships will be removed too. This action cannot be undone.
+            </AlertDialogBody>
+
+            <AlertDialogFooter>
+              <Button ref={cancelRemoveRef} onClick={() => setIsRemoveGameOpen(false)}>
+                Cancel
+              </Button>
+              <Button
+                colorScheme="red"
+                ml={3}
+                onClick={async () => {
+                  setIsRemoveGameOpen(false);
+                  if (libraryGame) await handleDeleteGame(libraryGame._id);
+                }}
+              >
+                Remove
               </Button>
             </AlertDialogFooter>
           </AlertDialogContent>

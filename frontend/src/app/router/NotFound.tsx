@@ -47,7 +47,7 @@ function NotFound() {
             colorScheme="purple"
             w="full"
           >
-            Return to Login
+            Return Home
           </Button>
 
           

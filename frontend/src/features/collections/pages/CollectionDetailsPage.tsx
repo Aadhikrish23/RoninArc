@@ -5,8 +5,10 @@ import {
   Spinner,
   Text,
   Select,
+  useToast,
 } from "@chakra-ui/react";
 import { ArrowBackIcon } from "@chakra-ui/icons";
+import { getErrorMessage } from "../../../shared/utils/error";
 import { useNavigate, useParams } from "react-router-dom";
 import { useState } from "react";
 
@@ -33,6 +35,7 @@ export default function CollectionDetailsPage() {
   const { openLaunchModal, runningGames, modalProps } = useLaunchGame();
 
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const toast = useToast();
 
   const {
     collection,
@@ -103,11 +106,20 @@ export default function CollectionDetailsPage() {
   };
 
   const handleUpdateCollection = async (name: string, description?: string) => {
-    const updated = await updateCollection(collection._id, name, description);
-
-    replaceCollection(updated);
-
-    setEditOpen(false);
+    try {
+      const updated = await updateCollection(collection._id, name, description);
+      replaceCollection(updated);
+      setEditOpen(false);
+    } catch (err) {
+      toast({
+        title: "Couldn't update collection",
+        description: getErrorMessage(err),
+        status: "error",
+        duration: 4000,
+        isClosable: true,
+      });
+      throw err;
+    }
   };
 
   const handleDelete = async () => {

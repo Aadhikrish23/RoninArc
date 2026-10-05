@@ -7,6 +7,7 @@ export function getErrorMessage(
     return (
       error.response?.data?.error ??
       error.response?.data?.message ??
+      error.response?.data?.Message ??
       error.message
     );
   }
