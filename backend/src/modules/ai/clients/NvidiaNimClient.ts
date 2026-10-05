@@ -1,5 +1,6 @@
 import axios from "axios";
 import AIConfig from "../config/AIConfig";
+import { AIProviderUnavailableError, isUnreachable } from "../runtime/errors/AIProviderUnavailableError";
 
 export class NvidiaNimClient {
   private readonly baseUrl = AIConfig.nvidiaBaseUrl;
@@ -61,7 +62,10 @@ export class NvidiaNimClient {
     } catch (error: any) {
       if (axios.isAxiosError(error)) {
         if (error.code === "ECONNABORTED") {
-          throw new Error("NVIDIA NIM request timed out. Please try again.");
+          throw new AIProviderUnavailableError("NVIDIA NIM request timed out. Please try again.", error);
+        }
+        if (isUnreachable(error)) {
+          throw new AIProviderUnavailableError(`NVIDIA NIM is unreachable (${error.code}) -- most likely no internet connection.`, error);
         }
         if (error.response) {
           const status = error.response.status;

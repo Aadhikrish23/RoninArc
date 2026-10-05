@@ -8,6 +8,7 @@ import {
   useEffect,
 } from "react";
 import type { Message, ClarificationRequest } from "../types/conversation";
+import axios from "axios";
 import aiApi from "../api/aiApi";
 import { useAuth } from "../../auth/context/AuthContext";
 import { eventBus } from "../../../shared/events/EventBus";
@@ -170,7 +171,9 @@ export function AIProvider({ children }: { children: ReactNode }) {
       const errorMessage: Message = {
         id: crypto.randomUUID(),
         sender: "assistant",
-        text: "Sorry, I encountered an error. Please check your connection and try again.",
+        text:
+          (axios.isAxiosError(error) && error.response?.data?.message) ||
+          "Sorry, I encountered an error. Please check your connection and try again.",
         timestamp: new Date(),
         status: "error",
       };

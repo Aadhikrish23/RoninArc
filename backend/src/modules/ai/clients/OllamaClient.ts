@@ -1,5 +1,6 @@
 import axios from "axios";
 import AIConfig from "../config/AIConfig";
+import { AIProviderUnavailableError, isUnreachable } from "../runtime/errors/AIProviderUnavailableError";
 
 export class OllamaClient {
   private readonly baseUrl = AIConfig.ollamaBaseUrl;
@@ -182,10 +183,13 @@ export class OllamaClient {
     } catch (error: any) {
       if (axios.isAxiosError(error)) {
         if (error.code === "ECONNABORTED") {
-          throw new Error("Ollama request timed out. Please check if Ollama is responsive.");
+          throw new AIProviderUnavailableError("Ollama request timed out. Please check if Ollama is responsive.", error);
         }
         if (error.code === "ECONNREFUSED") {
-          throw new Error(`Ollama is not running. Connection refused at ${this.baseUrl}. Please start the Ollama service.`);
+          throw new AIProviderUnavailableError(`Ollama is not running. Connection refused at ${this.baseUrl}. Please start the Ollama service.`, error);
+        }
+        if (isUnreachable(error)) {
+          throw new AIProviderUnavailableError(`Ollama is unreachable at ${this.baseUrl} (${error.code}).`, error);
         }
         if (error.response) {
           throw new Error(`Ollama returned a non-200 HTTP response status: ${error.response.status}. Likely caused by an invalid model or prompt config.`);

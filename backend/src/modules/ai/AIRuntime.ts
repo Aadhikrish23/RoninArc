@@ -98,8 +98,11 @@ export class AIRuntime {
           requestContext.memoryContext = memoryContext;
         }
 
+        // A pure greeting needs no model, so it's answered even when the LLM is offline.
+        const greetingKind = matchGreeting(cleanRequest);
+
         // 4. Planning Runtime Step A: Call LLM Provider to plan intent if not resumed
-        if (!intentPlan && requestContext) {
+        if (!intentPlan && !greetingKind && requestContext) {
           intentPlan = await this.provider.plan(
             cleanRequest,
             requestContext,
@@ -112,7 +115,6 @@ export class AIRuntime {
 
         // Intercept general conversation: the whole message is a greeting, or the
         // LLM itself classified the request as AskQuestion/Help.
-        const greetingKind = matchGreeting(cleanRequest);
         const llmConversationalIntents = intentPlan?.intents?.filter(i => i.type === "AskQuestion" || i.type === "Help") ?? [];
 
         if (greetingKind || llmConversationalIntents.length > 0) {
