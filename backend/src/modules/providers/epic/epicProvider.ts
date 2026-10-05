@@ -1,4 +1,5 @@
 import { GameProvider } from "../shared/GameProvider";
+import AppError from "../../../shared/errors/AppError";
 import epicAuthService from "./epicAuthService";
 import { exchangeAuthorizationCode } from "./epicOAuthService";
 import epicLibraryService from "./epicLibraryService";
@@ -17,7 +18,7 @@ class EpicProvider implements GameProvider {
   async connect(userId: string, body: any) {
     const { authorizationCode, localGames = [] } = body;
     if (!authorizationCode) {
-      throw new Error("Authorization code required");
+      throw new AppError("Missing Epic Games authorization code. Please try connecting again.", 400);
     }
 
     const tokenData = await exchangeAuthorizationCode(authorizationCode);

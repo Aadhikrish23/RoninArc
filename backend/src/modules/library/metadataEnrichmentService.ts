@@ -1,4 +1,5 @@
 import gameLibrarymodel from "./LibraryGame";
+import AppError from "../../shared/errors/AppError";
 import rawgService from "../rawg/rawgService";
 import {
   normalizeTitle,
@@ -15,7 +16,7 @@ class MetadataEnrichmentService {
     });
 
     if (!game) {
-      throw new Error("Game not found");
+      throw new AppError("Game not found", 404);
     }
 
     // Already enriched

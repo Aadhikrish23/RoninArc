@@ -9,6 +9,10 @@ const createCollection = async (
   name: string,
   description?: string,
 ) => {
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Collection name is required");
+  }
+
   const existingCollection = await Collection.findOne({
     userId,
     name: { $regex: new RegExp("^" + name.trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, "\\$&") + "$", "i") },
@@ -72,6 +76,15 @@ const addGameToCollection = async (
 
   if (!existing) {
     throw new Error("Collection not found");
+  }
+
+  if (typeof gameId !== "string" || !Types.ObjectId.isValid(gameId)) {
+    throw new Error("A valid gameId is required");
+  }
+
+  const ownsGame = await gameLibrarymodel.exists({ _id: gameId, userId });
+  if (!ownsGame) {
+    throw new Error("Game not found in your library");
   }
 
   const hasGame = existing.gameIds.some(id => id.toString() === gameId.toString());
@@ -195,6 +208,10 @@ const updateCollection = async (
   name: string,
   description?: string,
 ) => {
+  if (typeof name !== "string" || !name.trim()) {
+    throw new Error("Collection name is required");
+  }
+
   const duplicate = await Collection.findOne({
     userId,
     name: name.trim(),

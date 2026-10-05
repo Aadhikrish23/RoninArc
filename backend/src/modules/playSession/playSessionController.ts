@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { Types } from "mongoose";
 
 import playSessionService from "./playSessionService";
+import gameLibrarymodel from "../library/LibraryGame";
 
 export const startSession = async (req: Request, res: Response) => {
   try {
@@ -15,6 +16,13 @@ export const startSession = async (req: Request, res: Response) => {
         Message: "Invalid game id",
       });
     }
+    if (!(await gameLibrarymodel.exists({ _id: gameId, userId }))) {
+      return res.status(404).json({
+        Status: "Failed",
+        Message: "Game not found in your library",
+      });
+    }
+
     const session = await playSessionService.startSession(
       new Types.ObjectId(userId),
       gameId,

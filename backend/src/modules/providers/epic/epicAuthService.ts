@@ -1,3 +1,4 @@
+import AppError from "../../../shared/errors/AppError";
 import User from "../../auth/models/User";
 import epicApiService from "./epicApiService";
 import EpicOwnership from "./models/EpicOwnership";
@@ -101,7 +102,7 @@ const getValidAccessToken = async (userId: string) => {
   const user = await User.findById(userId);
 
   if (!user?.providers?.epic) {
-    throw new Error("Epic account not connected");
+    throw new AppError("Epic account is not connected. Please reconnect.", 400);
   }
 
   const epic = user.providers.epic;

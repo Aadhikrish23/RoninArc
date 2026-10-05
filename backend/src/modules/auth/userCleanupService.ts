@@ -4,6 +4,8 @@ import Activity from "../activity/ActivityModel";
 import PlaySession from "../playSession/PlaySessionModel";
 import GameLibrary from "../library/LibraryGame";
 import RefreshToken from "./models/RefreshToken";
+import Note from "../notes/Notemodel";
+import EpicOwnership from "../providers/epic/models/EpicOwnership";
 
 export async function deleteUserData(userId: string) {
   await Promise.all([
@@ -28,5 +30,9 @@ export async function deleteUserData(userId: string) {
     RefreshToken.deleteMany({
       userId,
     }),
+
+    Note.deleteMany({ userId }),
+
+    EpicOwnership.deleteMany({ userId }),
   ]);
 }

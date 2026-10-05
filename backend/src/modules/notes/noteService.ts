@@ -23,7 +23,7 @@ const updateNote = async (userId: string, noteId: string, content: string) => {
   return Note.findOneAndUpdate(
     { _id: noteId, userId },
     { content: content.trim() },
-    { new: true },
+    { new: true, runValidators: true },
   );
 };
 

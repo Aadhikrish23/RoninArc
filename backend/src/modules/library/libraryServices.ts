@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import gameLibrarymodel from "./LibraryGame";
 import AppError from "../../shared/errors/AppError";
 import Review from "../review/Reviewmodel";
+import Note from "../notes/Notemodel";
 import Collection from "../collection/CollectionModel";
 import activityService from "../activity/activityService";
 import metadataEnrichmentService from "./metadataEnrichmentService";
@@ -222,6 +223,11 @@ async function deleteGame(
   );
 
   await Review.deleteMany({
+    userId: userId,
+    gameId: gameid,
+  });
+
+  await Note.deleteMany({
     userId: userId,
     gameId: gameid,
   });

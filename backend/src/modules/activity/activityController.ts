@@ -37,6 +37,13 @@ const recordLaunch = async (
 
     const { gameId } = req.params;
 
+    if (!Types.ObjectId.isValid(gameId)) {
+      return res.status(400).json({
+        Status: "Failed",
+        Message: "Invalid game id",
+      });
+    }
+
     const game =
       await gameLibrarymodel.findOne({
         _id: gameId,

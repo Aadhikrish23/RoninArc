@@ -1,4 +1,5 @@
 import { GameProvider } from "./GameProvider";
+import AppError from "../../../shared/errors/AppError";
 import epicProvider from "../epic/epicProvider";
 import steamProvider from "../steam/steamProvider";
 
@@ -13,7 +14,7 @@ class ProviderRegistry {
   get(providerId: string): GameProvider {
     const provider = this.providers.get(providerId);
     if (!provider) {
-      throw new Error(`Provider ${providerId} is not registered.`);
+      throw new AppError(`Unknown provider: ${providerId}`, 404);
     }
     return provider;
   }
