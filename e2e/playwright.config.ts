@@ -1,5 +1,5 @@
 import { defineConfig, devices } from "@playwright/test";
-import { API_PORT, API_URL, MONGO_PORT, MONGO_URL, RAWG_PORT, WEB_PORT, WEB_URL } from "./env";
+import { API_PORT, API_URL, BACKEND_SENTRY_DSN, BROWSER_SENTRY_DSN, LOG_DIR, MONGO_PORT, MONGO_URL, RAWG_PORT, SENTRY_PORT, WEB_PORT, WEB_URL } from "./env";
 
 export default defineConfig({
   testDir: "./tests",
@@ -46,6 +46,13 @@ export default defineConfig({
       reuseExistingServer: false,
     },
     {
+      name: "sentry-mock",
+      command: "node servers/sentry-mock.mjs",
+      port: SENTRY_PORT,
+      env: { E2E_SENTRY_PORT: String(SENTRY_PORT) },
+      reuseExistingServer: false,
+    },
+    {
       name: "backend",
       command: "npm run build && node dist/server.js",
       cwd: "../backend",
@@ -71,6 +78,11 @@ export default defineConfig({
         OLLAMA_MODEL: "e2e-mock",
         OLLAMA_TIMEOUT: "3000",
         STEAM_API_KEY: "",
+        LOG_DIR,
+        LOG_LEVEL: "debug",
+        SENTRY_DSN: BACKEND_SENTRY_DSN,
+        SENTRY_ENVIRONMENT: "e2e",
+        SENTRY_DEDUPE: "false",
         NODE_ENV: "test",
       },
     },
@@ -81,7 +93,7 @@ export default defineConfig({
       url: WEB_URL,
       reuseExistingServer: false,
       timeout: 120_000,
-      env: { VITE_API_BASE_URL: API_URL },
+      env: { VITE_API_BASE_URL: API_URL, VITE_SENTRY_DSN: BROWSER_SENTRY_DSN, VITE_SENTRY_ENVIRONMENT: "e2e" },
     },
   ],
 });

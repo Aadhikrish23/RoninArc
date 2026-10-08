@@ -5,7 +5,6 @@ import gameLibrarymodel from "../library/LibraryGame";
 import { normalizeTitle } from "../providers/shared/matcher/matcher";
 
 const searchgame = async (req: Request, res: Response, next: NextFunction) => {
-  console.log(">>> RAWG CONTROLLER HIT <<<");
   try {
     const query = req.query.query as string;
     const pageRaw = req.query.page as string | undefined;

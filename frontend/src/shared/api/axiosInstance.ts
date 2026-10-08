@@ -1,6 +1,10 @@
 import axios from "axios";
 import { API_BASE_URL } from "./config";
 import { updateAuthTokens } from "../utils/tokenManager";
+import { log } from "../logging/clientLogger";
+
+const newRequestId = () =>
+  typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
 
 let isRefreshing = false;
 let refreshPromise: Promise<any> | null = null;
@@ -23,6 +27,9 @@ api.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
 
+    // Lets a client-side error be matched to the backend's log line for the same call.
+    config.headers["X-Request-Id"] = newRequestId();
+
     return config;
   },
   (error) => Promise.reject(error),
@@ -34,7 +41,14 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
     const isAuthRoute = originalRequest.url?.includes("auth/");
-    console.log("[AUTH]", originalRequest.url, isAuthRoute);
+    const status = error.response?.status;
+    if (!error.response || status >= 500) {
+      const call = `${originalRequest?.method?.toUpperCase()} ${originalRequest?.url}`;
+      log(status ? "error" : "warn", status ? `API ${status} on ${call}` : `Network error on ${call}`, {
+        requestId: originalRequest?.headers?.["X-Request-Id"],
+        context: { status, message: error.response?.data?.error ?? error.message },
+      });
+    }
     if (
       error.response?.status === 401 &&
       !originalRequest._retry &&

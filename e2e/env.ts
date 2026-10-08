@@ -1,3 +1,6 @@
+import os from "node:os";
+import path from "node:path";
+
 // Ports are deliberately unlike the dev ones (5000/5173/27017) and the packaged
 // app's (27018), so a suite run can coexist with a running dev environment.
 export const MONGO_PORT = Number(process.env.E2E_MONGO_PORT || 27119);
@@ -8,3 +11,12 @@ export const WEB_PORT = Number(process.env.E2E_WEB_PORT || 5181);
 export const API_URL = `http://localhost:${API_PORT}`;
 export const WEB_URL = `http://localhost:${WEB_PORT}`;
 export const MONGO_URL = `mongodb://127.0.0.1:${MONGO_PORT}`;
+
+export const SENTRY_PORT = Number(process.env.E2E_SENTRY_PORT || 5098);
+export const SENTRY_URL = `http://127.0.0.1:${SENTRY_PORT}`;
+// Sentry DSNs: <protocol>://<key>@<host>/<projectId>. Project 1 = backend, 2 = browser.
+export const BACKEND_SENTRY_DSN = `http://e2ekey@127.0.0.1:${SENTRY_PORT}/1`;
+export const BROWSER_SENTRY_DSN = `http://e2ekey@127.0.0.1:${SENTRY_PORT}/2`;
+
+// Where the backend writes its JSON-lines logs during the suite (tests read them).
+export const LOG_DIR = path.join(os.tmpdir(), "roninarc-e2e-logs");

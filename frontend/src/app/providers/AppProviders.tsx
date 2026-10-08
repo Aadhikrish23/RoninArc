@@ -8,6 +8,7 @@ import { ProviderProvider } from "../../features/providers/context/ProviderConte
 import { LibraryProvider } from "../../features/library/context/LibraryContext";
 import { CollectionProvider } from "../../features/collections/context/CollectionContext";
 import { AIProvider } from "../../features/ai/context/AIContext";
+import AppErrorBoundary from "../../shared/components/AppErrorBoundary";
 
 interface Props {
   children: ReactNode;
@@ -16,6 +17,7 @@ interface Props {
 export default function AppProviders({ children }: Props) {
   return (
     <ChakraProvider>
+      <AppErrorBoundary>
       <AuthProvider>
         <ProviderProvider>
           <LibraryProvider>
@@ -27,6 +29,7 @@ export default function AppProviders({ children }: Props) {
           </LibraryProvider>
         </ProviderProvider>
       </AuthProvider>
+      </AppErrorBoundary>
     </ChakraProvider>
   );
 }

@@ -1,6 +1,10 @@
 import type { Request, Response, NextFunction } from "express";
 import jwt from "jsonwebtoken";
 import AppError from "../../shared/errors/AppError";
+import { moduleLogger } from "../../shared/logging/logger";
+import { attachUserToRequestContext } from "../../shared/logging/requestLogger";
+
+const log = moduleLogger("auth");
 interface JwtPayload {
   id: string;
   name: string;
@@ -35,11 +39,10 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const name = payload.name;
 
     req.user = { id, name };
-    
-    console.log("JWT VERIFIED");
+    attachUserToRequestContext(id);
     next();
   } catch (error) {
-    console.log("JWT VERIFY FAILED", error);
+    log.debug({ reason: error instanceof Error ? error.name : "unknown" }, "JWT verification failed");
     return next(new AppError("Invalid or expired token", 401));
   }
 };

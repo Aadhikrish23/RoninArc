@@ -91,7 +91,6 @@ async function getUserLibrary(userId: string) {
   });
 }
 async function getGameById(userId: string, gameid: string) {
-   console.log("========== GET GAME BY ID ==========");
   const data = await gameLibrarymodel.findOne({
     _id: gameid,
     userId,

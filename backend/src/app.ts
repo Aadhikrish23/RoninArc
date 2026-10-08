@@ -19,8 +19,12 @@ import backupRouter from "./modules/backup/backup";
 import recommendationRouter from "./modules/recommendation/recommendation";
 import providerRoutes from "./modules/providers/providerRoutes";
 import { aiRoutes } from "./modules/ai";
+import clientLogsRouter from "./modules/logs/clientLogs";
+import { requestLogger } from "./shared/logging/requestLogger";
+import { reportError } from "./shared/logging/errorReporter";
 dotenv.config();
 const app = express();
+app.use(requestLogger);
 app.use(
   helmet({
     contentSecurityPolicy: false,
@@ -34,7 +38,15 @@ const allowedOrgin = process.env.ALLOWED_ORIGIN || "http://localhost:3000";
 // is only ever reachable from localhost by this same packaged app in that
 // mode, so ELECTRON_EMBEDDED (set by main.js when it spawns this process)
 // just reflects back whatever origin the request declares instead.
-app.use(cors({ origin: process.env.ELECTRON_EMBEDDED === "1" ? true : allowedOrgin }));
+app.use(
+  cors({
+    origin: process.env.ELECTRON_EMBEDDED === "1" ? true : allowedOrgin,
+    exposedHeaders: ["X-Request-Id"],
+  }),
+);
+
+// Mounted before the global JSON parser so it can use its own, larger body limit.
+app.use("/logs", clientLogsRouter);
 
 app.use(express.json());
 
@@ -72,14 +84,29 @@ app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   let status;
   let message;
 
+  const bodyError = err as { type?: string; status?: number };
   if (err instanceof AppError) {
     statusCode = err.statusCode;
     status = err.status;
     message = err.message;
+  } else if (bodyError?.type === "entity.parse.failed") {
+    statusCode = 400;
+    status = "Fail";
+    message = "Malformed JSON body";
+  } else if (bodyError?.type === "entity.too.large") {
+    statusCode = 413;
+    status = "Fail";
+    message = "Request body too large";
   } else {
     statusCode = 500;
     status = "Fail";
     message = "Internal Server Error";
+  }
+
+  // 4xx are already captured by the request log; server-side failures get the
+  // full error (stack included) locally and in Sentry when configured.
+  if (statusCode >= 500) {
+    reportError(err, { method: req.method, path: req.originalUrl.split("?")[0], statusCode });
   }
 
   return res.status(statusCode).json({ Status: status, error: message });

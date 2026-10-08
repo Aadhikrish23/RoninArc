@@ -137,6 +137,9 @@ function startBackend() {
         MONGO_URI: `mongodb://127.0.0.1:${EMBEDDED_MONGO_PORT}/RoninArc`,
         PORT: String(BACKEND_PORT),
         JWT_SECRET: getOrCreateJwtSecret(),
+        // Structured JSON logs (offline record) live next to the app data.
+        LOG_DIR: path.join(app.getPath("userData"), "logs"),
+        NODE_ENV: "production",
       },
     });
     debugLog("startBackend: spawned, pid=", backendProcess.pid);

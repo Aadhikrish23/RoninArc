@@ -7,7 +7,6 @@ const RAWG_BASE_URL = process.env.RAWG_BASE_URL;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
 
 async function searchGames(query: string, page: number) {
-  console.log(">>> RAWG SERVICE searchGames HIT <<<");
 
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
@@ -47,7 +46,6 @@ async function searchGames(query: string, page: number) {
   }
 }
 async function searchBestMatch(query: string, pageSize: number) {
-  console.log(">>> RAWG SERVICE searchGames HIT <<<");
 
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
