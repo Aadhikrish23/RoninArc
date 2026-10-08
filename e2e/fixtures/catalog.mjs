@@ -2,6 +2,11 @@
 const img = (slug) => `https://media.example.com/games/${slug}.jpg`;
 
 export const RAWG_FAILURE_QUERY = "rawg-upstream-failure";
+// Discovery requests for this genre fail upstream, to exercise the offline path.
+export const RAWG_FAILURE_GENRE = "Card";
+
+const SLUGS = { rpg: "role-playing-games-rpg", "massively multiplayer": "massively-multiplayer", "board games": "board-games" };
+export const genreSlug = (name) => SLUGS[name.toLowerCase()] ?? name.toLowerCase();
 
 export const CATALOG = [
   { id: 3498, name: "Grand Theft Auto V", genres: ["Action"], rating: 4.5, released: "2013-09-17", metacritic: 92, developer: "Rockstar North" },

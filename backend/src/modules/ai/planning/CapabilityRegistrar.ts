@@ -80,6 +80,14 @@ export function registerCapabilities() {
   });
 
   registry.register({
+    id: "recommend-games",
+    name: "Recommend Games",
+    description: "Suggests what to play next from the user's backlog and new games to discover, based on their taste.",
+    intentType: IntentType.RecommendGame,
+    requirements: [{ contextCategory: ContextCategory.Library }],
+  });
+
+  registry.register({
     id: "connect-account",
     name: "Connect Account",
     description: "Connects a provider account.",

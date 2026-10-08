@@ -19,7 +19,15 @@ export class OllamaClient {
 
       let responseText = "";
 
-      if (queryLower.includes("launch")) {
+      if (
+        queryLower.includes("recommend") ||
+        queryLower.includes("suggest") ||
+        queryLower.includes("what should i play")
+      ) {
+        responseText = JSON.stringify({
+          intents: [{ type: "RecommendGame", targets: [], parameters: [{ type: "Text", value: query }] }],
+        });
+      } else if (queryLower.includes("launch")) {
         let gameName = "Fallout Shelter";
         if (queryLower.includes("elden ring")) {
           gameName = "Elden Ring";

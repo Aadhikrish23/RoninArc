@@ -10,7 +10,7 @@ test.describe("Cloud backup API (/backup)", () => {
     const res = await api.post("/backup/push");
     expect(res.status()).toBe(200);
     const { Data } = await json(res);
-    expect(Data.collections).toBe(7);
+    expect(Data.collections).toBe(8);
     expect(Data.documents).toBeGreaterThanOrEqual(2);
   });
 

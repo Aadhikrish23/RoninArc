@@ -84,6 +84,40 @@ async function searchBestMatch(query: string, pageSize: number) {
     throw new AppError("Failed to fetch RAWG data", 502);
   }
 }
+/**
+ * Popular games in any of the given RAWG genre slugs (or overall, when none),
+ * used by recommendations to find titles the user doesn't own yet.
+ */
+async function discoverByGenres(genreSlugs: string[], pageSize = 40) {
+  if (!RAWG_BASE_URL || !RAWG_API_KEY) {
+    throw new AppError("RAWG API is not configured", 500);
+  }
+
+  try {
+    const response = await axios.get(`${RAWG_BASE_URL}/games`, {
+      params: {
+        key: RAWG_API_KEY,
+        ...(genreSlugs.length > 0 ? { genres: genreSlugs.join(",") } : {}),
+        ordering: "-added",
+        page_size: pageSize,
+      },
+      timeout: 8000,
+    });
+
+    return (response.data.results || []).map((g: any) => ({
+      id: g.id,
+      name: g.name,
+      imageURL: g.background_image,
+      rating: g.rating,
+      released: g.released,
+      genres: g.genres?.map((x: any) => x.name) || [],
+      metacritic: g.metacritic,
+    }));
+  } catch (err) {
+    throw new AppError("Failed to fetch RAWG data", 502);
+  }
+}
+
 async function getGameDetails(rawgId: string | number) {
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
@@ -154,5 +188,6 @@ async function getGameDetails(rawgId: string | number) {
 export default {
   searchGames,
   getGameDetails,
-  searchBestMatch
+  searchBestMatch,
+  discoverByGenres,
 };

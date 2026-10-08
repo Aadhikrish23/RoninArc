@@ -6,6 +6,7 @@ import GameLibrary from "../library/LibraryGame";
 import RefreshToken from "./models/RefreshToken";
 import Note from "../notes/Notemodel";
 import EpicOwnership from "../providers/epic/models/EpicOwnership";
+import RecommendationFeedback from "../recommendation/RecommendationFeedback";
 
 export async function deleteUserData(userId: string) {
   await Promise.all([
@@ -34,5 +35,7 @@ export async function deleteUserData(userId: string) {
     Note.deleteMany({ userId }),
 
     EpicOwnership.deleteMany({ userId }),
+
+    RecommendationFeedback.deleteMany({ userId }),
   ]);
 }

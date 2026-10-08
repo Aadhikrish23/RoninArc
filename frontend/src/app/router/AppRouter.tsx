@@ -17,6 +17,7 @@ import { useAuth } from "../../features/auth/context/AuthContext";
 import GameDetailsPage from "../../features/library/pages/GameDetailsPage";
 import EpicOAuthCallback from "../../features/providers/epic/pages/EpicOAuthCallback";
 import CollectionDetailsPage from "../../features/collections/pages/CollectionDetailsPage";
+import RecommendationsPage from "../../features/recommendations/pages/RecommendationsPage";
 
 function RequireAuth({ children }: { children: JSX.Element }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -53,6 +54,7 @@ export default function AppRouter() {
 
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/ai" element={<AIPage />} />
+        <Route path="/recommendations" element={<RecommendationsPage />} />
         <Route
           path="/providers/epic/callback"
           element={<EpicOAuthCallback />}

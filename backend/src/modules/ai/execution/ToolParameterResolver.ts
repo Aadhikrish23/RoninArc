@@ -9,6 +9,7 @@ import { NO_REFERENCE_FALLBACK_TOOLS } from "./NoReferenceFallbackTools";
 export const TEXT_PARAM_KEY_BY_TOOL: Record<string, string> = {
   search_library: "searchValue",
   add_note: "content",
+  recommend_games: "query",
 };
 export const DEFAULT_TEXT_PARAM_KEY = "reviewText";
 

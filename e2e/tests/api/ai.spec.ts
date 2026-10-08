@@ -98,6 +98,40 @@ test.describe("AI chat API (/ai/chat)", () => {
     });
   });
 
+  test.describe("recommendations", () => {
+    test("'what should I play next?' recommends from the backlog with reasons @positive", async ({ api }) => {
+      const hk = await api.addGame(byName("Hollow Knight"), { progressStatus: "completed" });
+      await api.put(`/review/${hk._id}`, { rating: 9 });
+      await api.addGame(byName("Celeste"));
+
+      const { status, body } = await chat(api, "What should I play next?");
+      expect(status).toBe(200);
+      expect(body.success, body.message).toBe(true);
+      expect(body.message).toContain("From your backlog, I'd play next: Celeste");
+      expect(body.message).toContain("you rated Hollow Knight 9/10");
+      expect(body.message).toContain("New to discover:");
+    });
+
+    test("'recommend something like <game>' focuses on that game's genres @positive", async ({ api }) => {
+      await api.addGame(byName("Hades"), { progressStatus: "completed" });
+      await api.addGame(byName("Elden Ring"));
+      await api.addGame(byName("Stardew Valley"));
+      const { body } = await chat(api, "recommend something like Hades");
+      expect(body.success, body.message).toBe(true);
+      expect(body.message).toContain("Elden Ring");
+      expect(body.message).not.toContain("Stardew Valley");
+    });
+
+    test("with nothing to go on it says how to get better picks @negative", async ({ api }) => {
+      for (const [name, status] of [["Hades", "playing"], ["Celeste", "completed"]] as const) {
+        await api.addGame(byName(name), { progressStatus: status });
+      }
+      const { body } = await chat(api, "suggest a racing game");
+      expect(body.success).toBe(true);
+      expect(body.message).toContain("I don't have any recommendations matching Racing yet");
+    });
+  });
+
   test.describe("collections", () => {
     test("creates a collection and adds a game to it @positive", async ({ api }) => {
       const game = await api.addGame(shelter);

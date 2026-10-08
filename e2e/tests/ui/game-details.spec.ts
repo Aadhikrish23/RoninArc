@@ -35,8 +35,18 @@ test.describe("Game details page", () => {
   test("changes the play status @positive", async ({ authedPage: page, api }) => {
     const g = await api.addGame(hades, { progressStatus: "playing" });
     await open(page, `/library/game/${hades.id}`);
-    await page.getByRole("button", { name: "Playing" }).click();
-    await page.getByRole("menuitem", { name: "Completed" }).click();
+    // Wait for the page's async loads (library, collections, play stats) to settle
+    // so a late re-render can't close the menu mid-click.
+    await expect(page.getByText(/^Collections \(\d+\)$/)).toBeVisible();
+    await expect(page.getByText("0.0 hours")).toBeVisible();
+    // Chakra's menu can reposition (flip above the button) right after opening,
+    // so a click can land on the item's old spot; retry the open+pick as a unit.
+    const completed = page.getByRole("menuitem", { name: "Completed" });
+    await expect(async () => {
+      if (!(await completed.isVisible())) await page.getByRole("button", { name: "Playing" }).click();
+      await completed.click({ timeout: 2000 });
+      await expect(page.getByRole("button", { name: "Completed" })).toBeVisible({ timeout: 2000 });
+    }).toPass({ timeout: 15_000 });
     await expect.poll(async () => (await json(await api.get(`/game/${g._id}`))).Data.progressStatus).toBe("completed");
   });
 
@@ -109,7 +119,7 @@ test.describe("Game details page", () => {
       const c = await api.createCollection("Roguelikes");
       // Collections are loaded by the Library page (shared context), so arrive the way a user does.
       await open(page, "/");
-      await page.getByRole("paragraph").filter({ hasText: /^Hades$/ }).click();
+      await page.getByRole("paragraph").filter({ hasText: /^Hades$/ }).last().click();
       await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
 
       await page.getByRole("button", { name: "Add To Collection" }).click();

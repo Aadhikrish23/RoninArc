@@ -98,6 +98,13 @@ export class ToolInputFactory {
           };
         }
 
+        case "recommend_games": {
+          // A "like <game>" hint may arrive as a Game target rather than text.
+          const queryVal = getParamValue("query", "Text");
+          const hint = [queryVal, gameTarget?.name].filter(Boolean).join(" ");
+          return { query: hint || undefined };
+        }
+
         case "launch_game": {
           const gameIdVal = getParamValue("gameId", "GameId") || getParamValue("gameId", "gameId");
           return {

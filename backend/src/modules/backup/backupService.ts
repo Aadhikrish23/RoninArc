@@ -10,6 +10,7 @@ import Review from "../review/Reviewmodel";
 import Collection from "../collection/CollectionModel";
 import PlaySession from "../playSession/PlaySessionModel";
 import EpicOwnership from "../providers/epic/models/EpicOwnership";
+import RecommendationFeedback from "../recommendation/RecommendationFeedback";
 
 // Every user-scoped collection that gets mirrored to Atlas. RefreshToken is
 // deliberately excluded -- sessions are per-device and restoring old ones
@@ -22,6 +23,7 @@ const USER_SCOPED_MODELS: mongoose.Model<any>[] = [
   Collection,
   PlaySession,
   EpicOwnership,
+  RecommendationFeedback,
 ];
 
 /**

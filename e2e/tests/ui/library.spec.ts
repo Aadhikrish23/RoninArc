@@ -57,7 +57,7 @@ test.describe("Library home page", () => {
   test("clicking a card opens the game's detail page @positive", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");
-    await page.getByRole("paragraph").filter({ hasText: /^Celeste$/ }).click();
+    await section(page, "Recently Added").getByRole("paragraph").filter({ hasText: /^Celeste$/ }).click();
     await expect(page).toHaveURL(new RegExp(`#/library/game/${byName("Celeste").id}$`));
     await expect(page.getByRole("heading", { name: "Celeste", level: 2 })).toBeVisible();
   });

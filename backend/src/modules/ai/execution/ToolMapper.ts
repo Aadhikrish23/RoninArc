@@ -17,6 +17,7 @@ export class ToolMapper {
     "remove-game": "remove_game",
     "search-library": "search_library",
     "add-note": "add_note",
+    "recommend-games": "recommend_games",
   };
 
   /**

@@ -146,6 +146,18 @@ export class ToolMetadataRegistry {
         ],
       },
       {
+        id: "recommend_games",
+        supportedIntent: "recommend_games",
+        supportedEntityTypes: [],
+        executionPolicy: "SEQUENTIAL",
+        requiredParameters: [],
+        optionalParameters: ["query"],
+        description: "Suggests what to play next and new games to discover",
+        parameters: [
+          { name: "query", type: "string", required: false },
+        ],
+      },
+      {
         id: "update_status",
         supportedIntent: "update_status",
         supportedEntityTypes: ["Game"],

@@ -35,6 +35,7 @@ import GameCarousel from "../components/GameCarousel";
 import CollectionCarousel from "../components/CollectionCarousel";
 import { useLaunchGame } from "../hooks/useLaunchGame";
 import LaunchModal from "../components/LaunchModal";
+import RecommendedStrip from "../../recommendations/components/RecommendedStrip";
 
 function LibraryPage() {
   const {
@@ -293,6 +294,8 @@ function LibraryPage() {
                     />
                   </HorizontalSection>
                 )}
+
+                <RecommendedStrip />
 
                 {favoriteGames.length > 0 && (
                   <HorizontalSection title="Favorites (★ 4+)">

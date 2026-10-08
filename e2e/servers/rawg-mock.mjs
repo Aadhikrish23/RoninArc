@@ -1,7 +1,7 @@
 // Minimal stand-in for the RAWG API (only the endpoints rawgService uses), so
 // search/add/enrich/AI tests are deterministic and need no network or key.
 import http from "node:http";
-import { CATALOG, RAWG_FAILURE_QUERY } from "../fixtures/catalog.mjs";
+import { CATALOG, RAWG_FAILURE_GENRE, RAWG_FAILURE_QUERY, genreSlug } from "../fixtures/catalog.mjs";
 
 const port = Number(process.env.E2E_RAWG_PORT || 5099);
 
@@ -36,7 +36,11 @@ http
     if (parts.length === 1) {
       const search = (url.searchParams.get("search") || "").toLowerCase();
       if (search === RAWG_FAILURE_QUERY) return send(res, 500, { error: "upstream exploded" });
-      const results = CATALOG.filter((g) => g.name.toLowerCase().includes(search)).map(toListItem);
+      const genres = (url.searchParams.get("genres") || "").split(",").filter(Boolean);
+      if (genres.includes(genreSlug(RAWG_FAILURE_GENRE))) return send(res, 500, { error: "upstream exploded" });
+      const results = CATALOG.filter((g) => g.name.toLowerCase().includes(search))
+        .filter((g) => genres.length === 0 || g.genres.some((name) => genres.includes(genreSlug(name))))
+        .map(toListItem);
       return send(res, 200, { count: results.length, results });
     }
 

@@ -194,6 +194,27 @@ Response JSON:
 }`
     },
     {
+      id: "recommend-games",
+      capabilityId: "recommend-games",
+      keywords: ["recommend", "suggest", "what should i play", "what to play", "next"],
+      text: `User Request: Recommend me something like Hollow Knight to play next
+Response JSON:
+{
+  "intents": [
+    {
+      "type": "RecommendGame",
+      "targets": [],
+      "parameters": [
+        {
+          "type": "Text",
+          "value": "like Hollow Knight"
+        }
+      ]
+    }
+  ]
+}`
+    },
+    {
       id: "delete-review",
       capabilityId: "review-game",
       keywords: ["delete", "remove review", "erase review"],
@@ -390,8 +411,9 @@ Response JSON:
     const isConnect = requestLower.includes("connect") || requestLower.includes("disconnect") || requestLower.includes("sync") || requestLower.includes("epic") || requestLower.includes("steam") || requestLower.includes("gog") || requestLower.includes("ea") || requestLower.includes("ubisoft") || requestLower.includes("xbox");
     const isLibrary = requestLower.includes("add") || requestLower.includes("install") || requestLower.includes("remove") || requestLower.includes("delete") || requestLower.includes("search") || requestLower.includes("find") || requestLower.includes("library");
     const isNote = requestLower.includes("note") || requestLower.includes("remember") || requestLower.includes("jot") || requestLower.includes("memo");
+    const isRecommend = requestLower.includes("recommend") || requestLower.includes("suggest") || requestLower.includes("what should i play") || requestLower.includes("what to play") || requestLower.includes("play next");
 
-    const hasAnyMatch = isLaunch || isComplete || isReview || isCollection || isConnect || isLibrary || isNote;
+    const hasAnyMatch = isLaunch || isComplete || isReview || isCollection || isConnect || isLibrary || isNote || isRecommend;
 
     // Filter capabilities based on matched keywords
     const activeCapabilities = capabilities.filter((cap) => {
@@ -402,6 +424,7 @@ Response JSON:
       if (cap.id === "collection") return isCollection;
       if (cap.id === "add-game" || cap.id === "remove-game" || cap.id === "search-library") return isLibrary;
       if (cap.id === "add-note") return isNote;
+      if (cap.id === "recommend-games") return isRecommend;
       return true;
     });
 
@@ -421,6 +444,7 @@ Response JSON:
       if (ex.capabilityId === "collection") return isCollection;
       if (ex.capabilityId === "add-game" || ex.capabilityId === "remove-game" || ex.capabilityId === "search-library") return isLibrary;
       if (ex.capabilityId === "add-note") return isNote;
+      if (ex.capabilityId === "recommend-games") return isRecommend;
       if (!ex.capabilityId && ex.id === "connect") return isConnect;
       return false;
     });
@@ -445,6 +469,7 @@ Note:
 - Goal "Remove Game" maps to intent type "RemoveGame" and accepts a Game target (the game must already be in the user's library).
 - Goal "Search Library" maps to intent type "SearchLibrary" and accepts a "Text" parameter with the search term (a tag, title, or status like "completed") -- no targets.
 - Goal "Add Note" maps to intent type "AddNote" and accepts a Game target (the game must already be in the user's library) plus a "Text" parameter with the note's content.
+- Goal "Recommend Games" maps to intent type "RecommendGame" for any "what should I play / recommend / suggest" request. Put any hint (a genre, or "like <game>") in a "Text" parameter and use no targets.
 
 User Context:
 - User ID: ${context.userId}
@@ -457,7 +482,7 @@ Understand the user request and map it to player-centric intents.
 You must return ONLY a valid JSON object matching the following structure without any markdown formatting, explanations, comments, reasoning, or additional text.
 
 Allowed Enum Values:
-- intent type: CompleteGame, LaunchGame, RateGame, ReviewGame, DeleteReview, AddGame, RemoveGame, SearchLibrary, AddNote, CreateCollection, OrganizeCollection, SyncLibrary, ConnectAccount, DisconnectAccount, AskQuestion, Help
+- intent type: CompleteGame, LaunchGame, RateGame, ReviewGame, DeleteReview, AddGame, RemoveGame, SearchLibrary, AddNote, RecommendGame, CreateCollection, OrganizeCollection, SyncLibrary, ConnectAccount, DisconnectAccount, AskQuestion, Help
 - target type: Game, Collection, Provider, Library, Review
 - parameter type: Rating, Status, Platform, Provider, Date, Boolean, Text
 

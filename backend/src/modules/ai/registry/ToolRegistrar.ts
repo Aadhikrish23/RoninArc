@@ -5,6 +5,7 @@ import { AddGameTool } from "../actions/library/AddGameTool";
 import { RemoveGameTool } from "../actions/library/RemoveGameTool";
 import { SearchLibraryTool } from "../actions/library/SearchLibraryTool";
 import { AddNoteTool } from "../actions/notes/AddNoteTool";
+import { RecommendGamesTool } from "../actions/recommendation/RecommendGamesTool";
 import { CreateReviewTool } from "../actions/review/CreateReviewTool";
 import { UpdateReviewTool } from "../actions/review/UpdateReviewTool";
 import { DeleteReviewTool } from "../actions/review/DeleteReviewTool";
@@ -26,6 +27,7 @@ export function createToolRegistry(): ToolRegistry {
   registry.register(new RemoveGameTool());
   registry.register(new SearchLibraryTool());
   registry.register(new AddNoteTool());
+  registry.register(new RecommendGamesTool());
 
   // Review Tools
   registry.register(new CreateReviewTool());

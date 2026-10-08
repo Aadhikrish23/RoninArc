@@ -64,6 +64,14 @@ function Navbar() {
           <Button
             variant="ghost"
             size="sm"
+            onClick={() => navigate("/recommendations")}
+          >
+            For You
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
             onClick={() => navigate("/settings")}
           >
             Settings
