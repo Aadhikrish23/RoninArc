@@ -1,5 +1,6 @@
 import { APIRequestContext, APIResponse, expect } from "@playwright/test";
 import { CATALOG } from "../fixtures/catalog.mjs";
+import { verifyResponse } from "./contract";
 
 export type CatalogGame = (typeof CATALOG)[number];
 
@@ -49,20 +50,26 @@ export class Api {
     return { ...(this.token ? { Authorization: `Bearer ${this.token}` } : {}), ...extra };
   }
 
-  get(path: string, params?: Record<string, string | number>) {
-    return this.request.get(this.baseURL + path, { headers: this.headers(), params });
+  // Every response is checked against the served OpenAPI document (see contract.ts).
+  private async checked(method: string, path: string, res: APIResponse) {
+    await verifyResponse(method, this.baseURL + path, res);
+    return res;
   }
-  post(path: string, data?: unknown) {
-    return this.request.post(this.baseURL + path, { headers: this.headers(), data });
+
+  async get(path: string, params?: Record<string, string | number>) {
+    return this.checked("GET", path, await this.request.get(this.baseURL + path, { headers: this.headers(), params }));
   }
-  put(path: string, data?: unknown) {
-    return this.request.put(this.baseURL + path, { headers: this.headers(), data });
+  async post(path: string, data?: unknown) {
+    return this.checked("POST", path, await this.request.post(this.baseURL + path, { headers: this.headers(), data }));
   }
-  patch(path: string, data?: unknown) {
-    return this.request.patch(this.baseURL + path, { headers: this.headers(), data });
+  async put(path: string, data?: unknown) {
+    return this.checked("PUT", path, await this.request.put(this.baseURL + path, { headers: this.headers(), data }));
   }
-  delete(path: string, data?: unknown) {
-    return this.request.delete(this.baseURL + path, { headers: this.headers(), data });
+  async patch(path: string, data?: unknown) {
+    return this.checked("PATCH", path, await this.request.patch(this.baseURL + path, { headers: this.headers(), data }));
+  }
+  async delete(path: string, data?: unknown) {
+    return this.checked("DELETE", path, await this.request.delete(this.baseURL + path, { headers: this.headers(), data }));
   }
 
   /** Adds a catalog game to the library and returns the created document. */

@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import helmet from "helmet";
 import swaggerUi from "swagger-ui-express";
-import swaggerSpec from "./config/swagger";
+import openApiDocument from "./docs/openapi";
 import authRouter from "./modules/auth/auth";
 import type { Request, Response, NextFunction } from "express";
 import AppError from "./shared/errors/AppError";
@@ -50,8 +50,16 @@ app.use("/logs", clientLogsRouter);
 
 app.use(express.json());
 
-// Swagger Documentation Route
-app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+// API documentation: interactive UI at /api/docs, raw OpenAPI 3.1 JSON at /api/docs.json.
+app.get("/api/docs.json", (req: Request, res: Response) => res.json(openApiDocument));
+app.use(
+  "/api/docs",
+  swaggerUi.serve,
+  swaggerUi.setup(openApiDocument, {
+    customSiteTitle: "RoninArc API",
+    swaggerOptions: { persistAuthorization: true, displayRequestDuration: true, docExpansion: "list", tryItOutEnabled: true },
+  }),
+);
 
 
 app.get("/health", (req: Request, res: Response) => {
