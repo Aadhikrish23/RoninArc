@@ -1,3 +1,4 @@
+import { canLaunchGames } from "../../../shared/utils/runtime";
 import {
   Box,
   HStack,
@@ -200,27 +201,29 @@ function GameListRow({
           </Menu>
 
           {/* Launch button */}
-          <Button
-            colorScheme={
-              isRunning
-                ? "green"
+          {canLaunchGames() && (
+            <Button
+              colorScheme={
+                isRunning
+                  ? "green"
+                  : isProviderGame && !isInstalled
+                    ? "gray"
+                    : "purple"
+              }
+              leftIcon={<FiPlay />}
+              size="sm"
+              isDisabled={isRunning || (isProviderGame && !isInstalled)}
+              onClick={() => onLaunch(game)}
+              fontSize="xs"
+              borderRadius="md"
+            >
+              {isRunning
+                ? "Running"
                 : isProviderGame && !isInstalled
-                  ? "gray"
-                  : "purple"
-            }
-            leftIcon={<FiPlay />}
-            size="sm"
-            isDisabled={isRunning || (isProviderGame && !isInstalled)}
-            onClick={() => onLaunch(game)}
-            fontSize="xs"
-            borderRadius="md"
-          >
-            {isRunning
-              ? "Running"
-              : isProviderGame && !isInstalled
-                ? "Not Installed"
-                : "Launch"}
-          </Button>
+                  ? "Not Installed"
+                  : "Launch"}
+            </Button>
+          )}
         </HStack>
       </HStack>
     </Box>

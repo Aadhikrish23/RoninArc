@@ -1,3 +1,4 @@
+import { canLaunchGames } from "../../../shared/utils/runtime";
 import {
   Box,
   VStack,
@@ -203,27 +204,29 @@ function GameCard({
           {game.title}
         </Text>
 
-        <Button
-          colorScheme={
-            isRunning
-              ? "green"
+        {canLaunchGames() && (
+          <Button
+            colorScheme={
+              isRunning
+                ? "green"
+                : isProviderGame && !isInstalled
+                  ? "gray"
+                  : "purple"
+            }
+            leftIcon={<FiPlay />}
+            isDisabled={isRunning || (isProviderGame && !isInstalled)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onLaunch(game);
+            }}
+          >
+            {isRunning
+              ? "Running"
               : isProviderGame && !isInstalled
-                ? "gray"
-                : "purple"
-          }
-          leftIcon={<FiPlay />}
-          isDisabled={isRunning || (isProviderGame && !isInstalled)}
-          onClick={(e) => {
-            e.stopPropagation();
-            onLaunch(game);
-          }}
-        >
-          {isRunning
-            ? "Running"
-            : isProviderGame && !isInstalled
-              ? "Not Installed"
-              : "Launch"}
-        </Button>
+                ? "Not Installed"
+                : "Launch"}
+          </Button>
+        )}
       </VStack>
     </Box>
   );

@@ -4,6 +4,9 @@ import PlaySession from "./PlaySessionModel";
 import libraryServices from "../library/libraryServices";
 import activityService from "../activity/activityService";
 
+/** Open sessions older than this are treated as abandoned rather than resumed. */
+const ABANDONED_SESSION_MS = 12 * 60 * 60 * 1000;
+
 const startSession = async (userId: Types.ObjectId, gameId: string) => {
   const existingSession = await PlaySession.findOne({
     userId,
@@ -14,7 +17,15 @@ const startSession = async (userId: Types.ObjectId, gameId: string) => {
   });
 
   if (existingSession) {
-    return existingSession;
+    // A session nobody ended (the game exit was never reported) must not be
+    // resumed days later, or the next real launch inherits all that time.
+    const ageMs = Date.now() - existingSession.startedAt.getTime();
+    if (ageMs < ABANDONED_SESSION_MS) {
+      return existingSession;
+    }
+    existingSession.endedAt = new Date();
+    existingSession.durationMinutes = 0;
+    await existingSession.save();
   }
 
   return PlaySession.create({

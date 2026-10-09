@@ -1,3 +1,4 @@
+import { canLaunchGames } from "../../../shared/utils/runtime";
 import {
   Box,
   Button,
@@ -72,18 +73,20 @@ export default function RawgResultsSection({
           <Text color="gray.500" fontSize="sm" noOfLines={1}>
             {game.tags.join(", ")}
           </Text>
-          <Button
-            mt={3}
-            w="100%"
-            colorScheme={disableLaunch ? "gray" : "purple"}
-            isDisabled={disableLaunch}
-            onClick={(e) => {
-              e.stopPropagation();
-              onLaunchGame(game);
-            }}
-          >
-            {disableLaunch ? "Not Installed" : "Launch"}
-          </Button>
+          {canLaunchGames() && (
+            <Button
+              mt={3}
+              w="100%"
+              colorScheme={disableLaunch ? "gray" : "purple"}
+              isDisabled={disableLaunch}
+              onClick={(e) => {
+                e.stopPropagation();
+                onLaunchGame(game);
+              }}
+            >
+              {disableLaunch ? "Not Installed" : "Launch"}
+            </Button>
+          )}
         </Box>
       </Box>
     );
@@ -131,16 +134,18 @@ export default function RawgResultsSection({
             Provider: {game.provider ? game.provider.toUpperCase() : "MANUAL"}
           </Text>
         </Box>
-        <Button
-          colorScheme={disableLaunch ? "gray" : "purple"}
-          isDisabled={disableLaunch}
-          onClick={(e) => {
-            e.stopPropagation();
-            onLaunchGame(game);
-          }}
-        >
-          {disableLaunch ? "Not Installed" : "Launch"}
-        </Button>
+        {canLaunchGames() && (
+          <Button
+            colorScheme={disableLaunch ? "gray" : "purple"}
+            isDisabled={disableLaunch}
+            onClick={(e) => {
+              e.stopPropagation();
+              onLaunchGame(game);
+            }}
+          >
+            {disableLaunch ? "Not Installed" : "Launch"}
+          </Button>
+        )}
       </Flex>
     );
   };

@@ -5,6 +5,7 @@ import libraryApi from "../api/libraryApi";
 import activityApi from "../../activity/api/activityApi";
 import { usePlaySession } from "../../playSession/hooks/usePlaySession";
 import { resolveLaunch } from "../utils/launch";
+import { canLaunchGames } from "../../../shared/utils/runtime";
 
 import type { Game } from "../types/library";
 
@@ -45,6 +46,8 @@ export function useLaunchGame() {
   }, [endSession, toast]);
 
   const openLaunchModal = (selectedGame: Game) => {
+    if (!canLaunchGames()) return;
+
     const resolved = resolveLaunch(selectedGame);
 
     setGame(selectedGame);

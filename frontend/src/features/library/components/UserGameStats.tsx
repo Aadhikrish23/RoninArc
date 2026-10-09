@@ -1,3 +1,4 @@
+import { canLaunchGames } from "../../../shared/utils/runtime";
 import {
   Box,
   Button,
@@ -305,29 +306,31 @@ export default function UserGameStats({
         <Divider my={2} />
 
         {/* LAUNCH */}
-       <Button
-          colorScheme={
-            isRunning
-              ? "green"
+       {canLaunchGames() && (
+         <Button
+            colorScheme={
+              isRunning
+                ? "green"
+                : isProviderGame && !isInstalled
+                  ? "gray"
+                  : "purple"
+            }
+            leftIcon={<FiPlay />}
+            isDisabled={isRunning || (isProviderGame && !isInstalled)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onLaunch();
+            }}
+          >
+            {isRunning
+              ? "Running"
               : isProviderGame && !isInstalled
-                ? "gray"
-                : "purple"
-          }
-          leftIcon={<FiPlay />}
-          isDisabled={isRunning || (isProviderGame && !isInstalled)}
-          onClick={(e) => {
-            e.stopPropagation();
-            onLaunch();
-          }}
-        >
-          {isRunning
-            ? "Running"
-            : isProviderGame && !isInstalled
-              ? "Not Installed"
-              : "Launch"}
-        </Button>
+                ? "Not Installed"
+                : "Launch"}
+          </Button>
+       )}
 
-        <Divider my={2} />
+        {canLaunchGames() && <Divider my={2} />}
 
         {/* DANGER ZONE */}
         <Box pt={2}>

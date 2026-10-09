@@ -1,7 +1,7 @@
 import { test, expect } from "../../fixtures/test";
 import { json } from "../../helpers/api";
 import { byName } from "../../fixtures/catalog.mjs";
-import { expectToast, open } from "../../helpers/ui";
+import { emulateDesktop, expectToast, open } from "../../helpers/ui";
 
 const section = (page: any, title: string) =>
   page.locator("div").filter({ has: page.getByRole("heading", { name: title, exact: true }) }).last();
@@ -62,8 +62,20 @@ test.describe("Library home page", () => {
     await expect(page.getByRole("heading", { name: "Celeste", level: 2 })).toBeVisible();
   });
 
-  test("Launch on a game with no executable asks for one and won't launch yet @negative", async ({ authedPage: page, api }) => {
+  test("in a plain browser there is nothing to launch or rescan @negative", async ({ authedPage: page, api }) => {
+    await api.addGame(byName("Celeste"), { progressStatus: "playing" });
+    await open(page, "/");
+    await expect(section(page, "Recently Added").getByText("Celeste")).toBeVisible();
+    await expect(page.getByRole("button", { name: /^(Launch|Running|Not Installed)$/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: "Rescan PC Games" })).toHaveCount(0);
+    await open(page, `/library/game/${byName("Celeste").id}`);
+    await expect(page.getByRole("heading", { name: "Celeste", level: 2 })).toBeVisible();
+    await expect(page.getByRole("button", { name: /^(Launch|Running|Not Installed)$/ })).toHaveCount(0);
+  });
+
+  test("desktop: Launch on a game with no executable asks for one and won't launch yet @negative", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
+    await emulateDesktop(page);
     await open(page, "/");
     await section(page, "Recently Added").getByRole("button", { name: "Launch" }).click();
     const dialog = page.getByRole("dialog", { name: "Launch Celeste" });
@@ -73,8 +85,21 @@ test.describe("Library home page", () => {
     await expect(dialog).toBeHidden();
   });
 
-  test("'Rescan PC Games' reports an empty scan in a plain browser @negative", async ({ authedPage: page, api }) => {
+  test("desktop: picking an executable and launching marks the game Running @positive", async ({ authedPage: page, api }) => {
+    const g = await api.addGame(byName("Celeste"));
+    await emulateDesktop(page, { exePath: "C:\\Games\\Celeste\\Celeste.exe" });
+    await open(page, "/");
+    await section(page, "Recently Added").getByRole("button", { name: "Launch" }).click();
+    const dialog = page.getByRole("dialog", { name: "Launch Celeste" });
+    await dialog.getByRole("button", { name: "Edit" }).click();
+    await dialog.getByRole("button", { name: "Launch" }).click();
+    await expect(section(page, "Recently Added").getByRole("button", { name: "Running" })).toBeDisabled();
+    expect(await page.evaluate(() => (window as any).__launched)).toEqual([{ gameId: g._id, path: "C:\\Games\\Celeste\\Celeste.exe" }]);
+  });
+
+  test("desktop: 'Rescan PC Games' reports an empty scan when nothing is installed @negative", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
+    await emulateDesktop(page);
     await open(page, "/");
     await page.getByRole("button", { name: "Rescan PC Games" }).click();
     await expectToast(page, "Rescan complete", "Steam: Scanned 0, Installed 0, Removed 0. Epic: Scanned 0, Installed 0, Removed 0.");

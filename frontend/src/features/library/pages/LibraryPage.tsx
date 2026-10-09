@@ -1,3 +1,4 @@
+import { canLaunchGames } from "../../../shared/utils/runtime";
 import {
   Box,
   useColorModeValue,
@@ -231,15 +232,17 @@ function LibraryPage() {
             <Flex justify="space-between" align="flex-end" mb={8} mt={4}>
               <LibraryHeader />
               <HStack spacing={3}>
-                <Button
-                  colorScheme="teal"
-                  variant="outline"
-                  onClick={handleRescanInstallations}
-                  isLoading={isRescanning}
-                  loadingText="Scanning..."
-                >
-                  Rescan PC Games
-                </Button>
+                {canLaunchGames() && (
+                  <Button
+                    colorScheme="teal"
+                    variant="outline"
+                    onClick={handleRescanInstallations}
+                    isLoading={isRescanning}
+                    loadingText="Scanning..."
+                  >
+                    Rescan PC Games
+                  </Button>
+                )}
                 <Button
                   colorScheme="purple"
                   onClick={() => navigate("/library/browse")}
