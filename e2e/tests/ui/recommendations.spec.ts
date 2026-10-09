@@ -8,9 +8,11 @@ const cardIn = (page: any, sectionName: string, title: string) =>
   section(page, sectionName).getByRole("article", { name: title });
 
 test.describe("For You (recommendations) page", () => {
-  test("is reachable from the navbar @positive", async ({ authedPage: page }) => {
+  test("lives under the library: no navbar tab, reached via 'See all' @positive", async ({ authedPage: page, api }) => {
+    await api.addGame(byName("Celeste"));
     await open(page, "/");
-    await navbar(page).getByRole("button", { name: "For You" }).click();
+    await expect(navbar(page).getByRole("button", { name: "For You" })).toHaveCount(0);
+    await section(page, "Recommended For You").getByRole("button", { name: "See all" }).click();
     await expect(page).toHaveURL(/#\/recommendations$/);
     await expect(page.getByRole("heading", { name: "For You", level: 2 })).toBeVisible();
   });
