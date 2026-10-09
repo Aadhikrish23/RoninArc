@@ -10,4 +10,10 @@ dashboardRouter.get(
   dashboardcontroller.getDashboardStats
 );
 
+dashboardRouter.get(
+  "/overview",
+  authMiddleware,
+  dashboardcontroller.getDashboardOverview
+);
+
 export default dashboardRouter;

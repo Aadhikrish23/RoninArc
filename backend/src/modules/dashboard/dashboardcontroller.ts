@@ -1,4 +1,5 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
+import dashboardOverviewService from "./dashboardOverviewService";
 import LibraryGame from "../library/LibraryGame";
 import Review from "../review/Reviewmodel";
 
@@ -121,6 +122,17 @@ const getDashboardStats = async (req: Request, res: Response) => {
   }
 };
 
+/** GET /dashboard/overview -- everything the dashboard page shows, in one call. */
+const getDashboardOverview = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const data = await dashboardOverviewService.getOverview(req.user.id);
+    return res.status(200).json({ Status: "Success", Data: data });
+  } catch (error) {
+    return next(error);
+  }
+};
+
 export default {
   getDashboardStats,
+  getDashboardOverview,
 };

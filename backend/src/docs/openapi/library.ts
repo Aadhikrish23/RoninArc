@@ -183,6 +183,120 @@ export const librarySchemas: Record<string, Schema> = {
       },
     },
   },
+  DashboardGameSummary: {
+    type: "object",
+    description: "The few game fields a dashboard row needs to show and link to a game.",
+    additionalProperties: false,
+    required: ["_id", "title", "imageURL", "rawgId", "progressStatus"],
+    properties: {
+      _id: objectId,
+      title: { type: "string", example: "Hades" },
+      imageURL: nullable({ type: "string" }),
+      rawgId: { type: ["integer", "null"], description: "Null for games imported without a RAWG match." },
+      progressStatus: { type: "string", enum: ["none", "plan", "playing", "paused", "completed", "dropped"] },
+    },
+  },
+  DashboardOverview: {
+    type: "object",
+    additionalProperties: false,
+    required: ["continuePlaying", "playtime", "backlog", "recentActivity"],
+    properties: {
+      continuePlaying: {
+        type: "array",
+        maxItems: 6,
+        description: "Games marked Playing, most recently played first (never-played last).",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["game", "lastPlayed", "minutesPlayed"],
+          properties: {
+            game: ref("DashboardGameSummary"),
+            lastPlayed: nullable(dateTime),
+            minutesPlayed: { type: "integer", minimum: 0 },
+          },
+        },
+      },
+      playtime: {
+        type: "object",
+        additionalProperties: false,
+        description: "From recorded play sessions (desktop launches). Open sessions count as 0 minutes until they end.",
+        required: ["last7DaysMinutes", "last30DaysMinutes", "totalMinutes", "sessionsLast7Days", "daily", "mostPlayed"],
+        properties: {
+          last7DaysMinutes: { type: "integer", minimum: 0 },
+          last30DaysMinutes: { type: "integer", minimum: 0 },
+          totalMinutes: { type: "integer", minimum: 0 },
+          sessionsLast7Days: { type: "integer", minimum: 0 },
+          daily: {
+            type: "array",
+            minItems: 7,
+            maxItems: 7,
+            description: "The last 7 days, oldest first, ending today (server-local dates).",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["date", "minutes"],
+              properties: { date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", example: "2026-10-09" }, minutes: { type: "integer", minimum: 0 } },
+            },
+          },
+          mostPlayed: {
+            type: "array",
+            maxItems: 5,
+            description: "All-time, games with at least one minute played.",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["game", "minutesPlayed"],
+              properties: { game: ref("DashboardGameSummary"), minutesPlayed: { type: "integer", minimum: 1 } },
+            },
+          },
+        },
+      },
+      backlog: {
+        type: "object",
+        additionalProperties: false,
+        required: ["total", "byStatus", "completedThisYear", "untouchedCount", "untouched"],
+        properties: {
+          total: { type: "integer", minimum: 0 },
+          byStatus: {
+            type: "object",
+            additionalProperties: false,
+            required: ["none", "plan", "playing", "paused", "completed", "dropped"],
+            properties: Object.fromEntries(["none", "plan", "playing", "paused", "completed", "dropped"].map((s) => [s, { type: "integer", minimum: 0 }])),
+          },
+          completedThisYear: { type: "integer", minimum: 0, description: "Games marked Completed since 1 January that are still Completed." },
+          untouchedCount: { type: "integer", minimum: 0, description: "Planned or unstarted games with no play session." },
+          untouched: {
+            type: "array",
+            maxItems: 5,
+            description: "The longest-waiting of those, oldest first.",
+            items: {
+              type: "object",
+              additionalProperties: false,
+              required: ["game", "addedAt"],
+              properties: { game: ref("DashboardGameSummary"), addedAt: dateTime },
+            },
+          },
+        },
+      },
+      recentActivity: {
+        type: "array",
+        maxItems: 10,
+        description: "Newest first.",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["_id", "type", "message", "createdAt", "game"],
+          properties: {
+            _id: objectId,
+            type: { type: "string", example: "STATUS_CHANGED" },
+            message: { type: "string", example: "Hades marked as completed" },
+            createdAt: dateTime,
+            game: { ...nullable(ref("DashboardGameSummary")), description: "Null when the activity isn't about a game or the game was removed." },
+          },
+        },
+      },
+    },
+  },
 };
 
 const gameId = pathParam("gameid", "Library game id.", objectId);
@@ -320,6 +434,20 @@ export const libraryPaths = {
         401: responses.unauthorized,
         404: appError("Unknown RAWG id.", "RAWG game not found"),
         500: appError("RAWG isn't configured on this server.", "RAWG API is not configured"),
+      },
+    },
+  },
+  "/dashboard/overview": {
+    get: {
+      tags: ["Dashboard"],
+      summary: "Everything the dashboard page shows",
+      description:
+        "Continue playing (with last played and hours), playtime over the last 7/30 days with a daily breakdown and most-played games, backlog progress, and the 10 most recent activities.",
+      security: bearerAuth,
+      responses: {
+        200: ok("The overview.", ref("DashboardOverview")),
+        401: responses.unauthorized,
+        500: responses.internal,
       },
     },
   },

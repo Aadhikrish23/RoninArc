@@ -36,7 +36,7 @@ test.describe("Login page", () => {
 
     const second = await context.newPage();
     await open(second, "/dashboard");
-    await expect(second.getByRole("heading", { name: "RoninArc Dashboard" })).toBeVisible();
+    await expect(second.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
   });
 
   test("username is case-insensitive @positive", async ({ page, user }) => {

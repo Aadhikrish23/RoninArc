@@ -64,6 +64,68 @@ test.describe("Activity API (/activity)", () => {
   });
 });
 
+test.describe("Dashboard API (/dashboard/overview)", () => {
+  test("a new user gets empty sections and a 7-day window @positive", async ({ api }) => {
+    const res = await api.get("/dashboard/overview");
+    expect(res.status()).toBe(200);
+    const { Data } = await json(res);
+    expect(Data.continuePlaying).toEqual([]);
+    expect(Data.recentActivity).toEqual([]);
+    expect(Data.playtime).toMatchObject({ last7DaysMinutes: 0, last30DaysMinutes: 0, totalMinutes: 0, sessionsLast7Days: 0, mostPlayed: [] });
+    expect(Data.playtime.daily).toHaveLength(7);
+    expect(Data.backlog).toMatchObject({
+      total: 0,
+      completedThisYear: 0,
+      untouchedCount: 0,
+      untouched: [],
+      byStatus: { none: 0, plan: 0, playing: 0, paused: 0, completed: 0, dropped: 0 },
+    });
+  });
+
+  test("builds continue playing, backlog and activity from the library @positive", async ({ api }) => {
+    const hades = await api.addGame(byName("Hades"));
+    await api.patch(`/game/${hades._id}`, { progressStatus: "playing" });
+    const celeste = await api.addGame(byName("Celeste"));
+    await api.patch(`/game/${celeste._id}`, { progressStatus: "completed" });
+    const elden = await api.addGame(byName("Elden Ring"));
+    await api.patch(`/game/${elden._id}`, { progressStatus: "completed" });
+    await api.patch(`/game/${elden._id}`, { progressStatus: "dropped" }); // no longer counts as finished
+    await api.addGame(byName("Hitman"), { progressStatus: "plan" });
+    await api.addGame(byName("Fallout Shelter"));
+    await api.post(`/play-session/start/${hades._id}`);
+    await api.post(`/play-session/end/${hades._id}`);
+
+    const { Data } = await json(await api.get("/dashboard/overview"));
+    expect(Data.continuePlaying).toHaveLength(1);
+    expect(Data.continuePlaying[0]).toMatchObject({ game: { _id: hades._id, title: "Hades", progressStatus: "playing" }, minutesPlayed: 0 });
+    expect(Data.continuePlaying[0].lastPlayed).not.toBeNull();
+    expect(Data.continuePlaying[0].game.imageURL).toBeTruthy();
+    expect(Data.continuePlaying[0].game.imageURL).toBe((hades as any).imageURL);
+    expect(Data.playtime.sessionsLast7Days).toBe(1);
+
+    expect(Data.backlog.total).toBe(5);
+    expect(Data.backlog.byStatus).toMatchObject({ playing: 1, completed: 1, dropped: 1, plan: 2, none: 0 });
+    expect(Data.backlog.completedThisYear).toBe(1);
+    // Hades has a session, so only the two planned games are untouched, oldest first.
+    expect(Data.backlog.untouched.map((u: any) => u.game.title)).toEqual(["Hitman", "Fallout Shelter"]);
+
+    expect(Data.recentActivity.length).toBeLessThanOrEqual(10);
+    expect(Data.recentActivity[0]).toMatchObject({ type: "GAME_ADDED", game: { title: "Fallout Shelter" } });
+  });
+
+  test("only shows the caller's own data @negative", async ({ api, request }) => {
+    await api.addGame(byName("Hades"), { progressStatus: "playing" });
+    const other = new Api(request, API_URL, (await registerUser(request, API_URL)).accessToken);
+    const { Data } = await json(await other.get("/dashboard/overview"));
+    expect(Data.continuePlaying).toEqual([]);
+    expect(Data.backlog.total).toBe(0);
+  });
+
+  test("requires authentication @negative", async ({ anon }) => {
+    expect((await anon.get("/dashboard/overview")).status()).toBe(401);
+  });
+});
+
 test.describe("Dashboard API (/dashboard/stats)", () => {
   test("a new user gets zeroed stats @positive", async ({ api }) => {
     const res = await api.get("/dashboard/stats");

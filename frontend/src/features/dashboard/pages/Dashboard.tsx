@@ -1,170 +1,381 @@
-/* eslint-disable react-hooks/set-state-in-effect */
-// frontend/src/routes/Dashboard.tsx
+// frontend/src/features/dashboard/pages/Dashboard.tsx
 import {
+  Alert,
+  AlertDescription,
+  AlertIcon,
   Box,
+  Button,
+  Flex,
   Heading,
-  Text,
-  useColorModeValue,
-  SimpleGrid,
-  Stat,
-  StatLabel,
-  StatNumber,
-  StatHelpText,
-  Badge,
   HStack,
+  Icon,
+  Image,
+  Progress,
+  SimpleGrid,
+  Skeleton,
+  Stack,
+  Text,
+  Tooltip,
+  useColorModeValue,
   VStack,
 } from "@chakra-ui/react";
-import { useEffect, useState, useCallback } from "react";
-import { getDashboardStats } from "../api/dashboardApi";
-import type { DashboardStats } from "../types/dashboard";
-import { usePlaySession } from "../../playSession/hooks/usePlaySession";
-import GenreChart from "../components/GenreChart";
-import StatusChart from "../components/StatusChart";
+import { useCallback, useEffect, useState } from "react";
+import type { ReactNode } from "react";
+import { useNavigate } from "react-router-dom";
+import type { IconType } from "react-icons";
+import {
+  FiActivity,
+  FiBookmark,
+  FiCheckCircle,
+  FiClock,
+  FiEdit3,
+  FiFolderPlus,
+  FiPlay,
+  FiPlusCircle,
+  FiStar,
+  FiTrash2,
+} from "react-icons/fi";
+import { getDashboardOverview } from "../api/dashboardApi";
+import type { DashboardGameSummary, DashboardOverview } from "../types/dashboard";
 import { eventBus } from "../../../shared/events/EventBus";
+import { canLaunchGames } from "../../../shared/utils/runtime";
+
+const detailsPath = (g: DashboardGameSummary) => `/library/game/${g.rawgId ? String(g.rawgId) : g._id}`;
+
+/** 0 → "0h", 45 → "45m", 135 → "2h 15m". */
+function formatMinutes(minutes: number): string {
+  if (minutes <= 0) return "0h";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h === 0) return `${m}m`;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
+
+function timeAgo(iso: string | null): string {
+  if (!iso) return "Never played";
+  const diff = Date.now() - new Date(iso).getTime();
+  const minutes = Math.floor(diff / 60000);
+  if (minutes < 1) return "Just now";
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days === 1) return "Yesterday";
+  if (days < 30) return `${days} days ago`;
+  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+}
+
+const STATUS_ROWS: { key: keyof DashboardOverview["backlog"]["byStatus"]; label: string; color: string }[] = [
+  { key: "plan", label: "Plan to Play", color: "blue" },
+  { key: "playing", label: "Playing", color: "purple" },
+  { key: "paused", label: "Paused", color: "orange" },
+  { key: "completed", label: "Completed", color: "green" },
+  { key: "dropped", label: "Dropped", color: "red" },
+  { key: "none", label: "No Status", color: "gray" },
+];
+
+const ACTIVITY_ICONS: Record<string, IconType> = {
+  GAME_ADDED: FiPlusCircle,
+  GAME_REMOVED: FiTrash2,
+  STATUS_CHANGED: FiCheckCircle,
+  REVIEW_CREATED: FiStar,
+  REVIEW_UPDATED: FiStar,
+  REVIEW_DELETED: FiStar,
+  COLLECTION_CREATED: FiFolderPlus,
+  COLLECTION_UPDATED: FiFolderPlus,
+  COLLECTION_DELETED: FiFolderPlus,
+  GAME_ADDED_TO_COLLECTION: FiFolderPlus,
+  GAME_REMOVED_FROM_COLLECTION: FiFolderPlus,
+  GAME_LAUNCHED: FiPlay,
+  NOTE_CREATED: FiEdit3,
+  NOTE_DELETED: FiEdit3,
+};
+
+function Panel({ title, icon, action, children }: { title: string; icon: IconType; action?: ReactNode; children: ReactNode }) {
+  const cardBg = useColorModeValue("white", "gray.800");
+  const border = useColorModeValue("gray.200", "gray.700");
+  return (
+    <Box as="section" aria-label={title} bg={cardBg} borderWidth="1px" borderColor={border} borderRadius="xl" p={5} shadow="sm">
+      <Flex align="center" justify="space-between" mb={4}>
+        <HStack spacing={2}>
+          <Icon as={icon} color="purple.400" />
+          <Heading size="sm">{title}</Heading>
+        </HStack>
+        {action}
+      </Flex>
+      {children}
+    </Box>
+  );
+}
+
+function Cover({ game, w, h }: { game: DashboardGameSummary; w: string; h: string }) {
+  const placeholder = useColorModeValue("gray.200", "gray.700");
+  return game.imageURL ? (
+    <Image src={game.imageURL} alt={game.title} w={w} h={h} objectFit="cover" borderRadius="md" flexShrink={0} />
+  ) : (
+    <Box w={w} h={h} bg={placeholder} borderRadius="md" flexShrink={0} />
+  );
+}
 
 function DashboardPage() {
+  const navigate = useNavigate();
   const bg = useColorModeValue("gray.50", "gray.900");
-  const cardBg = useColorModeValue("white", "gray.800");
-  const subtleBorder = useColorModeValue("gray.200", "gray.700");
   const mutedText = useColorModeValue("gray.600", "gray.400");
-  const { stats: playtimeStats, loadStats } = usePlaySession();
-  const [stats, setStats] = useState<DashboardStats>({
-    totalGames: 0,
-    owned: 0,
-    installed: 0,
-    playing: 0,
-    completed: 0,
+  const rowHover = useColorModeValue("gray.50", "whiteAlpha.100");
+  const barBg = useColorModeValue("gray.100", "gray.700");
 
-    continuePlaying: [],
-    recentGames: [],
-
-    genreStats: [],
-    statusStats: [],
-  });
+  const [data, setData] = useState<DashboardOverview | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     try {
-      const data = await getDashboardStats();
-      setStats(data);
-      await loadStats();
-    } catch (error) {
-      console.error(error);
+      setData(await getDashboardOverview());
+      setError(null);
+    } catch (err) {
+      console.error(err);
+      setError("Couldn't load your dashboard. Check that the server is running, then try again.");
     }
-  }, [loadStats]);
+  }, []);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  useEffect(() => {
-    const unsubscribe = eventBus.subscribe("dashboard.updated", () => {
-      loadData();
-    });
-    return unsubscribe;
-  }, [loadData]);
+  useEffect(() => eventBus.subscribe("dashboard.updated", () => loadData()), [loadData]);
+
+  const desktop = canLaunchGames();
+  const maxDaily = data ? Math.max(...data.playtime.daily.map((d) => d.minutes), 1) : 1;
+  const completedShare = data && data.backlog.total > 0 ? Math.round((data.backlog.byStatus.completed / data.backlog.total) * 100) : 0;
 
   return (
     <Box minH="100vh" bg={bg}>
       <Box maxW="1200px" mx="auto" px={6} py={8}>
-        {/* Page header */}
         <Box mb={6}>
-          <Heading size="lg">RoninArc Dashboard</Heading>
+          <Heading size="lg">Dashboard</Heading>
           <Text fontSize="sm" color={mutedText} mt={1}>
-            Track your gaming library and progress.
+            What you're playing, how much, and what's waiting.
           </Text>
         </Box>
 
-        {/* Top row: stats */}
-        {/* Stats Grid */}
-        {/* Stats Grid */}
-        <SimpleGrid columns={{ base: 1, sm: 2, md: 4, lg: 8 }} spacing={4} mb={6}>
-          {stats.statusStats.map((item) => (
-            <Box
-              key={item.status}
-              borderWidth="1px"
-              borderRadius="xl"
-              borderColor={subtleBorder}
-              bg={cardBg}
-              p={4}
+        {error && (
+          <Alert status="error" borderRadius="lg" mb={6}>
+            <AlertIcon />
+            <AlertDescription flex="1">{error}</AlertDescription>
+            <Button size="sm" onClick={loadData}>
+              Try again
+            </Button>
+          </Alert>
+        )}
+
+        {!data && !error ? (
+          <Stack spacing={6} aria-busy="true" aria-label="Loading dashboard">
+            <Skeleton h="180px" borderRadius="xl" />
+            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+              <Skeleton h="300px" borderRadius="xl" />
+              <Skeleton h="300px" borderRadius="xl" />
+            </SimpleGrid>
+          </Stack>
+        ) : data ? (
+          <Stack spacing={6}>
+            {/* Pick up where you left off */}
+            <Panel
+              title="Pick up where you left off"
+              icon={FiPlay}
+              action={
+                <Button size="xs" variant="ghost" colorScheme="purple" onClick={() => navigate("/")}>
+                  Library
+                </Button>
+              }
             >
-              <Stat>
-                <StatLabel>{item.status}</StatLabel>
-                <StatNumber>{item.count}</StatNumber>
-              </Stat>
-            </Box>
-          ))}
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Stat>
-              <StatLabel>Hours Played</StatLabel>
-              <StatNumber>{playtimeStats?.totalHours ?? 0}</StatNumber>
-              <StatHelpText>Across all games</StatHelpText>
-            </Stat>
-          </Box>
-        </SimpleGrid>
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4} mb={6}>
-          <GenreChart data={stats.genreStats} />
-
-          <StatusChart data={stats.statusStats} />
-        </SimpleGrid>
-        <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={4} mt={6}>
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Heading size="sm" mb={4}>
-              Continue Playing
-            </Heading>
-
-            <VStack align="stretch" spacing={3}>
-              {stats.continuePlaying.length === 0 ? (
-                <Text color={mutedText}>No active games</Text>
+              {data.continuePlaying.length === 0 ? (
+                <Text fontSize="sm" color={mutedText}>
+                  Nothing in progress. Set a game to Playing from your library and it will show up here.
+                </Text>
               ) : (
-                stats.continuePlaying.map((game) => (
-                  <HStack
-                    key={game._id}
-                    justify="space-between"
-                    p={2}
-                    borderRadius="md"
-                    _hover={{
-                      bg: "whiteAlpha.50",
-                    }}
-                  >
-                    <Text>{game.title}</Text>
-
-                    <Badge colorScheme="yellow">PLAYING</Badge>
-                  </HStack>
-                ))
+                <SimpleGrid columns={{ base: 1, md: 2, xl: 3 }} spacing={3}>
+                  {data.continuePlaying.map(({ game, lastPlayed, minutesPlayed }) => (
+                    <HStack
+                      key={game._id}
+                      as="article"
+                      aria-label={game.title}
+                      spacing={3}
+                      p={2}
+                      borderRadius="lg"
+                      cursor="pointer"
+                      _hover={{ bg: rowHover }}
+                      onClick={() => navigate(detailsPath(game))}
+                    >
+                      <Cover game={game} w="56px" h="72px" />
+                      <Box flex="1" minW={0}>
+                        <Text fontWeight="semibold" noOfLines={1}>
+                          {game.title}
+                        </Text>
+                        <Text fontSize="sm" color={mutedText}>
+                          {timeAgo(lastPlayed)} · {formatMinutes(minutesPlayed)} played
+                        </Text>
+                      </Box>
+                      <Button size="sm" colorScheme="purple" variant="outline" flexShrink={0}>
+                        Open
+                      </Button>
+                    </HStack>
+                  ))}
+                </SimpleGrid>
               )}
-            </VStack>
-          </Box>
+            </Panel>
 
-          <Box
-            borderWidth="1px"
-            borderRadius="xl"
-            borderColor={subtleBorder}
-            bg={cardBg}
-            p={4}
-          >
-            <Heading size="sm" mb={4}>
-              Recently Added
-            </Heading>
+            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+              {/* Playtime */}
+              <Panel title="Playtime" icon={FiClock}>
+                <SimpleGrid columns={3} spacing={3} mb={5}>
+                  {[
+                    { label: "Last 7 days", value: formatMinutes(data.playtime.last7DaysMinutes) },
+                    { label: "Last 30 days", value: formatMinutes(data.playtime.last30DaysMinutes) },
+                    { label: "All time", value: formatMinutes(data.playtime.totalMinutes) },
+                  ].map((s) => (
+                    <Box key={s.label}>
+                      <Text fontSize="2xl" fontWeight="bold" lineHeight={1.2}>
+                        {s.value}
+                      </Text>
+                      <Text fontSize="xs" color={mutedText}>
+                        {s.label}
+                      </Text>
+                    </Box>
+                  ))}
+                </SimpleGrid>
 
-            <VStack align="stretch" spacing={3}>
-              {stats.recentGames.map((game) => (
-                <Text key={game._id}>{game.title}</Text>
-              ))}
-            </VStack>
-          </Box>
-        </SimpleGrid>
+                <Box mb={5} aria-label="Playtime per day, last 7 days" role="img">
+                  <HStack align="flex-end" spacing={2} h="80px">
+                    {data.playtime.daily.map((d) => (
+                      <Tooltip key={d.date} label={`${new Date(`${d.date}T00:00:00`).toLocaleDateString(undefined, { weekday: "long" })}: ${formatMinutes(d.minutes)}`}>
+                        <Box flex="1" h="100%" display="flex" alignItems="flex-end" bg={barBg} borderRadius="sm">
+                          <Box w="100%" h={`${Math.max((d.minutes / maxDaily) * 100, d.minutes > 0 ? 6 : 0)}%`} bg="purple.400" borderRadius="sm" />
+                        </Box>
+                      </Tooltip>
+                    ))}
+                  </HStack>
+                  <HStack spacing={2} mt={1}>
+                    {data.playtime.daily.map((d) => (
+                      <Text key={d.date} flex="1" textAlign="center" fontSize="xs" color={mutedText}>
+                        {new Date(`${d.date}T00:00:00`).toLocaleDateString(undefined, { weekday: "short" })}
+                      </Text>
+                    ))}
+                  </HStack>
+                </Box>
+
+                <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={2}>
+                  Most played
+                </Text>
+                {data.playtime.mostPlayed.length === 0 ? (
+                  <Text fontSize="sm" color={mutedText}>
+                    {desktop
+                      ? "No play sessions yet. Launch a game from RoninArc and your hours will be tracked here."
+                      : "Playtime is tracked when you launch games from the RoninArc desktop app."}
+                  </Text>
+                ) : (
+                  <VStack align="stretch" spacing={1}>
+                    {data.playtime.mostPlayed.map(({ game, minutesPlayed }) => (
+                      <HStack key={game._id} spacing={3} p={1.5} borderRadius="md" cursor="pointer" _hover={{ bg: rowHover }} onClick={() => navigate(detailsPath(game))}>
+                        <Cover game={game} w="32px" h="40px" />
+                        <Text flex="1" fontSize="sm" noOfLines={1}>
+                          {game.title}
+                        </Text>
+                        <Text fontSize="sm" fontWeight="semibold">
+                          {formatMinutes(minutesPlayed)}
+                        </Text>
+                      </HStack>
+                    ))}
+                  </VStack>
+                )}
+              </Panel>
+
+              {/* Backlog progress */}
+              <Panel title="Backlog progress" icon={FiBookmark}>
+                <Flex justify="space-between" align="baseline" mb={2}>
+                  <Text fontSize="sm">
+                    <Text as="span" fontSize="2xl" fontWeight="bold">
+                      {data.backlog.byStatus.completed}
+                    </Text>{" "}
+                    of {data.backlog.total} games completed
+                  </Text>
+                  <Text fontSize="sm" color={mutedText}>
+                    {data.backlog.completedThisYear} finished this year
+                  </Text>
+                </Flex>
+                <Progress value={completedShare} colorScheme="green" size="sm" borderRadius="full" mb={4} aria-label="Share of library completed" />
+
+                <SimpleGrid columns={{ base: 2, sm: 3 }} spacing={2} mb={5}>
+                  {STATUS_ROWS.map((s) => (
+                    <HStack key={s.key} spacing={2}>
+                      <Box w="8px" h="8px" borderRadius="full" bg={`${s.color}.400`} flexShrink={0} />
+                      <Text fontSize="sm" flex="1">
+                        {s.label}
+                      </Text>
+                      <Text fontSize="sm" fontWeight="semibold">
+                        {data.backlog.byStatus[s.key]}
+                      </Text>
+                    </HStack>
+                  ))}
+                </SimpleGrid>
+
+                <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={2}>
+                  Waiting the longest{data.backlog.untouchedCount > 0 ? ` (${data.backlog.untouchedCount} never started)` : ""}
+                </Text>
+                {data.backlog.untouched.length === 0 ? (
+                  <Text fontSize="sm" color={mutedText}>
+                    Every game you've planned has been started. Nice.
+                  </Text>
+                ) : (
+                  <VStack align="stretch" spacing={1}>
+                    {data.backlog.untouched.map(({ game, addedAt }) => (
+                      <HStack key={game._id} spacing={3} p={1.5} borderRadius="md" cursor="pointer" _hover={{ bg: rowHover }} onClick={() => navigate(detailsPath(game))}>
+                        <Cover game={game} w="32px" h="40px" />
+                        <Text flex="1" fontSize="sm" noOfLines={1}>
+                          {game.title}
+                        </Text>
+                        <Text fontSize="xs" color={mutedText}>
+                          added {timeAgo(addedAt).toLowerCase()}
+                        </Text>
+                      </HStack>
+                    ))}
+                  </VStack>
+                )}
+              </Panel>
+            </SimpleGrid>
+
+            {/* Recent activity */}
+            <Panel title="Recent activity" icon={FiActivity}>
+              {data.recentActivity.length === 0 ? (
+                <Text fontSize="sm" color={mutedText}>
+                  No activity yet. Adding, rating and finishing games will show up here.
+                </Text>
+              ) : (
+                <VStack as="ol" listStyleType="none" align="stretch" spacing={0}>
+                  {data.recentActivity.map((a) => (
+                    <HStack
+                      as="li"
+                      key={a._id}
+                      spacing={3}
+                      py={2}
+                      px={1}
+                      borderRadius="md"
+                      cursor={a.game ? "pointer" : "default"}
+                      _hover={a.game ? { bg: rowHover } : undefined}
+                      onClick={() => a.game && navigate(detailsPath(a.game))}
+                    >
+                      <Icon as={ACTIVITY_ICONS[a.type] ?? FiActivity} color="purple.400" flexShrink={0} />
+                      <Text flex="1" fontSize="sm" noOfLines={1}>
+                        {a.message}
+                      </Text>
+                      <Text fontSize="xs" color={mutedText} flexShrink={0}>
+                        {timeAgo(a.createdAt)}
+                      </Text>
+                    </HStack>
+                  ))}
+                </VStack>
+              )}
+            </Panel>
+          </Stack>
+        ) : null}
       </Box>
     </Box>
   );

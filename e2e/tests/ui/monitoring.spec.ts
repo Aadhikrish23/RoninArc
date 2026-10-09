@@ -86,20 +86,20 @@ test.describe("Error monitoring (frontend)", () => {
 
   test("a failed API call is logged with the request id the backend saw @positive", async ({ authedPage: page }) => {
     let sentRequestId = "";
-    await page.route("**/dashboard/stats", (route) => {
+    await page.route("**/dashboard/overview", (route) => {
       sentRequestId = route.request().headers()["x-request-id"] ?? "";
       return route.fulfill({ status: 503, json: { Status: "Error", error: "Service Unavailable" } });
     });
     await open(page, "/dashboard");
     await expect.poll(() => sentRequestId).not.toBe("");
     const line = await waitForLog((l) => l.clientRequestId === sentRequestId);
-    expect(line.msg).toBe("API 503 on GET /dashboard/stats");
+    expect(line.msg).toBe("API 503 on GET /dashboard/overview");
     expect(line.level).toBe(50);
   });
 
   test("expected API errors (4xx) are not logged as client errors @negative", async ({ authedPage: page }) => {
     let sentRequestId = "";
-    await page.route("**/dashboard/stats", (route) => {
+    await page.route("**/dashboard/overview", (route) => {
       sentRequestId = route.request().headers()["x-request-id"] ?? "";
       return route.fulfill({ status: 404, json: { Status: "Fail", error: "Not found" } });
     });
@@ -111,8 +111,8 @@ test.describe("Error monitoring (frontend)", () => {
   });
 
   test("a render crash shows a recovery screen and is logged @negative", async ({ authedPage: page }) => {
-    await page.route("**/dashboard/stats", (route) =>
-      route.fulfill({ json: { totalGames: 0, owned: 0, installed: 0, playing: 0, completed: 0, continuePlaying: [], recentGames: [], genreStats: [], statusStats: null } }),
+    await page.route("**/dashboard/overview", (route) =>
+      route.fulfill({ json: { Status: "Success", Data: { continuePlaying: [], playtime: null, backlog: null, recentActivity: [] } } }),
     );
     await open(page, "/dashboard");
     const fallback = page.getByRole("alert").filter({ hasText: "Something went wrong" });
@@ -121,7 +121,7 @@ test.describe("Error monitoring (frontend)", () => {
     const line = await waitForLog((l) => (l.context as any)?.source === "react.errorBoundary" && String(l.url).includes("#/dashboard"));
     expect(String((line.context as any).componentStack)).toContain("Dashboard");
 
-    await page.unroute("**/dashboard/stats");
+    await page.unroute("**/dashboard/overview");
     await fallback.getByRole("button", { name: "Go to Library" }).click();
     await expect(page.getByRole("heading", { name: "My Library" })).toBeVisible();
   });

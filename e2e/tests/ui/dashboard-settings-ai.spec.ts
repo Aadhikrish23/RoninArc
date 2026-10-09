@@ -1,31 +1,61 @@
 import { test, expect } from "../../fixtures/test";
 import { json } from "../../helpers/api";
 import { byName } from "../../fixtures/catalog.mjs";
-import { expectToast, navbar, open } from "../../helpers/ui";
+import { assistant, assistantButton, expectToast, navbar, open } from "../../helpers/ui";
 
-const stat = (page: any, term: string) => page.getByRole("term").filter({ hasText: term }).locator("xpath=following-sibling::dd[1]");
+const panel = (page: any, name: string) => page.getByRole("region", { name });
 
 test.describe("Dashboard", () => {
-  test("reflects the library's statuses and recent games @positive", async ({ authedPage: page, api }) => {
-    await api.addGame(byName("Hades"), { progressStatus: "playing" });
-    await api.addGame(byName("Celeste"), { progressStatus: "completed" });
+  test("shows what you're playing, backlog progress and recent activity @positive", async ({ authedPage: page, api }) => {
+    const hades = await api.addGame(byName("Hades"));
+    await api.patch(`/game/${hades._id}`, { progressStatus: "playing" });
+    const celeste = await api.addGame(byName("Celeste"));
+    await api.patch(`/game/${celeste._id}`, { progressStatus: "completed" });
+    await api.addGame(byName("Hitman"), { progressStatus: "plan" });
     await open(page, "/dashboard");
-    await expect(page.getByRole("heading", { name: "RoninArc Dashboard" })).toBeVisible();
-    await expect(stat(page, "Currently Playing")).toHaveText("1");
-    await expect(stat(page, "Completed")).toHaveText("1");
-    await expect(page.getByRole("heading", { name: "Recently Added" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
+
+    const pickUp = panel(page, "Pick up where you left off");
+    await expect(pickUp.getByRole("article", { name: "Hades" })).toContainText("Never played · 0h played");
+
+    const backlog = panel(page, "Backlog progress");
+    await expect(backlog).toContainText("1 of 3 games completed");
+    await expect(backlog).toContainText("1 finished this year");
+    await expect(backlog).toContainText("Hitman");
+
+    const activity = panel(page, "Recent activity");
+    await expect(activity).toContainText("Celeste marked as completed");
+    await expect(activity).toContainText("Hades marked as playing");
+
+    await pickUp.getByRole("article", { name: "Hades" }).click();
+    await expect(page).toHaveURL(new RegExp(`#/library/game/${byName("Hades").id}$`));
   });
 
-  test("a new user sees zeroed stats @negative", async ({ authedPage: page }) => {
+  test("a new user gets empty states, and the web build explains where playtime comes from @negative", async ({ authedPage: page }) => {
     await open(page, "/dashboard");
-    for (const term of ["Owned Games", "Currently Playing", "Completed"]) await expect(stat(page, term)).toHaveText("0");
+    await expect(panel(page, "Pick up where you left off")).toContainText("Nothing in progress.");
+    await expect(panel(page, "Playtime")).toContainText("Playtime is tracked when you launch games from the RoninArc desktop app.");
+    await expect(panel(page, "Backlog progress")).toContainText("0 of 0 games completed");
+    await expect(panel(page, "Recent activity")).toContainText("No activity yet.");
+  });
+
+  test("a failing overview shows an error with a retry @negative", async ({ authedPage: page }) => {
+    let fail = true;
+    await page.route("**/dashboard/overview", (route) =>
+      fail ? route.fulfill({ status: 500, json: { Status: "Fail", error: "Internal Server Error" } }) : route.continue(),
+    );
+    await open(page, "/dashboard");
+    await expect(page.getByRole("alert")).toContainText("Couldn't load your dashboard.");
+    fail = false;
+    await page.getByRole("button", { name: "Try again" }).click();
+    await expect(page.getByRole("region", { name: "Playtime" })).toBeVisible();
   });
 });
 
 test.describe("Navigation", () => {
   test("navbar buttons route to each page @positive", async ({ authedPage: page }) => {
     await open(page, "/");
-    for (const [name, url] of [["Dashboard", /#\/dashboard$/], ["Settings", /#\/settings$/], ["AI Assistant", /#\/ai$/], ["Library", /#\/$/]] as const) {
+    for (const [name, url] of [["Dashboard", /#\/dashboard$/], ["Settings", /#\/settings$/], ["Library", /#\/$/]] as const) {
       await navbar(page).getByRole("button", { name }).click();
       await expect(page).toHaveURL(url);
     }
@@ -113,7 +143,30 @@ test.describe("Settings", () => {
   });
 });
 
-test.describe("AI assistant page", () => {
+test.describe("AI assistant (quick-access modal)", () => {
+  test("a floating button opens it on every page, and closing keeps the conversation @positive", async ({ authedPage: page }) => {
+    for (const path of ["/", "/dashboard", "/settings", "/library/browse"]) {
+      await open(page, path);
+      await expect(assistantButton(page)).toBeVisible();
+    }
+    await assistantButton(page).click();
+    await assistant(page).getByPlaceholder("Type a message...").fill("hi");
+    await page.keyboard.press("Enter");
+    await expect(assistant(page).getByText("Hello! I am your RoninArc AI assistant.", { exact: false })).toBeVisible();
+    await assistant(page).getByRole("button", { name: "Close assistant" }).click();
+    await expect(assistant(page)).toBeHidden();
+    await assistantButton(page).click();
+    await expect(assistant(page).getByText("Hello! I am your RoninArc AI assistant.", { exact: false })).toBeVisible();
+  });
+
+  test("the navbar has no AI tab, and old #/ai links open the modal @negative", async ({ authedPage: page }) => {
+    await open(page, "/");
+    await expect(navbar(page).getByRole("button", { name: "AI Assistant" })).toHaveCount(0);
+    await open(page, "/ai");
+    await expect(page).toHaveURL(/#\/$/);
+    await expect(assistant(page)).toBeVisible();
+  });
+
   test("greets back even when the model is offline @positive", async ({ authedPage: page }) => {
     await open(page, "/ai");
     await page.getByPlaceholder("Type a message...").fill("hi");
