@@ -8,8 +8,8 @@ import { byName } from "../../fixtures/catalog.mjs";
 // tool execution and the real side effects in the database.
 const shelter = byName("Fallout Shelter");
 
-const chat = async (api: any, message: unknown) => {
-  const res = await api.post("/ai/chat", { message });
+const chat = async (api: any, message: unknown, client?: { canLaunchGames: boolean }) => {
+  const res = await api.post("/ai/chat", client ? { message, client } : { message });
   return { status: res.status(), body: await json(res) };
 };
 
@@ -78,15 +78,28 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9 });
     });
 
-    test("'launch <game>' starts a play session and logs the launch @positive", async ({ api }) => {
+    test("'launch <game>' from the desktop app hands the launch back as a client action @positive", async ({ api }) => {
       const game = await api.addGame(shelter);
-      const { body } = await chat(api, "launch fallout shelter");
-      expect(body.success, body.message).toBe(true);
-      const sessions = (await json(await api.get("/play-session/recent"))).Data;
-      expect(sessions[0].gameId._id).toBe(game._id);
-      const activity = (await json(await api.get("/activity"))).Data;
-      expect(activity.some((a: any) => a.type === "GAME_LAUNCHED")).toBe(true);
+      const { body } = await chat(api, "launch fallout shelter", { canLaunchGames: true });
+      expect(body).toMatchObject({ success: true, message: "Launching Fallout Shelter on your PC." });
+      expect(body.clientActions).toEqual([{ type: "launch_game", gameId: game._id, title: "Fallout Shelter" }]);
+      // The server never starts a game or a play session itself; the app does, through its normal launch flow.
+      expect((await json(await api.get("/play-session/recent"))).Data).toEqual([]);
+      expect((await json(await api.get("/activity"))).Data.some((a: any) => a.type === "GAME_LAUNCHED")).toBe(false);
     });
+
+    for (const [label, client] of [["the web build", { canLaunchGames: false }], ["a client that doesn't say", undefined]] as const) {
+      test(`'launch <game>' from ${label} explains it needs the desktop app and changes nothing @negative`, async ({ api }) => {
+        await api.addGame(shelter);
+        const { body } = await chat(api, "launch fallout shelter", client);
+        expect(body).toMatchObject({
+          success: true,
+          message: "Launching games only works in the RoninArc desktop app, so I can't start Fallout Shelter from here.",
+        });
+        expect(body.clientActions).toBeUndefined();
+        expect((await json(await api.get("/play-session/recent"))).Data).toEqual([]);
+      });
+    }
 
     test("acting on a game that is not in the library changes nothing @negative", async ({ api }) => {
       const other = await api.addGame(byName("Celeste"));
@@ -167,10 +180,12 @@ test.describe("AI chat API (/ai/chat)", () => {
     test("concurrent requests from one user are serialised, not corrupted @positive", async ({ api }) => {
       const a = await api.addGame(shelter);
       const b = await api.addGame(byName("Cyberpunk 2077"));
-      const results = await Promise.all(["rate fallout shelter 9", "launch cyberpunk 2077"].map((m) => chat(api, m)));
+      const results = await Promise.all(
+        ["rate fallout shelter 9", "launch cyberpunk 2077"].map((m) => chat(api, m, { canLaunchGames: true })),
+      );
       for (const r of results) expect(r.body.success, r.body.message).toBe(true);
       expect((await json(await api.get(`/review/${a._id}`))).Data.rating).toBe(9);
-      expect((await json(await api.get("/play-session/recent"))).Data[0].gameId._id).toBe(b._id);
+      expect(results[1].body.clientActions).toEqual([{ type: "launch_game", gameId: b._id, title: "Cyberpunk 2077" }]);
     });
   });
 });

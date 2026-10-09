@@ -57,6 +57,8 @@ export class AIController {
   async chat(req: Request, res: Response): Promise<void> {
     const { message } = req.body;
     const requestId = crypto.randomUUID();
+    // Anything other than an explicit `true` means "can't launch" (older clients, the web build).
+    const client = { canLaunchGames: req.body?.client?.canLaunchGames === true };
 
     if (typeof message !== "string" || message.trim() === "") {
       res.status(400).json({
@@ -68,7 +70,7 @@ export class AIController {
 
     try {
       const result = await runExclusivePerUser(req.user!.id, () =>
-        aiService.chat(req.user!.id, message, requestId),
+        aiService.chat(req.user!.id, message, requestId, client),
       );
       res.status(200).json(result);
     } catch (error: any) {

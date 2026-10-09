@@ -4,7 +4,15 @@ export const aiSchemas: Record<string, Schema> = {
   AIChatRequest: {
     type: "object",
     required: ["message"],
-    properties: { message: { type: "string", minLength: 1, example: "What should I play next?" } },
+    properties: {
+      message: { type: "string", minLength: 1, example: "What should I play next?" },
+      client: {
+        type: "object",
+        description:
+          "What the calling app can do itself. Send `canLaunchGames: true` only from the desktop app; anything else (or omitting it) means launch requests are answered with an explanation instead of a `launch_game` client action.",
+        properties: { canLaunchGames: { type: "boolean", default: false } },
+      },
+    },
   },
   AIChatResponse: {
     type: "object",
@@ -31,6 +39,21 @@ export const aiSchemas: Record<string, Schema> = {
         },
       },
       errors: { type: "array", items: { type: "string" } },
+      clientActions: {
+        type: "array",
+        description:
+          "Work only the app can do, present when non-empty. `launch_game`: start this library game with the app's normal launch flow (which starts and ends the play session). The server never starts games or play sessions itself.",
+        items: {
+          type: "object",
+          additionalProperties: false,
+          required: ["type", "gameId", "title"],
+          properties: {
+            type: { const: "launch_game" },
+            gameId: { ...objectId, description: "Library game id." },
+            title: { type: "string", example: "Hades" },
+          },
+        },
+      },
       metrics: { type: "object", description: "Per-layer timings in milliseconds.", additionalProperties: true },
     },
   },

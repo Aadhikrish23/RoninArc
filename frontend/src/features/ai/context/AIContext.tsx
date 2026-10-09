@@ -12,6 +12,7 @@ import axios from "axios";
 import aiApi from "../api/aiApi";
 import { useAuth } from "../../auth/context/AuthContext";
 import { eventBus } from "../../../shared/events/EventBus";
+import { AI_LAUNCH_EVENT } from "../../library/context/LaunchContext";
 
 import type { AISettings } from "../components/AISettingsModal";
 
@@ -138,13 +139,15 @@ export function AIProvider({ children }: { children: ReactNode }) {
 
       setMessages((prev) => [...prev, assistantMessage]);
 
+      // The backend can't start games on this PC; it asks us to (see LaunchProvider).
+      for (const action of response.clientActions ?? []) {
+        if (action.type === "launch_game") eventBus.publish(AI_LAUNCH_EVENT, { gameId: action.gameId });
+      }
+
       // Publish completion events on the shared EventBus
       if (response.success) {
         const textLower = text.toLowerCase();
-        
-        if (textLower.includes("launch") || textLower.includes("play") || textLower.includes("start")) {
-          eventBus.publish("launcher.started");
-        }
+
         if (textLower.includes("collection")) {
           eventBus.publish("collection.updated");
         }

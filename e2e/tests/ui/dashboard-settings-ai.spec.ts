@@ -1,7 +1,7 @@
 import { test, expect } from "../../fixtures/test";
 import { json } from "../../helpers/api";
 import { byName } from "../../fixtures/catalog.mjs";
-import { assistant, assistantButton, expectToast, navbar, open } from "../../helpers/ui";
+import { assistant, assistantButton, emulateDesktop, expectToast, navbar, open } from "../../helpers/ui";
 
 const panel = (page: any, name: string) => page.getByRole("region", { name });
 
@@ -157,6 +157,48 @@ test.describe("AI assistant (quick-access modal)", () => {
     await expect(assistant(page)).toBeHidden();
     await assistantButton(page).click();
     await expect(assistant(page).getByText("Hello! I am your RoninArc AI assistant.", { exact: false })).toBeVisible();
+  });
+
+  test("desktop: 'launch <game>' starts it through the app and shows it Running @positive", async ({ authedPage: page, api }) => {
+    const g = await api.addGame(byName("Fallout Shelter"), { exePath: "C:\\Games\\FalloutShelter\\FalloutShelter.exe" });
+    await emulateDesktop(page);
+    await open(page, "/");
+    await assistantButton(page).click();
+    await assistant(page).getByPlaceholder("Type a message...").fill("launch fallout shelter");
+    await page.keyboard.press("Enter");
+    await expect(assistant(page).getByText("Launching Fallout Shelter on your PC.")).toBeVisible();
+    await expect.poll(() => page.evaluate(() => (window as any).__launched)).toEqual([{ gameId: g._id, path: "C:\\Games\\FalloutShelter\\FalloutShelter.exe" }]);
+    await assistant(page).getByRole("button", { name: "Close assistant" }).click();
+    await expect(page.getByRole("button", { name: "Running" }).first()).toBeDisabled();
+    // The app (not the server) started the play session, and the exit event ends it.
+    expect((await json(await api.get("/play-session/recent"))).Data[0]).toMatchObject({ gameId: { _id: g._id }, endedAt: null });
+    await page.evaluate((id) => (window as any).__exitGame(id), g._id);
+    await expect(page.getByRole("button", { name: "Launch" }).first()).toBeEnabled();
+    await expect.poll(async () => (await json(await api.get("/play-session/recent"))).Data[0].endedAt).not.toBeNull();
+  });
+
+  test("desktop: 'launch <game>' without a known executable opens the launch dialog @negative", async ({ authedPage: page, api }) => {
+    await api.addGame(byName("Fallout Shelter"));
+    await emulateDesktop(page);
+    await open(page, "/");
+    await assistantButton(page).click();
+    await assistant(page).getByPlaceholder("Type a message...").fill("launch fallout shelter");
+    await page.keyboard.press("Enter");
+    const dialog = page.getByRole("dialog", { name: "Launch Fallout Shelter" });
+    await expect(dialog).toContainText("Choose the executable file for this game.");
+    expect(await page.evaluate(() => (window as any).__launched)).toEqual([]);
+  });
+
+  test("web: 'launch <game>' explains it needs the desktop app and starts nothing @negative", async ({ authedPage: page, api }) => {
+    await api.addGame(byName("Fallout Shelter"), { exePath: "C:\\Games\\FalloutShelter\\FalloutShelter.exe" });
+    await open(page, "/");
+    await assistantButton(page).click();
+    await assistant(page).getByPlaceholder("Type a message...").fill("launch fallout shelter");
+    await page.keyboard.press("Enter");
+    await expect(
+      assistant(page).getByText("Launching games only works in the RoninArc desktop app, so I can't start Fallout Shelter from here."),
+    ).toBeVisible();
+    expect((await json(await api.get("/play-session/recent"))).Data).toEqual([]);
   });
 
   test("the navbar has no AI tab, and old #/ai links open the modal @negative", async ({ authedPage: page }) => {

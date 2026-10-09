@@ -21,7 +21,6 @@ import { ArrowBackIcon } from "@chakra-ui/icons";
 
 import GameCard from "../components/GameCard";
 import GameListRow from "../components/GameListRow";
-import LaunchModal from "../components/LaunchModal";
 import ReviewModal from "../../reviews/components/ReviewModal";
 import CreateCollectionModal from "../../collections/components/CreateCollectionModal";
 
@@ -55,7 +54,7 @@ export default function BrowsePage() {
   const [visibleCount, setVisibleCount] = useState(24);
 
   // Modals State
-  const { openLaunchModal, runningGames, modalProps } = useLaunchGame();
+  const { openLaunchModal, runningGames } = useLaunchGame();
   const [isCreateCollectionOpen, setIsCreateCollectionOpen] = useState(false);
 
   const navigate = useNavigate();
@@ -292,7 +291,6 @@ export default function BrowsePage() {
         </Button>
 
         {/* Interactive Overlay Modals */}
-        <LaunchModal {...modalProps} />
         <ReviewModal
           game={reviewGame}
           review={currentReview}

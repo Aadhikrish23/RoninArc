@@ -19,7 +19,6 @@ import { useLibrary } from "../../library/hooks/useLibrary";
 
 import type { Status } from "../../library/types/library";
 import { useCollection } from "../hooks/useCollections";
-import LaunchModal from "../../library/components/LaunchModal";
 import { useLaunchGame } from "../../library/hooks/useLaunchGame";
 import DeleteCollectionModal from "../components/DeleteCollectionModal";
 import EditCollectionModal from "../components/EditCollectionModal";
@@ -32,7 +31,7 @@ export default function CollectionDetailsPage() {
   const { removeGameFromCollection, deleteCollection, updateCollection } =
     useCollection();
 
-  const { openLaunchModal, runningGames, modalProps } = useLaunchGame();
+  const { openLaunchModal, runningGames } = useLaunchGame();
 
   const [deleteOpen, setDeleteOpen] = useState(false);
   const toast = useToast();
@@ -174,7 +173,6 @@ export default function CollectionDetailsPage() {
         onRemove={handleRemove}
         runningGames={runningGames}
       />
-      <LaunchModal {...modalProps} />
       <DeleteCollectionModal
         isOpen={deleteOpen}
         collectionName={collection.name}

@@ -31,7 +31,6 @@ import { useReview } from "../../reviews/hooks/useReview";
 import { usePlaySession } from "../../playSession/hooks/usePlaySession";
 import * as reviewApi from "../../reviews/api/reviewApi";
 import type { Review } from "../../reviews/types/review";
-import LaunchModal from "../components/LaunchModal";
 import ReviewModal from "../../reviews/components/ReviewModal";
 import NotesSection from "../../notes/components/NotesSection";
 import { useNotes } from "../../notes/hooks/useNotes";
@@ -65,7 +64,7 @@ export default function GameDetailsPage() {
     removeGameFromCollection,
   } = useCollection();
   const { loadGameStats, gameStats } = usePlaySession();
-  const { openLaunchModal, modalProps,runningGames } = useLaunchGame();
+  const { openLaunchModal,runningGames } = useLaunchGame();
   const navigate = useNavigate();
   const toast = useToast();
 
@@ -370,7 +369,6 @@ export default function GameDetailsPage() {
       {/* Screenshots */}
       <GameScreenshots screenshots={game.screenshots} />
 
-      <LaunchModal {...modalProps} />
       <ReviewModal
         game={reviewGame}
         review={currentReview}

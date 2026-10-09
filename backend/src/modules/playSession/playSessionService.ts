@@ -1,8 +1,6 @@
 import { Types } from "mongoose";
 
 import PlaySession from "./PlaySessionModel";
-import libraryServices from "../library/libraryServices";
-import activityService from "../activity/activityService";
 
 /** Open sessions older than this are treated as abandoned rather than resumed. */
 const ABANDONED_SESSION_MS = 12 * 60 * 60 * 1000;
@@ -165,25 +163,6 @@ const getGamePlaytime = async (userId: Types.ObjectId, gameId: string) => {
   };
 };
 
-const launchGame = async (userId: string, gameId: string) => {
-  const games = await libraryServices.getGameFilter(userId, "_id", gameId);
-  const game = games?.[0];
-  if (!game) {
-    throw new Error("Game not found.");
-  }
-
-  const session = await startSession(new Types.ObjectId(userId), gameId);
-
-  await activityService.createActivity(
-    userId,
-    "GAME_LAUNCHED",
-    `Launched ${game.title}`,
-    new Types.ObjectId(gameId),
-  );
-
-  return session;
-};
-
 export default {
   startSession,
 
@@ -195,5 +174,4 @@ export default {
 
   getGamePlaytime,
 
-  launchGame,
 };

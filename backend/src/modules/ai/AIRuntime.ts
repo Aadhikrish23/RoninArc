@@ -4,6 +4,7 @@ import { AIToolRegistry } from "./sdk/AIToolRegistry";
 import { ContextBuilder } from "./context/ContextBuilder";
 import { CapabilityRegistry } from "./planning/CapabilityRegistry";
 import aiTraceLogger from "./debug/AITraceLogger";
+import type { AIClientCapabilities, AIToolContext } from "./sdk/AIToolContext";
 import { RuntimeProfiler } from "./debug/RuntimeProfiler";
 import aiResponseBuilder from "./response/AIResponseBuilder";
 import { AIRuntimeError } from "./runtime/errors/AIRuntimeError";
@@ -35,7 +36,7 @@ export class AIRuntime {
   /**
    * Orchestrates conversation, memory, planning, clarification, and execution runtimes.
    */
-  async chat(userId: string, request: string, requestId: string) {
+  async chat(userId: string, request: string, requestId: string, client: AIClientCapabilities = { canLaunchGames: false }) {
     const profiler = new RuntimeProfiler();
     profiler.startOverall();
 
@@ -48,9 +49,11 @@ export class AIRuntime {
         trace.log("AIRuntime", "Runtime Started", { userId, request: cleanRequest });
       }
 
-      const toolContext = {
+      const toolContext: AIToolContext = {
         userId,
         requestId,
+        client,
+        clientActions: [],
       };
 
       try {
@@ -254,6 +257,8 @@ export class AIRuntime {
           success: isFullSuccess,
           status: executionResult.status,
           message: friendlyMessage,
+          // Work only the app can do (e.g. start a game on this PC); see AIClientAction.
+          ...(toolContext.clientActions?.length ? { clientActions: toolContext.clientActions } : {}),
           metrics: profiler.getMetrics(),
         };
 

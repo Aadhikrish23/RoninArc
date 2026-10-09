@@ -50,7 +50,12 @@ export class AIResponseBuilder {
       const gameName = getGameName(step);
 
       if (step.tool === "LaunchGameTool" || step.tool === "launch_game") {
-        sentences.push(`I've launched ${gameName} and started your play session.`);
+        // The server never starts the game itself: the desktop app does it (clientActions).
+        if ((step.output?.data as { launched?: boolean } | undefined)?.launched) {
+          sentences.push(`Launching ${gameName} on your PC.`);
+        } else {
+          sentences.push(`Launching games only works in the RoninArc desktop app, so I can't start ${gameName} from here.`);
+        }
       } else if (step.tool === "InstallGameTool" || step.tool === "install_game") {
         sentences.push(`I've started installing ${gameName}.`);
       } else if (step.tool === "CreateCollectionTool" || step.tool === "create_collection") {

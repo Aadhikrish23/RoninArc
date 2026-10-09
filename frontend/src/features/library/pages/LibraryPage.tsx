@@ -35,7 +35,6 @@ import HorizontalSection from "../components/HorizontalSection";
 import GameCarousel from "../components/GameCarousel";
 import CollectionCarousel from "../components/CollectionCarousel";
 import { useLaunchGame } from "../hooks/useLaunchGame";
-import LaunchModal from "../components/LaunchModal";
 import RecommendedStrip from "../../recommendations/components/RecommendedStrip";
 
 function LibraryPage() {
@@ -72,7 +71,7 @@ function LibraryPage() {
 
   const { refreshInstallations } = useProvider("steam");
   const [isRescanning, setIsRescanning] = useState(false);
-  const { openLaunchModal, runningGames, modalProps } = useLaunchGame();
+  const { openLaunchModal, runningGames } = useLaunchGame();
 
   const handleRescanInstallations = async () => {
     setIsRescanning(true);
@@ -368,7 +367,6 @@ function LibraryPage() {
             )}
           </>
         )}
-       <LaunchModal {...modalProps} />
         <ReviewModal
           game={reviewGame}
           review={currentReview}
