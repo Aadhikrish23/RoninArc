@@ -3,6 +3,7 @@ import { AIToolContext } from "../../sdk/AIToolContext";
 import { AIToolResult } from "../../sdk/AIToolResult";
 import libraryToolService from "../../services/LibraryToolService";
 import rawgToolService from "../../services/RawgToolService";
+import { MIN_CONFIDENT_MATCH, rankByTitle } from "../../../rawg/titleMatch";
 
 interface AddGameInput {
   gameName: string;
@@ -30,14 +31,15 @@ export class AddGameTool extends BaseTool<AddGameInput, any> {
       return this.failure(`I couldn't find "${gameName}" on RAWG.`);
     }
 
-    // RAWG orders results by popularity ("added" count), not title relevance --
-    // e.g. searching "Hollow Knight" ranks the more-popular "Batman: Arkham
-    // Knight" first purely because both match "Knight". Prefer an exact title
-    // match over RAWG's own top result, same principle as the library's own
-    // exact-match-before-fuzzy entity resolution.
-    const normalizedQuery = gameName.toLowerCase();
-    const exactMatch = results.find((g: any) => (g.name || "").trim().toLowerCase() === normalizedQuery);
-    const match = exactMatch || results[0];
+    // Never just take RAWG's first result: pick the title that actually matches
+    // what was asked for (including abbreviations like "rdr 2" or "gta 5"), and
+    // if nothing does, say so instead of adding some other game.
+    const ranked = rankByTitle(gameName, results as typeof results[number][]);
+    if (ranked[0].score < MIN_CONFIDENT_MATCH) {
+      const closest = ranked.slice(0, 3).map((r) => `"${r.item.name}"`).join(", ");
+      return this.failure(`I couldn't find a game called "${gameName}". The closest matches were ${closest}. Try the full title.`);
+    }
+    const match = ranked[0].item;
 
     try {
       const game = await libraryToolService.addGame(context.userId, {

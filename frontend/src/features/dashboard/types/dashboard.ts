@@ -38,12 +38,14 @@ export interface DashboardOverview {
     daily: { date: string; minutes: number }[];
     mostPlayed: { game: DashboardGameSummary; minutesPlayed: number }[];
   };
+  /** Plan to Play + Playing + Paused; no-status games are only counted in unsortedCount. */
   backlog: {
-    total: number;
+    size: number;
     byStatus: Record<"none" | "plan" | "playing" | "paused" | "completed" | "dropped", number>;
     completedThisYear: number;
+    unsortedCount: number;
     untouchedCount: number;
-    untouched: { game: DashboardGameSummary; addedAt: string }[];
+    untouched: { game: DashboardGameSummary; plannedAt: string }[];
   };
   recentActivity: { _id: string; type: string; message: string; createdAt: string; game: DashboardGameSummary | null }[];
 }

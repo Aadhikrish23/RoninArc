@@ -74,7 +74,8 @@ test.describe("Dashboard API (/dashboard/overview)", () => {
     expect(Data.playtime).toMatchObject({ last7DaysMinutes: 0, last30DaysMinutes: 0, totalMinutes: 0, sessionsLast7Days: 0, mostPlayed: [] });
     expect(Data.playtime.daily).toHaveLength(7);
     expect(Data.backlog).toMatchObject({
-      total: 0,
+      size: 0,
+      unsortedCount: 0,
       completedThisYear: 0,
       untouchedCount: 0,
       untouched: [],
@@ -92,6 +93,7 @@ test.describe("Dashboard API (/dashboard/overview)", () => {
     await api.patch(`/game/${elden._id}`, { progressStatus: "dropped" }); // no longer counts as finished
     await api.addGame(byName("Hitman"), { progressStatus: "plan" });
     await api.addGame(byName("Fallout Shelter"));
+    await api.addGame(byName("Stardew Valley"), { progressStatus: "none" }); // an unsorted import, not backlog
     await api.post(`/play-session/start/${hades._id}`);
     await api.post(`/play-session/end/${hades._id}`);
 
@@ -103,14 +105,17 @@ test.describe("Dashboard API (/dashboard/overview)", () => {
     expect(Data.continuePlaying[0].game.imageURL).toBe((hades as any).imageURL);
     expect(Data.playtime.sessionsLast7Days).toBe(1);
 
-    expect(Data.backlog.total).toBe(5);
-    expect(Data.backlog.byStatus).toMatchObject({ playing: 1, completed: 1, dropped: 1, plan: 2, none: 0 });
+    // Backlog = Plan to Play + Playing + Paused. Completed, Dropped and no-status games aren't in it.
+    expect(Data.backlog.size).toBe(3);
+    expect(Data.backlog.byStatus).toMatchObject({ playing: 1, completed: 1, dropped: 1, plan: 2, none: 1 });
+    expect(Data.backlog.unsortedCount).toBe(1);
     expect(Data.backlog.completedThisYear).toBe(1);
-    // Hades has a session, so only the two planned games are untouched, oldest first.
+    // Only planned games with no session count as "not started": not Hades (has a session), not Stardew (no status).
     expect(Data.backlog.untouched.map((u: any) => u.game.title)).toEqual(["Hitman", "Fallout Shelter"]);
+    expect(Data.backlog.untouchedCount).toBe(2);
 
     expect(Data.recentActivity.length).toBeLessThanOrEqual(10);
-    expect(Data.recentActivity[0]).toMatchObject({ type: "GAME_ADDED", game: { title: "Fallout Shelter" } });
+    expect(Data.recentActivity[0]).toMatchObject({ type: "GAME_ADDED", game: { title: "Stardew Valley" } });
   });
 
   test("only shows the caller's own data @negative", async ({ api, request }) => {
@@ -118,7 +123,7 @@ test.describe("Dashboard API (/dashboard/overview)", () => {
     const other = new Api(request, API_URL, (await registerUser(request, API_URL)).accessToken);
     const { Data } = await json(await other.get("/dashboard/overview"));
     expect(Data.continuePlaying).toEqual([]);
-    expect(Data.backlog.total).toBe(0);
+    expect(Data.backlog.size).toBe(0);
   });
 
   test("requires authentication @negative", async ({ anon }) => {

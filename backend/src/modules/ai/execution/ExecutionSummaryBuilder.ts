@@ -29,6 +29,12 @@ export class ExecutionSummaryBuilder {
       return `Execution partially completed. Succeeded steps: ${succeeded}, failed steps: ${failed}. ${stepSummaries.join(" ")}`;
     }
 
+    // One step that failed with a reason: the reason is the whole answer
+    // ("I couldn't find a game called ..."), not "Step "add_game" failed: ...".
+    if (totalSteps === 1 && result.steps[0].error) {
+      return result.steps[0].error;
+    }
+
     return `Execution failed. ${stepSummaries.join(" ")}`;
   }
 }

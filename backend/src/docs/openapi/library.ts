@@ -254,9 +254,11 @@ export const librarySchemas: Record<string, Schema> = {
       backlog: {
         type: "object",
         additionalProperties: false,
-        required: ["total", "byStatus", "completedThisYear", "untouchedCount", "untouched"],
+        description:
+          "What you've committed to play: Plan to Play, Playing and Paused. Games with no status (typically fresh imports) are not backlog; they are only counted in `unsortedCount`.",
+        required: ["size", "byStatus", "completedThisYear", "unsortedCount", "untouchedCount", "untouched"],
         properties: {
-          total: { type: "integer", minimum: 0 },
+          size: { type: "integer", minimum: 0, description: "Plan to Play + Playing + Paused." },
           byStatus: {
             type: "object",
             additionalProperties: false,
@@ -264,16 +266,20 @@ export const librarySchemas: Record<string, Schema> = {
             properties: Object.fromEntries(["none", "plan", "playing", "paused", "completed", "dropped"].map((s) => [s, { type: "integer", minimum: 0 }])),
           },
           completedThisYear: { type: "integer", minimum: 0, description: "Games marked Completed since 1 January that are still Completed." },
-          untouchedCount: { type: "integer", minimum: 0, description: "Planned or unstarted games with no play session." },
+          unsortedCount: { type: "integer", minimum: 0, description: "Library games with no status at all." },
+          untouchedCount: { type: "integer", minimum: 0, description: "Plan to Play games with no play session yet." },
           untouched: {
             type: "array",
             maxItems: 5,
-            description: "The longest-waiting of those, oldest first.",
+            description: "Those games, the ones planned longest ago first.",
             items: {
               type: "object",
               additionalProperties: false,
-              required: ["game", "addedAt"],
-              properties: { game: ref("DashboardGameSummary"), addedAt: dateTime },
+              required: ["game", "plannedAt"],
+              properties: {
+                game: ref("DashboardGameSummary"),
+                plannedAt: { ...dateTime, description: "When it was last set to Plan to Play (its add date if it was added as planned)." },
+              },
             },
           },
         },

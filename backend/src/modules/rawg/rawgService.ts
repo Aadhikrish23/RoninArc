@@ -21,7 +21,8 @@ async function searchGames(query: string, page: number) {
         page,
 
         search_precise: true,
-        ordering: "-added",
+        // No popularity ordering: with "-added", RAWG puts GTA V first for
+        // "rdr 2" and even for "red dead redemption 2". Its default order is relevance.
       },
     });
 

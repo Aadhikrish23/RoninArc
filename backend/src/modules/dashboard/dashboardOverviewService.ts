@@ -27,13 +27,22 @@ export interface DashboardOverview {
     daily: { date: string; minutes: number }[];
     mostPlayed: { game: GameSummary; minutesPlayed: number }[];
   };
+  /**
+   * The backlog is what you've committed to play: Plan to Play, Playing and
+   * Paused. Imported games nobody has given a status are not backlog, so they
+   * are only counted (`unsortedCount`), never mixed into the progress maths.
+   */
   backlog: {
-    total: number;
+    /** Plan to Play + Playing + Paused. */
+    size: number;
     byStatus: Record<(typeof STATUSES)[number], number>;
     completedThisYear: number;
+    /** Library games with no status at all. */
+    unsortedCount: number;
+    /** Planned games with no play session yet. */
     untouchedCount: number;
-    /** Planned or unstarted games with no play session yet, longest-waiting first. */
-    untouched: { game: GameSummary; addedAt: string }[];
+    /** Those games, the ones planned longest ago first. */
+    untouched: { game: GameSummary; plannedAt: string }[];
   };
   recentActivity: { _id: string; type: string; message: string; createdAt: string; game: GameSummary | null }[];
 }
@@ -57,13 +66,18 @@ const getOverview = async (userId: string, now = new Date()): Promise<DashboardO
   const uid = new Types.ObjectId(userId);
   const yearStart = new Date(now.getFullYear(), 0, 1);
 
-  const [games, sessions, completions, activities] = await Promise.all([
+  const [games, sessions, completions, activities, planned] = await Promise.all([
     LibraryGame.find({ userId: uid }).lean(),
     PlaySession.find({ userId: uid }).lean(),
     Activity.find({ userId: uid, type: "STATUS_CHANGED", message: / marked as completed$/, createdAt: { $gte: yearStart } })
       .select("gameId")
       .lean(),
     Activity.find({ userId: uid }).sort({ createdAt: -1 }).limit(10).populate("gameId").lean(),
+    // When each game was last set to Plan to Play (newest first, so the first hit per game wins).
+    Activity.find({ userId: uid, type: "STATUS_CHANGED", message: / marked as plan$/ })
+      .sort({ createdAt: -1 })
+      .select("gameId createdAt")
+      .lean(),
   ]);
 
   // Per-game playtime and last session, from play sessions.
@@ -127,9 +141,16 @@ const getOverview = async (userId: string, now = new Date()): Promise<DashboardO
       .map((a) => (a.gameId ? String(a.gameId) : null))
       .filter((id): id is string => !!id && gamesById.get(id)?.progressStatus === "completed"),
   );
+  // Games added straight as planned have no status-change activity; their add date stands in.
+  const plannedAtById = new Map<string, Date>();
+  for (const a of planned) {
+    const id = a.gameId ? String(a.gameId) : null;
+    if (id && !plannedAtById.has(id)) plannedAtById.set(id, new Date(a.createdAt));
+  }
+  const plannedAt = (g: any) => plannedAtById.get(String(g._id)) ?? new Date(g.createdAt);
   const untouchedAll = games
-    .filter((g) => (g.progressStatus === "plan" || !g.progressStatus || g.progressStatus === "none") && !perGame.has(String(g._id)))
-    .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    .filter((g) => g.progressStatus === "plan" && !perGame.has(String(g._id)))
+    .sort((a, b) => plannedAt(a).getTime() - plannedAt(b).getTime());
 
   const recentActivity = activities.map((a: any) => ({
     _id: String(a._id),
@@ -143,11 +164,12 @@ const getOverview = async (userId: string, now = new Date()): Promise<DashboardO
     continuePlaying,
     playtime: { last7DaysMinutes, last30DaysMinutes, totalMinutes, sessionsLast7Days, daily, mostPlayed },
     backlog: {
-      total: games.length,
+      size: byStatus.plan + byStatus.playing + byStatus.paused,
       byStatus,
       completedThisYear: completedIds.size,
+      unsortedCount: byStatus.none,
       untouchedCount: untouchedAll.length,
-      untouched: untouchedAll.slice(0, 5).map((g) => ({ game: summarize(g), addedAt: new Date(g.createdAt).toISOString() })),
+      untouched: untouchedAll.slice(0, 5).map((g) => ({ game: summarize(g), plannedAt: plannedAt(g).toISOString() })),
     },
     recentActivity,
   };

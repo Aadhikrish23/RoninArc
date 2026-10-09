@@ -19,9 +19,12 @@ test.describe("Dashboard", () => {
     await expect(pickUp.getByRole("article", { name: "Hades" })).toContainText("Never played · 0h played");
 
     const backlog = panel(page, "Backlog progress");
-    await expect(backlog).toContainText("1 of 3 games completed");
+    // Hades (playing) + Hitman (planned) are the backlog; Celeste is finished.
+    await expect(backlog).toContainText("2 games in your backlog");
+    await expect(backlog).toContainText("1 of 3 finished");
     await expect(backlog).toContainText("1 finished this year");
     await expect(backlog).toContainText("Hitman");
+    await expect(backlog).not.toContainText("No Status");
 
     const activity = panel(page, "Recent activity");
     await expect(activity).toContainText("Celeste marked as completed");
@@ -35,7 +38,8 @@ test.describe("Dashboard", () => {
     await open(page, "/dashboard");
     await expect(panel(page, "Pick up where you left off")).toContainText("Nothing in progress.");
     await expect(panel(page, "Playtime")).toContainText("Playtime is tracked when you launch games from the RoninArc desktop app.");
-    await expect(panel(page, "Backlog progress")).toContainText("0 of 0 games completed");
+    await expect(panel(page, "Backlog progress")).toContainText("0 games in your backlog");
+    await expect(panel(page, "Backlog progress")).toContainText("Nothing planned yet.");
     await expect(panel(page, "Recent activity")).toContainText("No activity yet.");
   });
 

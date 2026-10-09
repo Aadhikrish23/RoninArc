@@ -71,8 +71,13 @@ const STATUS_ROWS: { key: keyof DashboardOverview["backlog"]["byStatus"]; label:
   { key: "paused", label: "Paused", color: "orange" },
   { key: "completed", label: "Completed", color: "green" },
   { key: "dropped", label: "Dropped", color: "red" },
-  { key: "none", label: "No Status", color: "gray" },
 ];
+
+/** Reads after "planned …": "3 days ago", "yesterday", or "on Jun 27, 2026". */
+function sincePhrase(iso: string): string {
+  const rel = timeAgo(iso);
+  return /ago$|^Just now$|^Yesterday$/.test(rel) ? rel.toLowerCase() : `on ${rel}`;
+}
 
 const ACTIVITY_ICONS: Record<string, IconType> = {
   GAME_ADDED: FiPlusCircle,
@@ -145,7 +150,9 @@ function DashboardPage() {
 
   const desktop = canLaunchGames();
   const maxDaily = data ? Math.max(...data.playtime.daily.map((d) => d.minutes), 1) : 1;
-  const completedShare = data && data.backlog.total > 0 ? Math.round((data.backlog.byStatus.completed / data.backlog.total) * 100) : 0;
+  // Progress is finished games against everything you've committed to, never the whole (mostly unsorted) library.
+  const committed = data ? data.backlog.byStatus.completed + data.backlog.size : 0;
+  const completedShare = data && committed > 0 ? Math.round((data.backlog.byStatus.completed / committed) * 100) : 0;
 
   return (
     <Box minH="100vh" bg={bg}>
@@ -290,20 +297,23 @@ function DashboardPage() {
 
               {/* Backlog progress */}
               <Panel title="Backlog progress" icon={FiBookmark}>
-                <Flex justify="space-between" align="baseline" mb={2}>
+                <Flex justify="space-between" align="baseline" mb={1}>
                   <Text fontSize="sm">
                     <Text as="span" fontSize="2xl" fontWeight="bold">
-                      {data.backlog.byStatus.completed}
+                      {data.backlog.size}
                     </Text>{" "}
-                    of {data.backlog.total} games completed
+                    {data.backlog.size === 1 ? "game" : "games"} in your backlog
                   </Text>
                   <Text fontSize="sm" color={mutedText}>
                     {data.backlog.completedThisYear} finished this year
                   </Text>
                 </Flex>
-                <Progress value={completedShare} colorScheme="green" size="sm" borderRadius="full" mb={4} aria-label="Share of library completed" />
+                <Text fontSize="xs" color={mutedText} mb={2}>
+                  {data.backlog.byStatus.completed} of {committed} finished
+                </Text>
+                <Progress value={completedShare} colorScheme="green" size="sm" borderRadius="full" mb={4} aria-label="Finished out of planned, playing, paused and completed games" />
 
-                <SimpleGrid columns={{ base: 2, sm: 3 }} spacing={2} mb={5}>
+                <SimpleGrid columns={{ base: 2, sm: 3 }} spacing={2} mb={data.backlog.unsortedCount > 0 ? 2 : 5}>
                   {STATUS_ROWS.map((s) => (
                     <HStack key={s.key} spacing={2}>
                       <Box w="8px" h="8px" borderRadius="full" bg={`${s.color}.400`} flexShrink={0} />
@@ -316,24 +326,32 @@ function DashboardPage() {
                     </HStack>
                   ))}
                 </SimpleGrid>
+                {data.backlog.unsortedCount > 0 && (
+                  <Text fontSize="xs" color={mutedText} mb={5}>
+                    {data.backlog.unsortedCount} {data.backlog.unsortedCount === 1 ? "game" : "games"} in your library {data.backlog.unsortedCount === 1 ? "has" : "have"} no status yet and
+                    {data.backlog.unsortedCount === 1 ? " isn't" : " aren't"} counted. Set Plan to Play on the ones you mean to play.
+                  </Text>
+                )}
 
                 <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={2}>
-                  Waiting the longest{data.backlog.untouchedCount > 0 ? ` (${data.backlog.untouchedCount} never started)` : ""}
+                  Planned, not started yet{data.backlog.untouchedCount > 0 ? ` (${data.backlog.untouchedCount})` : ""}
                 </Text>
                 {data.backlog.untouched.length === 0 ? (
                   <Text fontSize="sm" color={mutedText}>
-                    Every game you've planned has been started. Nice.
+                    {data.backlog.byStatus.plan === 0
+                      ? "Nothing planned yet. Mark games as Plan to Play to build your backlog."
+                      : "You've started every game you planned. Nice."}
                   </Text>
                 ) : (
                   <VStack align="stretch" spacing={1}>
-                    {data.backlog.untouched.map(({ game, addedAt }) => (
+                    {data.backlog.untouched.map(({ game, plannedAt }) => (
                       <HStack key={game._id} spacing={3} p={1.5} borderRadius="md" cursor="pointer" _hover={{ bg: rowHover }} onClick={() => navigate(detailsPath(game))}>
                         <Cover game={game} w="32px" h="40px" />
                         <Text flex="1" fontSize="sm" noOfLines={1}>
                           {game.title}
                         </Text>
                         <Text fontSize="xs" color={mutedText}>
-                          added {timeAgo(addedAt).toLowerCase()}
+                          planned {sincePhrase(plannedAt)}
                         </Text>
                       </HStack>
                     ))}
