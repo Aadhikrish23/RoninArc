@@ -107,7 +107,7 @@ export class PlanningEngine {
         try {
           const toolName = toolMapper.mapCapabilityToTool(
             resolved.capability.id,
-            resolved.intent.targets,
+            { targets: resolved.intent.targets, parameters: resolved.intent.parameters },
             userQuery || resolved.intent.type
           );
           const toolMeta = toolMetadataRegistry.get(toolName);

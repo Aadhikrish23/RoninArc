@@ -11,6 +11,11 @@ export class OllamaClient {
    * Sends prompt to Ollama generate endpoint and returns the raw output string.
    */
   async generate(prompt: string): Promise<string> {
+    if (process.env.MOCK_LLM === "true" && prompt.startsWith("[[ANSWER MODE]]")) {
+      const question = (prompt.match(/\nQuestion: ([^\n]+)/) || [])[1] || "";
+      return `Mock answer about: ${question}`;
+    }
+
     if (process.env.MOCK_LLM === "true") {
       const match = prompt.match(/User Request:\s*\n([^\n]+)/);
       const query = match ? match[1].trim() : "";
@@ -156,6 +161,9 @@ export class OllamaClient {
 
         if (queryLower.includes("buy")) {
           responseText = JSON.stringify({ intents: [intent("AskQuestion", [], [{ type: "Text", value: "I can't buy games for you. I can add it to your library as Plan to Play so you remember it." }])] });
+        } else if (queryLower.includes("difference between")) {
+          // A general question the model leaves for answer mode (no text of its own).
+          responseText = JSON.stringify({ intents: [intent("AskQuestion")] });
         } else if (queryLower.includes("too hard")) {
           responseText = JSON.stringify({ intents: [intent("AskQuestion", [], [{ type: "Text", value: "It's tough at first, but you can explore elsewhere and come back stronger." }])] });
         } else if (queryLower.includes("backlog") || queryLower.includes("how many")) {

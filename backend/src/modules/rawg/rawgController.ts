@@ -42,6 +42,9 @@ const searchgame = async (req: Request, res: Response, next: NextFunction) => {
     const discover = rawgResults.filter((rawgGame: any) => {
       const isOwned = userLibrary.some((libGame: any) => {
         if (libGame.rawgId === rawgGame.id) return true;
+        // Both have RAWG ids and they differ: different games, even when the titles
+        // normalise the same ("Modern Warfare 2" vs "Modern Warfare II").
+        if (libGame.rawgId && rawgGame.id) return false;
         const normLibTitle = libGame.normalizedTitle || normalizeTitle(libGame.title);
         const normRawgTitle = normalizeTitle(rawgGame.name);
         if (normLibTitle === normRawgTitle) return true;

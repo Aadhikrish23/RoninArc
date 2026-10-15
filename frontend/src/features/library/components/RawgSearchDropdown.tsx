@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Box,
   Flex,
@@ -6,6 +7,7 @@ import {
   VStack,
   useColorModeValue,
   Badge,
+  Button,
 } from "@chakra-ui/react";
 
 import type { RawgGameResult, Game } from "../types/library";
@@ -15,9 +17,12 @@ interface Props {
   ownedResults: Game[];
   discoverResults: RawgGameResult[];
   onViewAll: () => void;
+  /** One-click add from the suggestions, without opening the game or the full results. */
+  onAdd?: (game: RawgGameResult) => Promise<void> | void;
 }
 
-export default function RawgSearchDropdown({ ownedResults, discoverResults, onViewAll }: Props) {
+export default function RawgSearchDropdown({ ownedResults, discoverResults, onViewAll, onAdd }: Props) {
+  const [adding, setAdding] = useState<number | null>(null);
   const bg = useColorModeValue("white", "gray.800");
   const border = useColorModeValue("gray.200", "gray.700");
   const hoverBg = useColorModeValue("gray.50", "whiteAlpha.100");
@@ -57,7 +62,7 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
             }}
           >
             <Image
-              src={game.imageURL ?? "https://placehold.co/120x80?text=No+Image"}
+              src={game.imageURL ?? "/placeholder.jpg"}
               alt={game.title}
               boxSize="60px"
               objectFit="cover"
@@ -106,19 +111,41 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
             }}
           >
             <Image
-              src={game.imageURL ?? "https://placehold.co/120x80?text=No+Image"}
+              src={game.imageURL ?? "/placeholder.jpg"}
               alt={game.name}
               boxSize="60px"
               objectFit="cover"
               borderRadius="md"
             />
 
-            <Box>
+            <Box flex="1" minW={0}>
               <Text fontWeight="semibold" noOfLines={1}>{game.name}</Text>
               <Text fontSize="sm" color="gray.500" mt={0.5}>
-                ⭐ {game.rating} • {game.genres.slice(0, 2).join(", ") || "Unknown Genre"}
+                {game.released ? `${new Date(game.released).getFullYear()} • ` : ""}
+                {game.genres.slice(0, 2).join(", ") || "Unknown Genre"}
               </Text>
             </Box>
+            {onAdd && (
+              <Button
+                size="sm"
+                colorScheme="purple"
+                variant="outline"
+                flexShrink={0}
+                aria-label={`Add ${game.name} to your library`}
+                isLoading={adding === game.id}
+                onClick={async (e) => {
+                  e.stopPropagation();
+                  setAdding(game.id);
+                  try {
+                    await onAdd(game);
+                  } finally {
+                    setAdding(null);
+                  }
+                }}
+              >
+                + Add
+              </Button>
+            )}
           </Flex>
         ))}
 

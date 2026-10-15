@@ -31,7 +31,8 @@ interface CollectionContextType {
 
   addGameToCollection: (
     collectionId: string,
-    gameId: string
+    gameId: string,
+    options?: { silent?: boolean }
   ) => Promise<void>;
 
   removeGameFromCollection: (
@@ -133,7 +134,8 @@ export function CollectionProvider({
   const addGameToCollection =
     async (
       collectionId: string,
-      gameId: string
+      gameId: string,
+      options: { silent?: boolean } = {}
     ) => {
       const updated =
         await collectionApi.addGameToCollection(
@@ -149,12 +151,14 @@ export function CollectionProvider({
         )
       );
 
-      toast({
-        title: "Game Added",
-        status: "success",
-        duration: 2000,
-        isClosable: true,
-      });
+      if (!options.silent) {
+        toast({
+          title: "Game Added",
+          status: "success",
+          duration: 2000,
+          isClosable: true,
+        });
+      }
     };
 
   const removeGameFromCollection =

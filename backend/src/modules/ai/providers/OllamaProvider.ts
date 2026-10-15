@@ -3,6 +3,7 @@ import { AIRequestContext } from "../conversation/AIRequestContext";
 import { Capability } from "../planning/Capability";
 import { IntentPlan } from "../intent/IntentPlan";
 import promptBuilder from "../prompts/PromptBuilder";
+import { buildAnswerPrompt } from "../prompts/AnswerPromptBuilder";
 import ollamaClient from "../clients/OllamaClient";
 import intentParser from "../parser/IntentParser";
 import intentNormalizer from "../intent/IntentNormalizer";
@@ -67,5 +68,11 @@ export class OllamaProvider implements AIProvider {
       }
       throw error;
     }
+  }
+
+  async answer(question: string, context: AIRequestContext): Promise<string> {
+    const prompt = buildAnswerPrompt(question, context.library, context.recentExchanges);
+    const raw = await ollamaClient.generate(prompt);
+    return raw.replace(/^\s*(answer:)?\s*/i, "").trim();
   }
 }

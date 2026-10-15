@@ -19,7 +19,7 @@ const STATUS_LABEL: Record<string, string> = {
   none: "No status",
 };
 
-const LIST_LIMIT = 10;
+const LIST_LIMIT = 25;
 
 /** "A, B and C", or "A, B, … and 7 more". */
 function listTitles(titles: string[]): string {

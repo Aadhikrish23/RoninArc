@@ -71,6 +71,9 @@ export function mentions(text: string, title: string): boolean {
       // Short common words ("top", "the") don't name a game unless they are its whole title.
       const score = titleMatchScore(window, title);
       if (hasNumbers && score >= 70 && (window.replace(/ /g, "").length >= 4 || score >= 95)) return true;
+      // A franchise abbreviation ("cod" for Call of Duty: Modern Warfare II) names the game
+      // even without the sequel number; plain words ("hades") still need it.
+      if (!hasNumbers && score >= 90 && window.replace(/ /g, "").length >= 3) return true;
     }
   }
   if (!hasNumbers) return false;
@@ -88,11 +91,18 @@ export interface GroundingContext {
   recentText: string;
   /** What "it" currently points at, if anything. */
   currentGame?: string | null;
+  /** The user's library titles, newest first. */
+  owned?: string[];
 }
+
+const LAST_ADDED = /\b(last|latest|newest|most recent(ly)?)\b[^.?!]*\badd(ed)?\b|\badded (last|most recently)\b/i;
 
 /** Removes write intents aimed at games the user didn't name or refer to. Returns how many were dropped. */
 export function dropUngroundedIntents(plan: IntentPlan, ctx: GroundingContext): number {
   const referential = REFERENCE_WORDS.test(ctx.message);
+  const owned = ctx.owned ?? [];
+  // Library games this message names ("yeet cod off my list" names Call of Duty).
+  const named = owned.filter((t) => mentions(ctx.message, t));
   let dropped = 0;
 
   plan.intents = plan.intents.filter((intent) => {
@@ -100,12 +110,25 @@ export function dropUngroundedIntents(plan: IntentPlan, ctx: GroundingContext): 
     const games = (intent.targets ?? []).filter(
       (t) => t.type === IntentTargetType.Game || t.type === IntentTargetType.Library,
     );
+    const removing = intent.type === IntentType.RemoveGame;
     const ok = games.every((target) => {
       const name = target.name ?? "";
       if (!name.trim()) return true; // nothing to check; later stages ask for the game
       if (mentions(ctx.message, name)) return true;
+      // "remove the last game I added": that's the newest game in the library.
+      if (LAST_ADDED.test(ctx.message) && owned.length > 0 && games.length === 1) {
+        target.name = owned[0];
+        return true;
+      }
+      // The message names exactly one library game but the model picked another: use the named one.
+      if (named.length === 1 && games.length === 1 && target.type === IntentTargetType.Game) {
+        target.name = named[0];
+        return true;
+      }
       if (!referential) return false;
       if (ctx.currentGame && (titleMatchScore(name, ctx.currentGame) >= 90 || mentions(name, ctx.currentGame))) return true;
+      // Removals never rely on the previous reply happening to mention a game.
+      if (removing) return false;
       if (mentions(ctx.recentText, name)) return true;
       // "add a note to it" right after rating Hollow Knight: the model guessed some other
       // game, but "it" is the game the conversation is on.

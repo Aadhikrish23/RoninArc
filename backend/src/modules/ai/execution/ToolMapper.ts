@@ -54,18 +54,30 @@ export class ToolMapper {
 
     if (capabilityId === "collection") {
       let targets: any[] = [];
+      let parameters: any[] = [];
       if (Array.isArray(targetsOrInput)) {
         targets = targetsOrInput;
       } else if (targetsOrInput && typeof targetsOrInput === "object") {
         targets = (targetsOrInput.targets as any[]) || [];
-      }
-
-      const queryTextForCreate = (queryOrIntentType || "").toLowerCase();
-      if (queryTextForCreate.includes("create")) {
-        return "create_collection";
+        const raw = (targetsOrInput as any).parameters;
+        parameters = Array.isArray(raw) ? raw : [];
       }
 
       const hasGame = targets.some((t) => t.type === "Game" || t.type?.toLowerCase() === "game");
+
+      // The intent's own Boolean says add (true/absent) or remove (false), so
+      // "take X out and add Y" maps each part correctly instead of using the
+      // whole message's keywords for both.
+      const flag = parameters.find((p) => p && String(p.type).toLowerCase() === "boolean");
+      if (hasGame && flag) {
+        return flag.value === false || flag.value === "false" ? "remove_from_collection" : "add_to_collection";
+      }
+
+      const queryTextForCreate = (queryOrIntentType || "").toLowerCase();
+      if (queryTextForCreate.includes("create") && !hasGame) {
+        return "create_collection";
+      }
+
       if (hasGame) {
         const queryText = (queryOrIntentType || "").toLowerCase();
         if (
@@ -74,6 +86,8 @@ export class ToolMapper {
           queryText.includes("erase") ||
           queryText.includes("drop") ||
           queryText.includes("take out") ||
+          /\btake .+ out\b/.test(queryText) ||
+          queryText.includes("out of") ||
           queryText.includes("withdraw") ||
           queryText.includes("removefromcollection")
         ) {

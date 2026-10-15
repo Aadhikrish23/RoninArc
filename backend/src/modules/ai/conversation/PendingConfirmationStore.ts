@@ -29,7 +29,7 @@ class PendingConfirmationStore {
 }
 
 const YES = /^(y|yes|yep|yeah|yup|sure|ok|okay|confirm|do it|go ahead|yes,? (please|remove it|do it|delete it)|remove it|delete it)[.!]*$/i;
-const NO = /^(n|no|nope|nah|cancel|stop|don'?t|keep it|no,? (keep it|cancel|thanks|don'?t))[.!]*$/i;
+const NO = /^(n|no|nope|nah|cancel|stop|don'?t|keep it|never ?mind|nvm|forget it|no,? (keep it|cancel|thanks|don'?t))[.!]*$/i;
 
 export const isConfirmReply = (text: string) => YES.test(text.trim());
 export const isCancelReply = (text: string) => NO.test(text.trim());

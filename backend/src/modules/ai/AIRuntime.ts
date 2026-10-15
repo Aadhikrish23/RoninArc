@@ -33,6 +33,22 @@ const CORRECTION = /\b(i said|i meant|wrong (game|one)|didn'?t ask|not that one|
 /** A status or rating for a game that isn't in the library means "add it, then do that". */
 const AUTO_ADD_FOR = new Set<string>([IntentType.SetStatus, IntentType.CompleteGame, IntentType.RateGame, IntentType.ReviewGame]);
 
+/** Questions about what the user has recorded; anything else is a general gaming question. */
+const RECORDED_DATA = /\b(rate|rated|rating|ratings|score|status|finish|finished|complete|completed|beat|beaten|playing|paused|dropped|planned|plan to play|backlog|how many|own|owned|have i|in my (library|list)|added|note|notes|collection|collections|top rated|favou?rites?)\b/i;
+const LOOKS_LIKE_QUESTION = /\?\s*$|^(what|whats|what's|how|is|are|should|which|why|does|do|can|could|would|who|when|where|any)\b/i;
+/** The model's own short replies that are better than a fresh answer: refusals, "didn't catch that". */
+const KEEP_MODEL_REPLY = /\b(can'?t|cannot|didn'?t catch|not sure what|rephrase)\b/i;
+
+/** Intents that act on one game at a time; a multi-game one is split per game. */
+const PER_GAME_INTENTS = new Set<string>([
+  IntentType.OrganizeCollection, IntentType.SetStatus, IntentType.CompleteGame, IntentType.RateGame,
+  IntentType.ReviewGame, IntentType.DeleteReview, IntentType.RemoveGame, IntentType.AddNote, IntentType.AddGame,
+]);
+
+/** Asking for suggestions, and the words that mean "do something" instead. */
+const RECOMMEND_ASK = /\b(recommend|suggest|similar to|something like|anything like|games? like|what should i play|what to play)\b/i;
+const EXPLICIT_ACTION = /\b(add|put|mark|set|remove|delete|rate|note|pause|drop|launch|yeet|move|take)\b/i;
+
 const NOT_SURE_WHICH_GAME =
   "I'm not sure which game you mean, so I didn't change anything. Tell me the game's name and I'll do it.";
 
@@ -125,6 +141,11 @@ export class AIRuntime {
           }
         }
 
+        // A bare "no" / "never mind" with nothing pending just means "leave it".
+        if (!intentPlan && isCancelReply(cleanRequest) && session.status !== "WAITING_FOR_CLARIFICATION") {
+          return finish({ success: true, status: "CANCELLED", message: "Okay, I won't change anything." });
+        }
+
         // 3. Clarification Runtime: Try to resume clarification if WAITING_FOR_CLARIFICATION
         if (!intentPlan) {
           profiler.startLayer("clarification");
@@ -177,6 +198,7 @@ export class AIRuntime {
             message: cleanRequest,
             recentText: last ? `${last.user} ${last.assistant}` : "",
             currentGame: session.references.currentGame?.displayName ?? null,
+            owned: requestContext?.library?.games.map((g) => g.title) ?? [],
           });
 
           // A review comment must come from the user's own words, not the prompt's examples
@@ -225,15 +247,87 @@ export class AIRuntime {
           });
         }
 
+        // "any cozy games like stardew" asks for suggestions; the model once turned it into
+        // "add Stardew Valley". Without an explicit action word, it's a recommendation.
+        if (intentPlan && fromModel && RECOMMEND_ASK.test(cleanRequest) && !EXPLICIT_ACTION.test(cleanRequest)) {
+          intentPlan.intents = [
+            { type: IntentType.RecommendGame, targets: [], parameters: [{ type: IntentParameterType.Text, value: cleanRequest }] } as any,
+          ];
+        }
+
+        // New games start as Plan to Play, so "add X" + "set X to plan" is one action, not two.
+        if (intentPlan) {
+          const added = intentPlan.intents.filter((i) => i.type === IntentType.AddGame).map((i) => i.targets?.[0]?.name ?? "");
+          intentPlan.intents = intentPlan.intents.filter((i) => {
+            if (i.type !== IntentType.SetStatus) return true;
+            const status = String(i.parameters?.find((p) => p.type === IntentParameterType.Status)?.value ?? "").toLowerCase();
+            const name = i.targets?.[0]?.name ?? "";
+            return !(/^plan/.test(status) && added.some((a) => titleMatchScore(a, name) >= 90 || mentions(a, name)));
+          });
+        }
+
+        // Recommendations read the user's own words too: the model's hint sometimes drops
+        // "roguelike" or "under 20 hours", and those drive the filters.
+        if (intentPlan && fromModel) {
+          for (const intent of intentPlan.intents) {
+            if (intent.type !== IntentType.RecommendGame) continue;
+            const params = intent.parameters ?? [];
+            const text = params.find((p) => p.type === IntentParameterType.Text);
+            const hint = typeof text?.value === "string" ? text.value : "";
+            const combined = hint.toLowerCase().includes(cleanRequest.toLowerCase()) ? hint : `${hint} ${cleanRequest}`.trim();
+            intent.parameters = [...params.filter((p) => p !== text), { type: IntentParameterType.Text, value: combined } as any];
+          }
+        }
+
+        // "put elden ring and hollow knight in soulslike": one intent per game, so none is dropped.
+        if (intentPlan) {
+          intentPlan.intents = intentPlan.intents.flatMap((intent) => {
+            if (!PER_GAME_INTENTS.has(intent.type)) return [intent];
+            const games = (intent.targets ?? []).filter((t) => t.type === IntentTargetType.Game || t.type === IntentTargetType.Library);
+            if (games.length <= 1) return [intent];
+            const others = (intent.targets ?? []).filter((t) => !games.includes(t));
+            return games.map((g) => ({ ...intent, targets: [...others, g] }));
+          });
+        }
+
+        // "is silksong worth it?" sometimes comes back as a library question; it's a
+        // general one unless it asks about the user's own records.
+        if (intentPlan && fromModel) {
+          for (const intent of intentPlan.intents) {
+            if (intent.type !== IntentType.LibraryQuestion) continue;
+            const text = String(intent.parameters?.find((p) => p.type === IntentParameterType.Text)?.value ?? cleanRequest);
+            if (!RECORDED_DATA.test(text)) {
+              intent.type = IntentType.AskQuestion;
+              intent.parameters = [];
+            }
+          }
+        }
+
         // Conversation the model handles itself: greetings, help, questions it
         // can answer, and requests the app can't do (it writes the reply).
         const conversational = intentPlan?.intents?.filter((i) => i.type === IntentType.AskQuestion || i.type === IntentType.Help) ?? [];
         const actionable = intentPlan?.intents?.filter((i) => i.type !== IntentType.AskQuestion && i.type !== IntentType.Help) ?? [];
 
+        // A real question gets a real answer from the model (a second, plain-text call);
+        // refusals and "didn't catch that" keep the model's short reply.
+        const modelReply = conversational
+          .map((i) => i.parameters?.find((p) => p.type === IntentParameterType.Text)?.value)
+          .find((v) => typeof v === "string" && v.trim().length > 0) as string | undefined;
+        const wantsAnswer =
+          !greetingKind &&
+          conversational.some((i) => i.type === IntentType.AskQuestion) &&
+          (!modelReply || (LOOKS_LIKE_QUESTION.test(cleanRequest) && !KEEP_MODEL_REPLY.test(modelReply)));
+        let generalAnswer: string | undefined = modelReply;
+        if (wantsAnswer && requestContext) {
+          try {
+            generalAnswer = (await this.provider.answer(cleanRequest, requestContext)) || modelReply;
+          } catch {
+            generalAnswer = modelReply;
+          }
+        }
+
         if (greetingKind || (conversational.length > 0 && actionable.length === 0)) {
-          const answer = conversational
-            .map((i) => i.parameters?.find((p) => p.type === IntentParameterType.Text)?.value)
-            .find((v) => typeof v === "string" && v.trim().length > 0) as string | undefined;
+          const answer = generalAnswer;
           const replyKind: GreetingKind =
             greetingKind ?? (conversational.some((i) => i.type === IntentType.Help) ? "capabilities" : "hello");
           const message = !greetingKind && answer ? answer.trim() : GREETING_REPLIES[replyKind];
@@ -255,11 +349,8 @@ export class AIRuntime {
             message += " I wasn't sure which game you meant for part of that, so I left it. Tell me the name and I'll do it.";
           }
           if (response.success && CORRECTION.test(cleanRequest)) message = `Sorry about that. ${message}`;
-          // "pause rdr2. also is elden ring hard?" -- keep the model's answer to the question part.
-          const answer = conversational
-            .map((i) => i.parameters?.find((p) => p.type === IntentParameterType.Text)?.value)
-            .find((v) => typeof v === "string" && v.trim().length > 0) as string | undefined;
-          if (answer) message = `${message} ${answer.trim()}`;
+          // "pause rdr2. also is elden ring hard?" -- answer the question part too.
+          if (generalAnswer) message = `${message} ${generalAnswer.trim()}`;
           return { ...response, message };
         };
 
@@ -373,7 +464,7 @@ export class AIRuntime {
             requestId,
             type: "CONFIRMATION",
             question,
-            reason: "Please confirm",
+            reason: "This can't be undone.",
             entityType: "confirmation",
             originalQuery: cleanRequest,
             candidates: options,

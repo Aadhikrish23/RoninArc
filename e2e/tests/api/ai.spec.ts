@@ -67,7 +67,7 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("playing");
 
       const answer = await chat(api, "completed");
-      expect(answer.body).toMatchObject({ success: true, status: "SUCCESS", message: "I've marked Fallout Shelter as Completed." });
+      expect(answer.body).toMatchObject({ success: true, status: "SUCCESS", message: "I've marked Fallout Shelter as Completed. Congrats on finishing it!" });
       expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("completed");
     });
 
@@ -233,7 +233,8 @@ test.describe("AI chat API: everyday requests", () => {
 
   test("a general gaming question gets an answer, not the greeting @positive", async ({ api }) => {
     const { body } = await chat(api, "is elden ring too hard for a beginner?");
-    expect(body.message).toContain("explore elsewhere");
+    // Real questions get a fresh answer from the model (answer mode).
+    expect(body.message).toBe("Mock answer about: is elden ring too hard for a beginner?");
     expect(body.message).not.toContain("Hello! I am your RoninArc AI assistant");
   });
 
@@ -279,6 +280,24 @@ test.describe("AI chat API: everyday requests", () => {
     const lateYes = await chat(api, "yes");
     expect(lateYes.body.message).not.toContain("removed");
     expect((await api.get(`/game/${game._id}`)).status()).toBe(200);
+  });
+});
+
+// Round 3 of the gamer playtest: real answers, the right game, every game.
+test.describe("AI chat API: questions, targets and multi-game requests", () => {
+  test("a general gaming question gets an answer, not a library readout @positive", async ({ api }) => {
+    await api.addGame(byName("Hollow Knight"), { progressStatus: "completed" });
+    const { body } = await chat(api, "whats the difference between a roguelike and a roguelite");
+    expect(body.success).toBe(true);
+    expect(body.message).toBe("Mock answer about: whats the difference between a roguelike and a roguelite");
+  });
+
+  test("'remove the last game I added' targets the newest game, after confirming @positive", async ({ api }) => {
+    await api.addGame(shelter);
+    await api.addGame(byName("Celeste"));
+    const { body } = await chat(api, "remove the last game i added");
+    expect(body.status).toBe("CONFIRMATION_REQUIRED");
+    expect(body.message).toContain("Remove Celeste from your library?");
   });
 });
 

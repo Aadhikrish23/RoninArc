@@ -92,7 +92,7 @@ const getOverview = async (userId: string, now = new Date()): Promise<DashboardO
   const gamesById = new Map(games.map((g) => [String(g._id), g]));
 
   const continuePlaying = games
-    .filter((g) => g.progressStatus === "playing")
+    .filter((g) => g.progressStatus === "playing" || g.progressStatus === "paused")
     .map((g) => {
       const stats = perGame.get(String(g._id));
       return { game: summarize(g), lastPlayed: stats?.lastPlayed ?? null, minutesPlayed: stats?.minutes ?? 0 };

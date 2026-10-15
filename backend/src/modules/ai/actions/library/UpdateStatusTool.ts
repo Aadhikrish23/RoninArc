@@ -40,7 +40,8 @@ export class UpdateStatusTool extends BaseTool<
     }
 
     if (gameObj.progressStatus === input.progressStatus) {
-      const displayStatus = input.progressStatus === "completed" ? "completed" : input.progressStatus;
+      const labels: Record<string, string> = { none: "No Status", plan: "Plan to Play", playing: "Playing", paused: "Paused", dropped: "Dropped" };
+      const displayStatus = labels[input.progressStatus] ?? input.progressStatus;
       const message = input.progressStatus === "completed"
         ? `${gameObj.title} is already completed.`
         : `${gameObj.title} is already marked as ${displayStatus}.`;

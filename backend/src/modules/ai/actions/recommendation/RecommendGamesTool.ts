@@ -28,7 +28,8 @@ export class RecommendGamesTool extends BaseTool<RecommendGamesInput, any> {
     const result = await recommendationToolService.recommend(context.userId, query);
 
     const parts: string[] = [];
-    const session = !!query && SESSION.test(query);
+    // Only claim "something you already have going" when a game really is in progress.
+    const session = !!query && SESSION.test(query) && result.backlog.some((r) => r.status === "playing");
     if (result.backlog.length > 0) {
       const backlog = session
         ? [...result.backlog].sort((a, b) => rank(a) - rank(b))

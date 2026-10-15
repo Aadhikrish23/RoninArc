@@ -35,6 +35,7 @@ export default function RawgSearch({
   loading,
   error,
   onSearchSubmit,
+  onAddGame,
 }: RawgSearchProps) {
   const cardBg = useColorModeValue("white", "gray.800");
 
@@ -95,6 +96,7 @@ export default function RawgSearch({
           <RawgSearchDropdown
             ownedResults={ownedResults}
             discoverResults={rankedDiscoverResults}
+            onAdd={onAddGame}
             onViewAll={() => {
               setDropdownOpen(false);
               onSearchSubmit();

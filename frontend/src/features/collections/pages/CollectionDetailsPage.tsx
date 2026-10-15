@@ -135,7 +135,7 @@ export default function CollectionDetailsPage() {
   };
 
   return (
-    <Box p={6}>
+    <Box maxW="1400px" mx="auto" px={6} py={8}>
       <HStack mb={6}>
         <Button
           leftIcon={<ArrowBackIcon />}
@@ -184,7 +184,7 @@ export default function CollectionDetailsPage() {
         collectionName={collection.name}
         candidates={libraryGames.filter((g) => !collection.gameIds.some((c) => c._id === g._id))}
         onAdd={async (gameIds) => {
-          for (const gameId of gameIds) await addGameToCollection(collection._id, gameId);
+          for (const gameId of gameIds) await addGameToCollection(collection._id, gameId, { silent: true });
           await refreshCollection();
           toast({
             title: `Added ${gameIds.length} ${gameIds.length === 1 ? "game" : "games"} to ${collection.name}`,

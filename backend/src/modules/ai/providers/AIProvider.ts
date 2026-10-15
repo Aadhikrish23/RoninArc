@@ -8,6 +8,9 @@ export interface AIProvider {
     context: AIRequestContext,
     capabilities: Capability[],
   ): Promise<IntentPlan>;
+
+  /** A plain-text reply to a gaming question (no actions). */
+  answer(question: string, context: AIRequestContext): Promise<string>;
 }
 
 

@@ -87,7 +87,7 @@ async function searchBestMatch(query: string, pageSize: number) {
  * Popular games in any of the given RAWG genre slugs (or overall, when none),
  * used by recommendations to find titles the user doesn't own yet.
  */
-async function discoverByGenres(genreSlugs: string[], pageSize = 40) {
+async function discoverByGenres(genreSlugs: string[], pageSize = 40, tagSlugs: string[] = []) {
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
   }
@@ -97,6 +97,8 @@ async function discoverByGenres(genreSlugs: string[], pageSize = 40) {
       params: {
         key: RAWG_API_KEY,
         ...(genreSlugs.length > 0 ? { genres: genreSlugs.join(",") } : {}),
+        // RAWG tags ("roguelike", "souls-like") are where play styles live; genres are broad.
+        ...(tagSlugs.length > 0 ? { tags: tagSlugs.join(",") } : {}),
         ordering: "-added",
         page_size: pageSize,
       },

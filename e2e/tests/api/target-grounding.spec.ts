@@ -19,6 +19,7 @@ const cases: [string, string, boolean][] = [
   ["add elden ring", "Elden Ring", true],
   ["started hades last night", "Hades", true],
   ["started hades last night", "Hades II", false],
+  ["yeet cod off my list, i dont even own that anymore", "Call of Duty: Modern Warfare II", true],
 ];
 
 test.describe("AI target grounding", () => {

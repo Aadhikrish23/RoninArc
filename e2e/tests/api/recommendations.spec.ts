@@ -54,10 +54,21 @@ test.describe("Recommendations API (/recommendations)", () => {
       expect(body.Data.profile.topGenres.map((g: any) => g.genre)).not.toContain("Action");
     });
 
-    test("paused games get a nudge to pick them back up @positive", async ({ api }) => {
+    test("paused games aren't pushed: a planned game ranks above one you're taking a break from @positive", async ({ api }) => {
       await api.addGame(byName("Celeste"), { progressStatus: "paused" });
+      await api.addGame(byName("Hades"), { progressStatus: "plan" });
       const { body } = await get(api, { type: "backlog" });
-      expect(body.Data.backlog[0].reasons).toContain("You paused it. A good time to pick it back up");
+      const paused = body.Data.backlog.find((r: any) => r.title === "Celeste");
+      expect(paused.reasons).toContain("On pause, whenever you want to go back");
+      expect(body.Data.backlog[0].title).toBe("Hades");
+    });
+
+    test("games you've already rated aren't suggested as 'play next' @negative", async ({ api }) => {
+      const hk = await api.addGame(byName("Hollow Knight"), { progressStatus: "plan" });
+      await api.put(`/review/${hk._id}`, { rating: 9 });
+      await api.addGame(byName("Celeste"), { progressStatus: "plan" });
+      const { body } = await get(api, { type: "backlog" });
+      expect(body.Data.backlog.map((r: any) => r.title)).toEqual(["Celeste"]);
     });
 
     test("finished or dropped games are never suggested; ones you're playing are, first @negative", async ({ api }) => {

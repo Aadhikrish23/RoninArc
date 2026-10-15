@@ -6,10 +6,7 @@ interface Props {
 }
 
 export default function CollectionCover({ games }: Props) {
-  const covers = games
-    .slice(0, 4)
-    .map((g) => g.imageURL)
-    .filter(Boolean);
+  const covers = [...new Set(games.map((g) => g.imageURL).filter(Boolean))].slice(0, 4);
 
   if (covers.length === 0) {
     return (
@@ -33,6 +30,16 @@ export default function CollectionCover({ games }: Props) {
     );
   }
 
+  if (covers.length < 4) {
+    return (
+      <Grid templateColumns={`repeat(${covers.length},1fr)`} h="180px" overflow="hidden" borderTopRadius="xl" gap="1px" bg="gray.800">
+        {covers.map((src) => (
+          <Image key={src} src={src} objectFit="cover" w="100%" h="100%" />
+        ))}
+      </Grid>
+    );
+  }
+
   return (
     <Grid
       templateColumns="repeat(2,1fr)"
@@ -46,7 +53,7 @@ export default function CollectionCover({ games }: Props) {
       {Array.from({ length: 4 }).map((_, i) => (
         <Image
           key={i}
-          src={covers[i] || covers[covers.length - 1]}
+          src={covers[i]}
           objectFit="cover"
           w="100%"
           h="100%"

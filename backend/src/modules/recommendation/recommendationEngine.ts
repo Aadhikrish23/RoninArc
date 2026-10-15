@@ -29,8 +29,8 @@ export interface DiscoverCandidate {
   avgHours?: number;
 }
 
-/** "short" keeps games under ~20h, "long" keeps games over ~25h (games with unknown length stay). */
-export type LengthPreference = "short" | "long";
+/** "short" keeps games under ~20h (or the user's own limit), "long" keeps games over ~25h; unknown lengths stay. */
+export type LengthPreference = "short" | "long" | { maxHours: number };
 
 export interface GenreAffinity {
   genre: string;
@@ -229,7 +229,7 @@ function likeReason(genres: string[], like?: LikeGame): string | null {
   if (!like) return null;
   const own = new Set(genres.map(norm));
   const shared = like.tags.filter((t) => own.has(norm(t)));
-  return shared.length > 0 ? `Like ${like.title}: ${shared.slice(0, 2).join(" and ")}` : null;
+  return shared.length > 0 ? `Shares ${shared.slice(0, 2).join(" and ")} with ${like.title}` : null;
 }
 
 /** RAWG's average playtime is unreliable below a few hours (few players logged it), so treat it as unknown. */
@@ -243,6 +243,7 @@ function lengthReason(hours?: number): string | null {
 function fitsLength(hours: number | undefined, length?: LengthPreference): boolean {
   const h = knownHours(hours);
   if (!length || !h) return true;
+  if (typeof length === "object") return h <= length.maxHours;
   return length === "short" ? h <= 20 : h >= 25;
 }
 
@@ -271,19 +272,21 @@ export function rankBacklog(
     .filter(
       (g) =>
         BACKLOG_STATUSES.includes(g.progressStatus) &&
+        (g.rating === null || g.rating === undefined) &&
         overlapsFocus(g.tags || [], focus) &&
         fitsLength(g.avgHours, options.length),
     )
     .map((game) => {
       const match = tasteMatch(game.tags || [], profile);
+      // Paused games get no push: "taking a break" means not right now.
       const boost =
-        (game.progressStatus === "playing" ? 0.15 : game.progressStatus === "paused" ? 0.1 : game.progressStatus === "plan" ? 0.05 : 0) +
+        (game.progressStatus === "playing" ? 0.15 : game.progressStatus === "plan" ? 0.05 : 0) +
         likeOverlap(game.tags || [], options.like) * 0.4;
       const reasons = [
         game.progressStatus === "playing" ? "You're in the middle of it" : null,
-        game.progressStatus === "paused" ? "You paused it. A good time to pick it back up" : null,
+        game.progressStatus === "paused" ? "On pause, whenever you want to go back" : null,
         likeReason(game.tags || [], options.like) ?? tasteReason(game.tags || [], match.top, profile, game.title, used),
-        options.length === "short" ? lengthReason(game.avgHours) : null,
+        options.length ? lengthReason(game.avgHours) : null,
         qualityReason(game.rawgRating, game.metacritic),
       ].filter((r): r is string => !!r);
       if (reasons.length === 0) reasons.push("Waiting in your backlog");
@@ -308,7 +311,7 @@ export function rankDiscover(
   candidates: DiscoverCandidate[],
   library: LibrarySignalGame[],
   profile: TasteProfile,
-  options: { limit: number; dismissed: Set<number>; focus?: string[]; length?: LengthPreference; like?: LikeGame },
+  options: { limit: number; dismissed: Set<number>; focus?: string[]; length?: LengthPreference; like?: LikeGame; tagLabel?: string },
 ): Recommendation[] {
   const used = new Map<string, number>();
   const personalized = profile.signalCount > 0;
@@ -333,7 +336,8 @@ export function rankDiscover(
       const match = tasteMatch(c.genres, profile);
       const reasons = [
         likeReason(c.genres, options.like) ?? tasteReason(c.genres, match.top, profile, c.name, used),
-        options.length === "short" ? lengthReason(c.avgHours) : null,
+        options.length ? lengthReason(c.avgHours) : null,
+        options.tagLabel ? `${options.tagLabel}` : null,
         qualityReason(c.rating, c.metacritic),
       ].filter((r): r is string => !!r);
       if (reasons.length === 0) reasons.push(personalized ? "Something new to try" : "Popular with players right now");

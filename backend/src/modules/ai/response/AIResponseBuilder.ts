@@ -92,7 +92,13 @@ export class AIResponseBuilder {
           const label: Record<string, string> = { plan: "Plan to Play", playing: "Playing", paused: "Paused", completed: "Completed", dropped: "Dropped" };
           // The updated game says what the status really is now.
           const status = String((step.output as any)?.data?.progressStatus || params.progressStatus || params.status || "completed");
-          sentences.push(status === "none" ? `I've cleared the status on ${gameName}.` : `I've marked ${gameName} as ${label[status] ?? status}.`);
+          sentences.push(
+            status === "none"
+              ? `I've cleared the status on ${gameName}.`
+              : status === "completed"
+                ? `I've marked ${gameName} as Completed. Congrats on finishing it!`
+                : `I've marked ${gameName} as ${label[status] ?? status}.`,
+          );
         }
       } else if (step.tool === "CreateReviewTool" || step.tool === "create_review") {
         const withText = typeof params.reviewText === "string" && params.reviewText.trim() ? " with your comment" : "";

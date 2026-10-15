@@ -554,7 +554,10 @@ How to map requests:
 - "Add Game" uses intent "AddGame"; its target type MUST be "Library" with the game's full official title (expand abbreviations: "rdr 2" -> "Red Dead Redemption 2", "ds3" -> "Dark Souls III").
 - If the user says they finished, are playing, or paused a game that is NOT in their library, return two intents in this order: "AddGame" for it, then "SetStatus" with the status.
 - A plain "add X" is ONE "AddGame" intent and nothing else: new games start as Plan to Play. Only add a "SetStatus" when the user actually states a status in this message.
-- If one message asks for several things, return one intent per thing, in the order the user said them.
+- If one message asks for several things, return one intent per thing, in the order the user said them. Several games for the same action ("add A and B to X") means one intent per game.
+- "and X too", "X as well", "same for X" repeat the previous action from the recent conversation for X (e.g. if the last thing was adding to the "Soulslikes" collection, add X to "Soulslikes").
+- Collections: "take X out of / remove X from <collection>" is "OrganizeCollection" with a "Boolean" false parameter; adding is "OrganizeCollection" with no Boolean. "this collection" / "in there" / "it" means the collection the conversation is about. Removing from a collection never removes the game from the library.
+- If the user rates or reviews a game and says they finished or beat it, also add "SetStatus" completed.
 - "Review Game": use "RateGame" with a "Rating" parameter (1-10) when a number is given; put the user's own opinion words from THIS message in a "Text" parameter on the same intent. If they wrote no opinion, leave "Text" out. Never copy text from the examples. Use "ReviewGame" for a text review without a number, "DeleteReview" to delete a review.
 - "Remove Game" maps to "RemoveGame" with a Game target that is in the user's library.
 - "Add Note" maps to "AddNote" with a Game target and a "Text" parameter holding the note.
