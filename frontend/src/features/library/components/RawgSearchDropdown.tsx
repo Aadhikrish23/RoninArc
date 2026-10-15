@@ -68,7 +68,7 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
               <Flex align="center" gap={2}>
                 <Text fontWeight="semibold" noOfLines={1}>{game.title}</Text>
                 <Badge colorScheme="purple" fontSize="0.7em" borderRadius="md" px={1.5}>
-                  {game.provider ? game.provider.toUpperCase() : "OWNED"}
+                  {game.provider === "steam" ? "STEAM" : game.provider === "epic" ? "EPIC" : "OWNED"}
                 </Badge>
               </Flex>
               <Text fontSize="xs" color="gray.500" mt={0.5}>

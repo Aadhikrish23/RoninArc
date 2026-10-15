@@ -1,4 +1,5 @@
 import { BaseTool } from "../BaseTool";
+import LibraryGame from "../../../library/LibraryGame";
 import { AIToolContext } from "../../sdk/AIToolContext";
 import { AIToolResult } from "../../sdk/AIToolResult";
 import noteToolService from "../../services/NoteToolService";
@@ -23,6 +24,8 @@ export class AddNoteTool extends BaseTool<AddNoteInput, any> {
 
     const note = await noteToolService.createNote(context.userId, input.gameId, content);
 
-    return this.success(note, "I've added that note.");
+    const game = await LibraryGame.findOne({ _id: input.gameId, userId: context.userId }).select("title").lean();
+    const title = (game as { title?: string } | null)?.title;
+    return this.success(note, title ? `I've added that note to ${title}.` : "I've added that note.");
   }
 }

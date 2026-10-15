@@ -14,7 +14,7 @@ import { SearchIcon } from "@chakra-ui/icons";
 import type { RawgGameResult, Game } from "../types/library";
 import RawgSearchDropdown from "./RawgSearchDropdown";
 import { rankSearchResults } from "../utils/searchRanking";
-import { useMemo } from "react";
+import { useMemo, useEffect, useRef, useState } from "react";
 
 interface RawgSearchProps {
   searchText: string;
@@ -48,11 +48,20 @@ export default function RawgSearch({
       ),
     [discoverResults, searchText]
   );
-console.log("RAWG Results", discoverResults);
-console.log("Ranked Results", rankedDiscoverResults);
+
+  // The suggestions close on Escape, a click elsewhere, or Enter (which opens the full results).
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const onPointerDown = (e: MouseEvent) => {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setDropdownOpen(false);
+    };
+    document.addEventListener("mousedown", onPointerDown);
+    return () => document.removeEventListener("mousedown", onPointerDown);
+  }, []);
   return (
     <>
-      <Box mb={6}>
+      <Box mb={6} ref={wrapperRef} position="relative">
         <InputGroup size="lg">
           <InputLeftElement>
             <Icon as={SearchIcon} color="gray.400" />
@@ -61,11 +70,17 @@ console.log("Ranked Results", rankedDiscoverResults);
           <Input
             placeholder="Search games..."
             value={searchText}
-            onChange={(e) => onSearchChange(e.target.value)}
+            onChange={(e) => {
+              onSearchChange(e.target.value);
+              setDropdownOpen(true);
+            }}
+            onFocus={() => setDropdownOpen(true)}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
+                setDropdownOpen(false);
                 onSearchSubmit();
               }
+              if (e.key === "Escape") setDropdownOpen(false);
             }}
             borderRadius="xl"
             bg={cardBg}
@@ -76,11 +91,14 @@ console.log("Ranked Results", rankedDiscoverResults);
           </InputRightElement>
         </InputGroup>
 
-        {!error && searchText.trim() && (ownedResults.length > 0 || discoverResults.length > 0) && (
+        {dropdownOpen && !error && searchText.trim() && (ownedResults.length > 0 || discoverResults.length > 0) && (
           <RawgSearchDropdown
             ownedResults={ownedResults}
             discoverResults={rankedDiscoverResults}
-            onViewAll={onSearchSubmit}
+            onViewAll={() => {
+              setDropdownOpen(false);
+              onSearchSubmit();
+            }}
           />
         )}
       </Box>

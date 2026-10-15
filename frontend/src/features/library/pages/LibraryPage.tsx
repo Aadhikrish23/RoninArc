@@ -281,8 +281,8 @@ function LibraryPage() {
                 <VStack spacing={4}>
                   <Heading size="md">Your library is empty</Heading>
                   <Text color="gray.500" maxW="520px">
-                    Search for a game above and press Enter to add it, or
-                    connect Steam or Epic Games to import everything you own.
+                    Search for a game above and click Add (press Enter to see
+                    all results), or connect Steam or Epic Games to import everything you own.
                   </Text>
                   <Button
                     colorScheme="purple"

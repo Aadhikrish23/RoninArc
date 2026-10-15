@@ -93,7 +93,7 @@ test.describe("Review API (/review)", () => {
     const game = await api.addGame(hades);
     const res = await api.put(`/review/${game._id}`, { rating: 99 });
     expect(res.status()).toBe(400);
-    expect((await json(res)).Message).toBe("Rating must be a whole number from 1 to 10");
+    expect((await json(res)).Message).toBe("Rating must be from 1 to 10, in steps of 0.5");
     expect((await json(await api.get(`/review/${game._id}`))).Data).toBeNull();
   });
 
@@ -103,7 +103,21 @@ test.describe("Review API (/review)", () => {
     expect(res.status()).toBe(400);
   });
 
-  for (const [label, rating] of [["fractional", 7.5], ["string", "8"], ["missing", undefined]] as const) {
+  test("accepts a half-point rating @positive", async ({ api }) => {
+    const game = await api.addGame(hades);
+    const res = await api.put(`/review/${game._id}`, { rating: 8.5, reviewText: "Great" });
+    expect(res.status()).toBe(200);
+    expect((await json(await api.get(`/review/${game._id}`))).Data.rating).toBe(8.5);
+  });
+
+  test("rating without text keeps the existing review text @positive", async ({ api }) => {
+    const game = await api.addGame(hades);
+    await api.put(`/review/${game._id}`, { rating: 8, reviewText: "Tight combat" });
+    await api.put(`/review/${game._id}`, { rating: 9 });
+    expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9, reviewText: "Tight combat" });
+  });
+
+  for (const [label, rating] of [["fractional (not a half)", 7.3], ["string", "8"], ["missing", undefined]] as const) {
     test(`rejects a ${label} rating @negative`, async ({ api }) => {
       const game = await api.addGame(hades);
       const res = await api.put(`/review/${game._id}`, { rating, reviewText: "x" });

@@ -75,6 +75,29 @@ Response JSON:
 }`
     },
     {
+      id: "game-question",
+      capabilityId: "library-question",
+      keywords: [],
+      text: `User Request: what did i rate witcher 3?
+Response JSON:
+{
+  "intents": [
+    { "type": "LibraryQuestion", "targets": [], "parameters": [{ "type": "Text", "value": "what did i rate witcher 3?" }] }
+  ]
+}`
+    },
+    {
+      id: "gibberish",
+      keywords: [],
+      text: `User Request: asdfgh
+Response JSON:
+{
+  "intents": [
+    { "type": "AskQuestion", "targets": [], "parameters": [{ "type": "Text", "value": "I didn't catch that. What would you like to do?" }] }
+  ]
+}`
+    },
+    {
       id: "ask-question",
       keywords: [],
       text: `User Request: is elden ring too hard for someone new to soulslikes?
@@ -532,15 +555,18 @@ How to map requests:
 - If the user says they finished, are playing, or paused a game that is NOT in their library, return two intents in this order: "AddGame" for it, then "SetStatus" with the status.
 - A plain "add X" is ONE "AddGame" intent and nothing else: new games start as Plan to Play. Only add a "SetStatus" when the user actually states a status in this message.
 - If one message asks for several things, return one intent per thing, in the order the user said them.
-- "Review Game": use "RateGame" with a "Rating" parameter (1-10) when a number is given; put any opinion words ("it was amazing") in a "Text" parameter on the same intent. Use "ReviewGame" for a text review without a number, "DeleteReview" to delete a review.
+- "Review Game": use "RateGame" with a "Rating" parameter (1-10) when a number is given; put the user's own opinion words from THIS message in a "Text" parameter on the same intent. If they wrote no opinion, leave "Text" out. Never copy text from the examples. Use "ReviewGame" for a text review without a number, "DeleteReview" to delete a review.
 - "Remove Game" maps to "RemoveGame" with a Game target that is in the user's library.
 - "Add Note" maps to "AddNote" with a Game target and a "Text" parameter holding the note.
 - "Manage Collection" maps to "CreateCollection" (Collection target) or "OrganizeCollection" (Collection target plus Game targets; add a "Boolean" false parameter to remove from the collection). "in there" / "to it" means the collection the conversation was just about.
 - "Search Library" maps to "SearchLibrary" with a "Text" parameter, for finding games by title, tag or genre.
-- "Library Question" maps to "LibraryQuestion" with the user's question in a "Text" parameter: anything asking about their own library, e.g. what's in my backlog, how many games do I have, what am I playing, what have I finished, what did I add recently, my top rated games.
+- "Library Question" maps to "LibraryQuestion" with the user's question in a "Text" parameter: anything asking about their own library, e.g. what's in my backlog, how many games do I have, what am I playing, what have I finished, what did I add recently, my top rated games, AND questions about what the user has recorded for one game ("what did I rate Witcher 3?", "is Celeste finished?"). Questions about the game itself (difficulty, length, story, classes, tips) are "AskQuestion", not "LibraryQuestion". A question NEVER becomes RateGame, SetStatus or any other change.
+- If one message asks for a change AND asks a question, return both: the change intent(s) and a "LibraryQuestion" (or "AskQuestion") for the question.
+- If the message is gibberish, a keyboard mash, or you can't tell what the user wants, return ONLY an "AskQuestion" whose "Text" asks them to rephrase. Never guess a game or an action.
+- Only target games the user named in this message, or clearly referred to ("it", "that one") from the recent conversation. Never pick a game just because it is in the library or was added recently.
 - "Recommend Games" maps to "RecommendGame" for "what should I play / recommend / suggest". Put every hint and constraint in one "Text" parameter (e.g. "like Hades, short, 2 hours tonight"). Use no targets.
 - "Launch Game" maps to "LaunchGame" only when the user wants to start playing a game now. "pause X" is a status change, not a launch.
-- General gaming questions and small talk (e.g. "is elden ring hard for beginners?") use intent "AskQuestion" with a "Text" parameter containing YOUR answer: two or three friendly, factual sentences.
+- General gaming questions and small talk (e.g. "is elden ring hard for beginners?") use intent "AskQuestion" with a "Text" parameter containing YOUR answer: two or three friendly, factual sentences. Be accurate; if you're not sure of a number (like hours to beat), give a cautious range and say it varies. You can't check live prices, sales or store pages; say so when asked.
 - Requests the app cannot do (buying or paying for games, downloading or installing, refunds, talking to other people, anything outside the user's library) use intent "AskQuestion" with a "Text" parameter that says briefly that you can't do that and offers the closest thing you can do (e.g. "I can't buy games, but I can add Hades II to your library as Plan to Play if you like."). Never turn "buy" into "AddGame".
 - Use "Help" only when the user asks what you can do.
 

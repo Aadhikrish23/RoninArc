@@ -13,6 +13,15 @@ export function normalizeStatus(raw: string): string {
   return s;
 }
 
+/** "it was amazing" is a comment; "9", "hollow knight 9" or "rate hollow knight 9" are not. */
+function isRealComment(text: unknown, gameName?: string): boolean {
+  if (typeof text !== "string") return false;
+  let rest = text.toLowerCase();
+  if (gameName) rest = rest.split(gameName.toLowerCase()).join(" ");
+  rest = rest.replace(/\b(rate|rating|rated|review|give|it|a|an|out of|stars?|10)\b/g, " ").replace(/[\d./]+/g, " ");
+  return /[a-z]{2,}/.test(rest);
+}
+
 export class ToolInputFactory {
   /**
    * Builds the concrete tool input payload from abstract targets and parameters.
@@ -62,8 +71,11 @@ export class ToolInputFactory {
           const gameIdVal = getParamValue("gameId", "GameId") || getParamValue("gameId", "gameId");
           return {
             gameId: gameIdVal !== undefined ? String(gameIdVal) : (gameTarget ? gameTarget.name : ""),
-            rating: ratingVal !== undefined ? Number(ratingVal) : 5,
-            reviewText: textVal !== undefined ? String(textVal) : "",
+            // No made-up default: a missing rating is asked for, not saved as 5.
+            rating: ratingVal !== undefined ? Number(ratingVal) : undefined,
+            // Undefined keeps whatever review text is already there. Text that only
+            // repeats the request ("hollow knight 9") is not a comment.
+            reviewText: isRealComment(textVal, gameTarget?.name) ? String(textVal).trim() : undefined,
           };
         }
 

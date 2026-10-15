@@ -26,7 +26,8 @@ const upsertReview = async (
     gameId,
   });
 
-  const cleanText = reviewText?.trim() || "";
+  // No text given (e.g. "rate it 9") keeps the existing review text instead of wiping it.
+  const cleanText = reviewText === undefined ? existingReview?.reviewText ?? "" : reviewText.trim();
   if (existingReview && existingReview.rating === rating && existingReview.reviewText === cleanText) {
     return existingReview;
   }
@@ -38,7 +39,7 @@ const upsertReview = async (
     },
     {
       rating,
-      reviewText: reviewText?.trim() || "",
+      reviewText: cleanText,
     },
     {
       new: true,

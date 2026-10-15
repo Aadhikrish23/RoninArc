@@ -19,10 +19,22 @@ import { ExecutionRuntime } from "./execution/ExecutionRuntime";
 import { IntentPlan } from "./intent/IntentPlan";
 import { IntentType } from "./intent/IntentType";
 import { IntentParameterType } from "./intent/IntentParameterType";
+import { IntentTargetType } from "./intent/IntentTargetType";
 import { ConversationSession } from "./conversation/ConversationSession";
 import pendingConfirmations, { isCancelReply, isConfirmReply } from "./conversation/PendingConfirmationStore";
 import { loadLibrarySnapshot } from "./context/LibrarySnapshot";
 import recentExchanges from "./conversation/RecentExchanges";
+import { dropUngroundedIntents, mentions } from "./conversation/TargetGrounding";
+import { titleMatchScore } from "../rawg/titleMatch";
+
+/** "wait no, I said celeste" -- the reply should own the mistake. */
+const CORRECTION = /\b(i said|i meant|wrong (game|one)|didn'?t ask|not that one|wait,? no|that'?s wrong|no,? i)\b/i;
+
+/** A status or rating for a game that isn't in the library means "add it, then do that". */
+const AUTO_ADD_FOR = new Set<string>([IntentType.SetStatus, IntentType.CompleteGame, IntentType.RateGame, IntentType.ReviewGame]);
+
+const NOT_SURE_WHICH_GAME =
+  "I'm not sure which game you mean, so I didn't change anything. Tell me the game's name and I'll do it.";
 
 /** Status words the model may use as their own intents; all become SetStatus. */
 const STATUS_INTENTS: Partial<Record<string, string>> = {
@@ -99,6 +111,7 @@ export class AIRuntime {
 
         let intentPlan: IntentPlan | null = null;
         let confirmed = false;
+        let fromModel = false;
 
         // A removal we asked about last turn: "yes" runs it, "no" drops it,
         // anything else drops it and is handled as a new request.
@@ -147,12 +160,70 @@ export class AIRuntime {
             requestContext,
             this.capabilityRegistry.list(),
           );
+          fromModel = true;
 
           // Resolve pronoun references
           intentPlan = conversationRuntime.resolveReferences(intentPlan, session);
         }
 
         if (intentPlan) normalizeStatusIntents(intentPlan);
+
+        // Only act on games the user named or clearly referred to.
+        let ungrounded = 0;
+        const skippedMissing: string[] = [];
+        if (intentPlan && fromModel) {
+          const last = recentExchanges.get(userId).slice(-1)[0];
+          ungrounded = dropUngroundedIntents(intentPlan, {
+            message: cleanRequest,
+            recentText: last ? `${last.user} ${last.assistant}` : "",
+            currentGame: session.references.currentGame?.displayName ?? null,
+          });
+
+          // A review comment must come from the user's own words, not the prompt's examples
+          // (the model once attached "it was amazing" to a plain "rate hollow knight 9").
+          const said = new Set(cleanRequest.toLowerCase().match(/[a-z']+/g) ?? []);
+          for (const intent of intentPlan.intents) {
+            if (intent.type !== IntentType.RateGame && intent.type !== IntentType.ReviewGame) continue;
+            intent.parameters = (intent.parameters ?? []).filter((p) => {
+              if (p.type !== IntentParameterType.Text || typeof p.value !== "string") return true;
+              const words = p.value.toLowerCase().match(/[a-z']+/g) ?? [];
+              return words.length > 0 && words.filter((w) => said.has(w)).length / words.length >= 0.6;
+            });
+          }
+
+          // "finished X" for a game already owned: no need to re-add it before changing its status.
+          const owned = requestContext?.library?.games.map((g) => g.title) ?? [];
+          const isOwned = (name: string) => owned.some((t) => titleMatchScore(name, t) >= 70 || mentions(name, t));
+
+          // "I'm playing sekiro" / "rate celeste 9" for a game not in the library yet: add it first.
+          // Anything else aimed at a missing game is skipped with a note, so the rest still runs.
+          if (owned.length > 0 || requestContext?.library) {
+            const next: typeof intentPlan.intents = [];
+            for (const intent of intentPlan.intents) {
+              const missing = (intent.targets ?? []).filter((t) => t.type === IntentTargetType.Game && t.name && !isOwned(t.name));
+              if (missing.length === 0 || intent.type === IntentType.AddGame) {
+                next.push(intent);
+              } else if (AUTO_ADD_FOR.has(intent.type)) {
+                for (const m of missing) {
+                  const alreadyAdding = next.some((i) => i.type === IntentType.AddGame && i.targets?.some((t) => titleMatchScore(t.name ?? "", m.name) >= 90));
+                  if (!alreadyAdding) next.push({ ...intent, type: IntentType.AddGame, targets: [{ type: IntentTargetType.Library, name: m.name }], parameters: [] } as any);
+                }
+                next.push(intent);
+              } else {
+                skippedMissing.push(...missing.map((m) => m.name));
+              }
+            }
+            intentPlan.intents = next;
+          }
+          const changed = intentPlan.intents.filter((i) => i.type !== IntentType.AddGame);
+          intentPlan.intents = intentPlan.intents.filter((i) => {
+            if (i.type !== IntentType.AddGame || changed.length === 0) return true;
+            const name = i.targets?.[0]?.name ?? "";
+            const ownedAlready = owned.some((t) => titleMatchScore(name, t) >= 95 || mentions(name, t));
+            const touchedLater = changed.some((c) => (c.targets ?? []).some((t) => titleMatchScore(t.name ?? "", name) >= 90 || mentions(t.name ?? "", name)));
+            return !(ownedAlready && touchedLater);
+          });
+        }
 
         // Conversation the model handles itself: greetings, help, questions it
         // can answer, and requests the app can't do (it writes the reply).
@@ -169,7 +240,28 @@ export class AIRuntime {
           return finish({ success: true, message });
         }
 
+        const missingNote = skippedMissing.length
+          ? `${skippedMissing.map((n) => `"${n}"`).join(" and ")} ${skippedMissing.length === 1 ? "isn't" : "aren't"} in your library, so I skipped that. Say "add ${skippedMissing[0]}" first if you want it.`
+          : "";
+        if (actionable.length === 0 && (ungrounded > 0 || skippedMissing.length > 0)) {
+          return finish({ success: true, status: "CLARIFICATION_REQUIRED", message: missingNote || NOT_SURE_WHICH_GAME });
+        }
+
         const plan: IntentPlan = { ...intentPlan!, intents: actionable };
+        const decorate = (response: RuntimeResponse): RuntimeResponse => {
+          let message = response.message;
+          if (missingNote) message += ` ${missingNote}`;
+          if (ungrounded > 0 && response.success) {
+            message += " I wasn't sure which game you meant for part of that, so I left it. Tell me the name and I'll do it.";
+          }
+          if (response.success && CORRECTION.test(cleanRequest)) message = `Sorry about that. ${message}`;
+          // "pause rdr2. also is elden ring hard?" -- keep the model's answer to the question part.
+          const answer = conversational
+            .map((i) => i.parameters?.find((p) => p.type === IntentParameterType.Text)?.value)
+            .find((v) => typeof v === "string" && v.trim().length > 0) as string | undefined;
+          if (answer) message = `${message} ${answer.trim()}`;
+          return { ...response, message };
+        };
 
         // "add celeste and mark it completed": the game has to exist before the
         // second step can find it, so additions run as their own first phase.
@@ -179,14 +271,14 @@ export class AIRuntime {
           const first = await this.runPlanned({ ...plan, intents: additions }, session, cleanRequest, toolContext, memoryContext, profiler, confirmed);
           if (!first.success) return finish(first);
           const second = await this.runPlanned({ ...plan, intents: rest }, session, cleanRequest, toolContext, memoryContext, profiler, confirmed);
-          return finish({
+          return finish(decorate({
             ...second,
             message: `${first.message} ${second.message}`.trim(),
             ...(toolContext.clientActions?.length ? { clientActions: toolContext.clientActions } : {}),
-          });
+          }));
         }
 
-        return finish(await this.runPlanned(plan, session, cleanRequest, toolContext, memoryContext, profiler, confirmed));
+        return finish(decorate(await this.runPlanned(plan, session, cleanRequest, toolContext, memoryContext, profiler, confirmed)));
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         if (trace) {

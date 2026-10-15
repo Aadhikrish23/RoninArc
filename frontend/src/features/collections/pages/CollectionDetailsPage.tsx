@@ -21,15 +21,17 @@ import type { Status } from "../../library/types/library";
 import { useCollection } from "../hooks/useCollections";
 import { useLaunchGame } from "../../library/hooks/useLaunchGame";
 import DeleteCollectionModal from "../components/DeleteCollectionModal";
+import AddGamesModal from "../components/AddGamesModal";
 import EditCollectionModal from "../components/EditCollectionModal";
 
 export default function CollectionDetailsPage() {
   const { collectionId } = useParams();
   const navigate = useNavigate();
 
-  const { updateStatus } = useLibrary();
-  const { removeGameFromCollection, deleteCollection, updateCollection } =
+  const { updateStatus, games: libraryGames } = useLibrary();
+  const { removeGameFromCollection, deleteCollection, updateCollection, addGameToCollection } =
     useCollection();
+  const [addOpen, setAddOpen] = useState(false);
 
   const { openLaunchModal, runningGames } = useLaunchGame();
 
@@ -150,7 +152,10 @@ export default function CollectionDetailsPage() {
         onDelete={() => setDeleteOpen(true)}
       />
 
-      <HStack mb={6}>
+      <HStack mb={6} spacing={3}>
+        <Button colorScheme="purple" onClick={() => setAddOpen(true)}>
+          Add games
+        </Button>
         <Select
           value={filter}
           onChange={(e) => setFilter(e.target.value)}
@@ -172,6 +177,21 @@ export default function CollectionDetailsPage() {
         onStatusChange={handleStatusChange}
         onRemove={handleRemove}
         runningGames={runningGames}
+      />
+      <AddGamesModal
+        isOpen={addOpen}
+        onClose={() => setAddOpen(false)}
+        collectionName={collection.name}
+        candidates={libraryGames.filter((g) => !collection.gameIds.some((c) => c._id === g._id))}
+        onAdd={async (gameIds) => {
+          for (const gameId of gameIds) await addGameToCollection(collection._id, gameId);
+          await refreshCollection();
+          toast({
+            title: `Added ${gameIds.length} ${gameIds.length === 1 ? "game" : "games"} to ${collection.name}`,
+            status: "success",
+            duration: 2500,
+          });
+        }}
       />
       <DeleteCollectionModal
         isOpen={deleteOpen}

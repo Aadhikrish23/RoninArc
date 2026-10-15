@@ -1,3 +1,4 @@
+import { eventBus } from "../../../shared/events/EventBus";
 import { useEffect, useState, useCallback } from "react";
 
 import collectionApi from "../api/collectionApi";
@@ -30,6 +31,26 @@ export function useCollectionDetails(collectionId?: string) {
   useEffect(() => {
     loadCollection();
   }, [loadCollection]);
+
+  // The AI assistant can add or remove games while this page is open.
+  useEffect(() => {
+    const refresh = () => void quietReload();
+    const offCollection = eventBus.subscribe("collection.updated", refresh);
+    const offLibrary = eventBus.subscribe("library.updated", refresh);
+    return () => {
+      offCollection();
+      offLibrary();
+    };
+  }, [collectionId]);
+
+  const quietReload = async () => {
+    if (!collectionId) return;
+    try {
+      setCollection(await collectionApi.getCollectionById(collectionId));
+    } catch {
+      // keep what's on screen
+    }
+  };
 
   const replaceGame = (updatedGame: Game) => {
     setCollection((prev) => {

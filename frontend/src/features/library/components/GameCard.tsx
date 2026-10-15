@@ -201,9 +201,16 @@ function GameCard({
 
       {/* Bottom */}
       <VStack align="stretch" spacing={4} p={4}>
-        <Text fontWeight="bold" fontSize="lg" noOfLines={2} minH="52px">
-          {game.title}
-        </Text>
+        <Box minH="52px">
+          <Text fontWeight="bold" fontSize="lg" noOfLines={2}>
+            {game.title}
+          </Text>
+          {typeof game.rating === "number" && (
+            <Text fontSize="sm" color="yellow.400" fontWeight="semibold" aria-label={`Your rating: ${game.rating} out of 10`}>
+              ★ {game.rating}/10
+            </Text>
+          )}
+        </Box>
 
         {canLaunchGames() && (
           <Button

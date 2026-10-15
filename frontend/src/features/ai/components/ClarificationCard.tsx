@@ -8,6 +8,7 @@ import {
   useColorModeValue,
   SimpleGrid,
 } from "@chakra-ui/react";
+import { useState } from "react";
 import type { JSX } from "react";
 import type { ClarificationRequest, ClarificationOption } from "../types/conversation";
 import { IoHelpCircleOutline } from "react-icons/io5";
@@ -24,6 +25,8 @@ export default function ClarificationCard({
   const bg = useColorModeValue("purple.900", "purple.950");
   const buttonBg = useColorModeValue("purple.700", "purple.800");
   const textColor = "purple.50";
+  // One answer per question: after a click the options stay visible but locked.
+  const [chosen, setChosen] = useState<string | null>(null);
   const mutedColor = "purple.200";
 
   return (
@@ -42,8 +45,8 @@ export default function ClarificationCard({
         {/* Header */}
         <Box display="flex" alignItems="center" gap={3}>
           <Icon as={IoHelpCircleOutline} w={6} h={6} color="purple.300" />
-          <Heading size="xs" color={textColor} textTransform="uppercase" letterSpacing="wider">
-            Clarification Required
+          <Heading as="h3" size="xs" color={textColor}>
+            {request.type === "CONFIRMATION" ? "Please confirm" : "Quick question"}
           </Heading>
         </Box>
 
@@ -65,7 +68,12 @@ export default function ClarificationCard({
             {request.candidates.map((option) => (
               <Button
                 key={option.id}
-                onClick={() => onSelectOption(option)}
+                onClick={() => {
+                  setChosen(option.id);
+                  onSelectOption(option);
+                }}
+                isDisabled={chosen !== null}
+                opacity={chosen !== null && chosen !== option.id ? 0.5 : 1}
                 variant="solid"
                 bg={buttonBg}
                 color="white"

@@ -130,7 +130,7 @@ export default function RawgResultsSection({
           <Text color="gray.500" mt={1}>
             {game.tags.join(", ")}
           </Text>
-          {game.provider && (
+          {(game.provider === "steam" || game.provider === "epic") && (
             <Text color="gray.500" mt={1}>
               From {game.provider === "epic" ? "Epic Games" : game.provider === "steam" ? "Steam" : game.provider}
             </Text>

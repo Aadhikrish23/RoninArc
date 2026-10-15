@@ -47,7 +47,7 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
       <Box position="relative" cursor={rec.rawgId ? "pointer" : "default"} onClick={openDetails}>
         <Image src={rec.imageURL} alt={rec.title} h="160px" w="100%" objectFit="cover" fallbackSrc="/placeholder.jpg" />
         <Tooltip label="How well this fits your taste" hasArrow>
-          <Badge position="absolute" top={3} right={3} colorScheme="purple" fontSize="0.8em" px={2} py={1} borderRadius="md">
+          <Badge position="absolute" top={3} right={3} colorScheme="purple" variant="solid" fontSize="0.8em" px={2} py={1} borderRadius="md" boxShadow="md">
             {rec.score}% match
           </Badge>
         </Tooltip>

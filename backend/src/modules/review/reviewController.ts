@@ -47,10 +47,11 @@ const upsertReview = async (
 
     if (!Types.ObjectId.isValid(gameId)) return invalidId(res);
 
-    if (!Number.isInteger(rating) || rating < 1 || rating > 10) {
+    // Half points are allowed (8.5); anything else is rejected.
+    if (typeof rating !== "number" || !Number.isInteger(rating * 2) || rating < 1 || rating > 10) {
       return res.status(400).json({
         Status: "Failed",
-        Message: "Rating must be a whole number from 1 to 10",
+        Message: "Rating must be from 1 to 10, in steps of 0.5",
       });
     }
 

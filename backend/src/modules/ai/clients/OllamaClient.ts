@@ -19,7 +19,18 @@ export class OllamaClient {
 
       let responseText = "";
 
-      if (
+      if (queryLower === "asdfgh") {
+        // Mimics a real-model failure seen in playtesting: a keyboard mash came
+        // back as a status change on a game nobody mentioned. The runtime's
+        // grounding check must refuse it.
+        responseText = JSON.stringify({
+          intents: [{ type: "SetStatus", targets: [{ type: "Game", name: "Hades" }], parameters: [{ type: "Status", value: "playing" }] }],
+        });
+      } else if (queryLower.startsWith("what did i rate")) {
+        responseText = JSON.stringify({
+          intents: [{ type: "LibraryQuestion", targets: [], parameters: [{ type: "Text", value: query }] }],
+        });
+      } else if (
         queryLower.includes("recommend") ||
         queryLower.includes("suggest") ||
         queryLower.includes("what should i play")

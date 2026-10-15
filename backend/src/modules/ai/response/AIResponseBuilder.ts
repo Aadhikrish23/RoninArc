@@ -1,5 +1,23 @@
 import { ExecutionResult } from "../execution/ExecutionResult";
 
+/** "I've added A to your collection "X". I've added B to your collection "X"." -> "I've added A and B to your collection "X"." */
+function mergeCollectionAdds(sentences: string[]): string[] {
+  const out: string[] = [];
+  const pattern = /^I've (added|removed) (.+) (to|from) your collection "(.+)"\.$/;
+  for (const sentence of sentences) {
+    const m = sentence.match(pattern);
+    const prev = out.length ? out[out.length - 1].match(pattern) : null;
+    if (m && prev && prev[1] === m[1] && prev[4] === m[4]) {
+      const names = prev[2].split(/, | and /).concat(m[2]);
+      const list = names.length === 2 ? names.join(" and ") : `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
+      out[out.length - 1] = `I've ${m[1]} ${list} ${m[3]} your collection "${m[4]}".`;
+    } else {
+      out.push(sentence);
+    }
+  }
+  return out;
+}
+
 export class AIResponseBuilder {
   /**
    * Translates step execution result properties into user-friendly statements.
@@ -108,7 +126,7 @@ export class AIResponseBuilder {
     }
 
     if (sentences.length > 0) {
-      return sentences.join(" ");
+      return mergeCollectionAdds(sentences).join(" ");
     }
 
     return "Execution completed successfully.";

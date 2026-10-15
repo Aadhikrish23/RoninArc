@@ -13,6 +13,7 @@ import {
   rankDiscover,
   type LengthPreference,
 } from "./recommendationEngine";
+import { mentions } from "../ai/conversation/TargetGrounding";
 
 export type RecommendationType = "all" | "backlog" | "discover";
 
@@ -100,6 +101,13 @@ async function getRecommendations(
   const libraryTags = Array.from(new Set(library.flatMap((g) => g.tags)));
   const focus = focusGenres(options.query, library, Array.from(new Set([...KNOWN_GENRES, ...libraryTags])));
   const length = lengthPreference(options.query);
+  // "like Hades": the library game the hint names, to rank and explain by.
+  const likeGame = options.query
+    ? library
+        .filter((g) => mentions(options.query!, g.title))
+        .sort((a, b) => b.title.length - a.title.length)[0]
+    : undefined;
+  const like = likeGame ? { title: likeGame.title, tags: likeGame.tags } : undefined;
 
   const result: RecommendationResult = {
     profile: {
@@ -113,7 +121,7 @@ async function getRecommendations(
   };
 
   if (options.type !== "discover") {
-    result.backlog = rankBacklog(library, profile, { limit: options.limit, focus, length });
+    result.backlog = rankBacklog(library, profile, { limit: options.limit, focus, length, like });
   }
 
   if (options.type !== "backlog") {
@@ -129,6 +137,7 @@ async function getRecommendations(
         dismissed: new Set(dismissed.map((d: any) => d.rawgId)),
         focus,
         length,
+        like,
       });
     } catch {
       // Discovery needs RAWG; backlog picks are computed locally and still work offline.

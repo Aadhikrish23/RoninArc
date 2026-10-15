@@ -45,8 +45,13 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
   const borderColor = useColorModeValue("gray.200", "gray.700");
   const mutedText = useColorModeValue("gray.500", "gray.400");
 
+  const openedRef = useRef(false);
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const behavior = openedRef.current ? "smooth" : "auto";
+    openedRef.current = true;
+    // Wait a frame so the modal has laid out the messages before scrolling.
+    const id = requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior, block: "end" }));
+    return () => cancelAnimationFrame(id);
   }, [messages, isTyping]);
 
   return (

@@ -101,13 +101,24 @@ test.describe("AI chat API (/ai/chat)", () => {
       });
     }
 
-    test("acting on a game that is not in the library changes nothing @negative", async ({ api }) => {
+    test("removing a game that is not in the library changes nothing @negative", async ({ api }) => {
       const other = await api.addGame(byName("Celeste"));
-      const { status, body } = await chat(api, "complete fallout shelter");
+      const { status, body } = await chat(api, "remove fallout shelter");
       expect(status).toBe(200);
-      expect(body.success).toBe(false);
-      expect(body.message).toEqual(expect.any(String));
+      expect(body.message).toContain("isn't in your library");
+      expect((await json(await api.get("/game"))).Data.map((g: any) => g.title)).toEqual(["Celeste"]);
       expect((await json(await api.get(`/game/${other._id}`))).Data.progressStatus).toBe("plan");
+    });
+
+    test("completing a game you don't have yet adds it, then marks it completed @positive", async ({ api }) => {
+      await api.addGame(byName("Celeste"));
+      // The mock model leaves out the status, so the assistant adds the game and then asks for it.
+      const { body } = await chat(api, "complete fallout shelter");
+      expect(body.message).toContain("I've added Fallout Shelter to your library");
+      await chat(api, "completed");
+      const library = (await json(await api.get("/game"))).Data;
+      expect(library.find((g: any) => g.title === "Fallout Shelter")?.progressStatus).toBe("completed");
+      expect(library.find((g: any) => g.title === "Celeste")?.progressStatus).toBe("plan");
     });
   });
 
@@ -120,7 +131,7 @@ test.describe("AI chat API (/ai/chat)", () => {
       const { status, body } = await chat(api, "What should I play next?");
       expect(status).toBe(200);
       expect(body.success, body.message).toBe(true);
-      expect(body.message).toContain("From your backlog, I'd play next: Celeste");
+      expect(body.message).toContain("From your backlog, I'd play next:\n- **Celeste**");
       expect(body.message).toContain("Similar to Hollow Knight, which you rated 9/10");
       expect(body.message).toContain("New to discover:");
     });
@@ -268,5 +279,31 @@ test.describe("AI chat API: everyday requests", () => {
     const lateYes = await chat(api, "yes");
     expect(lateYes.body.message).not.toContain("removed");
     expect((await api.get(`/game/${game._id}`)).status()).toBe(200);
+  });
+});
+
+// Round 2 of the gamer playtest: the assistant must never change something it
+// wasn't asked to change.
+test.describe("AI chat API: only changes what the user asked for", () => {
+  test("a keyboard mash changes nothing, even if the model guesses a game @negative", async ({ api }) => {
+    const game = await api.addGame(byName("Hades"), { progressStatus: "plan" });
+    const { body } = await chat(api, "asdfgh");
+    expect(body.message).toBe("I'm not sure which game you mean, so I didn't change anything. Tell me the game's name and I'll do it.");
+    expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("plan");
+  });
+
+  test("asking what you rated a game answers it and keeps the review text @positive", async ({ api }) => {
+    const game = await api.addGame(byName("Hades"), { progressStatus: "completed" });
+    await api.put(`/review/${game._id}`, { rating: 9, reviewText: "Tight combat" });
+    const { body } = await chat(api, "what did i rate hades?");
+    expect(body.message).toBe('Hades is marked Completed. You rated it 9/10: "Tight combat"');
+    expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9, reviewText: "Tight combat" });
+  });
+
+  test("rating a game by chat keeps the review text already written @positive", async ({ api }) => {
+    const game = await api.addGame(shelter);
+    await api.put(`/review/${game._id}`, { rating: 6, reviewText: "Good on the bus" });
+    await chat(api, "rate fallout shelter 9");
+    expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9, reviewText: "Good on the bus" });
   });
 });

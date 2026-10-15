@@ -182,30 +182,68 @@ function qualityReason(rating?: number, metacritic?: number | null): string | nu
  * Explains a pick by the liked game it has most in common with, so each pick
  * gets its own reason instead of every card citing the same favourite.
  */
-function tasteReason(genres: string[], top: string | undefined, profile: TasteProfile, selfTitle: string): string | null {
+function tasteReason(
+  genres: string[],
+  top: string | undefined,
+  profile: TasteProfile,
+  selfTitle: string,
+  used: Map<string, number> = new Map(),
+): string | null {
   const own = new Set(genres.map(norm));
   let best: TasteProfile["liked"][number] | undefined;
-  let bestShared = 0;
+  let bestScore = 0;
   for (const game of profile.liked) {
     if (norm(game.title) === norm(selfTitle)) continue;
     const shared = game.tags.filter((t) => own.has(norm(t))).length;
-    if (shared > bestShared) {
+    if (shared === 0) continue;
+    // Overlap relative to both games' genres, nudged by how much the user likes it,
+    // and spread out so one favourite doesn't explain every pick.
+    const union = new Set([...own, ...game.tags.map(norm)]).size;
+    const score = (shared / union) * (0.6 + Math.min(game.weight, 2) * 0.2) / (1 + (used.get(game.title) ?? 0) * 0.6);
+    if (score > bestScore) {
       best = game;
-      bestShared = shared;
+      bestScore = score;
     }
   }
-  if (best) return `Similar to ${best.title}, which ${best.why}`;
+  if (best) {
+    used.set(best.title, (used.get(best.title) ?? 0) + 1);
+    return `Similar to ${best.title}, which ${best.why}`;
+  }
   return top ? `Matches your taste for ${top}` : null;
 }
 
+/** "like Hades": rank and explain by the named game. */
+export interface LikeGame {
+  title: string;
+  tags: string[];
+}
+
+function likeOverlap(genres: string[], like?: LikeGame): number {
+  if (!like || like.tags.length === 0) return 0;
+  const own = new Set(genres.map(norm));
+  const shared = like.tags.filter((t) => own.has(norm(t))).length;
+  return shared / new Set([...own, ...like.tags.map(norm)]).size;
+}
+
+function likeReason(genres: string[], like?: LikeGame): string | null {
+  if (!like) return null;
+  const own = new Set(genres.map(norm));
+  const shared = like.tags.filter((t) => own.has(norm(t)));
+  return shared.length > 0 ? `Like ${like.title}: ${shared.slice(0, 2).join(" and ")}` : null;
+}
+
+/** RAWG's average playtime is unreliable below a few hours (few players logged it), so treat it as unknown. */
+const knownHours = (hours?: number) => (hours && hours >= 3 ? hours : undefined);
+
 function lengthReason(hours?: number): string | null {
-  if (!hours || hours <= 0) return null;
-  return hours <= 15 ? `Short: about ${hours}h to play` : null;
+  const h = knownHours(hours);
+  return h && h <= 15 ? `Shorter: about ${h}h on average` : null;
 }
 
 function fitsLength(hours: number | undefined, length?: LengthPreference): boolean {
-  if (!length || !hours || hours <= 0) return true;
-  return length === "short" ? hours <= 20 : hours >= 25;
+  const h = knownHours(hours);
+  if (!length || !h) return true;
+  return length === "short" ? h <= 20 : h >= 25;
 }
 
 function overlapsFocus(genres: string[], focus: string[]): boolean {
@@ -222,12 +260,14 @@ function finalScore(taste: number, qual: number, boost: number, personalized: bo
 export function rankBacklog(
   library: LibrarySignalGame[],
   profile: TasteProfile,
-  options: { limit: number; focus?: string[]; length?: LengthPreference },
+  options: { limit: number; focus?: string[]; length?: LengthPreference; like?: LikeGame },
 ): Recommendation[] {
   const personalized = profile.signalCount > 0;
   const focus = options.focus ?? [];
+  const used = new Map<string, number>();
 
   return library
+    .filter((g) => !options.like || norm(g.title) !== norm(options.like.title))
     .filter(
       (g) =>
         BACKLOG_STATUSES.includes(g.progressStatus) &&
@@ -237,11 +277,12 @@ export function rankBacklog(
     .map((game) => {
       const match = tasteMatch(game.tags || [], profile);
       const boost =
-        game.progressStatus === "playing" ? 0.15 : game.progressStatus === "paused" ? 0.1 : game.progressStatus === "plan" ? 0.05 : 0;
+        (game.progressStatus === "playing" ? 0.15 : game.progressStatus === "paused" ? 0.1 : game.progressStatus === "plan" ? 0.05 : 0) +
+        likeOverlap(game.tags || [], options.like) * 0.4;
       const reasons = [
         game.progressStatus === "playing" ? "You're in the middle of it" : null,
         game.progressStatus === "paused" ? "You paused it. A good time to pick it back up" : null,
-        tasteReason(game.tags || [], match.top, profile, game.title),
+        likeReason(game.tags || [], options.like) ?? tasteReason(game.tags || [], match.top, profile, game.title, used),
         options.length === "short" ? lengthReason(game.avgHours) : null,
         qualityReason(game.rawgRating, game.metacritic),
       ].filter((r): r is string => !!r);
@@ -267,8 +308,9 @@ export function rankDiscover(
   candidates: DiscoverCandidate[],
   library: LibrarySignalGame[],
   profile: TasteProfile,
-  options: { limit: number; dismissed: Set<number>; focus?: string[]; length?: LengthPreference },
+  options: { limit: number; dismissed: Set<number>; focus?: string[]; length?: LengthPreference; like?: LikeGame },
 ): Recommendation[] {
+  const used = new Map<string, number>();
   const personalized = profile.signalCount > 0;
   const ownedIds = new Set(library.map((g) => g.rawgId).filter((id): id is number => typeof id === "number"));
   const ownedTitles = new Set(library.map((g) => norm(g.title)));
@@ -290,7 +332,7 @@ export function rankDiscover(
     .map((c) => {
       const match = tasteMatch(c.genres, profile);
       const reasons = [
-        tasteReason(c.genres, match.top, profile, c.name),
+        likeReason(c.genres, options.like) ?? tasteReason(c.genres, match.top, profile, c.name, used),
         options.length === "short" ? lengthReason(c.avgHours) : null,
         qualityReason(c.rating, c.metacritic),
       ].filter((r): r is string => !!r);
@@ -303,7 +345,7 @@ export function rankDiscover(
         imageURL: c.imageURL,
         genres: c.genres,
         released: c.released,
-        score: finalScore(match.score, quality(c.rating, c.metacritic), 0, personalized),
+        score: finalScore(match.score, quality(c.rating, c.metacritic), likeOverlap(c.genres, options.like) * 0.4, personalized),
         reasons,
       };
     })

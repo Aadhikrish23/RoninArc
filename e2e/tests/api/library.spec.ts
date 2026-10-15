@@ -155,7 +155,7 @@ test.describe("Library API (/game)", () => {
       expect((await json(res)).Data).toMatchObject({ progressStatus: "completed", tags: ["Roguelike"], exePath: "C:/Games/Hades.exe" });
 
       const activity = await json(await api.get("/activity"));
-      expect(activity.Data.some((a: any) => a.type === "STATUS_CHANGED" && a.message === "Hades marked as completed")).toBe(true);
+      expect(activity.Data.some((a: any) => a.type === "STATUS_CHANGED" && a.message === "Hades marked as Completed")).toBe(true);
     });
 
     test("setting the same status again is a no-op (no duplicate activity) @positive", async ({ api }) => {

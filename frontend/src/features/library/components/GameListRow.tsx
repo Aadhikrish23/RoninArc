@@ -92,7 +92,7 @@ function GameListRow({
         <HStack spacing={4} flex={1} minW="250px">
           <Image
             src={game.imageURL}
-            fallbackSrc="https://via.placeholder.com/120x80?text=Cover"
+            fallbackSrc="/placeholder.jpg"
             boxSize="50px"
             objectFit="cover"
             borderRadius="md"
@@ -103,6 +103,11 @@ function GameListRow({
               <Text fontWeight="semibold" fontSize="md">
                 {game.title}
               </Text>
+              {typeof game.rating === "number" && (
+                <Text fontSize="sm" color="yellow.400" fontWeight="semibold" aria-label={`Your rating: ${game.rating} out of 10`}>
+                  ★ {game.rating}/10
+                </Text>
+              )}
 
               {isProviderGame && (
                 <Badge colorScheme="blue" borderRadius="full" px={2} py={0.5}>

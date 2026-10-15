@@ -69,12 +69,12 @@ const getOverview = async (userId: string, now = new Date()): Promise<DashboardO
   const [games, sessions, completions, activities, planned] = await Promise.all([
     LibraryGame.find({ userId: uid }).lean(),
     PlaySession.find({ userId: uid }).lean(),
-    Activity.find({ userId: uid, type: "STATUS_CHANGED", message: / marked as completed$/, createdAt: { $gte: yearStart } })
+    Activity.find({ userId: uid, type: "STATUS_CHANGED", message: / marked as completed$/i, createdAt: { $gte: yearStart } })
       .select("gameId")
       .lean(),
     Activity.find({ userId: uid }).sort({ createdAt: -1 }).limit(10).populate("gameId").lean(),
     // When each game was last set to Plan to Play (newest first, so the first hit per game wins).
-    Activity.find({ userId: uid, type: "STATUS_CHANGED", message: / marked as plan$/ })
+    Activity.find({ userId: uid, type: "STATUS_CHANGED", message: / marked as (plan|plan to play)$/i })
       .sort({ createdAt: -1 })
       .select("gameId createdAt")
       .lean(),

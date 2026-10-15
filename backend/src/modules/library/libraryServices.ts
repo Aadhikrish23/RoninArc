@@ -1,4 +1,14 @@
 import mongoose from "mongoose";
+
+/** How a status reads in the activity feed. */
+const STATUS_LABELS: Record<string, string> = {
+  none: "No Status",
+  plan: "Plan to Play",
+  playing: "Playing",
+  paused: "Paused",
+  completed: "Completed",
+  dropped: "Dropped",
+};
 import gameLibrarymodel from "./LibraryGame";
 import AppError from "../../shared/errors/AppError";
 import Review from "../review/Reviewmodel";
@@ -188,7 +198,7 @@ async function updateGame(
     await activityService.createActivity(
       userId,
       "STATUS_CHANGED",
-      `${data.title} marked as ${payload.progressStatus}`,
+      `${data.title} marked as ${STATUS_LABELS[payload.progressStatus as string] ?? payload.progressStatus}`,
       data._id as any
     );
   }

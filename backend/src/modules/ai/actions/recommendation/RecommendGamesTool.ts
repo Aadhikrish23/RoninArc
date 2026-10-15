@@ -8,7 +8,13 @@ interface RecommendGamesInput {
   query?: string;
 }
 
-const describe = (r: Recommendation) => `${r.title} (${r.reasons[0]})`;
+const describe = (r: Recommendation) => `- **${r.title}**: ${r.reasons[0]}`;
+const PICKS = 3;
+/** "got 2 hrs tonight", "quick session": time-boxed, so lead with games already in progress. */
+const SESSION = /\b\d+(\.\d+)?\s*(h|hr|hrs|hour|hours|min|mins|minutes)\b|\btonight\b|\bquick (session|game)\b|\bshort session\b/i;
+
+/** Playing first, then paused, then the rest, for time-boxed requests. */
+const rank = (r: Recommendation) => (r.status === "playing" ? 0 : r.status === "paused" ? 1 : 2);
 
 export class RecommendGamesTool extends BaseTool<RecommendGamesInput, any> {
   readonly category = "recommendation";
@@ -22,11 +28,18 @@ export class RecommendGamesTool extends BaseTool<RecommendGamesInput, any> {
     const result = await recommendationToolService.recommend(context.userId, query);
 
     const parts: string[] = [];
+    const session = !!query && SESSION.test(query);
     if (result.backlog.length > 0) {
-      parts.push(`From your backlog, I'd play next: ${result.backlog.map(describe).join("; ")}.`);
+      const backlog = session
+        ? [...result.backlog].sort((a, b) => rank(a) - rank(b))
+        : result.backlog;
+      const heading = session
+        ? "For a session tonight, I'd jump back into something you already have going:"
+        : "From your backlog, I'd play next:";
+      parts.push(`${heading}\n${backlog.slice(0, PICKS).map(describe).join("\n")}`);
     }
     if (result.discover.length > 0) {
-      parts.push(`New to discover: ${result.discover.map(describe).join("; ")}.`);
+      parts.push(`New to discover:\n${result.discover.slice(0, PICKS).map(describe).join("\n")}`);
     }
 
     if (parts.length === 0) {
@@ -42,6 +55,6 @@ export class RecommendGamesTool extends BaseTool<RecommendGamesInput, any> {
       parts.push("Rate or finish a few games and these picks will get more personal.");
     }
 
-    return this.success(result, parts.join(" "));
+    return this.success(result, parts.join("\n\n"));
   }
 }

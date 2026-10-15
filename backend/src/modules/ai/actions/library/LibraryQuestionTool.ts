@@ -4,6 +4,7 @@ import { AIToolContext } from "../../sdk/AIToolContext";
 import { AIToolResult } from "../../sdk/AIToolResult";
 import LibraryGame from "../../../library/LibraryGame";
 import Review from "../../../review/Reviewmodel";
+import { mentions } from "../../conversation/TargetGrounding";
 
 interface LibraryQuestionInput {
   question?: string;
@@ -50,6 +51,22 @@ export class LibraryQuestionTool extends BaseTool<LibraryQuestionInput, any> {
 
     if (games.length === 0) {
       return this.success({ total: 0 }, "Your library is empty so far. Tell me a game to add, like \"add Hades\".");
+    }
+
+    // A question about one game ("what did I rate witcher 3?", "is celeste finished?"):
+    // answer it from the library, never by changing anything.
+    const named = games
+      .filter((g: any) => mentions(q, g.title))
+      .sort((a: any, b: any) => b.title.length - a.title.length)[0] as any;
+    if (named) {
+      const review = await Review.findOne({ userId: uid, gameId: named._id }).lean();
+      const status = STATUS_LABEL[named.progressStatus || "none"];
+      const rated = review
+        ? `You rated it ${review.rating}/10${review.reviewText ? `: "${review.reviewText}"` : "."}`
+        : "You haven't rated it yet.";
+      const statusText = status === STATUS_LABEL.none ? "has no status yet" : `is ${status === "Plan to Play" ? "on your Plan to Play list" : `marked ${status}`}`;
+      return this.success({ game: named.title, status: named.progressStatus, rating: review?.rating ?? null },
+        `${named.title} ${statusText}. ${rated}`);
     }
 
     const by = (status: string) => games.filter((g: any) => (g.progressStatus || "none") === status).map((g: any) => g.title as string);

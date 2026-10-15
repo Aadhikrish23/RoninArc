@@ -16,7 +16,7 @@ test.describe("Dashboard", () => {
     await expect(page.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
 
     const pickUp = panel(page, "Pick up where you left off");
-    await expect(pickUp.getByRole("article", { name: "Hades" })).toContainText("Never played · 0h played");
+    await expect(pickUp.getByRole("article", { name: "Hades" })).toContainText("In progress · no play sessions recorded yet");
 
     const backlog = panel(page, "Backlog progress");
     // Hades (playing) + Hitman (planned) are the backlog; Celeste is finished.
@@ -27,8 +27,8 @@ test.describe("Dashboard", () => {
     await expect(backlog).not.toContainText("No Status");
 
     const activity = panel(page, "Recent activity");
-    await expect(activity).toContainText("Celeste marked as completed");
-    await expect(activity).toContainText("Hades marked as playing");
+    await expect(activity).toContainText("Celeste marked as Completed");
+    await expect(activity).toContainText("Hades marked as Playing");
 
     await pickUp.getByRole("article", { name: "Hades" }).click();
     await expect(page).toHaveURL(new RegExp(`#/library/game/${byName("Hades").id}$`));

@@ -22,7 +22,7 @@ export const engagementSchemas: Record<string, Schema> = {
       _id: objectId,
       userId: objectId,
       gameId: objectId,
-      rating: { type: "integer", minimum: 1, maximum: 10, example: 9 },
+      rating: { type: "number", minimum: 1, maximum: 10, multipleOf: 0.5, example: 9 },
       reviewText: { type: "string", example: "Tight combat, great music." },
       createdAt: dateTime,
       updatedAt: dateTime,
@@ -32,7 +32,7 @@ export const engagementSchemas: Record<string, Schema> = {
     type: "object",
     required: ["rating"],
     properties: {
-      rating: { type: "integer", minimum: 1, maximum: 10, description: "Whole number from 1 to 10." },
+      rating: { type: "number", minimum: 1, maximum: 10, multipleOf: 0.5, description: "1 to 10 in steps of 0.5 (e.g. 8.5)." },
       reviewText: { type: "string", description: "Optional; trimmed." },
     },
   },
@@ -160,7 +160,7 @@ export const engagementPaths = {
       requestBody: jsonBody(ref("UpsertReviewRequest"), { rating: 9, reviewText: "Tight combat." }),
       responses: {
         200: ok("The saved review.", ref("Review")),
-        400: failed("Malformed id, or invalid rating/text.", "Rating must be a whole number from 1 to 10", "Invalid game id", "Review text must be text"),
+        400: failed("Malformed id, or invalid rating/text.", "Rating must be from 1 to 10, in steps of 0.5", "Invalid game id", "Review text must be text"),
         401: responses.unauthorized,
         404: failed("The game isn't in the caller's library.", "Game not found in your library"),
         500: failed("Save failed.", "Failed to save review"),
