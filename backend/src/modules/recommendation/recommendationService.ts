@@ -80,6 +80,16 @@ const STYLE_TAGS: [RegExp, string, string][] = [
   [/\bhorror\b/, "horror", "Horror"],
 ];
 
+/** "what should I play tonight", "only got an hour", "30 mins": a session, so in-progress games lead. */
+const SESSION = /\b(tonight|today|right now|rn|this evening|an hour|one hour|half an hour|\d+\s*(min|mins|minutes|h|hr|hrs|hours?))\b/;
+
+/** Owned games' RAWG tags, cached for the life of the process (tags rarely change). */
+const tagCache = new Map<number, string[]>();
+async function tagsFor(rawgId: number): Promise<string[]> {
+  if (!tagCache.has(rawgId)) tagCache.set(rawgId, await rawgService.getGameTagSlugs(rawgId));
+  return tagCache.get(rawgId)!;
+}
+
 /** Styles that library genres can stand in for. */
 const STYLE_GENRES: Record<string, string[]> = { cozy: ["Simulation", "Casual", "Family"] };
 
@@ -102,6 +112,8 @@ function lengthPreference(query?: string): LengthPreference | undefined {
   if (range) return { maxHours: Math.max(Number(range[1]), Number(range[2])) };
   // "only got like 2 hrs tonight": a short session, so a short game.
   if (/\b(only )?(got|have)( like| about| maybe)? \d\s*(h|hrs?|hours?)\b/.test(q)) return "short";
+  // "only got like an hour", "30 mins", "half an hour": a short session too.
+  if (/\b(an|one|half an?) hour\b|\b\d+\s*(min|mins|minutes)\b/.test(q)) return "short";
   if (/\bi (don'?t|dont) have \d{2,3}\s*(h|hrs?|hours?)\b/.test(q)) return "short";
   // "something I could beat in a weekend" is roughly a 15-hour game.
   if (/\bweekend\b/.test(q)) return { maxHours: 15 };
@@ -188,17 +200,32 @@ async function getRecommendations(
     // genres), and a length limit needs a known playtime: only offer backlog picks we can vouch for.
     // "only got 2 hrs tonight" limits the session, not the game: any backlog game can fill it.
     // "what should I play tonight": what you're already into comes first.
-    const session = /\b(tonight|today|right now|rn|this evening)\b/.test((options.query || "").toLowerCase());
-    const backlogLength = session && length === "short" ? undefined : length;
-    const backlogPool = backlogLength ? library.filter((g) => (g.avgHours ?? 0) >= 3) : library;
-    // Some styles do map onto genres: "cozy" backlog picks are the sims and casual games.
-    const styleGenres = styles.slugs.every((s) => STYLE_GENRES[s]) ? styles.slugs.flatMap((s) => STYLE_GENRES[s]) : [];
-    result.backlog =
-      styles.slugs.length === 0
-        ? rankBacklog(backlogPool, profile, { limit: options.limit, focus, length: backlogLength, like, session })
-        : styleGenres.length > 0
-          ? rankBacklog(backlogPool, profile, { limit: options.limit, focus: [...focus, ...styleGenres], length: backlogLength, like, session })
-          : [];
+    const q = (options.query || "").toLowerCase();
+    const session = SESSION.test(q);
+    // A short session ("only got an hour") fits a game you're in the middle of, or a short one --
+    // not a 60-hour open world you haven't started.
+    const shortSession = session && length !== undefined && length !== "long";
+    const backlogLength = shortSession ? undefined : length;
+    let backlogPool = backlogLength ? library.filter((g) => (g.avgHours ?? 0) >= 3) : library;
+    if (shortSession) {
+      backlogPool = backlogPool.filter((g) => g.progressStatus === "playing" || ((g.avgHours ?? 0) >= 3 && (g.avgHours ?? 0) <= 25));
+    }
+    if (styles.slugs.length === 0) {
+      result.backlog = rankBacklog(backlogPool, profile, { limit: options.limit, focus, length: backlogLength, like, session });
+    } else {
+      // "cozy co-op": the user's own games' RAWG tags say how they play; genres stand in when tags are missing.
+      const tagged = await Promise.all(
+        backlogPool.map(async (g) => ({ game: g, tags: g.rawgId ? await tagsFor(g.rawgId) : [] })),
+      );
+      const styled = tagged.filter((t) => styles.slugs.some((s) => t.tags.includes(s))).map((t) => t.game);
+      const styleGenres = styles.slugs.flatMap((s) => STYLE_GENRES[s] ?? []);
+      result.backlog =
+        styled.length > 0
+          ? rankBacklog(styled, profile, { limit: options.limit, focus, length: backlogLength, like, session })
+          : styleGenres.length > 0
+            ? rankBacklog(backlogPool, profile, { limit: options.limit, focus: [...focus, ...styleGenres], length: backlogLength, like, session })
+            : [];
+    }
   }
 
   if (options.type !== "backlog") {
@@ -212,7 +239,12 @@ async function getRecommendations(
           .catch(() => rawgService.discoverByGenres(discoverStyles.slugs.length > 0 ? [] : slugs, 40, discoverStyles.slugs)),
         RecommendationFeedback.find({ userId }).select("rawgId").lean(),
       ]);
-      result.discover = rankDiscover(candidates, library, profile, {
+      // RAWG treats "cozy,co-op" as either tag (GTA V and Dota 2 came back as "cozy co-op"):
+      // keep the games that have every style asked for, as long as there are enough of them.
+      const wanted = discoverStyles.slugs;
+      const withAll = wanted.length > 1 ? candidates.filter((c: any) => wanted.every((s) => (c.tags ?? []).includes(s))) : candidates;
+      const pool = withAll.length >= Math.min(3, options.limit) ? withAll : candidates;
+      result.discover = rankDiscover(pool, library, profile, {
         limit: options.limit,
         dismissed: new Set(dismissed.map((d: any) => d.rawgId)),
         focus: discoverStyles.slugs.length > 0 ? [] : focus,

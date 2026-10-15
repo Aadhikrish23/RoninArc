@@ -66,7 +66,8 @@ export default function BrowsePage() {
   const [searchText, setSearchText] = useState("");
   // The Dashboard links here with ?status=plan etc.
   const [searchParams] = useSearchParams();
-  const [selectedProgress, setSelectedProgress] = useState(searchParams.get("status") || "all");
+  const [selectedProgress, setSelectedProgress] = useState(searchParams.get("status") || readPref("browse.progress") || "all");
+  useEffect(() => writePref("browse.progress", selectedProgress), [selectedProgress]);
   const [selectedOwnership, setSelectedOwnership] = useState("all");
   const [selectedInstallation, setSelectedInstallation] = useState("all");
   const [sortBy, setSortBy] = useState(() => readPref("browse.sort") || "title-asc");
@@ -140,10 +141,12 @@ export default function BrowsePage() {
 
   const sortedGames = useMemo(() => {
     const result = [...filteredGames];
+    // "The Legend of Zelda" sorts under L, the way shelves do.
+    const sortKey = (title: string) => title.replace(/^(the|a|an)\s+/i, "");
     if (sortBy === "title-asc") {
-      result.sort((a, b) => a.title.localeCompare(b.title));
+      result.sort((a, b) => sortKey(a.title).localeCompare(sortKey(b.title)));
     } else if (sortBy === "title-desc") {
-      result.sort((a, b) => b.title.localeCompare(a.title));
+      result.sort((a, b) => sortKey(b.title).localeCompare(sortKey(a.title)));
     } else if (sortBy === "date-desc") {
       result.sort(
         (a, b) =>
@@ -156,6 +159,10 @@ export default function BrowsePage() {
       );
     } else if (sortBy === "rating-desc") {
       result.sort((a, b) => (b.rating || 0) - (a.rating || 0));
+    } else if (sortBy === "rating-asc") {
+      // Lowest rated first; unrated games go last, not first.
+      const r = (g: { rating?: number | null }) => (typeof g.rating === "number" ? g.rating : Infinity);
+      result.sort((a, b) => r(a) - r(b));
     }
     return result;
   }, [filteredGames, sortBy]);
@@ -241,6 +248,7 @@ export default function BrowsePage() {
               <option value="date-desc">Date Added (Newest)</option>
               <option value="date-asc">Date Added (Oldest)</option>
               <option value="rating-desc">Rating (Highest)</option>
+              <option value="rating-asc">Rating (Lowest)</option>
             </Select>
           </HStack>
 

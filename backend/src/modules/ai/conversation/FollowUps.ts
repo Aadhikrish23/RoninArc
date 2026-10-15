@@ -196,3 +196,25 @@ export function simpleAddTitle(message: string): string | undefined {
   if (!title || title.length > 60 || NOT_A_TITLE.test(title) || /^(a|an|the|some|it|that|this|them)\b/i.test(title)) return undefined;
   return title;
 }
+
+/**
+ * "change my review on it to: gorgeous and brutal. keep the 9" -> new text, same score.
+ * (The model read the review back instead of changing it.)
+ */
+const REVIEW_EDIT = /\b(?:change|update|edit|replace|rewrite|set)\s+(?:my\s+|the\s+)?review\b(.*?)\bto\b\s*:?\s*["']?(.+?)["']?\s*$/i;
+
+export function parseReviewEdit(message: string): { target: string; text: string; rating?: number } | undefined {
+  const match = message.trim().match(REVIEW_EDIT);
+  if (!match) return undefined;
+  let text = match[2].trim();
+  // "... keep the 9" / "... and make it a 9" at the end is about the score, not part of the text.
+  let rating: number | undefined;
+  const score = text.match(/[.,;]?\s*(?:and\s+)?(?:keep|make it|give it|rate it)\s+(?:the\s+|a\s+|an\s+)?(\d+(?:\.5)?)(?:\s*\/\s*10)?\s*[.!]*$/i);
+  if (score) {
+    if (/\b(make it|give it|rate it)\b/i.test(score[0])) rating = Number(score[1]);
+    text = text.slice(0, score.index).trim();
+  }
+  text = text.replace(/^["']|["']$/g, "").trim();
+  if (!text) return undefined;
+  return { target: match[1].trim(), text, rating };
+}

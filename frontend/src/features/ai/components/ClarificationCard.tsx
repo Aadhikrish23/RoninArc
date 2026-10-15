@@ -65,7 +65,11 @@ export default function ClarificationCard({
         {/* Options / Candidates Grid */}
         {request.candidates && request.candidates.length > 0 && (
           <SimpleGrid columns={{ base: 1, sm: 2 }} spacing={3} mt={2}>
-            {request.candidates.map((option) => (
+            {request.candidates.map((option) => {
+              // "Yes, remove it" / "Yes, delete it" looks dangerous; "No, keep it" stays quiet.
+              const destructive = option.id === "confirm-yes" && request.type === "CONFIRMATION";
+              const safe = option.id === "confirm-no";
+              return (
               <Button
                 key={option.id}
                 onClick={() => {
@@ -74,15 +78,15 @@ export default function ClarificationCard({
                 }}
                 isDisabled={chosen !== null}
                 opacity={chosen !== null && chosen !== option.id ? 0.5 : 1}
-                variant="solid"
-                bg={buttonBg}
-                color="white"
+                variant={safe ? "outline" : "solid"}
+                bg={destructive ? "red.500" : safe ? "transparent" : buttonBg}
+                color={safe ? undefined : "white"}
                 size="md"
                 borderRadius="xl"
                 borderWidth="1px"
-                borderColor="purple.500"
+                borderColor={destructive ? "red.500" : "purple.500"}
                 _hover={{
-                  bg: "purple.600",
+                  bg: destructive ? "red.600" : safe ? "whiteAlpha.100" : "purple.600",
                   transform: "translateY(-1px)",
                   boxShadow: "0px 4px 12px rgba(159, 122, 234, 0.3)",
                 }}
@@ -107,7 +111,8 @@ export default function ClarificationCard({
                   </Text>
                 )}
               </Button>
-            ))}
+              );
+            })}
           </SimpleGrid>
         )}
       </VStack>

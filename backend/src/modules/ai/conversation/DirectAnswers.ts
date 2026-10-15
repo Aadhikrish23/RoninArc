@@ -47,7 +47,7 @@ export interface DirectAnswerContext {
 }
 
 /** The library game a question is about: named, shorthand, the page, or "it". */
-function gameFor(question: string, ctx: DirectAnswerContext): string | undefined {
+export function gameFor(question: string, ctx: DirectAnswerContext): string | undefined {
   return (
     namedTitles(question, ctx.owned)[0] ??
     franchiseMatch(question, ctx.owned) ??
@@ -177,13 +177,30 @@ async function describeCounts(question: string, ctx: DirectAnswerContext): Promi
       : games.filter((g) => g.progressStatus === status).length;
   const asked = COUNT_STATUSES.filter(([re]) => re.test(question));
   const plural = (n: number) => `${n} ${n === 1 ? "game" : "games"}`;
-  // "how many games do I have" gets the full breakdown from the library question tool.
+  // "how many games do i have (and how many have i finished)": the whole breakdown covers it.
+  if (/\bhow many games\b|\b(total|in total|altogether|overall)\b/i.test(question)) {
+    const breakdown = (
+      [["playing", "playing"], ["paused", "paused"], ["plan", "plan to play"], ["completed", "completed"], ["dropped", "dropped"], ["none", "no status"]] as const
+    )
+      .map(([status, label]) => [games.filter((g) => (g.progressStatus || "none") === status).length, label] as const)
+      .filter(([n]) => n > 0)
+      .map(([n, label]) => `${n} ${label}`);
+    return `You have ${plural(games.length)}: ${breakdown.join(", ")}.`;
+  }
   if (asked.length === 0) return undefined;
   const parts = asked.map(([, status, label]) => `${plural(count(status))} ${label}`);
   return `You have ${parts.join(", ")}, out of ${plural(games.length)} in your library.`;
 }
 
-const HANDLERS = [describeCollection, describeNotes, describePlaytime, describeFeature, describeFavourite, describePlaying, describeCounts];
+async function describeAverage(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
+  if (!/\b(average|avg|mean)\b[^.?!]*\b(rating|score)s?\b/i.test(question) || PLAYTIME.test(question)) return undefined;
+  const reviews = (await Review.find({ userId: new Types.ObjectId(ctx.userId) }).select("rating").lean()) as any[];
+  if (reviews.length === 0) return "You haven't rated any games yet.";
+  const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+  return `Your average rating is ${avg.toFixed(1)}/10 across ${reviews.length} rated ${reviews.length === 1 ? "game" : "games"}.`;
+}
+
+const HANDLERS = [describeCollection, describeNotes, describePlaytime, describeFeature, describeAverage, describeFavourite, describePlaying, describeCounts];
 
 async function answerOne(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   for (const handler of HANDLERS) {
@@ -202,22 +219,33 @@ function splitQuestions(message: string): string[] {
 }
 
 /** Answers the message from the data when every question in it can be; otherwise undefined. */
-export async function answerDirectly(message: string, ctx: DirectAnswerContext): Promise<string | undefined> {
+export interface DirectAnswer {
+  /** Everything answered from the data. */
+  answer?: string;
+  /** Some questions answered; these others are for the model ("is it on steam deck?"). */
+  partial?: { answers: string[]; rest: string[] };
+}
+
+export async function answerDirectly(message: string, ctx: DirectAnswerContext): Promise<DirectAnswer> {
   const questions = splitQuestions(message);
-  if (questions.length > 3) return undefined;
+  if (questions.length > 3) return {};
+  const answers: string[] = [];
   const unanswered: string[] = [];
   if (questions.length >= 2) {
-    const answers: string[] = [];
     for (const q of questions) {
       const answer = await answerOne(q, ctx);
       if (answer) answers.push(answer);
       else unanswered.push(q);
     }
-    if (unanswered.length === 0) return answers.join("\n\n");
+    if (unanswered.length === 0) return { answer: answers.join("\n\n") };
   }
   // One question, or a fragment that only makes sense with the rest ("what did i write about gta? any notes?").
-  // A real second question we can't answer goes to the model instead of being dropped.
   // ("she's not into hard stuff" isn't a question; it qualifies the one before it.)
-  if (unanswered.some((q) => words(q).length > 3 && QUESTION_START.test(q))) return undefined;
-  return answerOne(message, ctx);
+  const realQuestions = unanswered.filter((q) => words(q).length > 3 && QUESTION_START.test(q));
+  if (realQuestions.length > 0) {
+    // A real second question we can't answer goes to the model instead of being dropped.
+    return answers.length > 0 ? { partial: { answers, rest: unanswered } } : {};
+  }
+  const answer = await answerOne(message, ctx);
+  return answer ? { answer } : {};
 }

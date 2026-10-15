@@ -8,9 +8,10 @@ import { useRecommendations } from "../hooks/useRecommendations";
 export default function RecommendedStrip() {
   const navigate = useNavigate();
   const muted = useColorModeValue("gray.600", "gray.400");
-  const { data, dismiss, addToLibrary, startPlaying } = useRecommendations({ limit: 2 });
+  const { data, dismiss, addToLibrary, startPlaying } = useRecommendations({ limit: 4 });
 
-  const picks = data ? [...data.backlog, ...data.discover].slice(0, 4) : [];
+  // New games only: your own games are already in the sections above (and on For You's "Play Next").
+  const picks = data ? data.discover.slice(0, 4) : [];
   if (picks.length === 0) return null;
 
   return (
@@ -22,7 +23,7 @@ export default function RecommendedStrip() {
         </Button>
       </Flex>
       <Text fontSize="sm" color={muted} mb={4}>
-        Based on what you rate, finish and play.
+        {data?.profile.personalized ? "New games picked from what you rate, finish and play." : "Popular games to get you started. Rate or finish a few and these get personal."}
       </Text>
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={5}>
         {picks.map((rec) => (

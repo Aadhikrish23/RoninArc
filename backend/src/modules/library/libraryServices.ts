@@ -10,6 +10,7 @@ const STATUS_LABELS: Record<string, string> = {
   dropped: "Dropped",
 };
 import gameLibrarymodel from "./LibraryGame";
+import RecommendationFeedback from "../recommendation/RecommendationFeedback";
 import AppError from "../../shared/errors/AppError";
 import Review from "../review/Reviewmodel";
 import Note from "../notes/Notemodel";
@@ -240,6 +241,15 @@ async function deleteGame(
     userId: userId,
     gameId: gameid,
   });
+
+  // Removing a game says "not for me": don't recommend it straight back.
+  if (typeof data.rawgId === "number") {
+    await RecommendationFeedback.updateOne(
+      { userId, rawgId: data.rawgId },
+      { $setOnInsert: { userId, rawgId: data.rawgId }, $set: { title: data.title } },
+      { upsert: true },
+    ).catch(() => undefined);
+  }
 
   await activityService.createActivity(
     userId,

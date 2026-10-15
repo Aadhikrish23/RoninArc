@@ -85,6 +85,15 @@ export class OllamaClient {
             }
           ]
         });
+      } else if (queryLower.startsWith("rate fallout shelter 9 ")) {
+        // A rating with a casual comment, the way the real model sends it.
+        responseText = JSON.stringify({
+          intents: [{
+            type: "RateGame",
+            targets: [{ type: "Game", name: "Fallout Shelter" }],
+            parameters: [{ type: "Rating", value: 9 }, { type: "Text", value: query.slice("rate fallout shelter 9 ".length) }],
+          }],
+        });
       } else if (queryLower.includes("rate") || queryLower.includes("review")) {
         let rating = 9;
         let text = "";

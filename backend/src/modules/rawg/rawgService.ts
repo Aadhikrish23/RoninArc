@@ -114,6 +114,7 @@ async function discoverByGenres(genreSlugs: string[], pageSize = 40, tagSlugs: s
       genres: g.genres?.map((x: any) => x.name) || [],
       metacritic: g.metacritic,
       avgHours: typeof g.playtime === "number" ? g.playtime : undefined,
+      tags: (g.tags ?? []).map((t: any) => String(t.slug)),
     }));
   } catch (err) {
     throw new AppError("Failed to fetch RAWG data", 502);

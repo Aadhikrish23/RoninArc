@@ -97,7 +97,12 @@ const getOverview = async (userId: string, now = new Date()): Promise<DashboardO
       const stats = perGame.get(String(g._id));
       return { game: summarize(g), lastPlayed: stats?.lastPlayed ?? null, minutesPlayed: stats?.minutes ?? 0 };
     })
-    .sort((a, b) => (b.lastPlayed?.getTime() ?? 0) - (a.lastPlayed?.getTime() ?? 0))
+    // Games you're playing come before paused ones; most recently played first within each.
+    .sort(
+      (a, b) =>
+        Number(a.game.progressStatus === "paused") - Number(b.game.progressStatus === "paused") ||
+        (b.lastPlayed?.getTime() ?? 0) - (a.lastPlayed?.getTime() ?? 0),
+    )
     .slice(0, 6)
     .map((row) => ({ ...row, lastPlayed: row.lastPlayed ? row.lastPlayed.toISOString() : null }));
 

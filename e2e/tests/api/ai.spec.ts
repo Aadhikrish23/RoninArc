@@ -74,7 +74,8 @@ test.describe("AI chat API (/ai/chat)", () => {
     test("'rate <game>' creates a review with the requested rating @positive", async ({ api }) => {
       const game = await api.addGame(shelter);
       const { body } = await chat(api, "rate fallout shelter 9");
-      expect(body).toMatchObject({ success: true, message: "I've rated Fallout Shelter 9/10." });
+      // A rated game still on Plan to Play gets an offer to mark it Completed.
+      expect(body).toMatchObject({ success: true, message: "I've rated Fallout Shelter 9/10. It's still on Plan to Play. Want me to mark Fallout Shelter as Completed?" });
       expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9 });
     });
 
@@ -485,5 +486,49 @@ test.describe("AI chat API: round 7", () => {
     await api.addGame(byName("Hades"), { progressStatus: "playing" });
     const { body } = await chat(api, "whats my highest rated game and how many have i finished");
     expect(body.message).toBe("Your favourite so far is Hollow Knight, rated 9/10.\n\nYou have 1 game finished, out of 2 games in your library.");
+  });
+});
+
+// Round 8 of the gamer playtest: never lose what the user wrote.
+test.describe("AI chat API: round 8", () => {
+  test("re-rating keeps a review the user wrote by hand @negative", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "completed" });
+    await api.put(`/review/${game._id}`, { rating: 8, reviewText: "Got stuck at the raiders, still great" });
+    const { body } = await chat(api, "rate fallout shelter 9 it was amazing");
+    expect(body.message).toContain("I kept the review you'd already written");
+    expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9, reviewText: "Got stuck at the raiders, still great" });
+  });
+
+  test("'change my review on it to: ...' replaces the text and keeps the score @positive", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "completed" });
+    await api.put(`/review/${game._id}`, { rating: 9, reviewText: "old text" });
+    const { body } = await chat(api, "change my review on fallout shelter to: gorgeous and brutal. keep the 9");
+    expect(body.message).toBe('I\'ve updated your review of Fallout Shelter: 9/10 -- "gorgeous and brutal".');
+    expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9, reviewText: "gorgeous and brutal" });
+  });
+
+  test("rating a game still on Plan to Play offers to mark it Completed; 'yes' does it @positive", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "plan" });
+    const { body } = await chat(api, "rate fallout shelter 9");
+    expect(body.message).toContain("Want me to mark Fallout Shelter as Completed?");
+    const yes = await chat(api, "yes");
+    expect(yes.body.message).toBe("I've marked Fallout Shelter as Completed.");
+    expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("completed");
+  });
+
+  test("'whats my average rating' is answered from the data @positive", async ({ api }) => {
+    const a = await api.addGame(shelter, { progressStatus: "completed" });
+    const b = await api.addGame(byName("Hades"), { progressStatus: "completed" });
+    await api.put(`/review/${a._id}`, { rating: 6 });
+    await api.put(`/review/${b._id}`, { rating: 9 });
+    const { body } = await chat(api, "how many games do i have total and whats my average rating");
+    expect(body.message).toBe("You have 2 games: 2 completed.\n\nYour average rating is 7.5/10 across 2 rated games.");
+  });
+
+  test("removing a game keeps it out of recommendations @negative", async ({ api }) => {
+    const game = await api.addGame(byName("Hades"));
+    await api.delete(`/game/${game._id}`);
+    const recs = (await json(await api.get("/recommendations?type=discover&limit=20"))).Data;
+    expect(recs.discover.map((r: any) => r.title)).not.toContain("Hades");
   });
 });

@@ -27,6 +27,8 @@ export interface DiscoverCandidate {
   genres: string[];
   metacritic?: number | null;
   avgHours?: number;
+  /** RAWG tag slugs ("cozy", "co-op"), when known. */
+  tags?: string[];
 }
 
 /** "short" keeps games under ~20h (or the user's own limit), "long" keeps games over ~25h; unknown lengths stay. */
@@ -377,5 +379,17 @@ export function rankDiscover(
       };
     })
     .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+    .filter(onePerSeries())
     .slice(0, options.limit);
+}
+
+/** One pick per series: "Darksiders" and "Darksiders Warmastered Edition" aren't two suggestions. */
+function onePerSeries() {
+  const taken: string[] = [];
+  return (rec: { title: string }) => {
+    const series = seriesOf(rec.title);
+    if (series && taken.some((t) => t === series || series.startsWith(`${t} `) || t.startsWith(`${series} `))) return false;
+    taken.push(series);
+    return true;
+  };
 }

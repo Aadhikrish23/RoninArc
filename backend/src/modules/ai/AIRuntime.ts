@@ -28,11 +28,11 @@ import conversationManager from "./conversation/ConversationManager";
 import { Types } from "mongoose";
 import LibraryGame from "../library/LibraryGame";
 import CollectionModel from "../collection/CollectionModel";
-import { READ_ONLY, dropUngroundedIntents, mentions } from "./conversation/TargetGrounding";
+import { READ_ONLY, dropUngroundedIntents, mentions, namedTitles } from "./conversation/TargetGrounding";
 import { titleMatchScore } from "../rawg/titleMatch";
-import { answerDirectly } from "./conversation/DirectAnswers";
-import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, recommendationFollowUp, resolveOrdinals, simpleAddTitle, unsupportedReply, wasAskedFor, withPageGame } from "./conversation/FollowUps";
-import { runCollectionCommand } from "./conversation/DirectActions";
+import { answerDirectly, gameFor } from "./conversation/DirectAnswers";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseReviewEdit, recommendationFollowUp, resolveOrdinals, simpleAddTitle, unsupportedReply, wasAskedFor, withPageGame } from "./conversation/FollowUps";
+import { editReview, existingReviewText, followUpOffer, runCollectionCommand } from "./conversation/DirectActions";
 
 /** "wait no, I said celeste" -- the reply should own the mistake. */
 const CORRECTION = /\b(i said|i meant|wrong (game|one)|didn'?t ask|not that one|wait,? no|that'?s wrong|no,? i)\b/i;
@@ -55,6 +55,8 @@ const PER_GAME_INTENTS = new Set<string>([
 /** Asking for suggestions, and the words that mean "do something" instead. */
 const RECOMMEND_ASK = /\b(recommend|suggest|similar to|something like|anything like|games? like|what should i play|what to play)\b|\b(something|anything|a game)\b[^?.!]*\bweekend\b/i;
 const EXPLICIT_ACTION = /\b(add|put|mark|set|remove|delete|rate|note|pause|drop|launch|yeet|move|take)\b/i;
+/** Words that ask for the review text itself to change, not just the score. */
+const REWRITES_REVIEW = /\breview\b|\b(change|update|edit|replace|rewrite)\b[^.?!]*\b(comment|text|what i wrote)\b/i;
 
 const NOT_SURE_WHICH_GAME =
   "I'm not sure which game you mean, so I didn't change anything. Tell me the game's name and I'll do it.";
@@ -138,6 +140,7 @@ export class AIRuntime {
         let confirmed = false;
         let fromModel = false;
         let unrequested = 0;
+        const keptReviews: string[] = [];
 
         // A removal we asked about last turn: "yes" runs it, "no" drops it,
         // anything else drops it and is handled as a new request.
@@ -195,15 +198,40 @@ export class AIRuntime {
           // "what's in cozy nights?", "read me my notes": answered from the data, never guessed.
           const ownedNow = requestContext.library.games.map((g) => g.title);
           const currentNow = session.references.currentGame?.displayName ?? null;
-          const direct = await answerDirectly(cleanRequest, {
+          const directContext = {
             userId,
             collections: requestContext.library.collections,
             owned: ownedNow,
             pageGame: page.gameTitle,
             pageCollection: page.collectionName,
-            currentGame: currentNow && ownedNow.includes(currentNow) ? currentNow : null,
-          });
-          if (direct) return finish({ success: true, message: direct });
+            // "it" = the game the conversation is on; failing that, the last game the assistant named.
+            currentGame:
+              (currentNow && ownedNow.includes(currentNow) ? currentNow : null) ??
+              recentExchanges
+                .get(userId)
+                .slice()
+                .reverse()
+                .map((e) => namedTitles(e.assistant, ownedNow)[0])
+                .find(Boolean) ??
+              null,
+          };
+          // "change my review on it to: ..." keeps the score and replaces only the text.
+          const reviewEdit = parseReviewEdit(cleanRequest);
+          const reviewGame = reviewEdit ? gameFor(reviewEdit.target || cleanRequest, directContext) ?? gameFor(cleanRequest, directContext) : undefined;
+          if (reviewEdit && reviewGame) {
+            return finish(await editReview(userId, reviewGame, reviewEdit.text, reviewEdit.rating));
+          }
+
+          const direct = await answerDirectly(cleanRequest, directContext);
+          if (direct.answer) return finish({ success: true, message: direct.answer });
+          // "how long does it take to beat? and is it on steam deck": the data answers the first part,
+          // the model the rest.
+          if (direct.partial && isQuestionOnly(cleanRequest)) {
+            const about = page.gameTitle ?? directContext.currentGame;
+            const rest = direct.partial.rest.map((q) => (about ? q.replace(/\b(this one|this game|this|it)\b/i, about) : q)).join(". ");
+            const general = await this.provider.answer(rest, requestContext).catch(() => "");
+            return finish({ success: true, message: [...direct.partial.answers, general.trim()].filter(Boolean).join("\n\n") });
+          }
 
           // "is this one worth it?" on Outer Wilds' page: an opinion about Outer Wilds, not a library readout.
           if (asksForOpinion(cleanRequest)) {
@@ -347,6 +375,22 @@ export class AIRuntime {
               const words = p.value.toLowerCase().match(/[a-z']+/g) ?? [];
               return words.length > 0 && words.filter((w) => said.has(w)).length / words.length >= 0.6;
             });
+          }
+
+          // "rate hollow knight 9 it was amazing" changes the score; it must not replace a review
+          // the user wrote by hand. Only "review X: ..." / "change my review to ..." rewrites it.
+          if (!REWRITES_REVIEW.test(cleanRequest)) {
+            for (const intent of intentPlan.intents) {
+              if (intent.type !== IntentType.RateGame && intent.type !== IntentType.ReviewGame) continue;
+              const comment = (intent.parameters ?? []).find((p) => p.type === IntentParameterType.Text);
+              const title = intent.targets?.find((t) => t.type === IntentTargetType.Game || t.type === IntentTargetType.Library)?.name;
+              if (!comment || !title) continue;
+              const existing = await existingReviewText(userId, title);
+              if (existing && existing.trim() !== String(comment.value).trim()) {
+                intent.parameters = (intent.parameters ?? []).filter((p) => p !== comment);
+                keptReviews.push(title);
+              }
+            }
           }
 
           // "finished X" for a game already owned: no need to re-add it before changing its status.
@@ -494,6 +538,9 @@ export class AIRuntime {
           if (ungrounded > 0 && response.success) {
             message += " I wasn't sure which game you meant for part of that, so I left it. Tell me the name and I'll do it.";
           }
+          if (response.success && keptReviews.length > 0) {
+            message += " I kept the review you'd already written; say \"change my review to ...\" if you want to replace it.";
+          }
           if (response.success && CORRECTION.test(cleanRequest)) message = `Sorry about that. ${message}`;
           // "pause rdr2. also is elden ring hard?" -- answer the question part too.
           if (generalAnswer) message = `${message} ${generalAnswer.trim()}`;
@@ -515,7 +562,16 @@ export class AIRuntime {
           }));
         }
 
-        return finish(decorate(await this.runPlanned(plan, session, cleanRequest, toolContext, memoryContext, profiler, confirmed)));
+        const outcome = decorate(await this.runPlanned(plan, session, cleanRequest, toolContext, memoryContext, profiler, confirmed));
+        // "Want me to add DS3 and Elden Ring to it?" / "Want me to mark it Completed?"
+        if (outcome.success && !outcome.status?.match(/CONFIRMATION|CLARIFICATION/)) {
+          const offer = await followUpOffer(userId, plan.intents as any).catch(() => undefined);
+          if (offer) {
+            pendingConfirmations.put(userId, { run: offer.run, label: offer.label });
+            return finish({ ...outcome, message: `${outcome.message} ${offer.question}` });
+          }
+        }
+        return finish(outcome);
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         if (trace) {

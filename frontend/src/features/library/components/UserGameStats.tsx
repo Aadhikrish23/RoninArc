@@ -100,6 +100,8 @@ export default function UserGameStats({
   const { createCollection } = useCollection();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const bg = useColorModeValue("white", "gray.800");
+  // Your own words should be easy to read, not a faint italic.
+  const reviewTextColor = useColorModeValue("gray.700", "gray.200");
   const borderColor = useColorModeValue("gray.200", "gray.700");
 
   if (!game) {
@@ -205,10 +207,9 @@ export default function UserGameStats({
               {review.reviewText ? (
                 <Text
                   fontSize="sm"
-                  color="gray.500"
+                  color={reviewTextColor}
                   noOfLines={3}
                   whiteSpace="pre-wrap"
-                  fontStyle="italic"
                 >
                   "{review.reviewText}"
                 </Text>

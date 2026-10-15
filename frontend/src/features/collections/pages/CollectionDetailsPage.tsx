@@ -77,6 +77,9 @@ export default function CollectionDetailsPage() {
 
       case "plan":
         return game.progressStatus === "plan";
+      case "paused":
+      case "dropped":
+        return game.progressStatus === filter;
 
       case "not-installed":
         return !(
@@ -166,6 +169,8 @@ export default function CollectionDetailsPage() {
           <option value="completed">Completed</option>
           <option value="playing">Playing</option>
           <option value="plan">Plan To Play</option>
+          <option value="paused">Paused</option>
+          <option value="dropped">Dropped</option>
           <option value="not-installed">Not Installed</option>
         </Select>
       </HStack>
