@@ -8,7 +8,8 @@ interface RecommendGamesInput {
   query?: string;
 }
 
-const describe = (r: Recommendation) => `- **${r.title}**: ${r.reasons[0]}`;
+// Two reasons, so a length or style the user asked for ("Shorter: about 10h") shows next to the taste match.
+const describe = (r: Recommendation) => `- **${r.title}**: ${r.reasons.slice(0, 2).join("; ")}`;
 const PICKS = 3;
 /** "got 2 hrs tonight", "quick session": time-boxed, so lead with games already in progress. */
 const SESSION = /\b\d+(\.\d+)?\s*(h|hr|hrs|hour|hours|min|mins|minutes)\b|\btonight\b|\bquick (session|game)\b|\bshort session\b/i;

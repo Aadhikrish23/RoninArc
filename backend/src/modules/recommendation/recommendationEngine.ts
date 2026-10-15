@@ -309,6 +309,17 @@ export function rankBacklog(
     .slice(0, options.limit);
 }
 
+/** "Grand Theft Auto V" and "Grand Theft Auto: San Andreas" are both the series "grand theft auto". */
+function seriesOf(title: string): string {
+  return title
+    .split(/[:\-–—]/)[0]
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]+/g, " ")
+    .replace(/\b(\d+|[ivx]+)\b/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export function rankDiscover(
   candidates: DiscoverCandidate[],
   library: LibrarySignalGame[],
@@ -322,9 +333,15 @@ export function rankDiscover(
   const focus = options.focus ?? [];
   const seen = new Set<number>();
 
+  // A dropped game's series isn't suggested either (no GTA: San Andreas right after dropping GTA V).
+  const droppedSeries = library
+    .filter((g) => g.progressStatus === "dropped")
+    .map((g) => seriesOf(g.title))
+    .filter((s) => s.split(" ").length >= 2);
   const eligible = candidates.filter((c) => {
     if (seen.has(c.id)) return false;
     seen.add(c.id);
+    if (droppedSeries.some((s) => seriesOf(c.name).startsWith(s))) return false;
     return (
       !ownedIds.has(c.id) &&
       !ownedTitles.has(norm(c.name)) &&

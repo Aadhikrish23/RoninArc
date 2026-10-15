@@ -6,7 +6,7 @@ import {
   Textarea,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { JSX, KeyboardEvent, ChangeEvent } from "react";
 import { FiSend } from "react-icons/fi";
 
@@ -20,6 +20,13 @@ export default function ChatInput({
   isDisabled,
 }: ChatInputProps): JSX.Element {
   const [text, setText] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  // Never disable the box: a disabled field loses focus, the modal then focuses its
+  // Close button, and the next key typed closed the chat. Typing ahead is fine; sending waits.
+  useEffect(() => {
+    if (!isDisabled) inputRef.current?.focus();
+  }, [isDisabled]);
   const inputBg = useColorModeValue("white", "gray.850");
   const borderColor = useColorModeValue("gray.200", "gray.700");
 
@@ -55,7 +62,8 @@ export default function ChatInput({
           value={text}
           onChange={handleChange}
           onKeyDown={handleKeyDown}
-          isDisabled={isDisabled}
+          ref={inputRef}
+          aria-busy={isDisabled}
           bg={inputBg}
           borderColor={borderColor}
           borderRadius="2xl"

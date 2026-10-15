@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { dropUngroundedIntents, franchiseMatch, mentions } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
+import { dropUngroundedIntents, franchiseMatch, mentions, namedTitles } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
 
 // The AI only changes a game the user actually named (or referred to). These
 // cases come from the gamer playtests: gibberish and two-part messages made the
@@ -76,5 +76,11 @@ test.describe("AI target grounding: franchise shorthand", () => {
   });
   test('"gta" is ambiguous with two GTAs @negative', () => {
     expect(franchiseMatch("add a note on gta", ["Grand Theft Auto V", "Grand Theft Auto IV"])).toBeUndefined();
+  });
+});
+
+test.describe("AI target grounding: exact names beat typo matches", () => {
+  test('"outer wilds" is Outer Wilds, not Breath of the Wild @positive', () => {
+    expect(namedTitles("is outer wilds worth playing?", ["The Legend of Zelda: Breath of the Wild", "Outer Wilds"])).toEqual(["Outer Wilds"]);
   });
 });

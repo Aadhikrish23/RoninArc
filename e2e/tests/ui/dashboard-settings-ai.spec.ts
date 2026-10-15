@@ -251,7 +251,10 @@ test.describe("AI assistant (quick-access modal)", () => {
     await page.getByPlaceholder("Type a message...").fill("rate fallout shelter 9");
     await page.keyboard.press("Enter");
     await expect(page.getByText("2 messages")).toBeVisible();
+    // Clearing asks for a second click.
     await page.getByRole("button", { name: "Clear" }).click();
+    await expect(page.getByText("2 messages")).toBeVisible();
+    await page.getByRole("button", { name: "Clear chat?" }).click();
     await expect(page.getByRole("heading", { name: "Start a new conversation" })).toBeVisible();
   });
 });

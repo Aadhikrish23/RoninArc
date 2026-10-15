@@ -13,7 +13,7 @@ import {
   Wrap,
   WrapItem,
 } from "@chakra-ui/react";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { JSX } from "react";
 import { FiSettings, FiTrash2, FiX } from "react-icons/fi";
 import { IoSparklesOutline } from "react-icons/io5";
@@ -40,6 +40,13 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
   const { messages, isTyping, sendMessage, clearConversation, retry, settings, updateSettings } = useAI();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const settingsModal = useDisclosure();
+  // Clearing wipes the whole chat, so it takes a second click to confirm.
+  const [confirmClear, setConfirmClear] = useState(false);
+  useEffect(() => {
+    if (!confirmClear) return;
+    const id = setTimeout(() => setConfirmClear(false), 4000);
+    return () => clearTimeout(id);
+  }, [confirmClear]);
 
   const headerBg = useColorModeValue("white", "gray.900");
   const borderColor = useColorModeValue("gray.200", "gray.700");
@@ -70,12 +77,16 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
           <Button
             leftIcon={<FiTrash2 />}
             size="sm"
-            variant="ghost"
             colorScheme="red"
-            onClick={clearConversation}
+            onClick={() => {
+              if (!confirmClear) return setConfirmClear(true);
+              setConfirmClear(false);
+              clearConversation();
+            }}
+            variant={confirmClear ? "solid" : "ghost"}
             isDisabled={messages.length === 0 || isTyping}
           >
-            Clear
+            {confirmClear ? "Clear chat?" : "Clear"}
           </Button>
           <Tooltip label="Settings">
             <IconButton aria-label="Settings" icon={<FiSettings />} size="sm" variant="ghost" onClick={settingsModal.onOpen} isDisabled={isTyping} />

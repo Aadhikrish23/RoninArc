@@ -221,7 +221,7 @@ function DashboardPage() {
                           {game.title}
                         </Text>
                         <Text fontSize="sm" color={mutedText}>
-                          {lastPlayed ? `${timeAgo(lastPlayed)} · ${formatMinutes(minutesPlayed)} played` : "In progress · no play sessions recorded yet"}
+                          {lastPlayed ? `${timeAgo(lastPlayed)} · ${formatMinutes(minutesPlayed)} played` : `${game.progressStatus === "paused" ? "Paused" : "In progress"} · no play sessions recorded yet`}
                         </Text>
                       </Box>
                       <Button size="sm" colorScheme="purple" variant="outline" flexShrink={0}>

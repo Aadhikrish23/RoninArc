@@ -28,10 +28,10 @@ import conversationManager from "./conversation/ConversationManager";
 import { Types } from "mongoose";
 import LibraryGame from "../library/LibraryGame";
 import CollectionModel from "../collection/CollectionModel";
-import { dropUngroundedIntents, mentions } from "./conversation/TargetGrounding";
+import { READ_ONLY, dropUngroundedIntents, mentions } from "./conversation/TargetGrounding";
 import { titleMatchScore } from "../rawg/titleMatch";
 import { answerDirectly } from "./conversation/DirectAnswers";
-import { asksToReadNotes, parseCollectionCommand, recommendationFollowUp, resolveOrdinals, unsupportedReply, wasAskedFor } from "./conversation/FollowUps";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, recommendationFollowUp, resolveOrdinals, simpleAddTitle, unsupportedReply, wasAskedFor, withPageGame } from "./conversation/FollowUps";
 import { runCollectionCommand } from "./conversation/DirectActions";
 
 /** "wait no, I said celeste" -- the reply should own the mistake. */
@@ -90,7 +90,7 @@ export class AIRuntime {
     const profiler = new RuntimeProfiler();
     profiler.startOverall();
 
-    const typed = request ? request.trim().replace(/\s+/g, " ") : "";
+    const typed = request ? normalizeSlang(request.trim().replace(/\s+/g, " ")) : "";
     // "add the second one" right after a list of picks names that pick.
     const cleanRequest = resolveOrdinals(typed, recentExchanges.get(userId).slice(-1)[0]);
 
@@ -205,6 +205,12 @@ export class AIRuntime {
           });
           if (direct) return finish({ success: true, message: direct });
 
+          // "is this one worth it?" on Outer Wilds' page: an opinion about Outer Wilds, not a library readout.
+          if (asksForOpinion(cleanRequest)) {
+            const opinion = await this.provider.answer(withPageGame(cleanRequest, page.gameTitle), requestContext).catch(() => "");
+            if (opinion) return finish({ success: true, message: opinion.trim() });
+          }
+
           // Things there's no tool for yet ("remind me friday...", "undo"): say so, change nothing.
           const unsupported = unsupportedReply(cleanRequest);
           if (unsupported) return finish({ success: true, message: unsupported });
@@ -247,6 +253,13 @@ export class AIRuntime {
               requestId,
               intents: [{ type: IntentType.RecommendGame, targets: [], parameters: [{ type: IntentParameterType.Text, value: followUp ?? cleanRequest }] } as any],
             };
+          } else if (simpleAddTitle(cleanRequest)) {
+            // "add gta 5": nothing for the planner to work out.
+            intentPlan = {
+              id: requestId,
+              requestId,
+              intents: [{ type: IntentType.AddGame, targets: [{ type: IntentTargetType.Library, name: simpleAddTitle(cleanRequest)! }], parameters: [] } as any],
+            };
           } else {
             try {
               intentPlan = await this.planWithRetry(cleanRequest, requestContext);
@@ -263,6 +276,32 @@ export class AIRuntime {
 
           // Resolve pronoun references
           intentPlan = conversationRuntime.resolveReferences(intentPlan, session);
+
+          // A question never changes anything ("should i play elden ring or sekiro first?").
+          if (isQuestionOnly(cleanRequest)) {
+            const reads = intentPlan.intents.filter((intent) => READ_ONLY.has(intent.type));
+            intentPlan.intents = reads.length > 0 ? reads : [{ type: IntentType.AskQuestion, targets: [], parameters: [] } as any];
+          }
+
+          // "drop gta 5 its mid" is the Dropped status, never a removal from the library.
+          if (meansDroppedStatus(cleanRequest)) {
+            for (const intent of intentPlan.intents) {
+              if (intent.type !== IntentType.RemoveGame) continue;
+              intent.type = IntentType.SetStatus;
+              intent.targets = (intent.targets ?? []).map((t) => ({ ...t, type: IntentTargetType.Game }));
+              intent.parameters = [{ type: IntentParameterType.Status, value: "dropped" } as any];
+            }
+          }
+
+          // "put ds3 in there" adds; "take it out of soulslikes" removes -- whatever the model flagged.
+          const direction = collectionDirection(cleanRequest);
+          if (direction) {
+            for (const intent of intentPlan.intents) {
+              if (intent.type !== IntentType.OrganizeCollection) continue;
+              const others = (intent.parameters ?? []).filter((p: any) => String(p.type).toLowerCase() !== "boolean");
+              intent.parameters = [...others, { type: IntentParameterType.Boolean, value: direction === "add" } as any];
+            }
+          }
 
           // Changes the message never asked for: "add a note on that one" planned a status change too,
           // "remind me saturday to try outer wilds" planned a new collection.
@@ -423,7 +462,7 @@ export class AIRuntime {
         let generalAnswer: string | undefined = modelReply;
         if (wantsAnswer && requestContext) {
           try {
-            generalAnswer = (await this.provider.answer(cleanRequest, requestContext)) || modelReply;
+            generalAnswer = (await this.provider.answer(withPageGame(cleanRequest, requestContext.page?.gameTitle), requestContext)) || modelReply;
           } catch {
             generalAnswer = modelReply;
           }
@@ -512,7 +551,9 @@ export class AIRuntime {
       return await this.provider.plan(request, context, this.capabilityRegistry.list());
     } catch (error: any) {
       if (error?.code !== "PROVIDER_VALIDATION_ERROR") throw error;
-      return this.provider.plan(request, context, this.capabilityRegistry.list());
+      // At temperature 0 the same prompt gives the same broken reply, so the retry leaves out
+      // the recent conversation (the model once looped on its own earlier replies).
+      return this.provider.plan(request, { ...context, recentExchanges: [] }, this.capabilityRegistry.list());
     }
   }
 

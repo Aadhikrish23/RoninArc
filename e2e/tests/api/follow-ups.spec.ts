@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { asksToReadNotes, parseCollectionCommand, recommendationFollowUp, resolveOrdinals, unsupportedReply, wasAskedFor } from "../../../backend/src/modules/ai/conversation/FollowUps";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, recommendationFollowUp, resolveOrdinals, simpleAddTitle, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
 import { matchesTitle } from "../../../frontend/src/features/library/utils/titleSearch";
 
 // Playtest round 5: follow-ups the assistant got wrong.
@@ -107,5 +107,53 @@ test.describe("Library search shorthand", () => {
     test(`${JSON.stringify(query)} ${expected ? "finds" : "doesn't find"} ${title} @${expected ? "positive" : "negative"}`, () => {
       expect(matchesTitle(title, query)).toBe(expected);
     });
+  }
+});
+
+// Playtest round 7: questions that changed data, and collection moves reported backwards.
+test.describe("AI: questions are not commands", () => {
+  for (const text of ["should i play elden ring or sekiro first", "is outer wilds worth playing?", "which one should i start", "yo whats a good starting class"]) {
+    test(`${JSON.stringify(text)} is only a question @negative`, () => expect(isQuestionOnly(text)).toBe(true));
+  }
+  for (const text of ["can you add hades", "pause rdr2 im taking a break", "what's up, also mark celeste done", "could u rate it 8"]) {
+    test(`${JSON.stringify(text)} is a request @positive`, () => expect(isQuestionOnly(text)).toBe(false));
+  }
+  test("'is this one worth it?' is an opinion question about the page's game @positive", () => {
+    expect(asksForOpinion("is this one worth it? its been sitting in my backlog forever")).toBe(true);
+    expect(withPageGame("is this one worth it?", "Outer Wilds")).toBe("is Outer Wilds worth it?");
+  });
+});
+
+test.describe("AI: collection direction from the wording", () => {
+  for (const [text, expected] of [
+    ["put ds3 in there", "add"],
+    ["throw sekiro and elden ring in too", "add"],
+    ["take hollow knight out of soulslikes", "remove"],
+    ["remove dead cells from that collection", "remove"],
+  ] as const) {
+    test(`${JSON.stringify(text)} -> ${expected} @positive`, () => expect(collectionDirection(text)).toBe(expected));
+  }
+  test("'throw sekiro n elden ring in too' reads as 'and' @positive", () => {
+    expect(normalizeSlang("throw sekiro n elden ring in too")).toBe("throw sekiro and elden ring in too");
+  });
+});
+
+test.describe("AI: opinions and 'drop'", () => {
+  test("'should i play elden ring or sekiro first' wants an opinion @positive", () => {
+    expect(asksForOpinion("should i play elden ring or sekiro first")).toBe(true);
+  });
+  test("'what should i play tonight' is a recommendation, not an opinion @negative", () => {
+    expect(asksForOpinion("what should i play tonight?")).toBe(false);
+  });
+  test("'drop gta 5 its mid' is the Dropped status @positive", () => expect(meansDroppedStatus("drop gta 5 its mid")).toBe(true));
+  test("'remove gta 5 from my library' is a removal @negative", () => expect(meansDroppedStatus("drop gta 5, remove it from my library")).toBe(false));
+});
+
+test.describe("AI: plain adds skip the planner", () => {
+  for (const [text, title] of [["add gta 5", "gta 5"], ["i own hollow knight", "hollow knight"], ["add Elden Ring to my library", "Elden Ring"]] as const) {
+    test(`${JSON.stringify(text)} adds ${title} @positive`, () => expect(simpleAddTitle(text)).toBe(title));
+  }
+  for (const text of ["add elden ring to soulslikes", "add celeste and mark it completed", "add a note on hades: heat 0", "add tears of the kingdom as completed", "add it"]) {
+    test(`${JSON.stringify(text)} still goes to the planner @negative`, () => expect(simpleAddTitle(text)).toBeUndefined());
   }
 });

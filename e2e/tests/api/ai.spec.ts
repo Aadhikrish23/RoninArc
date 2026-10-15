@@ -463,3 +463,27 @@ test.describe("AI chat API: round 6", () => {
     expect(body.message).toBe("Your favourite so far is Hollow Knight, rated 10/10.\n\nYou're playing Hades.");
   });
 });
+
+// Round 7 of the gamer playtest: a question must never change anything.
+test.describe("AI chat API: round 7", () => {
+  test("'should i play X or Y first' answers and changes nothing @negative", async ({ api }) => {
+    const elden = await api.addGame(byName("Elden Ring"), { progressStatus: "plan" });
+    const { body } = await chat(api, "should i play elden ring or hollow knight first");
+    expect(body.message).toBe("Mock answer about: should i play elden ring or hollow knight first");
+    expect((await json(await api.get(`/game/${elden._id}`))).Data.progressStatus).toBe("plan");
+  });
+
+  test("'is this one worth it?' on a game page is about that game @positive", async ({ api }) => {
+    const game = await api.addGame(byName("Hollow Knight"));
+    const res = await api.post("/ai/chat", { message: "is this one worth it?", client: { pageGameId: game._id } });
+    expect((await json(res)).message).toBe("Mock answer about: is Hollow Knight worth it?");
+  });
+
+  test("'highest rated and how many have i finished' answers both @positive", async ({ api }) => {
+    const hk = await api.addGame(byName("Hollow Knight"), { progressStatus: "completed" });
+    await api.put(`/review/${hk._id}`, { rating: 9 });
+    await api.addGame(byName("Hades"), { progressStatus: "playing" });
+    const { body } = await chat(api, "whats my highest rated game and how many have i finished");
+    expect(body.message).toBe("Your favourite so far is Hollow Knight, rated 9/10.\n\nYou have 1 game finished, out of 2 games in your library.");
+  });
+});

@@ -4,7 +4,7 @@ import Note from "../../notes/Notemodel";
 import Review from "../../review/Reviewmodel";
 import LibraryGame from "../../library/LibraryGame";
 import rawgService from "../../rawg/rawgService";
-import { franchiseMatch, mentions } from "./TargetGrounding";
+import { franchiseMatch, namedTitles } from "./TargetGrounding";
 import { ACTION, NOTES_READ, NOTE_WRITE, namedCollection } from "./FollowUps";
 
 /**
@@ -49,7 +49,7 @@ export interface DirectAnswerContext {
 /** The library game a question is about: named, shorthand, the page, or "it". */
 function gameFor(question: string, ctx: DirectAnswerContext): string | undefined {
   return (
-    ctx.owned.filter((t) => mentions(question, t)).sort((a, b) => b.length - a.length)[0] ??
+    namedTitles(question, ctx.owned)[0] ??
     franchiseMatch(question, ctx.owned) ??
     (ctx.pageGame && PAGE_REF.test(question) ? ctx.pageGame : undefined) ??
     (ctx.currentGame && (IT_REF.test(question) || PAGE_REF.test(question)) ? ctx.currentGame : undefined)
@@ -160,7 +160,30 @@ async function describePlaying(question: string, ctx: DirectAnswerContext): Prom
   return `You're playing ${playing.map((g) => g.title).join(", ")}.`;
 }
 
-const HANDLERS = [describeCollection, describeNotes, describePlaytime, describeFeature, describeFavourite, describePlaying];
+const COUNT_STATUSES: [RegExp, string, string][] = [
+  [/\b(finish\w*|beat\w*|complete\w*|done)\b/i, "completed", "finished"],
+  [/\b(playing|in progress|on the go)\b/i, "playing", "playing"],
+  [/\b(paus\w*|on hold|break)\b/i, "paused", "paused"],
+  [/\b(drop\w*|abandon\w*|gave up)\b/i, "dropped", "dropped"],
+  [/\b(backlog|to play|planned|plan to play|left)\b/i, "backlog", "in your backlog"],
+];
+
+async function describeCounts(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
+  if (!/\bhow many\b/i.test(question) || ACTION.test(question)) return undefined;
+  const games = (await LibraryGame.find({ userId: new Types.ObjectId(ctx.userId) }).select("progressStatus").lean()) as any[];
+  const count = (status: string) =>
+    status === "backlog"
+      ? games.filter((g) => ["plan", "playing", "paused"].includes(g.progressStatus)).length
+      : games.filter((g) => g.progressStatus === status).length;
+  const asked = COUNT_STATUSES.filter(([re]) => re.test(question));
+  const plural = (n: number) => `${n} ${n === 1 ? "game" : "games"}`;
+  // "how many games do I have" gets the full breakdown from the library question tool.
+  if (asked.length === 0) return undefined;
+  const parts = asked.map(([, status, label]) => `${plural(count(status))} ${label}`);
+  return `You have ${parts.join(", ")}, out of ${plural(games.length)} in your library.`;
+}
+
+const HANDLERS = [describeCollection, describeNotes, describePlaytime, describeFeature, describeFavourite, describePlaying, describeCounts];
 
 async function answerOne(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   for (const handler of HANDLERS) {

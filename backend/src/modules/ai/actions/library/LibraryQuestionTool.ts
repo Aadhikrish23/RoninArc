@@ -5,7 +5,7 @@ import { AIToolResult } from "../../sdk/AIToolResult";
 import LibraryGame from "../../../library/LibraryGame";
 import Review from "../../../review/Reviewmodel";
 import Note from "../../../notes/Notemodel";
-import { mentions } from "../../conversation/TargetGrounding";
+import { namedTitles } from "../../conversation/TargetGrounding";
 
 interface LibraryQuestionInput {
   question?: string;
@@ -56,9 +56,8 @@ export class LibraryQuestionTool extends BaseTool<LibraryQuestionInput, any> {
 
     // A question about one game ("what did I rate witcher 3?", "is celeste finished?"):
     // answer it from the library, never by changing anything.
-    const named = games
-      .filter((g: any) => mentions(q, g.title))
-      .sort((a: any, b: any) => b.title.length - a.title.length)[0] as any;
+    const bestTitle = namedTitles(q, games.map((g: any) => g.title as string))[0];
+    const named = (bestTitle ? games.find((g: any) => g.title === bestTitle) : undefined) as any;
     if (named) {
       const review = await Review.findOne({ userId: uid, gameId: named._id }).lean();
       const status = STATUS_LABEL[named.progressStatus || "none"];

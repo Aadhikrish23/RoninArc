@@ -89,7 +89,8 @@ export default function RawgSearch({
           </InputRightElement>
         </InputGroup>
 
-        {dropdownOpen && !error && searchText.trim() && (ownedResults.length > 0 || discoverResults.length > 0) && (
+        {/* Results are only shown for the text they belong to, never the previous search. */}
+        {dropdownOpen && !error && searchText.trim() && searchedText === searchText.trim() && (ownedResults.length > 0 || discoverResults.length > 0) && (
           <RawgSearchDropdown
             ownedResults={ownedResults}
             discoverResults={rankedDiscoverResults}
@@ -99,6 +100,13 @@ export default function RawgSearch({
               onSearchSubmit();
             }}
           />
+        )}
+
+        {dropdownOpen && !error && searchText.trim().length >= 3 && searchedText !== searchText.trim() && (
+          <Box position="absolute" top="100%" left={0} right={0} mt={2} p={4} zIndex={20} bg={cardBg}
+            borderWidth="1px" borderColor={subtleBorder} borderRadius="xl" shadow="lg">
+            <Text fontSize="sm" color="gray.500">Searching…</Text>
+          </Box>
         )}
 
         {dropdownOpen && !error && !loading && searchText.trim().length >= 3 && searchedText === searchText.trim() &&

@@ -116,7 +116,7 @@ export function parseCollectionCommand(message: string, collections: string[], e
 const STATUS_WORDS =
   /\b(play\w*|start\w*|began|begun|finish\w*|beat\w*|complete\w*|complted|done|paus\w*|break|on hold|drop\w*|quit\w*|gave up|giving up|abandon\w*|plan\w*|backlog|status|mark\w*|set|move|100%|platinum\w*|credits)\b/i;
 const RATE_WORDS = /\b(rat\w*|scor\w*|review\w*|stars?|out of|give it|giving it|gave it|\d+(\.\d)?)\b|\/\s*10/i;
-const COLLECTION_WORDS = /\b(collection\w*|list|folder|group|shelf|put|in there|into|add\w*|move|organi[sz]e)\b/i;
+const COLLECTION_WORDS = /\b(collection\w*|list|folder|group|shelf|put|throw|chuck|toss|stick|in there|into|add\w*|move|organi[sz]e|remove|take|out|from)\b/i;
 const NOTE_WORDS = /\b(note\w*|jot|write (it )?down|remember|memo)\b/i;
 
 const ASKED_BY: Record<string, RegExp> = {
@@ -136,4 +136,63 @@ const ASKED_BY: Record<string, RegExp> = {
 export function wasAskedFor(intentType: string, message: string): boolean {
   const words = Object.prototype.hasOwnProperty.call(ASKED_BY, intentType) ? ASKED_BY[intentType] : undefined;
   return !words || words.test(message);
+}
+
+// ---- Questions are never commands. ----
+// ("should i play elden ring or sekiro first" set Elden Ring to Playing.)
+const QUESTION_FORM =
+  /^(?:(?:hey|yo|ok|okay|so|hmm|btw|also|wait|honestly)[,!]?\s+)*(should|shall|is|are|was|were|which|what|whats|what's|how|do|does|did|would i|could i|can i|will i|why|who|when|where|any)\b/i;
+/** "can you add hades", "please mark it done" are requests, even phrased as questions. */
+const REQUEST_FORM = /^(?:(?:hey|yo|ok|okay|so)[,!]?\s+)*(can|could|would|will) (you|u)\b|\b(please|pls|plz)\b/i;
+const THEN_DO = /\b(and|also|then|so)\s+(add|put|mark|set|remove|delete|rate|pause|drop|start|move)\b/i;
+
+export const isQuestionOnly = (message: string) =>
+  QUESTION_FORM.test(message.trim()) && !REQUEST_FORM.test(message) && !THEN_DO.test(message);
+
+/** "is this worth playing?", "is outer wilds any good?" want an opinion, not a library readout. */
+const WORTH = /\b(worth (it|playing|buying|getting|the money|my time|a try|starting)|any good|is (it|this|that)( one| game)? good|hype)\b/i;
+/** "elden ring or sekiro first?", "which one is harder": comparisons want an opinion too. */
+const COMPARE = /\bor\b[^?.!]*\b(first|next|better|harder|easier|instead)\b|\b(first|better|harder|easier)\b[^?.!]*\bor\b|\bwhich (one|game)\b/i;
+export const asksForOpinion = (message: string) => (WORTH.test(message) || COMPARE.test(message)) && isQuestionOnly(message);
+
+/** "drop gta 5 its mid" means the Dropped status; removing from the library needs removal words. */
+const DROP_WORDS = /\b(drop|dropp\w*|droppin)\b/i;
+const LIBRARY_REMOVAL = /\b(remove|delete|get rid|yeet|uninstall|off my (list|library)|from my (list|library)|out of my (list|library))\b/i;
+export const meansDroppedStatus = (message: string) => DROP_WORDS.test(message) && !LIBRARY_REMOVAL.test(message);
+
+/** "is this one worth it?" on Outer Wilds' page -> "is Outer Wilds worth it?" */
+export function withPageGame(message: string, pageGame?: string | null): string {
+  if (!pageGame) return message;
+  return message.replace(/\b(this one|this game|this)\b/i, pageGame);
+}
+
+/** Whether a collection message adds or takes out -- the model once reported "removed" for "put ds3 in there". */
+const COLLECTION_ADD = /\b(put|add|throw|chuck|toss|stick|include|in there|into)\b/i;
+const COLLECTION_REMOVE = /\b(remove|take|pull|delete|kick|drop)\b[^.?!]*\b(out|from|off)\b|\b(remove|take out|pull out)\b/i;
+export function collectionDirection(message: string): "add" | "remove" | undefined {
+  const add = COLLECTION_ADD.test(message);
+  const remove = COLLECTION_REMOVE.test(message);
+  if (add && !remove) return "add";
+  if (remove && !add) return "remove";
+  return undefined;
+}
+
+/** "throw sekiro n elden ring in too" -> "... sekiro and elden ring ..." */
+export const normalizeSlang = (message: string) =>
+  message.replace(/\s+(n|&|\+)\s+/gi, " and ").replace(/\bu\b/gi, "you").replace(/\bpls\b|\bplz\b/gi, "please");
+
+/**
+ * "add gta 5", "i own hades": a plain add needs no planner (the model once looped on its own
+ * earlier replies and failed "add gta 5" twice). Anything more ("to soulslikes", "and mark it
+ * completed", "as playing") still goes through the planner.
+ */
+const SIMPLE_ADD = /^(?:(?:pls|please|yo|ok|okay|also)[,!]?\s+)*(?:add|i (?:own|have|got|bought))\s+(.+?)(?:\s+to my (?:library|list|games))?\s*[.!]*$/i;
+const NOT_A_TITLE = /\b(and|also|then|as|mark|rate|to|into|in there|note|collection|list|review|status|playing|completed|finished|dropped|paused)\b|[,;:?]/i;
+
+export function simpleAddTitle(message: string): string | undefined {
+  const match = message.trim().match(SIMPLE_ADD);
+  if (!match) return undefined;
+  const title = match[1].trim();
+  if (!title || title.length > 60 || NOT_A_TITLE.test(title) || /^(a|an|the|some|it|that|this|them)\b/i.test(title)) return undefined;
+  return title;
 }

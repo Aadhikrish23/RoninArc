@@ -31,6 +31,12 @@ export class OllamaClient {
         responseText = JSON.stringify({
           intents: [{ type: "SetStatus", targets: [{ type: "Game", name: "Hades" }], parameters: [{ type: "Status", value: "playing" }] }],
         });
+      } else if (queryLower.startsWith("should i play elden ring")) {
+        // Real-model failure from playtest round 7: a "which first?" question came back as a
+        // status change. The runtime must answer it and change nothing.
+        responseText = JSON.stringify({
+          intents: [{ type: "SetStatus", targets: [{ type: "Game", name: "Elden Ring" }], parameters: [{ type: "Status", value: "playing" }] }],
+        });
       } else if (queryLower.startsWith("what did i rate")) {
         responseText = JSON.stringify({
           intents: [{ type: "LibraryQuestion", targets: [], parameters: [{ type: "Text", value: query }] }],
