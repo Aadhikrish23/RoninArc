@@ -185,6 +185,22 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect(body).toMatchObject({ success: true, message: "**Cozy Nights** has 1 game:\n- Fallout Shelter" });
     });
 
+    test("'read me my notes for <game>' reads them and saves nothing @positive", async ({ api }) => {
+      const game = await api.addGame(shelter);
+      await api.post(`/notes/${game._id}`, { content: "build the power room first" });
+      const { body } = await chat(api, "read me my notes for fallout shelter");
+      expect(body).toMatchObject({ success: true, message: "Your note on Fallout Shelter:\n- build the power room first" });
+      expect((await json(await api.get(`/notes/${game._id}`))).Data).toHaveLength(1);
+    });
+
+    test("two questions in one message both get answered @positive", async ({ api }) => {
+      const game = await api.addGame(shelter);
+      const col = (await json(await api.post("/collection", { name: "Soulslikes" }))).Data;
+      await api.post(`/collection/${col._id}/games`, { gameId: game._id });
+      const { body } = await chat(api, "whats in my soulslike collection rn? and did i write any notes on fallout shelter");
+      expect(body.message).toBe("**Soulslikes** has 1 game:\n- Fallout Shelter\n\nYou haven't written any notes on Fallout Shelter yet.");
+    });
+
     test("an empty collection says so instead of inventing games @negative", async ({ api }) => {
       await api.post("/collection", { name: "Cozy Nights" });
       const { body } = await chat(api, "what's in cozy nights");

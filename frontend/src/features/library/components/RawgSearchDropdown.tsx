@@ -12,6 +12,7 @@ import {
 
 import type { RawgGameResult, Game } from "../types/library";
 import { useNavigate } from "react-router-dom";
+import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 
 interface Props {
   ownedResults: Game[];
@@ -61,8 +62,8 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
               bg: hoverBg,
             }}
           >
-            <Image
-              src={game.imageURL ?? "/placeholder.jpg"}
+            <Image fallbackSrc={PLACEHOLDER_IMAGE}
+              src={game.imageURL ?? PLACEHOLDER_IMAGE}
               alt={game.title}
               boxSize="60px"
               objectFit="cover"
@@ -110,8 +111,8 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
               bg: hoverBg,
             }}
           >
-            <Image
-              src={game.imageURL ?? "/placeholder.jpg"}
+            <Image fallbackSrc={PLACEHOLDER_IMAGE}
+              src={game.imageURL ?? PLACEHOLDER_IMAGE}
               alt={game.name}
               boxSize="60px"
               objectFit="cover"

@@ -15,6 +15,8 @@ export function useRawgSearch() {
   });
 
   const [loading, setLoading] = useState(false);
+  // The text the current results are for, so "no results" never shows for a search still pending.
+  const [searchedText, setSearchedText] = useState("");
 
   const [error, setError] = useState<string | null>(null);
 
@@ -47,6 +49,7 @@ export function useRawgSearch() {
       }
 
       setResults(data);
+      setSearchedText(searchText.trim());
     } catch (error) {
       if (requestId === latestRequest.current) setError(getErrorMessage(error));
     } finally {
@@ -84,6 +87,7 @@ export function useRawgSearch() {
     totalDiscover: results.totalDiscover,
     loading,
     error,
+    searchedText,
     clearSearch,
     performSearch,
   };

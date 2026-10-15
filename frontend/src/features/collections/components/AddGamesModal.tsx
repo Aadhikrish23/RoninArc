@@ -17,6 +17,7 @@ import {
 import { useMemo, useState } from "react";
 
 import type { Game } from "../../library/types/library";
+import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 
 interface Props {
   isOpen: boolean;
@@ -97,7 +98,7 @@ export default function AddGamesModal({ isOpen, onClose, collectionName, candida
                   _hover={{ bg: "blackAlpha.100" }}
                 >
                   <HStack spacing={3}>
-                    <Image src={game.imageURL} alt="" boxSize="36px" objectFit="cover" borderRadius="sm" fallbackSrc="/placeholder.jpg" />
+                    <Image src={game.imageURL} alt="" boxSize="36px" objectFit="cover" borderRadius="sm" fallbackSrc={PLACEHOLDER_IMAGE} />
                     <Text>{game.title}</Text>
                   </HStack>
                 </Checkbox>

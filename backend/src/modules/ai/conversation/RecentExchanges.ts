@@ -16,7 +16,7 @@ class RecentExchanges {
 
   add(userId: string, user: string, assistant: string) {
     const list = this.byUser.get(userId) ?? [];
-    list.push({ user, assistant: assistant.slice(0, 400) });
+    list.push({ user, assistant: assistant.slice(0, 800) });
     this.byUser.set(userId, list.slice(-MAX));
   }
 

@@ -4,6 +4,7 @@ import { AIToolContext } from "../../sdk/AIToolContext";
 import { AIToolResult } from "../../sdk/AIToolResult";
 import LibraryGame from "../../../library/LibraryGame";
 import Review from "../../../review/Reviewmodel";
+import Note from "../../../notes/Notemodel";
 import { mentions } from "../../conversation/TargetGrounding";
 
 interface LibraryQuestionInput {
@@ -65,8 +66,15 @@ export class LibraryQuestionTool extends BaseTool<LibraryQuestionInput, any> {
         ? `You rated it ${review.rating}/10${review.reviewText ? `: "${review.reviewText}"` : "."}`
         : "You haven't rated it yet.";
       const statusText = status === STATUS_LABEL.none ? "has no status yet" : `is ${status === "Plan to Play" ? "on your Plan to Play list" : `marked ${status}`}`;
+      let notesText = "";
+      if (/\bnotes?\b/.test(q)) {
+        const notes = await Note.find({ userId: uid, gameId: named._id }).sort({ createdAt: -1 }).lean();
+        notesText = notes.length
+          ? `\n\nYour ${notes.length === 1 ? "note" : `${notes.length} notes`}:\n${notes.map((n: any) => `- ${n.content}`).join("\n")}`
+          : " You haven't written any notes on it yet.";
+      }
       return this.success({ game: named.title, status: named.progressStatus, rating: review?.rating ?? null },
-        `${named.title} ${statusText}. ${rated}`);
+        `${named.title} ${statusText}. ${rated}${notesText}`);
     }
 
     const by = (status: string) => games.filter((g: any) => (g.progressStatus || "none") === status).map((g: any) => g.title as string);

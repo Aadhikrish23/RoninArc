@@ -22,6 +22,7 @@ import { useNavigate } from "react-router-dom";
 import { PROVIDER_CONFIGS } from "../../providers/constants/providers";
 import type { ProviderId } from "../../providers/types/provider";
 import { memo } from "react";
+import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 
 interface GameListRowProps {
   game: Game;
@@ -92,7 +93,7 @@ function GameListRow({
         <HStack spacing={4} flex={1} minW="250px">
           <Image
             src={game.imageURL}
-            fallbackSrc="/placeholder.jpg"
+            fallbackSrc={PLACEHOLDER_IMAGE}
             boxSize="50px"
             objectFit="cover"
             borderRadius="md"

@@ -1,4 +1,5 @@
 import {
+  Box,
   Button,
   FormControl,
   FormLabel,
@@ -117,7 +118,8 @@ const ReviewModal = ({
               >
                 <NumberInputField placeholder="e.g. 8.5" />
               </NumberInput>
-              {ratingError && <FormErrorMessage>{ratingError}</FormErrorMessage>}
+              {/* The message keeps its space, so Save doesn't jump when it appears or clears. */}
+              <Box minH="24px">{ratingError && <FormErrorMessage>{ratingError}</FormErrorMessage>}</Box>
             </FormControl>
 
             <FormControl>

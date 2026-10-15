@@ -39,6 +39,7 @@ import { getDashboardOverview } from "../api/dashboardApi";
 import type { DashboardGameSummary, DashboardOverview } from "../types/dashboard";
 import { eventBus } from "../../../shared/events/EventBus";
 import { canLaunchGames } from "../../../shared/utils/runtime";
+import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 
 const detailsPath = (g: DashboardGameSummary) => `/library/game/${g.rawgId ? String(g.rawgId) : g._id}`;
 
@@ -116,7 +117,7 @@ function Panel({ title, icon, action, children }: { title: string; icon: IconTyp
 function Cover({ game, w, h }: { game: DashboardGameSummary; w: string; h: string }) {
   const placeholder = useColorModeValue("gray.200", "gray.700");
   return game.imageURL ? (
-    <Image src={game.imageURL} alt={game.title} w={w} h={h} objectFit="cover" borderRadius="md" flexShrink={0} />
+    <Image fallbackSrc={PLACEHOLDER_IMAGE} src={game.imageURL} alt={game.title} w={w} h={h} objectFit="cover" borderRadius="md" flexShrink={0} />
   ) : (
     <Box w={w} h={h} bg={placeholder} borderRadius="md" flexShrink={0} />
   );
@@ -214,7 +215,7 @@ function DashboardPage() {
                     >
                       <Cover game={game} w="56px" h="72px" />
                       <Box flex="1" minW={0}>
-                        <Text fontWeight="semibold" noOfLines={1}>
+                        <Text fontWeight="semibold" noOfLines={2} title={game.title}>
                           {game.title}
                         </Text>
                         <Text fontSize="sm" color={mutedText}>
@@ -309,7 +310,7 @@ function DashboardPage() {
                   </Text>
                 </Flex>
                 <Text fontSize="xs" color={mutedText} mb={2}>
-                  Your backlog is everything set to Plan to Play, Playing or Paused. {data.backlog.byStatus.completed} of {committed} finished.
+                  Your backlog is everything set to Plan to Play, Playing or Paused. {data.backlog.byStatus.completed} of {committed} finished (backlog plus completed; dropped games aren't counted).
                 </Text>
                 <Progress value={completedShare} colorScheme="green" size="sm" borderRadius="full" mb={4} aria-label="Finished out of planned, playing, paused and completed games" />
 

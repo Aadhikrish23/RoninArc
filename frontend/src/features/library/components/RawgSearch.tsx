@@ -7,14 +7,14 @@ import {
   Spinner,
   useColorModeValue,
   InputRightElement,
+  Text,
 } from "@chakra-ui/react";
 
 import { SearchIcon } from "@chakra-ui/icons";
 
 import type { RawgGameResult, Game } from "../types/library";
 import RawgSearchDropdown from "./RawgSearchDropdown";
-import { rankSearchResults } from "../utils/searchRanking";
-import { useMemo, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface RawgSearchProps {
   searchText: string;
@@ -23,6 +23,8 @@ interface RawgSearchProps {
   discoverResults: RawgGameResult[];
   loading: boolean;
   error: string | null;
+  /** The text the results are for. */
+  searchedText?: string;
   onAddGame: (game: RawgGameResult) => void;
   onSearchSubmit: () => void;
 }
@@ -34,6 +36,7 @@ export default function RawgSearch({
   discoverResults,
   loading,
   error,
+  searchedText,
   onSearchSubmit,
   onAddGame,
 }: RawgSearchProps) {
@@ -41,14 +44,8 @@ export default function RawgSearch({
 
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
  
-  const rankedDiscoverResults = useMemo(
-    () =>
-      rankSearchResults(
-        discoverResults,
-        searchText
-      ),
-    [discoverResults, searchText]
-  );
+  // The server already ranks by title match (abbreviations, typos, subtitles); keep its order.
+  const rankedDiscoverResults = discoverResults;
 
   // The suggestions close on Escape, a click elsewhere, or Enter (which opens the full results).
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -103,6 +100,15 @@ export default function RawgSearch({
             }}
           />
         )}
+
+        {dropdownOpen && !error && !loading && searchText.trim().length >= 3 && searchedText === searchText.trim() &&
+          ownedResults.length === 0 && discoverResults.length === 0 && (
+            <Box position="absolute" top="100%" left={0} right={0} mt={2} p={4} zIndex={20} bg={cardBg}
+              borderWidth="1px" borderColor={subtleBorder} borderRadius="xl" shadow="lg">
+              <Text fontSize="sm">No games found for "{searchText.trim()}".</Text>
+              <Text fontSize="xs" color="gray.500" mt={1}>Check the spelling, or try the game's full name.</Text>
+            </Box>
+          )}
       </Box>
     </>
   );

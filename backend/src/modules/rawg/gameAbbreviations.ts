@@ -7,7 +7,7 @@
 const ABBREVIATIONS: Record<string, string> = {
   ds1: "Dark Souls", ds2: "Dark Souls II", ds3: "Dark Souls III", dsr: "Dark Souls: Remastered",
   er: "Elden Ring", sekiro: "Sekiro: Shadows Die Twice", bb: "Bloodborne",
-  botw: "The Legend of Zelda: Breath of the Wild", totk: "The Legend of Zelda: Tears of the Kingdom",
+  botw: "The Legend of Zelda: Breath of the Wild", totk: "The Legend of Zelda: Tears of the Kingdom", botw2: "The Legend of Zelda: Tears of the Kingdom", zeldabotw2: "The Legend of Zelda: Tears of the Kingdom", breathofthewild2: "The Legend of Zelda: Tears of the Kingdom", zeldabreathofthewild2: "The Legend of Zelda: Tears of the Kingdom", legendofzeldabreathofthewild2: "The Legend of Zelda: Tears of the Kingdom", thelegendofzeldabreathofthewild2: "The Legend of Zelda: Tears of the Kingdom",
   rdr: "Red Dead Redemption", rdr1: "Red Dead Redemption", rdr2: "Red Dead Redemption 2",
   gta3: "Grand Theft Auto III", gtavc: "Grand Theft Auto: Vice City", gtasa: "Grand Theft Auto: San Andreas",
   gta4: "Grand Theft Auto IV", gtaiv: "Grand Theft Auto IV", gta5: "Grand Theft Auto V", gtav: "Grand Theft Auto V",
@@ -43,5 +43,6 @@ const compact = (text: string) => text.toLowerCase().replace(/[^a-z0-9]/g, "");
 
 /** The full title for a known abbreviation ("rdr 2" -> "Red Dead Redemption 2"), or null. */
 export function expandAbbreviation(query: string): string | null {
-  return ABBREVIATIONS[compact(query)] ?? null;
+  const key = compact(query);
+  return Object.prototype.hasOwnProperty.call(ABBREVIATIONS, key) ? ABBREVIATIONS[key] : null;
 }

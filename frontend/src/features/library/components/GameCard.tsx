@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { PROVIDER_CONFIGS } from "../../providers/constants/providers";
 import type { ProviderId } from "../../providers/types/provider";
 import { memo, useState } from "react";
+import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 
 interface GameCardProps {
   game: Game;
@@ -98,7 +99,7 @@ function GameCard({
           objectFit="cover"
           loading="lazy"
           decoding="async"
-          fallbackSrc="/placeholder.jpg"
+          fallbackSrc={PLACEHOLDER_IMAGE}
           opacity={loaded ? 1 : 0}
           transition="opacity .3s"
           onLoad={() => setLoaded(true)}

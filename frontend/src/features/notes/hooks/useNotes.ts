@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@chakra-ui/react";
 
 import noteApi from "../api/noteApi";
+import eventBus from "../../../shared/events/EventBus";
 import type { Note } from "../types/note";
 
 export function useNotes(gameId: string | undefined) {
@@ -31,6 +32,9 @@ export function useNotes(gameId: string | undefined) {
   useEffect(() => {
     fetchNotes();
   }, [fetchNotes]);
+
+  // Notes the assistant added or changed.
+  useEffect(() => eventBus.subscribe("notes.updated", () => fetchNotes()), [fetchNotes]);
 
   const addNote = async (content: string) => {
     if (!gameId || !content.trim()) return;

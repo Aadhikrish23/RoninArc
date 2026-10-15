@@ -29,11 +29,12 @@ export default function GameStats({
 
   const stats = [
     {
-      label: "Rating",
-      value: game.rating,
+      // RAWG rates out of 5; show it on the same /10 scale as the header and your own rating.
+      label: "Player rating",
+      value: game.rating ? `${(game.rating * 2).toFixed(1)}/10` : "-",
     },
     {
-      label: "Reviews",
+      label: "Player reviews",
       value: game.ratingsCount,
     },
     {
@@ -41,8 +42,8 @@ export default function GameStats({
       value: game.metacritic ?? "-",
     },
     {
-      label: "Playtime",
-      value: `${game.playtime}h`,
+      label: "Avg. playtime",
+      value: game.playtime ? `${game.playtime}h` : "-",
     },
   ];
 

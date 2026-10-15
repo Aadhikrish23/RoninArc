@@ -23,7 +23,7 @@ interface CollectionContextType {
   createCollection: (
     name: string,
     description?: string
-  ) => Promise<void>;
+  ) => Promise<Collection>;
 
   deleteCollection: (
     collectionId: string
@@ -108,6 +108,7 @@ export function CollectionProvider({
       duration: 2000,
       isClosable: true,
     });
+    return created;
   };
 
   const deleteCollection = async (
@@ -153,7 +154,7 @@ export function CollectionProvider({
 
       if (!options.silent) {
         toast({
-          title: "Game Added",
+          title: updated?.name ? `Added to ${updated.name}` : "Game Added",
           status: "success",
           duration: 2000,
           isClosable: true,

@@ -315,7 +315,11 @@ export default function UserGameStats({
           <CreateCollectionModal
             isOpen={isCreateOpen}
             onClose={() => setIsCreateOpen(false)}
-            onCreate={createCollection}
+            onCreate={async (name, description) => {
+              // Made from this game's page: the game goes straight into it.
+              const created = await createCollection(name, description);
+              if (created?._id) onAddToCollection(created._id, game._id);
+            }}
           />
         </Box>
 

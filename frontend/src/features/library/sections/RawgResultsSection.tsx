@@ -17,6 +17,7 @@ import { RxHamburgerMenu } from "react-icons/rx";
 import { BsGrid3X3Gap } from "react-icons/bs";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 
 interface Props {
   searchText: string;
@@ -57,7 +58,7 @@ export default function RawgResultsSection({
         onClick={() => navigate(`/library/game/${game._id}`)}
         _hover={{ shadow: "md" }}
       >
-        <Image
+        <Image fallbackSrc={PLACEHOLDER_IMAGE}
           src={game.imageURL || "https://placehold.co/120x80?text=No+Image"}
           h="180px"
           w="100%"
@@ -113,7 +114,7 @@ export default function RawgResultsSection({
         }}
         onClick={() => navigate(`/library/game/${game._id}`)}
       >
-        <Image
+        <Image fallbackSrc={PLACEHOLDER_IMAGE}
           src={game.imageURL || "https://placehold.co/120x80?text=No+Image"}
           alt={game.title}
           boxSize="140px"
@@ -162,7 +163,7 @@ export default function RawgResultsSection({
       onClick={() => navigate(`/library/game/${game.id}`)}
       _hover={{ shadow: "md" }}
     >
-      <Image
+      <Image fallbackSrc={PLACEHOLDER_IMAGE}
         src={game.imageURL || "https://placehold.co/120x80?text=No+Image"}
         h="180px"
         w="100%"
@@ -209,7 +210,7 @@ export default function RawgResultsSection({
       }}
       onClick={() => navigate(`/library/game/${game.id}`)}
     >
-      <Image
+      <Image fallbackSrc={PLACEHOLDER_IMAGE}
         src={game.imageURL || "https://placehold.co/120x80?text=No+Image"}
         alt={game.name}
         boxSize="140px"

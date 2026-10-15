@@ -84,6 +84,39 @@ function cleanJsonString(input: string): string {
   return result;
 }
 
+/**
+ * The model sometimes closes with the wrong bracket ("}" where "]" belongs, then "]" for "}").
+ * Each closer that doesn't match the innermost opener becomes the one that does.
+ */
+export function fixMismatchedClosers(input: string): string {
+  const stack: string[] = [];
+  let inString = false;
+  let isEscaped = false;
+  let out = "";
+  for (const char of input) {
+    if (inString) {
+      out += char;
+      if (isEscaped) isEscaped = false;
+      else if (char === "\\") isEscaped = true;
+      else if (char === '"') inString = false;
+      continue;
+    }
+    if (char === '"') {
+      inString = true;
+      out += char;
+    } else if (char === "{" || char === "[") {
+      stack.push(char);
+      out += char;
+    } else if (char === "}" || char === "]") {
+      const open = stack.pop();
+      out += open === "[" ? "]" : open === "{" ? "}" : char;
+    } else {
+      out += char;
+    }
+  }
+  return out;
+}
+
 function balanceJson(input: string): string {
   const stack: Array<"{" | "["> = [];
   let inString = false;
@@ -204,7 +237,8 @@ export class IntentParser {
         t = t.replace(/'([^'\\]*(?:\\.[^'\\]*)*)'/g, '"$1"');
       }
 
-      // 5. Balance unclosed brackets and braces
+      // 5. Fix wrong closing brackets, then balance unclosed ones
+      t = fixMismatchedClosers(t);
       t = balanceJson(t);
 
       return t.trim();

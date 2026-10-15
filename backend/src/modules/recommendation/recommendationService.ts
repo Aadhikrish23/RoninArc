@@ -45,7 +45,10 @@ const KNOWN_GENRES = [
   "Board Games", "Educational", "Card",
 ];
 
-const toSlug = (genre: string) => RAWG_GENRE_SLUGS[genre.trim().toLowerCase()];
+const toSlug = (genre: string) => {
+  const key = genre.trim().toLowerCase();
+  return Object.prototype.hasOwnProperty.call(RAWG_GENRE_SLUGS, key) ? RAWG_GENRE_SLUGS[key] : undefined;
+};
 
 export interface RecommendationResult {
   profile: {
@@ -77,6 +80,12 @@ const STYLE_TAGS: [RegExp, string, string][] = [
   [/\bhorror\b/, "horror", "Horror"],
 ];
 
+/** Styles that library genres can stand in for. */
+const STYLE_GENRES: Record<string, string[]> = { cozy: ["Simulation", "Casual", "Family"] };
+
+/** Play styles specific enough to define "games like X" (open world or co-op alone don't). */
+const DISTINCTIVE_STYLES = new Set(["roguelite", "roguelike", "souls-like", "metroidvania", "deckbuilding", "jrpg"]);
+
 function styleTags(query?: string): { slugs: string[]; label?: string } {
   const q = (query || "").toLowerCase();
   const hits = STYLE_TAGS.filter(([re]) => re.test(q));
@@ -88,6 +97,11 @@ function lengthPreference(query?: string): LengthPreference | undefined {
   const q = (query || "").toLowerCase();
   const limit = q.match(/\b(under|less than|below|max|at most|<)\s*(\d{1,3})\s*(h|hr|hrs|hours?)\b/);
   if (limit) return { maxHours: Number(limit[2]) };
+  // "a roguelike i can finish in like 10-15 hours"
+  const range = q.match(/\b(\d{1,3})\s*(?:-|–|to)\s*(\d{1,3})\s*(h|hr|hrs|hours?)\b/);
+  if (range) return { maxHours: Math.max(Number(range[1]), Number(range[2])) };
+  // "only got like 2 hrs tonight": a short session, so a short game.
+  if (/\b(only )?(got|have)( like| about| maybe)? \d\s*(h|hrs?|hours?)\b/.test(q)) return "short";
   if (/\bi (don'?t|dont) have \d{2,3}\s*(h|hrs?|hours?)\b/.test(q)) return "short";
   // "something I could beat in a weekend" is roughly a 15-hour game.
   if (/\bweekend\b/.test(q)) return { maxHours: 15 };
@@ -138,6 +152,13 @@ async function getRecommendations(
         .sort((a, b) => b.title.length - a.title.length)[0]
     : undefined;
   const like = likeGame ? { title: likeGame.title, tags: likeGame.tags } : undefined;
+  // "like Hades" also means "plays like Hades": borrow its play style (roguelike) from RAWG.
+  let discoverStyles = styles;
+  if (styles.slugs.length === 0 && likeGame?.rawgId) {
+    const tags = await rawgService.getGameTagSlugs(likeGame.rawgId);
+    const style = STYLE_TAGS.find(([, slug]) => DISTINCTIVE_STYLES.has(slug) && tags.includes(slug));
+    if (style) discoverStyles = { slugs: [style[1]], label: `${style[2]}, like ${likeGame.title}` };
+  }
 
   const result: RecommendationResult = {
     profile: {
@@ -153,8 +174,18 @@ async function getRecommendations(
   if (options.type !== "discover") {
     // A play style ("roguelike") can't be checked against library games (they only carry
     // genres), and a length limit needs a known playtime: only offer backlog picks we can vouch for.
-    const backlogPool = length ? library.filter((g) => (g.avgHours ?? 0) >= 3) : library;
-    result.backlog = styles.slugs.length > 0 ? [] : rankBacklog(backlogPool, profile, { limit: options.limit, focus, length, like });
+    // "only got 2 hrs tonight" limits the session, not the game: any backlog game can fill it.
+    const session = /\b(tonight|today|right now|this evening)\b/.test((options.query || "").toLowerCase()) && length === "short";
+    const backlogLength = session ? undefined : length;
+    const backlogPool = backlogLength ? library.filter((g) => (g.avgHours ?? 0) >= 3) : library;
+    // Some styles do map onto genres: "cozy" backlog picks are the sims and casual games.
+    const styleGenres = styles.slugs.every((s) => STYLE_GENRES[s]) ? styles.slugs.flatMap((s) => STYLE_GENRES[s]) : [];
+    result.backlog =
+      styles.slugs.length === 0
+        ? rankBacklog(backlogPool, profile, { limit: options.limit, focus, length: backlogLength, like })
+        : styleGenres.length > 0
+          ? rankBacklog(backlogPool, profile, { limit: options.limit, focus: [...focus, ...styleGenres], length: backlogLength, like })
+          : [];
   }
 
   if (options.type !== "backlog") {
@@ -164,17 +195,17 @@ async function getRecommendations(
       const [candidates, dismissed] = await Promise.all([
         // One retry: RAWG is sometimes slow or briefly unavailable.
         rawgService
-          .discoverByGenres(styles.slugs.length > 0 ? [] : slugs, 40, styles.slugs)
-          .catch(() => rawgService.discoverByGenres(styles.slugs.length > 0 ? [] : slugs, 40, styles.slugs)),
+          .discoverByGenres(discoverStyles.slugs.length > 0 ? [] : slugs, 40, discoverStyles.slugs)
+          .catch(() => rawgService.discoverByGenres(discoverStyles.slugs.length > 0 ? [] : slugs, 40, discoverStyles.slugs)),
         RecommendationFeedback.find({ userId }).select("rawgId").lean(),
       ]);
       result.discover = rankDiscover(candidates, library, profile, {
         limit: options.limit,
         dismissed: new Set(dismissed.map((d: any) => d.rawgId)),
-        focus: styles.slugs.length > 0 ? [] : focus,
+        focus: discoverStyles.slugs.length > 0 ? [] : focus,
         length,
         like,
-        tagLabel: styles.label,
+        tagLabel: discoverStyles.label,
       });
     } catch {
       // Discovery needs RAWG; backlog picks are computed locally and still work offline.

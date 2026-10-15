@@ -12,7 +12,7 @@ import {
 } from "@chakra-ui/react";
 
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@chakra-ui/react";
 
 import type { RawgGameResult } from "../types/library";
@@ -54,6 +54,7 @@ function LibraryPage() {
     loading: rawgLoading,
     error: rawgError,
     clearSearch,
+    searchedText,
     performSearch,
   } = useRawgSearch();
   const navigate = useNavigate();
@@ -158,6 +159,14 @@ function LibraryPage() {
     fetchCollections();
   }, [fetchLibrary, fetchCollections]);
 
+  // The navbar's "Library" (or logo) while already here: back to the library itself.
+  const location = useLocation();
+  const libraryHome = (location.state as { libraryHome?: number } | null)?.libraryHome;
+  useEffect(() => {
+    if (libraryHome) handleBackToLibrary();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [libraryHome]);
+
   const handleAddGame = async (rawgGame: RawgGameResult) => {
     await addGame({
       rawgId: rawgGame.id,
@@ -210,6 +219,7 @@ function LibraryPage() {
             discoverResults={discoverResults}
             loading={rawgLoading}
             error={rawgError}
+            searchedText={searchedText}
             onAddGame={handleAddGame}
             onSearchSubmit={handleSearchSubmit}
           />
@@ -233,6 +243,7 @@ function LibraryPage() {
               discoverResults={discoverResults}
               loading={rawgLoading}
               error={rawgError}
+              searchedText={searchedText}
               onAddGame={handleAddGame}
               onSearchSubmit={handleSearchSubmit}
             />

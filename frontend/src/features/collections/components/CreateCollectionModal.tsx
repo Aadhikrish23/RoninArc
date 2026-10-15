@@ -26,7 +26,7 @@ interface Props {
   onCreate: (
     name: string,
     description?: string
-  ) => Promise<void>;
+  ) => Promise<unknown>;
 }
 
 export default function CreateCollectionModal({

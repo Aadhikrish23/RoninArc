@@ -145,19 +145,11 @@ export function AIProvider({ children }: { children: ReactNode }) {
       }
 
       // Publish completion events on the shared EventBus
+      // Any change can touch any of these ("put this one in soulslikes" never says "collection").
       if (response.success) {
-        const textLower = text.toLowerCase();
-
-        if (textLower.includes("collection")) {
-          eventBus.publish("collection.updated");
-        }
-        if (textLower.includes("review") || textLower.includes("rate") || textLower.includes("stars")) {
-          eventBus.publish("review.updated");
-        }
-        if (textLower.includes("install") || textLower.includes("download")) {
-          eventBus.publish("library.updated");
-        }
-        
+        eventBus.publish("collection.updated");
+        eventBus.publish("review.updated");
+        eventBus.publish("notes.updated");
         eventBus.publish("library.updated");
         eventBus.publish("dashboard.updated");
       }

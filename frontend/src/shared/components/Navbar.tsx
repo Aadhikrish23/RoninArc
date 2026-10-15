@@ -36,7 +36,7 @@ function Navbar() {
       zIndex={10}
     >
       <Flex align="center" maxW="1200px" mx="auto">
-        <Heading size="md" cursor="pointer" onClick={() => navigate("/")}>
+        <Heading size="md" cursor="pointer" onClick={() => navigate("/", { state: { libraryHome: Date.now() } })}>
           RoninArc
         </Heading>
 
@@ -53,7 +53,7 @@ function Navbar() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => navigate("/")}
+            onClick={() => navigate("/", { state: { libraryHome: Date.now() } })}
             fontWeight="semibold"
           >
             Library

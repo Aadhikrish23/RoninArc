@@ -35,7 +35,7 @@ const tokens = (text: string) =>
     .trim()
     .split(/\s+/)
     .filter(Boolean)
-    .map((t) => ROMAN[t] ?? t);
+    .map((t) => (Object.prototype.hasOwnProperty.call(ROMAN, t) ? ROMAN[t] : t));
 
 /** Sequel numbers in a title ("Hades II" -> ["2"]); years and "2077" don't count. */
 const sequelNumbers = (title: string) => tokens(title).filter((t) => /^\d+$/.test(t) && Number(t) < 100);

@@ -36,7 +36,18 @@ const searchgame = async (req: Request, res: Response, next: NextFunction) => {
     }).map((g) => g.toJSON());
 
     // 3. Fetch discovery results from RAWG, best title match first (ties keep RAWG's order)
-    const rawgResults = rankByTitle(searchTerm, await rawgService.searchGames(searchTerm, page)).map((r) => r.item);
+    let ranked = rankByTitle(searchTerm, await rawgService.searchGames(searchTerm, page));
+    // Nothing close ("skyrimm", "hifi rush"): RAWG's fuzzy search tolerates typos and spacing.
+    if (page === 1 && (ranked[0]?.score ?? 0) < 70) {
+      const fuzzy = await rawgService.searchGames(searchTerm, 1, false).catch(() => []);
+      const seen = new Set(ranked.map((r: any) => r.item.id));
+      ranked = rankByTitle(searchTerm, [...ranked.map((r) => r.item), ...fuzzy.filter((g: any) => !seen.has(g.id))]);
+    }
+    // Entries without cover art are usually mods and fan uploads ("Skyrim Stuff"): real games first.
+    const rawgResults = ranked
+      .map((r: any, index) => ({ item: r.item, index, score: r.score - (r.item.imageURL ? 0 : 15) }))
+      .sort((a, b) => b.score - a.score || a.index - b.index)
+      .map((r) => r.item);
 
     // 4. Discovery Search: Exclude already owned games using normalized match checks
     const discover = rawgResults.filter((rawgGame: any) => {

@@ -31,3 +31,21 @@ test.describe("RAWG title matching", () => {
     expect(titleMatchScore("", "Portal 2")).toBe(0);
   });
 });
+
+// Playtest round 5: searches that ranked wrong or crashed.
+test.describe("RAWG title matching: round 5", () => {
+  for (const [query, names, expected] of [
+    ["hifi rush", ["C-RUSH", "Rush Bros.", "Hi-Fi Rush"], "Hi-Fi Rush"],
+    ["skyrim", ["Skyrim Stuff", "The Elder Scrolls V: Skyrim Special Edition"], "The Elder Scrolls V: Skyrim Special Edition"],
+    ["skyrimm", ["Skyrim Stuff", "The Elder Scrolls V: Skyrim"], "The Elder Scrolls V: Skyrim"],
+  ] as const) {
+    test(`"${query}" picks ${expected} @positive`, () => {
+      expect(best(query, [...names]).item.name).toBe(expected);
+    });
+  }
+
+  test('words like "constructor" in a title don\'t crash matching @negative', () => {
+    expect(() => titleMatchScore("portal 2", "Portal 2: Constructor Edition toString")).not.toThrow();
+    expect(titleMatchScore("constructor", "Hades")).toBe(0);
+  });
+});

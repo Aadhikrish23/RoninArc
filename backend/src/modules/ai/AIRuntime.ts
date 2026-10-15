@@ -30,6 +30,8 @@ import LibraryGame from "../library/LibraryGame";
 import CollectionModel from "../collection/CollectionModel";
 import { dropUngroundedIntents, mentions } from "./conversation/TargetGrounding";
 import { titleMatchScore } from "../rawg/titleMatch";
+import { answerDirectly } from "./conversation/DirectAnswers";
+import { asksToReadNotes, recommendationFollowUp, resolveOrdinals } from "./conversation/FollowUps";
 
 /** "wait no, I said celeste" -- the reply should own the mistake. */
 const CORRECTION = /\b(i said|i meant|wrong (game|one)|didn'?t ask|not that one|wait,? no|that'?s wrong|no,? i)\b/i;
@@ -87,7 +89,9 @@ export class AIRuntime {
     const profiler = new RuntimeProfiler();
     profiler.startOverall();
 
-    const cleanRequest = request ? request.trim().replace(/\s+/g, " ") : "";
+    const typed = request ? request.trim().replace(/\s+/g, " ") : "";
+    // "add the second one" right after a list of picks names that pick.
+    const cleanRequest = resolveOrdinals(typed, recentExchanges.get(userId).slice(-1)[0]);
 
     return aiTraceLogger.run(requestId, async () => {
       const trace = aiTraceLogger.current();
@@ -105,7 +109,7 @@ export class AIRuntime {
 
       const finish = (response: RuntimeResponse) => {
         profiler.stopOverall();
-        const final = { ...response, metrics: profiler.getMetrics() };
+        const final = { ...response, message: tidyReply(response.message), metrics: profiler.getMetrics() };
         recentExchanges.add(userId, cleanRequest, final.message || "");
         if (trace) {
           const status = final.status || (final.success ? "SUCCESS" : "FAILED");
@@ -184,16 +188,27 @@ export class AIRuntime {
           const page = await resolvePage(userId, client);
           requestContext.page = page;
 
-          // "what's in cozy nights?" is answered from the collection itself, never guessed.
-          const contents = await describeCollection(userId, cleanRequest, requestContext.library.collections, page.collectionName);
-          if (contents) return finish({ success: true, message: contents });
+          // "what's in cozy nights?", "read me my notes": answered from the data, never guessed.
+          const ownedNow = requestContext.library.games.map((g) => g.title);
+          const currentNow = session.references.currentGame?.displayName ?? null;
+          const direct = await answerDirectly(cleanRequest, {
+            userId,
+            collections: requestContext.library.collections,
+            owned: ownedNow,
+            pageGame: page.gameTitle,
+            pageCollection: page.collectionName,
+            currentGame: currentNow && ownedNow.includes(currentNow) ? currentNow : null,
+          });
+          if (direct) return finish({ success: true, message: direct });
 
-          if (RECOMMEND_ASK.test(cleanRequest) && !EXPLICIT_ACTION.test(cleanRequest)) {
+          // "nah, something shorter" right after picks refines that ask.
+          const followUp = recommendationFollowUp(cleanRequest, recentExchanges.get(userId).slice(-1)[0]);
+          if (followUp || (RECOMMEND_ASK.test(cleanRequest) && !EXPLICIT_ACTION.test(cleanRequest))) {
             // "any roguelikes like hades?" -- a recommendation; no need to ask the planner.
             intentPlan = {
               id: requestId,
               requestId,
-              intents: [{ type: IntentType.RecommendGame, targets: [], parameters: [{ type: IntentParameterType.Text, value: cleanRequest }] } as any],
+              intents: [{ type: IntentType.RecommendGame, targets: [], parameters: [{ type: IntentParameterType.Text, value: followUp ?? cleanRequest }] } as any],
             };
           } else {
             try {
@@ -211,6 +226,15 @@ export class AIRuntime {
 
           // Resolve pronoun references
           intentPlan = conversationRuntime.resolveReferences(intentPlan, session);
+
+          // "read me my notes" is never a note to save.
+          if (asksToReadNotes(cleanRequest)) {
+            intentPlan.intents = intentPlan.intents.map((intent) =>
+              intent.type === IntentType.AddNote
+                ? { ...intent, type: IntentType.LibraryQuestion, parameters: [{ type: IntentParameterType.Text, value: cleanRequest }] as any }
+                : intent,
+            );
+          }
         }
 
         if (intentPlan) normalizeStatusIntents(intentPlan);
@@ -592,28 +616,6 @@ function isCollectionAdd(intent: any): boolean {
   return !flag || (flag.value !== false && flag.value !== "false");
 }
 
-const COLLECTION_CONTENTS = /\b(what'?s in|whats in|what is in|what are in|what games are in|what do i have in|games in|show( me)?|list)\b/i;
-const squash = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-
-/** The games in the collection a question names ("what's in cozy nights?"), or undefined. */
-async function describeCollection(userId: string, message: string, collections: string[], pageCollection?: string): Promise<string | undefined> {
-  if (!COLLECTION_CONTENTS.test(message) || EXPLICIT_ACTION.test(message)) return undefined;
-  const text = ` ${squash(message)} `;
-  const named = collections
-    .filter((c) => squash(c) && text.includes(` ${squash(c)} `))
-    .sort((a, b) => b.length - a.length)[0];
-  const name = named ?? (pageCollection && /\bthis (collection|list|one)\b|\bhere\b/i.test(message) ? pageCollection : undefined);
-  if (!name) return undefined;
-  const col = await CollectionModel.findOne({ userId: new Types.ObjectId(userId), name })
-    .populate<{ gameIds: { title: string }[] }>({ path: "gameIds", select: "title" })
-    .lean();
-  if (!col) return undefined;
-  const titles = (col.gameIds ?? []).map((g: any) => g?.title).filter(Boolean) as string[];
-  if (titles.length === 0) return `**${col.name}** is empty right now.`;
-  const list = titles.map((t) => `- ${t}`).join("\n");
-  return `**${col.name}** has ${titles.length} ${titles.length === 1 ? "game" : "games"}:\n${list}`;
-}
-
 /** Titles for the page the user has open, if it's theirs. */
 async function resolvePage(userId: string, client: AIClientCapabilities): Promise<{ gameTitle?: string; collectionName?: string }> {
   const page: { gameTitle?: string; collectionName?: string } = {};
@@ -635,6 +637,15 @@ async function resolvePage(userId: string, client: AIClientCapabilities): Promis
     // page context is a hint; never fail the request over it
   }
   return page;
+}
+
+/** "Added X as Plan to Play. I've marked X as Completed." reads as one step: "Added X as Completed." */
+function tidyReply(message: string): string {
+  if (typeof message !== "string") return message;
+  return message.replace(
+    /I've added (.+?) to your library as Plan to Play\. I've marked \1 as ([A-Za-z ]+?)\.( Congrats on finishing it!)?/g,
+    (_m, title, status, congrats) => `I've added ${title} to your library as ${status}.${congrats ?? ""}`,
+  );
 }
 
 export default AIRuntime;

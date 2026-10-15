@@ -13,6 +13,7 @@ import {
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import type { Recommendation } from "../types/recommendation";
+import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 
 interface Props {
   rec: Recommendation;
@@ -45,12 +46,17 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
       flexDirection="column"
     >
       <Box position="relative" cursor={rec.rawgId ? "pointer" : "default"} onClick={openDetails}>
-        <Image src={rec.imageURL} alt={rec.title} h="160px" w="100%" objectFit="cover" fallbackSrc="/placeholder.jpg" />
+        <Image src={rec.imageURL} alt={rec.title} h="160px" w="100%" objectFit="cover" fallbackSrc={PLACEHOLDER_IMAGE} />
         <Tooltip label="How well this fits your taste" hasArrow>
           <Badge position="absolute" top={3} right={3} colorScheme="purple" variant="solid" fontSize="0.8em" px={2} py={1} borderRadius="md" boxShadow="md">
             {rec.score}% match
           </Badge>
         </Tooltip>
+        {fromLibrary && (
+          <Badge position="absolute" top={3} left={3} colorScheme="green" variant="solid" fontSize="0.7em" px={2} py={1} borderRadius="md" boxShadow="md">
+            In your library
+          </Badge>
+        )}
       </Box>
 
       <Stack spacing={3} p={4} flex="1">

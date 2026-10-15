@@ -6,7 +6,7 @@ dotenv.config();
 const RAWG_BASE_URL = process.env.RAWG_BASE_URL;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
 
-async function searchGames(query: string, page: number) {
+async function searchGames(query: string, page: number, precise = true) {
 
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
@@ -20,7 +20,7 @@ async function searchGames(query: string, page: number) {
         search: query,
         page,
 
-        search_precise: true,
+        search_precise: precise,
         // No popularity ordering: with "-added", RAWG puts GTA V first for
         // "rdr 2" and even for "red dead redemption 2". Its default order is relevance.
       },
@@ -190,7 +190,19 @@ async function getGameDetails(rawgId: string | number) {
   }
 }
 
+/** RAWG tag slugs for one game ("roguelike", "souls-like"): how it plays, beyond its genres. */
+async function getGameTagSlugs(rawgId: string | number): Promise<string[]> {
+  if (!RAWG_BASE_URL || !RAWG_API_KEY) return [];
+  try {
+    const res = await axios.get(`${RAWG_BASE_URL}/games/${rawgId}`, { params: { key: RAWG_API_KEY }, timeout: 8000 });
+    return (res.data?.tags ?? []).map((t: any) => String(t.slug));
+  } catch {
+    return [];
+  }
+}
+
 export default {
+  getGameTagSlugs,
   searchGames,
   getGameDetails,
   searchBestMatch,

@@ -195,7 +195,8 @@ function tasteReason(
   for (const game of profile.liked) {
     if (norm(game.title) === norm(selfTitle)) continue;
     const shared = game.tags.filter((t) => own.has(norm(t))).length;
-    if (shared === 0) continue;
+    // One broad genre in common ("Action") doesn't make GTA "similar to Hollow Knight".
+    if (shared < 2) continue;
     // Overlap relative to both games' genres, nudged by how much the user likes it,
     // and spread out so one favourite doesn't explain every pick.
     const union = new Set([...own, ...game.tags.map(norm)]).size;
@@ -320,18 +321,22 @@ export function rankDiscover(
   const focus = options.focus ?? [];
   const seen = new Set<number>();
 
-  return candidates
-    .filter((c) => {
-      if (seen.has(c.id)) return false;
-      seen.add(c.id);
-      return (
-        !ownedIds.has(c.id) &&
-        !ownedTitles.has(norm(c.name)) &&
-        !options.dismissed.has(c.id) &&
-        overlapsFocus(c.genres, focus) &&
-        fitsLength(c.avgHours, options.length)
-      );
-    })
+  const eligible = candidates.filter((c) => {
+    if (seen.has(c.id)) return false;
+    seen.add(c.id);
+    return (
+      !ownedIds.has(c.id) &&
+      !ownedTitles.has(norm(c.name)) &&
+      !options.dismissed.has(c.id) &&
+      overlapsFocus(c.genres, focus) &&
+      fitsLength(c.avgHours, options.length)
+    );
+  });
+  // With a length limit, games whose length is known to fit come first; unknown lengths only fill gaps.
+  const known = options.length ? eligible.filter((c) => knownHours(c.avgHours)) : eligible;
+  const pool = known.length >= options.limit ? known : eligible;
+
+  return pool
     .map((c) => {
       const match = tasteMatch(c.genres, profile);
       const reasons = [
