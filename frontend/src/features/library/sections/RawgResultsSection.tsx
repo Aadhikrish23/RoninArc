@@ -174,7 +174,7 @@ export default function RawgResultsSection({
           {game.name}
         </Text>
         <Text color="gray.500" fontSize="sm">
-          ⭐ {game.rating}
+          ⭐ {game.rating ? `${(game.rating * 2).toFixed(1)}/10` : "No rating"}
         </Text>
         <Text color="gray.500" fontSize="sm" noOfLines={1}>
           {game.genres.join(", ")}
@@ -222,7 +222,7 @@ export default function RawgResultsSection({
           {game.name}
         </Text>
         <Text color="gray.500" mt={1}>
-          ⭐ {game.rating}
+          ⭐ {game.rating ? `${(game.rating * 2).toFixed(1)}/10` : "No rating"}
         </Text>
         <Text color="gray.500" mt={1}>
           {game.genres.join(", ")}

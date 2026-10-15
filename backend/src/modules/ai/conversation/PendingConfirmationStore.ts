@@ -1,7 +1,9 @@
 import { IntentPlan } from "../intent/IntentPlan";
 
 interface PendingConfirmation {
-  plan: IntentPlan;
+  /** The plan to run on "yes" -- or `run`, for actions outside the planner (deleting a collection). */
+  plan?: IntentPlan;
+  run?: () => Promise<string>;
   /** What the question named, e.g. "Red Dead Redemption 2". */
   label: string;
   expiresAt: number;

@@ -49,6 +49,8 @@ export default function ChatInput({
     >
       <InputGroup size="lg" maxW="800px" mx="auto">
         <Textarea
+          // Takes focus when the assistant opens (not the header icons, whose tooltips would stick).
+          data-autofocus
           placeholder={isDisabled ? "Processing..." : "Type a message..."}
           value={text}
           onChange={handleChange}

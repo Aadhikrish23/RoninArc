@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { dropUngroundedIntents, mentions } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
+import { dropUngroundedIntents, franchiseMatch, mentions } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
 
 // The AI only changes a game the user actually named (or referred to). These
 // cases come from the gamer playtests: gibberish and two-part messages made the
@@ -65,5 +65,16 @@ test.describe("AI target grounding: page and stale references", () => {
   test('"the 2022 one" is not a reference to the last game @negative', () => {
     const p = plan("AddGame", "God of War Ragnarök");
     expect(dropUngroundedIntents(p, { message: "the 2022 one", recentText: "", owned, currentGame: "God of War" })).toBe(1);
+  });
+});
+
+// Playtest round 6: "add a note on gta: ..." was refused because "gta" has no sequel number.
+test.describe("AI target grounding: franchise shorthand", () => {
+  test('"gta" names the only GTA in the library @positive', () => {
+    const p = { id: "t", requestId: "t", intents: [{ type: "AddNote", targets: [{ type: "Game", name: "Grand Theft Auto V" }], parameters: [] }] } as any;
+    expect(dropUngroundedIntents(p, { message: "add a note on gta: finish the big score", recentText: "", owned: ["Grand Theft Auto V", "Hades"] })).toBe(0);
+  });
+  test('"gta" is ambiguous with two GTAs @negative', () => {
+    expect(franchiseMatch("add a note on gta", ["Grand Theft Auto V", "Grand Theft Auto IV"])).toBeUndefined();
   });
 });

@@ -47,16 +47,6 @@ export default function HorizontalSection({ title, children }: HorizontalSection
     }
   }, [children]);
 
-  const handleWheel = (e: React.WheelEvent) => {
-    const container = scrollRef.current;
-    if (container) {
-      if (e.deltaY !== 0) {
-        e.preventDefault();
-        container.scrollLeft += e.deltaY;
-      }
-    }
-  };
-
   const handleMouseDown = (e: React.MouseEvent) => {
     const container = scrollRef.current;
     if (container) {
@@ -147,7 +137,6 @@ export default function HorizontalSection({ title, children }: HorizontalSection
           overflowX="auto"
           py={2}
           px={1}
-          onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseLeave={handleMouseLeave}
           onMouseUp={handleMouseUp}

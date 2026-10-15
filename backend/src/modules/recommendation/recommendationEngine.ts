@@ -174,7 +174,7 @@ function quality(rating?: number, metacritic?: number | null): number {
 
 function qualityReason(rating?: number, metacritic?: number | null): string | null {
   if (metacritic && metacritic >= 85) return `Critically acclaimed (Metacritic ${metacritic})`;
-  if (rating && rating >= 4.2) return `Highly rated by players (${rating.toFixed(1)}/5)`;
+  if (rating && rating >= 4.2) return `Highly rated by players (${(rating * 2).toFixed(1)}/10)`;
   return null;
 }
 
@@ -262,7 +262,7 @@ function finalScore(taste: number, qual: number, boost: number, personalized: bo
 export function rankBacklog(
   library: LibrarySignalGame[],
   profile: TasteProfile,
-  options: { limit: number; focus?: string[]; length?: LengthPreference; like?: LikeGame },
+  options: { limit: number; focus?: string[]; length?: LengthPreference; like?: LikeGame; session?: boolean },
 ): Recommendation[] {
   const personalized = profile.signalCount > 0;
   const focus = options.focus ?? [];
@@ -273,7 +273,8 @@ export function rankBacklog(
     .filter(
       (g) =>
         BACKLOG_STATUSES.includes(g.progressStatus) &&
-        (g.rating === null || g.rating === undefined) &&
+        // A rated game is a verdict -- unless you're still playing it.
+        (g.progressStatus === "playing" || g.rating === null || g.rating === undefined) &&
         overlapsFocus(g.tags || [], focus) &&
         fitsLength(g.avgHours, options.length),
     )
@@ -281,7 +282,7 @@ export function rankBacklog(
       const match = tasteMatch(game.tags || [], profile);
       // Paused games get no push: "taking a break" means not right now.
       const boost =
-        (game.progressStatus === "playing" ? 0.15 : game.progressStatus === "plan" ? 0.05 : 0) +
+        (game.progressStatus === "playing" ? (options.session ? 0.6 : 0.15) : game.progressStatus === "plan" ? 0.05 : 0) +
         likeOverlap(game.tags || [], options.like) * 0.4;
       const reasons = [
         game.progressStatus === "playing" ? "You're in the middle of it" : null,

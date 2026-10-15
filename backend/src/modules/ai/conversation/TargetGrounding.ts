@@ -87,6 +87,18 @@ export function mentions(text: string, title: string): boolean {
   );
 }
 
+const FRANCHISE_FILLER = new Set(["the", "of", "a", "an", "and"]);
+
+/** "gta" names Grand Theft Auto V when it's the only GTA in the library (initials, sequel numbers left out). */
+export function franchiseMatch(text: string, owned: string[]): string | undefined {
+  const asked = new Set(tokens(text).filter((w) => w.length >= 2 && !/^\d+$/.test(w)));
+  const hits = owned.filter((title) => {
+    const initials = tokens(title).filter((w) => !FRANCHISE_FILLER.has(w) && !/^\d+$/.test(w)).map((w) => w[0]).join("");
+    return initials.length >= 2 && asked.has(initials);
+  });
+  return hits.length === 1 ? hits[0] : undefined;
+}
+
 export interface GroundingContext {
   message: string;
   /** The previous user message and assistant reply, for follow-ups. */
@@ -106,7 +118,9 @@ export function dropUngroundedIntents(plan: IntentPlan, ctx: GroundingContext): 
   const referential = REFERENCE_WORDS.test(ctx.message);
   const owned = ctx.owned ?? [];
   // Library games this message names ("yeet cod off my list" names Call of Duty).
-  const named = owned.filter((t) => mentions(ctx.message, t));
+  const byName = owned.filter((t) => mentions(ctx.message, t));
+  const franchise = byName.length === 0 ? franchiseMatch(ctx.message, owned) : undefined;
+  const named = franchise ? [franchise] : byName;
   let dropped = 0;
 
   plan.intents = plan.intents.filter((intent) => {

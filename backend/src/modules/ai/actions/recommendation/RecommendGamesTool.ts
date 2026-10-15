@@ -34,9 +34,13 @@ export class RecommendGamesTool extends BaseTool<RecommendGamesInput, any> {
       const backlog = session
         ? [...result.backlog].sort((a, b) => rank(a) - rank(b))
         : result.backlog;
-      const heading = session
-        ? "For a session tonight, I'd jump back into something you already have going:"
-        : "From your backlog, I'd play next:";
+      // "already have going" only fits when every pick shown is in progress.
+      const allInProgress = backlog.slice(0, PICKS).every((r) => r.status === "playing");
+      const heading = !session
+        ? "From your backlog, I'd play next:"
+        : allInProgress
+          ? "For a session tonight, I'd jump back into something you already have going:"
+          : "For a session tonight, I'd pick from your backlog:";
       parts.push(`${heading}\n${backlog.slice(0, PICKS).map(describe).join("\n")}`);
     }
     if (result.discover.length > 0) {

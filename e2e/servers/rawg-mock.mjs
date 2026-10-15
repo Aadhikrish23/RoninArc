@@ -61,7 +61,7 @@ http
       platforms: [{ platform: { name: "PC" } }],
       developers: [{ name: game.developer }],
       publishers: [{ name: game.developer }],
-      tags: [{ name: "Singleplayer" }],
+      tags: (game.tags ?? ["Singleplayer"]).map((name) => ({ name, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-") })),
     });
   })
   .listen(port, "127.0.0.1", () => console.log(`[e2e] RAWG mock listening on ${port}`));

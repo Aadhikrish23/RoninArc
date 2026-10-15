@@ -28,6 +28,22 @@ import { useLibrary } from "../hooks/useLibrary";
 import { useReview } from "../../reviews/hooks/useReview";
 import { useCollection } from "../../collections/hooks/useCollections";
 import { useLaunchGame } from "../hooks/useLaunchGame";
+import { matchesTitle } from "../utils/titleSearch";
+
+const readPref = (key: string) => {
+  try {
+    return localStorage.getItem(`roninarc.${key}`);
+  } catch {
+    return null;
+  }
+};
+const writePref = (key: string, value: string) => {
+  try {
+    localStorage.setItem(`roninarc.${key}`, value);
+  } catch {
+    // storage unavailable (private window): just don't remember
+  }
+};
 
 export default function BrowsePage() {
   const {
@@ -43,7 +59,8 @@ export default function BrowsePage() {
     createCollection,
   } = useCollection();
 
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  // View and sort are remembered between visits (per browser).
+  const [viewMode, setViewMode] = useState<"grid" | "list">(() => (readPref("browse.view") === "list" ? "list" : "grid"));
 
   // Filters State
   const [searchText, setSearchText] = useState("");
@@ -52,7 +69,9 @@ export default function BrowsePage() {
   const [selectedProgress, setSelectedProgress] = useState(searchParams.get("status") || "all");
   const [selectedOwnership, setSelectedOwnership] = useState("all");
   const [selectedInstallation, setSelectedInstallation] = useState("all");
-  const [sortBy, setSortBy] = useState("title-asc");
+  const [sortBy, setSortBy] = useState(() => readPref("browse.sort") || "title-asc");
+  useEffect(() => writePref("browse.view", viewMode), [viewMode]);
+  useEffect(() => writePref("browse.sort", sortBy), [sortBy]);
   const [visibleCount, setVisibleCount] = useState(24);
 
   // Modals State
@@ -87,9 +106,7 @@ export default function BrowsePage() {
         selectedProgress === "all" || game.progressStatus === selectedProgress;
 
       // 2. Search Text
-      const matchSearch = game.title
-        .toLowerCase()
-        .includes(searchText.toLowerCase());
+      const matchSearch = matchesTitle(game.title, searchText);
 
       // 3. Ownership
       const isOwned = game.providers && Object.keys(game.providers).length > 0;
@@ -195,9 +212,9 @@ export default function BrowsePage() {
               aria-label="Ownership"
               bg={useColorModeValue("white", "gray.800")}
             >
-              <option value="all">All Ownership</option>
-              <option value="owned">Owned</option>
-              <option value="manual">Manual / Local</option>
+              <option value="all">All sources</option>
+              <option value="owned">From Steam / Epic</option>
+              <option value="manual">Added by me</option>
             </Select>
             <Select
               value={selectedInstallation}

@@ -148,6 +148,8 @@ function DashboardPage() {
   }, [loadData]);
 
   useEffect(() => eventBus.subscribe("dashboard.updated", () => loadData()), [loadData]);
+  // A game added or changed anywhere (For You, search) changes the backlog numbers too.
+  useEffect(() => eventBus.subscribe("library.updated", () => loadData()), [loadData]);
 
   const desktop = canLaunchGames();
   const maxDaily = data ? Math.max(...data.playtime.daily.map((d) => d.minutes), 1) : 1;

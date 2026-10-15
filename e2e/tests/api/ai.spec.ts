@@ -344,7 +344,7 @@ test.describe("AI chat API: only changes what the user asked for", () => {
   test("a keyboard mash changes nothing, even if the model guesses a game @negative", async ({ api }) => {
     const game = await api.addGame(byName("Hades"), { progressStatus: "plan" });
     const { body } = await chat(api, "asdfgh");
-    expect(body.message).toBe("I'm not sure which game you mean, so I didn't change anything. Tell me the game's name and I'll do it.");
+    expect(body.message).toBe("I'm not sure what you'd like me to change, so I left everything as it is. Could you say it another way?");
     expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("plan");
   });
 
@@ -386,5 +386,80 @@ test.describe("AI conversation reset (/ai/reset)", () => {
     await api.addGame(shelter);
     const res = await api.post("/ai/chat", { message: "hi", client: { pageGameId: "{$ne:1}", pageCollectionId: 42 } });
     expect(res.status()).toBe(200);
+  });
+});
+
+// Round 6 of the gamer playtest: no silent changes for things the assistant can't do,
+// and questions answered from what the app already knows.
+test.describe("AI chat API: round 6", () => {
+  test("a reminder request changes nothing and says so @negative", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "plan" });
+    const { body } = await chat(api, "remind me on friday to play fallout shelter with the boys");
+    expect(body.message).toMatch(/^I can't set reminders yet/);
+    expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("plan");
+    expect((await json(await api.get("/collection"))).Data).toEqual([]);
+  });
+
+  test("'undo' is refused honestly @negative", async ({ api }) => {
+    const { body } = await chat(api, "undo the last thing you did");
+    expect(body.message).toMatch(/^I can't undo changes yet/);
+  });
+
+  test("a collection can be deleted from chat, after a yes @positive", async ({ api }) => {
+    const game = await api.addGame(shelter);
+    const col = (await json(await api.post("/collection", { name: "Outer Wilds" }))).Data;
+    await api.post(`/collection/${col._id}/games`, { gameId: game._id });
+    const ask = await chat(api, "delete the whole collection called Outer Wilds");
+    expect(ask.body).toMatchObject({ status: "CONFIRMATION_REQUIRED", message: 'Delete the collection "Outer Wilds"? The game in it stays in your library.' });
+    expect((await json(await api.get("/collection"))).Data).toHaveLength(1);
+    const yes = await chat(api, "yes");
+    expect(yes.body).toMatchObject({ success: true, message: 'I\'ve deleted the collection "Outer Wilds".' });
+    expect((await json(await api.get("/collection"))).Data).toEqual([]);
+    expect((await api.get(`/game/${game._id}`)).status()).toBe(200);
+  });
+
+  test("'no' keeps the collection @negative", async ({ api }) => {
+    await api.post("/collection", { name: "Soulslikes" });
+    await chat(api, "delete my soulslikes collection");
+    const no = await chat(api, "no");
+    expect(no.body.message).toBe('Okay, I kept the collection "Soulslikes".');
+    expect((await json(await api.get("/collection"))).Data).toHaveLength(1);
+  });
+
+  test("a collection can be renamed from chat @positive", async ({ api }) => {
+    await api.post("/collection", { name: "Soulslikes" });
+    const { body } = await chat(api, "rename soulslikes to Hard Games");
+    expect(body.message).toBe('I\'ve renamed the collection "Soulslikes" to "Hard Games".');
+    expect((await json(await api.get("/collection"))).Data[0].name).toBe("Hard Games");
+  });
+
+  test("'what did i write about gta?' finds the review and notes by shorthand @positive", async ({ api }) => {
+    const game = await api.addGame(byName("Grand Theft Auto V"));
+    await api.put(`/review/${game._id}`, { rating: 8.5, reviewText: "heists are great" });
+    await api.post(`/notes/${game._id}`, { content: "finish the big score" });
+    const { body } = await chat(api, "what did i write about gta? any notes?");
+    expect(body.message).toBe('Your review of Grand Theft Auto V: 8.5/10 -- "heists are great"\n\nYour note on Grand Theft Auto V:\n- finish the big score');
+  });
+
+  test("'how long is <game>' answers with the average playtime @positive", async ({ api }) => {
+    await api.addGame(shelter);
+    const { body } = await chat(api, "how long is fallout shelter to beat?");
+    expect(body.message).toBe("Players spend about 20 hours on Fallout Shelter on average (RAWG's playtime average, so a focused run can be shorter).");
+  });
+
+  test("'any co-op games in my library' reads the games' tags @positive", async ({ api }) => {
+    await api.addGame(byName("Stardew Valley"));
+    await api.addGame(byName("Elden Ring"));
+    await api.addGame(byName("Hollow Knight"));
+    const { body } = await chat(api, "yo any coop games in my library i can play w my gf? she's not into hard stuff");
+    expect(body.message).toBe("Laid-back games in your library with co-op:\n- Stardew Valley");
+  });
+
+  test("'whats my fav game and what am i playing rn' answers both @positive", async ({ api }) => {
+    const hk = await api.addGame(byName("Hollow Knight"), { progressStatus: "completed" });
+    await api.put(`/review/${hk._id}`, { rating: 10 });
+    await api.addGame(byName("Hades"), { progressStatus: "playing" });
+    const { body } = await chat(api, "whats my fav game so far and what am i playing rn");
+    expect(body.message).toBe("Your favourite so far is Hollow Knight, rated 10/10.\n\nYou're playing Hades.");
   });
 });

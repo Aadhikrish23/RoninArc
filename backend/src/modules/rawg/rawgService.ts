@@ -154,8 +154,13 @@ async function getGameDetails(rawgId: string | number) {
       id: g.id,
       name: g.name,
       // RAWG often appends a full Spanish translation after an "Español" line.
+      // RAWG's "###Story" markdown headings become plain paragraph breaks.
       description: typeof g.description_raw === "string"
-        ? g.description_raw.split(/\n\s*Español\s*:?\s*\n/i)[0].trim()
+        ? g.description_raw
+            .split(/\n\s*Español\s*:?\s*\n/i)[0]
+            .replace(/\s*#{2,6}\s*(?=[A-Za-z])/g, "\n\n")
+            .replace(/\n{3,}/g, "\n\n")
+            .trim()
         : g.description_raw,
 
       imageURL: g.background_image,
@@ -190,18 +195,27 @@ async function getGameDetails(rawgId: string | number) {
   }
 }
 
-/** RAWG tag slugs for one game ("roguelike", "souls-like"): how it plays, beyond its genres. */
-async function getGameTagSlugs(rawgId: string | number): Promise<string[]> {
-  if (!RAWG_BASE_URL || !RAWG_API_KEY) return [];
+/** One game's tag slugs ("roguelike", "co-op") and average playtime, from a single light request. */
+async function getGameFacts(rawgId: string | number): Promise<{ tags: string[]; playtime: number }> {
+  if (!RAWG_BASE_URL || !RAWG_API_KEY) return { tags: [], playtime: 0 };
   try {
     const res = await axios.get(`${RAWG_BASE_URL}/games/${rawgId}`, { params: { key: RAWG_API_KEY }, timeout: 8000 });
-    return (res.data?.tags ?? []).map((t: any) => String(t.slug));
+    return {
+      tags: (res.data?.tags ?? []).map((t: any) => String(t.slug)),
+      playtime: typeof res.data?.playtime === "number" ? res.data.playtime : 0,
+    };
   } catch {
-    return [];
+    return { tags: [], playtime: 0 };
   }
 }
 
+/** RAWG tag slugs for one game: how it plays, beyond its genres. */
+async function getGameTagSlugs(rawgId: string | number): Promise<string[]> {
+  return (await getGameFacts(rawgId)).tags;
+}
+
 export default {
+  getGameFacts,
   getGameTagSlugs,
   searchGames,
   getGameDetails,

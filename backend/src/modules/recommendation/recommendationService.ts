@@ -159,6 +159,18 @@ async function getRecommendations(
     const style = STYLE_TAGS.find(([, slug]) => DISTINCTIVE_STYLES.has(slug) && tags.includes(slug));
     if (style) discoverStyles = { slugs: [style[1]], label: `${style[2]}, like ${likeGame.title}` };
   }
+  // No ask at all: discover in the style of the user's favourite (Hollow Knight -> metroidvanias),
+  // not just the most popular games in a broad genre like Action.
+  if (discoverStyles.slugs.length === 0 && focus.length === 0 && !likeGame) {
+    const favourite = library
+      .filter((g) => typeof g.rating === "number" && g.rating >= 8 && g.rawgId)
+      .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
+    if (favourite?.rawgId) {
+      const tags = await rawgService.getGameTagSlugs(favourite.rawgId);
+      const style = STYLE_TAGS.find(([, slug]) => DISTINCTIVE_STYLES.has(slug) && tags.includes(slug));
+      if (style) discoverStyles = { slugs: [style[1]], label: `${style[2]}, like ${favourite.title}` };
+    }
+  }
 
   const result: RecommendationResult = {
     profile: {
@@ -175,16 +187,17 @@ async function getRecommendations(
     // A play style ("roguelike") can't be checked against library games (they only carry
     // genres), and a length limit needs a known playtime: only offer backlog picks we can vouch for.
     // "only got 2 hrs tonight" limits the session, not the game: any backlog game can fill it.
-    const session = /\b(tonight|today|right now|this evening)\b/.test((options.query || "").toLowerCase()) && length === "short";
-    const backlogLength = session ? undefined : length;
+    // "what should I play tonight": what you're already into comes first.
+    const session = /\b(tonight|today|right now|rn|this evening)\b/.test((options.query || "").toLowerCase());
+    const backlogLength = session && length === "short" ? undefined : length;
     const backlogPool = backlogLength ? library.filter((g) => (g.avgHours ?? 0) >= 3) : library;
     // Some styles do map onto genres: "cozy" backlog picks are the sims and casual games.
     const styleGenres = styles.slugs.every((s) => STYLE_GENRES[s]) ? styles.slugs.flatMap((s) => STYLE_GENRES[s]) : [];
     result.backlog =
       styles.slugs.length === 0
-        ? rankBacklog(backlogPool, profile, { limit: options.limit, focus, length: backlogLength, like })
+        ? rankBacklog(backlogPool, profile, { limit: options.limit, focus, length: backlogLength, like, session })
         : styleGenres.length > 0
-          ? rankBacklog(backlogPool, profile, { limit: options.limit, focus: [...focus, ...styleGenres], length: backlogLength, like })
+          ? rankBacklog(backlogPool, profile, { limit: options.limit, focus: [...focus, ...styleGenres], length: backlogLength, like, session })
           : [];
   }
 

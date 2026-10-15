@@ -31,7 +31,8 @@ import CollectionModel from "../collection/CollectionModel";
 import { dropUngroundedIntents, mentions } from "./conversation/TargetGrounding";
 import { titleMatchScore } from "../rawg/titleMatch";
 import { answerDirectly } from "./conversation/DirectAnswers";
-import { asksToReadNotes, recommendationFollowUp, resolveOrdinals } from "./conversation/FollowUps";
+import { asksToReadNotes, parseCollectionCommand, recommendationFollowUp, resolveOrdinals, unsupportedReply, wasAskedFor } from "./conversation/FollowUps";
+import { runCollectionCommand } from "./conversation/DirectActions";
 
 /** "wait no, I said celeste" -- the reply should own the mistake. */
 const CORRECTION = /\b(i said|i meant|wrong (game|one)|didn'?t ask|not that one|wait,? no|that'?s wrong|no,? i)\b/i;
@@ -136,16 +137,19 @@ export class AIRuntime {
         let intentPlan: IntentPlan | null = null;
         let confirmed = false;
         let fromModel = false;
+        let unrequested = 0;
 
         // A removal we asked about last turn: "yes" runs it, "no" drops it,
         // anything else drops it and is handled as a new request.
         const pending = pendingConfirmations.take(userId);
         if (pending) {
-          if (isConfirmReply(cleanRequest)) {
+          if (isConfirmReply(cleanRequest) && pending.run) {
+            return finish({ success: true, message: await pending.run() });
+          } else if (isConfirmReply(cleanRequest) && pending.plan) {
             intentPlan = pending.plan;
             confirmed = true;
           } else if (isCancelReply(cleanRequest)) {
-            return finish({ success: true, status: "CANCELLED", message: `Okay, I kept ${pending.label} in your library.` });
+            return finish({ success: true, status: "CANCELLED", message: pending.run ? `Okay, I kept ${pending.label}.` : `Okay, I kept ${pending.label} in your library.` });
           }
         }
 
@@ -201,6 +205,39 @@ export class AIRuntime {
           });
           if (direct) return finish({ success: true, message: direct });
 
+          // Things there's no tool for yet ("remind me friday...", "undo"): say so, change nothing.
+          const unsupported = unsupportedReply(cleanRequest);
+          if (unsupported) return finish({ success: true, message: unsupported });
+
+          // "delete that collection", "rename soulslikes to hard games".
+          const collectionCommand = parseCollectionCommand(cleanRequest, requestContext.library.collections, recentExchanges.get(userId), page.collectionName);
+          if (collectionCommand) {
+            const result = await runCollectionCommand(userId, collectionCommand, requestContext.library.collections);
+            if (result.kind === "reply") return finish({ success: result.success, message: result.message });
+            pendingConfirmations.put(userId, { run: result.run, label: result.label });
+            const options = [
+              { id: "confirm-yes", label: "Yes, delete it" },
+              { id: "confirm-no", label: "No, keep it" },
+            ];
+            return finish({
+              success: false,
+              status: "CONFIRMATION_REQUIRED",
+              message: result.question,
+              clarificationRequest: {
+                id: requestId,
+                requestId,
+                type: "CONFIRMATION",
+                question: result.question,
+                reason: "This can't be undone.",
+                entityType: "confirmation",
+                originalQuery: cleanRequest,
+                candidates: options,
+                options,
+                allowFreeText: false,
+              },
+            });
+          }
+
           // "nah, something shorter" right after picks refines that ask.
           const followUp = recommendationFollowUp(cleanRequest, recentExchanges.get(userId).slice(-1)[0]);
           if (followUp || (RECOMMEND_ASK.test(cleanRequest) && !EXPLICIT_ACTION.test(cleanRequest))) {
@@ -226,6 +263,12 @@ export class AIRuntime {
 
           // Resolve pronoun references
           intentPlan = conversationRuntime.resolveReferences(intentPlan, session);
+
+          // Changes the message never asked for: "add a note on that one" planned a status change too,
+          // "remind me saturday to try outer wilds" planned a new collection.
+          const before = intentPlan.intents.length;
+          intentPlan.intents = intentPlan.intents.filter((intent) => wasAskedFor(intent.type, cleanRequest));
+          unrequested = before - intentPlan.intents.length;
 
           // "read me my notes" is never a note to save.
           if (asksToReadNotes(cleanRequest)) {
@@ -397,6 +440,10 @@ export class AIRuntime {
         const missingNote = skippedMissing.length
           ? `${skippedMissing.map((n) => `"${n}"`).join(" and ")} ${skippedMissing.length === 1 ? "isn't" : "aren't"} in your library, so I skipped that. Say "add ${skippedMissing[0]}" first if you want it.`
           : "";
+        // Everything planned was something the message didn't ask for: change nothing.
+        if (actionable.length === 0 && unrequested > 0 && ungrounded === 0 && skippedMissing.length === 0) {
+          return finish({ success: true, status: "CLARIFICATION_REQUIRED", message: "I'm not sure what you'd like me to change, so I left everything as it is. Could you say it another way?" });
+        }
         if (actionable.length === 0 && (ungrounded > 0 || skippedMissing.length > 0)) {
           return finish({ success: true, status: "CLARIFICATION_REQUIRED", message: missingNote || NOT_SURE_WHICH_GAME });
         }
