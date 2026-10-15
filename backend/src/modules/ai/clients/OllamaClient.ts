@@ -121,6 +121,11 @@ export class OllamaClient {
             }
           ]
         });
+      } else if (queryLower.includes("soulslike collection")) {
+        // What the real model sends for "make a soulslike collection".
+        responseText = JSON.stringify({
+          intents: [{ type: "CreateCollection", targets: [{ type: "Collection", name: "Soulslikes" }], parameters: [] }],
+        });
       } else if (queryLower.includes("create") && queryLower.includes("collection")) {
         responseText = JSON.stringify({
           intents: [

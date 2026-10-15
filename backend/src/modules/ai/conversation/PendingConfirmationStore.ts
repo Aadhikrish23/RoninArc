@@ -4,6 +4,8 @@ interface PendingConfirmation {
   /** The plan to run on "yes" -- or `run`, for actions outside the planner (deleting a collection). */
   plan?: IntentPlan;
   run?: () => Promise<string>;
+  /** The collection an offer was about, so "yeah, and hollow knight too" goes into it. */
+  collection?: string;
   /** What the question named, e.g. "Red Dead Redemption 2". */
   label: string;
   expiresAt: number;
@@ -37,3 +39,15 @@ export const isConfirmReply = (text: string) => YES.test(text.trim());
 export const isCancelReply = (text: string) => NO.test(text.trim());
 
 export default new PendingConfirmationStore();
+
+/**
+ * "yeah do it, and hollow knight too. also put ds3 in there": a yes to the pending offer
+ * plus more. Returns the rest of the message, or undefined when it isn't that shape.
+ */
+const YES_THEN = /^(?:y|yes|yep|yeah|yup|sure|ok|okay|go ahead|do it)\b[\s,.!]*(?:(?:do it|please|pls|go ahead|sure)\b[\s,.!]*)*/i;
+export function yesAndMore(text: string): string | undefined {
+  const match = text.trim().match(YES_THEN);
+  if (!match || match[0].length === 0) return undefined;
+  const rest = text.trim().slice(match[0].length).replace(/^(and|also|plus|then)\b[\s,]*/i, "").trim();
+  return rest.split(/\s+/).length >= 2 ? rest : undefined;
+}

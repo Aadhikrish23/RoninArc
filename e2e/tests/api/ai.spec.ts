@@ -298,7 +298,8 @@ test.describe("AI chat API: everyday requests", () => {
     const game = await api.addGame(shelter);
     const ask = await chat(api, "remove fallout shelter");
     expect(ask.body).toMatchObject({ success: false, status: "CONFIRMATION_REQUIRED" });
-    expect(ask.body.message).toBe("Remove Fallout Shelter from your library? Its review and notes will be deleted too.");
+    // No review or notes written, so nothing extra to warn about.
+    expect(ask.body.message).toBe("Remove Fallout Shelter from your library?");
     expect(ask.body.clarificationRequest.options.map((o: any) => o.label)).toEqual(["Yes, remove it", "No, keep it"]);
     expect((await api.get(`/game/${game._id}`)).status()).toBe(200);
 
@@ -353,7 +354,7 @@ test.describe("AI chat API: only changes what the user asked for", () => {
     const game = await api.addGame(byName("Hades"), { progressStatus: "completed" });
     await api.put(`/review/${game._id}`, { rating: 9, reviewText: "Tight combat" });
     const { body } = await chat(api, "what did i rate hades?");
-    expect(body.message).toBe('Hades is marked Completed. You rated it 9/10: "Tight combat"');
+    expect(body.message).toBe('You rated Hades 9/10 -- "Tight combat"');
     expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9, reviewText: "Tight combat" });
   });
 
@@ -530,5 +531,27 @@ test.describe("AI chat API: round 8", () => {
     await api.delete(`/game/${game._id}`);
     const recs = (await json(await api.get("/recommendations?type=discover&limit=20"))).Data;
     expect(recs.discover.map((r: any) => r.title)).not.toContain("Hades");
+  });
+});
+
+// Round 9 of the gamer playtest.
+test.describe("AI chat API: round 9", () => {
+  test("'yeah do it, and add hades' takes the offer and does the rest @positive", async ({ api }) => {
+    await api.addGame(byName("Elden Ring"));
+    const made = await chat(api, "create a soulslike collection");
+    expect(made.body.message).toContain("Want me to add Elden Ring to it? It fits.");
+    const { body } = await chat(api, "yeah do it, and add hades");
+    expect(body.message).toContain('I\'ve added Elden Ring to your collection');
+    expect(body.message).toContain("Hades");
+    const col = (await json(await api.get("/collection"))).Data[0];
+    expect(col.gameIds.map((g: any) => g.title)).toEqual(["Elden Ring"]);
+    expect((await json(await api.get("/game"))).Data.map((g: any) => g.title)).toContain("Hades");
+  });
+
+  test("'what did i rate this one again' on a game page reads the rating @positive", async ({ api }) => {
+    const game = await api.addGame(byName("Stardew Valley"), { progressStatus: "playing" });
+    await api.put(`/review/${game._id}`, { rating: 9.5, reviewText: "Lost 200 hours" });
+    const res = await api.post("/ai/chat", { message: "what did i rate this one again", client: { pageGameId: game._id } });
+    expect((await json(res)).message).toBe('You rated Stardew Valley 9.5/10 -- "Lost 200 hours"');
   });
 });

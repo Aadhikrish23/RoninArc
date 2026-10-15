@@ -69,7 +69,8 @@ const STYLE_TAGS: [RegExp, string, string][] = [
   [/\bsouls-?(like|likes|borne)\b/, "souls-like", "Souls-like"],
   [/\bmetroidvanias?\b/, "metroidvania", "Metroidvania"],
   [/\bopen[- ]world\b/, "open-world", "Open world"],
-  [/\b(cozy|cosy|chill|relaxing)\b/, "cozy", "Cozy"],
+  [/\b(cozy|cosy|chill|relaxing|comfy)\b/, "cozy", "Cozy"],
+  [/\bfarm(ing)?\b/, "farming", "Farming"],
   [/\bstory[- ]rich|\bstory driven|\bnarrative\b/, "story-rich", "Story rich"],
   [/\bco-?op\b/, "co-op", "Co-op"],
   [/\bsurvival\b/, "survival", "Survival"],
@@ -92,6 +93,14 @@ async function tagsFor(rawgId: number): Promise<string[]> {
 
 /** Styles that library genres can stand in for. */
 const STYLE_GENRES: Record<string, string[]> = { cozy: ["Simulation", "Casual", "Family"] };
+
+/** Tags that count as a style on a game the user owns (Stardew is "relaxing" and "farming", not always "cozy"). */
+const STYLE_SYNONYMS: Record<string, string[]> = {
+  cozy: ["cozy", "relaxing", "cute", "farming", "life-sim", "casual"],
+  "co-op": ["co-op", "online-co-op", "local-co-op", "cooperative", "split-screen"],
+  farming: ["farming", "agriculture", "life-sim"],
+};
+const hasStyle = (tags: string[], style: string) => (STYLE_SYNONYMS[style] ?? [style]).some((t) => tags.includes(t));
 
 /** Play styles specific enough to define "games like X" (open world or co-op alone don't). */
 const DISTINCTIVE_STYLES = new Set(["roguelite", "roguelike", "souls-like", "metroidvania", "deckbuilding", "jrpg"]);
@@ -217,7 +226,7 @@ async function getRecommendations(
       const tagged = await Promise.all(
         backlogPool.map(async (g) => ({ game: g, tags: g.rawgId ? await tagsFor(g.rawgId) : [] })),
       );
-      const styled = tagged.filter((t) => styles.slugs.some((s) => t.tags.includes(s))).map((t) => t.game);
+      const styled = tagged.filter((t) => styles.slugs.some((s) => hasStyle(t.tags, s))).map((t) => t.game);
       const styleGenres = styles.slugs.flatMap((s) => STYLE_GENRES[s] ?? []);
       result.backlog =
         styled.length > 0

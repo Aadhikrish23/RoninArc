@@ -21,7 +21,7 @@ import { IntentType } from "./intent/IntentType";
 import { IntentParameterType } from "./intent/IntentParameterType";
 import { IntentTargetType } from "./intent/IntentTargetType";
 import { ConversationSession } from "./conversation/ConversationSession";
-import pendingConfirmations, { isCancelReply, isConfirmReply } from "./conversation/PendingConfirmationStore";
+import pendingConfirmations, { isCancelReply, isConfirmReply, yesAndMore } from "./conversation/PendingConfirmationStore";
 import { loadLibrarySnapshot } from "./context/LibrarySnapshot";
 import recentExchanges from "./conversation/RecentExchanges";
 import conversationManager from "./conversation/ConversationManager";
@@ -31,8 +31,8 @@ import CollectionModel from "../collection/CollectionModel";
 import { READ_ONLY, dropUngroundedIntents, mentions, namedTitles } from "./conversation/TargetGrounding";
 import { titleMatchScore } from "../rawg/titleMatch";
 import { answerDirectly, gameFor } from "./conversation/DirectAnswers";
-import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseReviewEdit, recommendationFollowUp, resolveOrdinals, simpleAddTitle, unsupportedReply, wasAskedFor, withPageGame } from "./conversation/FollowUps";
-import { editReview, existingReviewText, followUpOffer, runCollectionCommand } from "./conversation/DirectActions";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseReviewEdit, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "./conversation/FollowUps";
+import { editReview, existingReviewText, followUpOffer, runCollectionCommand, writtenFor } from "./conversation/DirectActions";
 
 /** "wait no, I said celeste" -- the reply should own the mistake. */
 const CORRECTION = /\b(i said|i meant|wrong (game|one)|didn'?t ask|not that one|wait,? no|that'?s wrong|no,? i)\b/i;
@@ -55,6 +55,10 @@ const PER_GAME_INTENTS = new Set<string>([
 /** Asking for suggestions, and the words that mean "do something" instead. */
 const RECOMMEND_ASK = /\b(recommend|suggest|similar to|something like|anything like|games? like|what should i play|what to play)\b|\b(something|anything|a game)\b[^?.!]*\bweekend\b/i;
 const EXPLICIT_ACTION = /\b(add|put|mark|set|remove|delete|rate|note|pause|drop|launch|yeet|move|take)\b/i;
+/** An answer-mode reply saying it changed something ("I've added X", "I marked it ...") -- it can't have. */
+const CLAIMS_ACTION =
+  /\bI(?:'ve| have)?\s+(?:just\s+|now\s+|also\s+)?(?:added|removed|marked|rated|created|deleted|updated|included|put|moved|set|changed|renamed|dropped|paused)\b/i;
+
 /** Words that ask for the review text itself to change, not just the score. */
 const REWRITES_REVIEW = /\breview\b|\b(change|update|edit|replace|rewrite)\b[^.?!]*\b(comment|text|what i wrote)\b/i;
 
@@ -88,7 +92,7 @@ export class AIRuntime {
   /**
    * Orchestrates conversation, memory, planning, clarification, and execution runtimes.
    */
-  async chat(userId: string, request: string, requestId: string, client: AIClientCapabilities = { canLaunchGames: false }) {
+  async chat(userId: string, request: string, requestId: string, client: AIClientCapabilities = { canLaunchGames: false }): Promise<RuntimeResponse> {
     const profiler = new RuntimeProfiler();
     profiler.startOverall();
 
@@ -146,8 +150,14 @@ export class AIRuntime {
         // anything else drops it and is handled as a new request.
         const pending = pendingConfirmations.take(userId);
         if (pending) {
+          const rest = pending.run ? yesAndMore(cleanRequest) : undefined;
           if (isConfirmReply(cleanRequest) && pending.run) {
             return finish({ success: true, message: await pending.run() });
+          } else if (rest && pending.run) {
+            // "yeah do it, and hollow knight too": do what we offered, then the rest of the message.
+            const done = await pending.run();
+            const more: RuntimeResponse = await this.chat(userId, pending.collection ? intoCollection(rest, pending.collection) : rest, `${requestId}-more`, client);
+            return finish({ ...more, message: `${done} ${more.message}`.trim() });
           } else if (isConfirmReply(cleanRequest) && pending.plan) {
             intentPlan = pending.plan;
             confirmed = true;
@@ -229,13 +239,13 @@ export class AIRuntime {
           if (direct.partial && isQuestionOnly(cleanRequest)) {
             const about = page.gameTitle ?? directContext.currentGame;
             const rest = direct.partial.rest.map((q) => (about ? q.replace(/\b(this one|this game|this|it)\b/i, about) : q)).join(". ");
-            const general = await this.provider.answer(rest, requestContext).catch(() => "");
+            const general = await this.answerSafely(rest, requestContext).catch(() => "");
             return finish({ success: true, message: [...direct.partial.answers, general.trim()].filter(Boolean).join("\n\n") });
           }
 
           // "is this one worth it?" on Outer Wilds' page: an opinion about Outer Wilds, not a library readout.
           if (asksForOpinion(cleanRequest)) {
-            const opinion = await this.provider.answer(withPageGame(cleanRequest, page.gameTitle), requestContext).catch(() => "");
+            const opinion = await this.answerSafely(withPageGame(cleanRequest, page.gameTitle), requestContext).catch(() => "");
             if (opinion) return finish({ success: true, message: opinion.trim() });
           }
 
@@ -294,7 +304,7 @@ export class AIRuntime {
             } catch (error: any) {
               // The planner couldn't produce a plan; a question still deserves an answer.
               if (error?.code === "PROVIDER_VALIDATION_ERROR" && LOOKS_LIKE_QUESTION.test(cleanRequest)) {
-                const answer = await this.provider.answer(cleanRequest, requestContext).catch(() => "");
+                const answer = await this.answerSafely(cleanRequest, requestContext).catch(() => "");
                 if (answer) return finish({ success: true, message: answer });
               }
               throw error;
@@ -309,6 +319,23 @@ export class AIRuntime {
           if (isQuestionOnly(cleanRequest)) {
             const reads = intentPlan.intents.filter((intent) => READ_ONLY.has(intent.type));
             intentPlan.intents = reads.length > 0 ? reads : [{ type: IntentType.AskQuestion, targets: [], parameters: [] } as any];
+          }
+
+          // "just beat witcher 3, 10/10 masterpiece": the score is a rating too, even if the model only
+          // planned the status change.
+          const score = statedScore(cleanRequest);
+          const ratesAlready = intentPlan.intents.some((i) => i.type === IntentType.RateGame || i.type === IntentType.ReviewGame);
+          if (score !== undefined && !ratesAlready) {
+            const target = intentPlan.intents
+              .flatMap((i) => i.targets ?? [])
+              .find((t) => t.type === IntentTargetType.Game || t.type === IntentTargetType.Library);
+            if (target?.name) {
+              intentPlan.intents.push({
+                type: IntentType.RateGame,
+                targets: [{ type: IntentTargetType.Game, name: target.name }],
+                parameters: [{ type: IntentParameterType.Rating, value: score }],
+              } as any);
+            }
           }
 
           // "drop gta 5 its mid" is the Dropped status, never a removal from the library.
@@ -506,7 +533,7 @@ export class AIRuntime {
         let generalAnswer: string | undefined = modelReply;
         if (wantsAnswer && requestContext) {
           try {
-            generalAnswer = (await this.provider.answer(withPageGame(cleanRequest, requestContext.page?.gameTitle), requestContext)) || modelReply;
+            generalAnswer = (await this.answerSafely(withPageGame(cleanRequest, requestContext.page?.gameTitle), requestContext)) || modelReply;
           } catch {
             generalAnswer = modelReply;
           }
@@ -567,7 +594,7 @@ export class AIRuntime {
         if (outcome.success && !outcome.status?.match(/CONFIRMATION|CLARIFICATION/)) {
           const offer = await followUpOffer(userId, plan.intents as any).catch(() => undefined);
           if (offer) {
-            pendingConfirmations.put(userId, { run: offer.run, label: offer.label });
+            pendingConfirmations.put(userId, { run: offer.run, label: offer.label, collection: offer.collection });
             return finish({ ...outcome, message: `${outcome.message} ${offer.question}` });
           }
         }
@@ -599,6 +626,18 @@ export class AIRuntime {
     const session = await conversationManager.getOrCreateSession(userId);
     session.references = { ...session.references, currentGame: null, currentCollection: null, currentProvider: null, lastEntity: null };
     await conversationManager.saveSession(session);
+  }
+
+  /**
+   * Answer mode can't change anything, but the model once replied "I've added Elden Ring ... and
+   * included it in the Soulslikes collection" when nothing ran. A reply claiming an action is replaced.
+   */
+  private async answerSafely(question: string, context: any): Promise<string> {
+    const answer = await this.provider.answer(question, context);
+    if (CLAIMS_ACTION.test(answer)) {
+      return "I didn't change anything with that message. Tell me what you'd like done, like \"add Elden Ring to Soulslikes\", and I'll do it.";
+    }
+    return answer;
   }
 
   /** The planner occasionally returns malformed JSON; one retry usually fixes it. */
@@ -673,7 +712,9 @@ export class AIRuntime {
         }
         const label = titles.length === 1 ? titles[0] : `${titles.slice(0, -1).join(", ")} and ${titles[titles.length - 1]}`;
         pendingConfirmations.put(userId, { plan: exactPlan, label });
-        const question = `Remove ${label} from your library? ${titles.length === 1 ? "Its" : "Their"} review and notes will be deleted too.`;
+        // Only warn about a review or notes that actually exist.
+        const written = await writtenFor(userId, titles);
+        const question = `Remove ${label} from your library?${written ? ` ${titles.length === 1 ? "Its" : "Their"} ${written} will be deleted too.` : ""}`;
         const options = [
           { id: "confirm-yes", label: "Yes, remove it" },
           { id: "confirm-no", label: "No, keep it" },
@@ -790,6 +831,14 @@ function tidyReply(message: string): string {
     /I've added (.+?) to your library as Plan to Play\. I've marked \1 as ([A-Za-z ]+?)\.( Congrats on finishing it!)?/g,
     (_m, title, status, congrats) => `I've added ${title} to your library as ${status}.${congrats ?? ""}`,
   );
+}
+
+/** "hollow knight too. also put ds3 in there" after a collection offer -> "put hollow knight in Soulslikes. also put ds3 in there". */
+function intoCollection(rest: string, collection: string): string {
+  const [first, ...others] = rest.split(/(?<=[.!;])\s+|\s+(?=also\b)/i);
+  if (/^(put|add|throw|chuck|toss|move|remove|take|mark|rate|set|pause|drop|delete)\b/i.test(first.trim())) return rest;
+  const game = first.replace(/\b(too|as well|also)\b/gi, "").replace(/[.!;,]+$/, "").trim();
+  return [`put ${game} in ${collection}.`, ...others].join(" ");
 }
 
 export default AIRuntime;

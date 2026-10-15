@@ -83,7 +83,8 @@ export function mentions(text: string, title: string): boolean {
   // A distinctive word of the title, typed exactly or with a small typo.
   return words.some((w) =>
     w.length >= 4 &&
-    titleWords.some((tw) => tw.length >= 4 && (w === tw || editDistance(w, tw) <= (tw.length >= 7 ? 2 : 1))),
+    // Typos only count on longer words: "play" is one letter from "slay" (Slay the Spire).
+    titleWords.some((tw) => tw.length >= 4 && (w === tw || (w.length >= 5 && tw.length >= 5 && editDistance(w, tw) <= (tw.length >= 7 ? 2 : 1)))),
   );
 }
 

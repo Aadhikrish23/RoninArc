@@ -8,7 +8,8 @@ import { useRecommendations } from "../hooks/useRecommendations";
 export default function RecommendedStrip() {
   const navigate = useNavigate();
   const muted = useColorModeValue("gray.600", "gray.400");
-  const { data, dismiss, addToLibrary, startPlaying } = useRecommendations({ limit: 4 });
+  // Fetch a few spare picks so "Not interested" leaves a full row.
+  const { data, dismiss, addToLibrary, startPlaying } = useRecommendations({ limit: 8 });
 
   // New games only: your own games are already in the sections above (and on For You's "Play Next").
   const picks = data ? data.discover.slice(0, 4) : [];

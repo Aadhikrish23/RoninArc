@@ -4,6 +4,7 @@ import collectionService from "../../collection/collectionService";
 import type { CollectionCommand } from "./FollowUps";
 import LibraryGame from "../../library/LibraryGame";
 import Review from "../../review/Reviewmodel";
+import Note from "../../notes/Notemodel";
 import reviewToolService from "../services/ReviewToolService";
 import libraryToolService from "../services/LibraryToolService";
 import rawgService from "../../rawg/rawgService";
@@ -90,6 +91,7 @@ export interface FollowUpOffer {
   question: string;
   label: string;
   run: () => Promise<string>;
+  collection?: string;
 }
 
 const listNames = (names: string[]) =>
@@ -119,6 +121,7 @@ export async function followUpOffer(userId: string, intents: { type: string; tar
     return {
       question: `Want me to add ${listNames(titles)} to it? ${titles.length === 1 ? "It fits" : "They fit"}.`,
       label: `the collection "${col.name}" as it is`,
+      collection: col.name,
       run: async () => {
         for (const g of picks) await collectionService.addGameToCollection(userId, String(col._id), String(g._id)).catch(() => undefined);
         return `I've added ${listNames(titles)} to your collection "${col.name}".`;
@@ -141,5 +144,21 @@ export async function followUpOffer(userId: string, intents: { type: string; tar
       },
     };
   }
+  return undefined;
+}
+
+/** "review and notes", "review", "notes" -- what the user wrote about these games, if anything. */
+export async function writtenFor(userId: string, titles: string[]): Promise<string | undefined> {
+  const uid = new Types.ObjectId(userId);
+  const games = (await LibraryGame.find({ userId: uid, title: { $in: titles } }).select("_id").lean()) as any[];
+  const ids = games.map((g) => g._id);
+  if (ids.length === 0) return undefined;
+  const [reviews, notes] = await Promise.all([
+    Review.countDocuments({ userId: uid, gameId: { $in: ids } }),
+    Note.countDocuments({ userId: uid, gameId: { $in: ids } }),
+  ]);
+  if (reviews && notes) return "review and notes";
+  if (reviews) return "review";
+  if (notes) return "notes";
   return undefined;
 }

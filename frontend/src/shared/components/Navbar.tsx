@@ -9,12 +9,23 @@ import {
   Spacer,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 // import { getCurrentUser } from "../utils/auth";
 import { useAuth } from "../../features/auth/context/AuthContext";
 
 function Navbar() {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
+  // The tab for the page you're on is highlighted; focus outlines alone made the wrong tab look active.
+  const active = (section: "dashboard" | "library" | "settings") =>
+    section === "dashboard" ? pathname.startsWith("/dashboard")
+      : section === "settings" ? pathname.startsWith("/settings")
+        : !pathname.startsWith("/dashboard") && !pathname.startsWith("/settings") && !pathname.startsWith("/ai");
+  const tab = (section: "dashboard" | "library" | "settings") => ({
+    variant: active(section) ? "solid" : "ghost",
+    colorScheme: active(section) ? "purple" : undefined,
+    "aria-current": active(section) ? ("page" as const) : undefined,
+  });
 
   const { user } = useAuth();
 
@@ -43,7 +54,7 @@ function Navbar() {
         {/* Navigation Buttons */}
         <HStack spacing={4} ml={10}>
           <Button
-            variant="ghost"
+            {...tab("dashboard")}
             size="sm"
             onClick={() => navigate("/dashboard")}
           >
@@ -51,16 +62,15 @@ function Navbar() {
           </Button>
 
           <Button
-            variant="ghost"
+            {...tab("library")}
             size="sm"
             onClick={() => navigate("/", { state: { libraryHome: Date.now() } })}
-            fontWeight="semibold"
           >
             Library
           </Button>
 
           <Button
-            variant="ghost"
+            {...tab("settings")}
             size="sm"
             onClick={() => navigate("/settings")}
           >

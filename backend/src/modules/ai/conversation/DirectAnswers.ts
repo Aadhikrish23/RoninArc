@@ -21,7 +21,7 @@ const PLAYTIME = /\bhow long\b|\bhow many hours\b|\bhours? (to beat|to finish|lo
 const FAVOURITE = /\b(fav|fave|favs|faves|favou?rites?|best|top rated|highest rated)\b/i;
 const PLAYING_NOW = /\bwhat am i (playing|on)\b|\b(currently|right now|rn) playing\b|\bplaying (rn|right now|now|at the moment|currently)\b/i;
 const MY_LIBRARY = /\b(my|mine|i (own|have|got)|in my library|of my)\b/i;
-const PAGE_REF = /\b(this game|this one|here)\b/i;
+const PAGE_REF = /\b(this game|this one|here|on my screen|i.m looking at|on screen|this page)\b/i;
 const IT_REF = /\b(it|its|that game|that one)\b/i;
 const QUESTION_START = /^(what|whats|what's|how|is|are|do|did|does|can|could|should|would|which|who|when|where|why|any|show|list|tell|read)\b/i;
 const EASY =/\b(easy|easier|not (into |a fan of )?(hard|difficult)|chill|casual|relaxing|beginner|cozy|cosy)\b/i;
@@ -200,7 +200,21 @@ async function describeAverage(question: string, ctx: DirectAnswerContext): Prom
   return `Your average rating is ${avg.toFixed(1)}/10 across ${reviews.length} rated ${reviews.length === 1 ? "game" : "games"}.`;
 }
 
-const HANDLERS = [describeCollection, describeNotes, describePlaytime, describeFeature, describeAverage, describeFavourite, describePlaying, describeCounts];
+const RATING_ASK = /\bwhat (did|have) i (rate|rated|give|gave|score|scored)\b|\bwhat rating\b|\bmy (rating|score) (for|of|on)\b|\bhow did i rate\b/i;
+
+/** "what did I rate this one again?" on Stardew's page: the user's own score, not a library summary. */
+async function describeRating(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
+  if (!RATING_ASK.test(question)) return undefined;
+  const title = gameFor(question, ctx) ?? ctx.pageGame ?? undefined;
+  if (!title) return undefined;
+  const game = await libraryGame(ctx.userId, title);
+  if (!game) return undefined;
+  const review = (await Review.findOne({ userId: new Types.ObjectId(ctx.userId), gameId: game._id }).lean()) as any;
+  if (!review) return `You haven't rated ${game.title} yet.`;
+  return `You rated ${game.title} ${review.rating}/10${review.reviewText ? ` -- "${review.reviewText}"` : "."}`;
+}
+
+const HANDLERS = [describeRating, describeCollection, describeNotes, describePlaytime, describeFeature, describeAverage, describeFavourite, describePlaying, describeCounts];
 
 async function answerOne(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   for (const handler of HANDLERS) {

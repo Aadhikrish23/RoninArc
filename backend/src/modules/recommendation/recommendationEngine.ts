@@ -202,6 +202,8 @@ function tasteReason(
     // Overlap relative to both games' genres, nudged by how much the user likes it,
     // and spread out so one favourite doesn't explain every pick.
     const union = new Set([...own, ...game.tags.map(norm)]).size;
+    // Half the genres in common isn't "similar" (The Witcher 3 "similar to Dead Cells").
+    if (shared / union < 0.6) continue;
     const score = (shared / union) * (0.6 + Math.min(game.weight, 2) * 0.2) / (1 + (used.get(game.title) ?? 0) * 0.6);
     if (score > bestScore) {
       best = game;
@@ -388,7 +390,9 @@ function onePerSeries() {
   const taken: string[] = [];
   return (rec: { title: string }) => {
     const series = seriesOf(rec.title);
-    if (series && taken.some((t) => t === series || series.startsWith(`${t} `) || t.startsWith(`${series} `))) return false;
+    // Same series when one name contains the other as whole words ("Tomb Raider" / "Rise of the Tomb Raider").
+    const within = (a: string, b: string) => ` ${a} `.includes(` ${b} `);
+    if (series && taken.some((t) => within(series, t) || within(t, series))) return false;
     taken.push(series);
     return true;
   };

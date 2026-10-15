@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, recommendationFollowUp, resolveOrdinals, simpleAddTitle, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
+import { yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
 import { matchesTitle } from "../../../frontend/src/features/library/utils/titleSearch";
 
 // Playtest round 5: follow-ups the assistant got wrong.
@@ -156,4 +157,16 @@ test.describe("AI: plain adds skip the planner", () => {
   for (const text of ["add elden ring to soulslikes", "add celeste and mark it completed", "add a note on hades: heat 0", "add tears of the kingdom as completed", "add it"]) {
     test(`${JSON.stringify(text)} still goes to the planner @negative`, () => expect(simpleAddTitle(text)).toBeUndefined());
   }
+});
+
+// Playtest round 9.
+test.describe("AI: round 9 helpers", () => {
+  test("'10/10 masterpiece' states a score @positive", () => expect(statedScore("just beat witcher 3, 10/10 masterpiece")).toBe(10));
+  test("'a solid 8 out of 10' states a score @positive", () => expect(statedScore("a solid 8 out of 10 honestly")).toBe(8));
+  test("'2 hrs' is not a score @negative", () => expect(statedScore("only got 2 hrs")).toBeUndefined());
+  test("'add silksong pls' adds silksong @positive", () => expect(simpleAddTitle(normalizeSlang("add silksong pls"))).toBe("silksong"));
+  test("'yeah do it, and hollow knight too' is a yes plus more @positive", () => {
+    expect(yesAndMore("yeah do it, and hollow knight too. also put ds3 in there")).toBe("hollow knight too. also put ds3 in there");
+  });
+  test("a plain 'yes' is not 'yes plus more' @negative", () => expect(yesAndMore("yes")).toBeUndefined());
 });

@@ -143,7 +143,7 @@ export function wasAskedFor(intentType: string, message: string): boolean {
 const QUESTION_FORM =
   /^(?:(?:hey|yo|ok|okay|so|hmm|btw|also|wait|honestly)[,!]?\s+)*(should|shall|is|are|was|were|which|what|whats|what's|how|do|does|did|would i|could i|can i|will i|why|who|when|where|any)\b/i;
 /** "can you add hades", "please mark it done" are requests, even phrased as questions. */
-const REQUEST_FORM = /^(?:(?:hey|yo|ok|okay|so)[,!]?\s+)*(can|could|would|will) (you|u)\b|\b(please|pls|plz)\b/i;
+const REQUEST_FORM = /^(?:(?:hey|yo|ok|okay|so)[,!]?\s+)*(can|could|would|will) (you|u)\b|\b(please|pls|plz|do it|i said)\b/i;
 const THEN_DO = /\b(and|also|then|so)\s+(add|put|mark|set|remove|delete|rate|pause|drop|start|move)\b/i;
 
 export const isQuestionOnly = (message: string) =>
@@ -192,7 +192,7 @@ const NOT_A_TITLE = /\b(and|also|then|as|mark|rate|to|into|in there|note|collect
 export function simpleAddTitle(message: string): string | undefined {
   const match = message.trim().match(SIMPLE_ADD);
   if (!match) return undefined;
-  const title = match[1].trim();
+  const title = withoutPoliteness(match[1]);
   if (!title || title.length > 60 || NOT_A_TITLE.test(title) || /^(a|an|the|some|it|that|this|them)\b/i.test(title)) return undefined;
   return title;
 }
@@ -218,3 +218,14 @@ export function parseReviewEdit(message: string): { target: string; text: string
   if (!text) return undefined;
   return { target: match[1].trim(), text, rating };
 }
+
+/** "10/10 masterpiece", "a solid 8 out of 10": a score stated in passing, 1-10 (halves allowed). */
+export function statedScore(message: string): number | undefined {
+  const match = message.match(/\b(\d{1,2}(?:\.5)?)\s*(?:\/|out of)\s*10\b/i);
+  if (!match) return undefined;
+  const score = Number(match[1]);
+  return score >= 1 && score <= 10 ? score : undefined;
+}
+
+/** "add silksong pls" -> "silksong": politeness isn't part of a title. */
+export const withoutPoliteness = (title: string) => title.replace(/[\s,]+(please|pls|plz|thanks|thx|ty)[.!]*$/i, "").trim();
