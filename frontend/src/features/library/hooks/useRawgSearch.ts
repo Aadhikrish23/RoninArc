@@ -19,7 +19,7 @@ export function useRawgSearch() {
   const [error, setError] = useState<string | null>(null);
 
   // ---------- Reusable search ----------
-  const performSearch = async () => {
+  const performSearch = async (options: { silent?: boolean } = {}) => {
     if (searchText.trim().length < 3) {
       setResults({
         owned: [],
@@ -31,7 +31,7 @@ export function useRawgSearch() {
     }
 
     try {
-      setLoading(true);
+      if (!options.silent) setLoading(true);
       setError(null);
 
       const data = await libraryApi.searchRawgGames(searchText, 1);

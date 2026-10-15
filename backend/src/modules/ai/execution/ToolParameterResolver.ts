@@ -10,6 +10,7 @@ export const TEXT_PARAM_KEY_BY_TOOL: Record<string, string> = {
   search_library: "searchValue",
   add_note: "content",
   recommend_games: "query",
+  library_question: "question",
 };
 export const DEFAULT_TEXT_PARAM_KEY = "reviewText";
 

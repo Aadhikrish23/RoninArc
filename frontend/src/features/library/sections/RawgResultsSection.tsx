@@ -68,7 +68,7 @@ export default function RawgResultsSection({
             {game.title}
           </Text>
           <Text color="gray.500" fontSize="sm">
-            {game.developer || "Unknown Developer"}
+            {game.developer || ""}
           </Text>
           <Text color="gray.500" fontSize="sm" noOfLines={1}>
             {game.tags.join(", ")}
@@ -125,14 +125,16 @@ export default function RawgResultsSection({
             {game.title}
           </Text>
           <Text color="gray.500" mt={1}>
-            {game.developer || "Unknown Developer"}
+            {game.developer || ""}
           </Text>
           <Text color="gray.500" mt={1}>
             {game.tags.join(", ")}
           </Text>
-          <Text color="gray.500" mt={1}>
-            Provider: {game.provider ? game.provider.toUpperCase() : "MANUAL"}
-          </Text>
+          {game.provider && (
+            <Text color="gray.500" mt={1}>
+              From {game.provider === "epic" ? "Epic Games" : game.provider === "steam" ? "Steam" : game.provider}
+            </Text>
+          )}
         </Box>
         {canLaunchGames() && (
           <Button

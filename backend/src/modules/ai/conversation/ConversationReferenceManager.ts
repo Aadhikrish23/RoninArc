@@ -57,8 +57,11 @@ export class ConversationReferenceManager {
           });
         }
 
-        // Update slots depending on entityType
-        if (entityType === IntentTargetType.Game) {
+        // Update slots depending on entityType. A game the user just added
+        // (an AddGame "Library" target) is the game "it" refers to next, not
+        // whichever game was current before.
+        const isAddedGame = entityType === IntentTargetType.Library && intent.type === "AddGame";
+        if (entityType === IntentTargetType.Game || isAddedGame) {
           session.references.currentGame = ref;
           if (trace) {
             trace.log("ConversationRuntime", "Reference Added", {

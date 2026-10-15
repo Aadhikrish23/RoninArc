@@ -1,4 +1,6 @@
 import libraryServices from "../../library/libraryServices";
+import { titleMatchScore } from "../../rawg/titleMatch";
+import { expandAbbreviation } from "../../rawg/gameAbbreviations";
 import { LibraryGame } from "./LibraryGame";
 import { EntityResolutionStatus } from "./EntityResolutionStatus";
 import { EntityResolutionResult } from "./EntityResolutionResult";
@@ -102,6 +104,28 @@ export class EntityResolver {
       }
 
       return result;
+    }
+
+    // How a player names a game ("ds3", "rdr2", "witcher 3") rather than how
+    // close the characters are: resolve when one title clearly matches best.
+    const byTitle = games
+      .map((game) => ({ game, score: titleMatchScore(expandAbbreviation(gameName) ?? gameName, game.title) }))
+      .sort((a, b) => b.score - a.score);
+    if (byTitle.length > 0 && byTitle[0].score >= 70 && (byTitle.length === 1 || byTitle[0].score - byTitle[1].score >= 10)) {
+      const best = byTitle[0];
+      traceInfo.chosenStrategy = "Title Match (abbreviation / words)";
+      traceInfo.finalConfidence = 0.95;
+      traceInfo.finalResolutionStatus = "RESOLVED";
+      if (trace) {
+        trace.log("EntityResolver", "Resolution Trace", traceInfo);
+      }
+      return this.buildResult(
+        EntityResolutionStatus.RESOLVED,
+        0.95,
+        best.game,
+        undefined,
+        `Title match (score ${best.score}): "${best.game.title}"`,
+      );
     }
 
     const scoredGames = this.tryFuzzyMatch(games, normQuery);

@@ -9,8 +9,8 @@ const section = (page: any, title: string) =>
 test.describe("Library home page", () => {
   test("an empty library shows the welcome state, which links to Settings @positive", async ({ authedPage: page }) => {
     await open(page, "/");
-    await expect(page.getByRole("heading", { name: "Welcome to your gaming dashboard!" })).toBeVisible();
-    await page.getByRole("button", { name: "Go to Settings" }).click();
+    await expect(page.getByRole("heading", { name: "Your library is empty" })).toBeVisible();
+    await page.getByRole("button", { name: "Connect Steam or Epic" }).click();
     await expect(page).toHaveURL(/#\/settings$/);
   });
 
@@ -22,7 +22,7 @@ test.describe("Library home page", () => {
 
     await open(page, "/");
     await expect(section(page, "Continue Playing").getByText("Hades")).toBeVisible();
-    await expect(section(page, "Favorites (★ 4+)").getByText("Hades")).toBeVisible();
+    await expect(section(page, "Favorites (rated 8+)").getByText("Hades")).toBeVisible();
     await expect(section(page, "Completed Games").getByText("Elden Ring")).toBeVisible();
     await expect(section(page, "Recently Added").getByText("Celeste")).toBeVisible();
   });
@@ -31,7 +31,7 @@ test.describe("Library home page", () => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");
     await expect(page.getByRole("heading", { name: "Recently Added" })).toBeVisible();
-    for (const title of ["Continue Playing", "Favorites (★ 4+)", "Completed Games"]) {
+    for (const title of ["Continue Playing", "Favorites (rated 8+)", "Completed Games"]) {
       await expect(page.getByRole("heading", { name: title, exact: true })).toHaveCount(0);
     }
   });
@@ -41,7 +41,7 @@ test.describe("Library home page", () => {
     await api.put(`/review/${g._id}`, { rating: 3 });
     await open(page, "/");
     await expect(page.getByRole("heading", { name: "Recently Added" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Favorites (★ 4+)" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Favorites (rated 8+)" })).toHaveCount(0);
   });
 
   test("changing status from a card's menu persists and moves the card @positive", async ({ authedPage: page, api }) => {
@@ -138,9 +138,9 @@ test.describe("RAWG search from the library", () => {
     await expect(page.getByRole("heading", { name: "Discover Games (1)" })).toBeVisible();
 
     await page.getByRole("button", { name: "Add" }).click();
-    const added = page.getByRole("dialog", { name: "Game Added" });
-    await expect(added).toContainText("Hollow Knight");
-    await added.getByRole("button", { name: "Continue Browsing" }).click();
+    // A toast, not a blocking dialog; the result moves to "In your library" in place.
+    await expectToast(page, "Added Hollow Knight to your library");
+    await expect(page.getByRole("dialog")).toHaveCount(0);
 
     const library = (await json(await api.get("/game"))).Data;
     expect(library.map((g: any) => g.title)).toEqual(["Hollow Knight"]);

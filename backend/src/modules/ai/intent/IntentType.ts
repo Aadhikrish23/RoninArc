@@ -1,5 +1,9 @@
 export enum IntentType {
   CompleteGame = "CompleteGame",
+  /** Any progress status change (plan, playing, paused, completed, dropped, none). */
+  SetStatus = "SetStatus",
+  /** A question about the user's own library ("what's in my backlog?", "how many have I finished?"). */
+  LibraryQuestion = "LibraryQuestion",
   StartGame = "StartGame",
   PauseGame = "PauseGame",
   DropGame = "DropGame",

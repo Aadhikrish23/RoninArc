@@ -10,6 +10,8 @@ import {
   Tooltip,
   useColorModeValue,
   useDisclosure,
+  Wrap,
+  WrapItem,
 } from "@chakra-ui/react";
 import { useEffect, useRef } from "react";
 import type { JSX } from "react";
@@ -20,6 +22,14 @@ import MessageBubbles from "./MessageBubbles";
 import TypingIndicator from "./TypingIndicator";
 import ChatInput from "./ChatInput";
 import AISettingsModal from "./AISettingsModal";
+
+const EXAMPLE_PROMPTS = [
+  "What should I play tonight?",
+  "What's in my backlog?",
+  "Add Hades",
+  "I finished Celeste",
+  "Rate Hollow Knight 9",
+];
 
 interface AIChatPanelProps {
   onClose: () => void;
@@ -81,9 +91,19 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
               <Heading size="md" mb={2}>
                 Start a new conversation
               </Heading>
-              <Text color={mutedText} maxW="400px" fontSize="sm">
-                Ask me anything about your games, collections, launcher state, or game reviews!
+              <Text color={mutedText} maxW="420px" fontSize="sm">
+                Talk to me like a friend who knows your library. I can add games, change statuses, rate,
+                take notes, organise collections, answer questions and suggest what to play.
               </Text>
+              <Wrap justify="center" spacing={2} mt={5} maxW="520px">
+                {EXAMPLE_PROMPTS.map((prompt) => (
+                  <WrapItem key={prompt}>
+                    <Button size="sm" variant="outline" colorScheme="purple" borderRadius="full" onClick={() => sendMessage(prompt)}>
+                      {prompt}
+                    </Button>
+                  </WrapItem>
+                ))}
+              </Wrap>
             </Flex>
           ) : (
             <MessageBubbles

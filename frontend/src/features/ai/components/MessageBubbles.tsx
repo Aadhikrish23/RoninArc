@@ -1,3 +1,5 @@
+import { useAI } from "../context/AIContext";
+import { useAuth } from "../../auth/context/AuthContext";
 import { Box, Flex, Avatar, Text, Icon } from "@chakra-ui/react";
 import type { JSX } from "react";
 import type { Message, ClarificationOption } from "../types/conversation";
@@ -18,6 +20,8 @@ export default function MessageBubbles({
   onSelectClarification,
   onRetry,
 }: MessageBubblesProps): JSX.Element {
+  const { settings } = useAI();
+  const { user } = useAuth();
   return (
     <Box display="flex" flexDirection="column" gap={4} w="full">
       {messages.map((message, index) => {
@@ -53,7 +57,9 @@ export default function MessageBubbles({
               {isFailed && !isUser ? (
                 <ErrorCard
                   message={message.text}
-                  onRetry={() => onRetry(index)}
+                  // Retrying only helps when the request never got through (offline, network);
+                  // an answer like "I couldn't find X" would just repeat.
+                  onRetry={message.status === "error" ? () => onRetry(index) : undefined}
                 />
               ) : (
                 <Box
@@ -77,7 +83,7 @@ export default function MessageBubbles({
                   ) : (
                     <>
                       <MarkdownRenderer content={message.text} />
-                      {message.status === "sent" && message.metrics && (
+                      {settings.showTechnicalDetails && message.status === "sent" && message.metrics && (
                         <ExecutionSummary
                           metrics={message.metrics}
                         />
@@ -122,7 +128,7 @@ export default function MessageBubbles({
             {isUser && (
               <Avatar
                 size="sm"
-                name="Player"
+                name={user?.name || "Player"}
                 bg="blue.600"
                 color="white"
                 shadow="md"

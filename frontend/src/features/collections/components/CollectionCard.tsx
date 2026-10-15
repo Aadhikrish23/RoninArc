@@ -85,7 +85,7 @@ export default function CollectionCard({
           borderRadius="full"
           px={2}
         >
-          {collection.gameIds.length} Games
+          {collection.gameIds.length} {collection.gameIds.length === 1 ? "Game" : "Games"}
         </Badge>
       </Box>
     </Box>

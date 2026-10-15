@@ -78,7 +78,11 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
         </Stack>
 
         <HStack spacing={2}>
-          {fromLibrary ? (
+          {fromLibrary && rec.status === "playing" ? (
+            <Button size="sm" colorScheme="purple" variant="outline" flex="1" onClick={openDetails}>
+              View game
+            </Button>
+          ) : fromLibrary ? (
             <Button size="sm" colorScheme="purple" flex="1" onClick={() => onStartPlaying(rec)}>
               Start Playing
             </Button>

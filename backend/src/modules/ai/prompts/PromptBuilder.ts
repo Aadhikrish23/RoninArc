@@ -1,5 +1,12 @@
 import { AIToolContext } from "../sdk/AIToolContext";
 import { Capability } from "../planning/Capability";
+import type { LibrarySnapshot } from "../context/LibrarySnapshot";
+import type { Exchange } from "../conversation/RecentExchanges";
+
+export interface PromptExtras {
+  library?: LibrarySnapshot;
+  recentExchanges?: Exchange[];
+}
 
 interface FewShotExample {
   id: string;
@@ -10,6 +17,93 @@ interface FewShotExample {
 
 export class PromptBuilder {
   private readonly examples: FewShotExample[] = [
+    {
+      id: "set-status",
+      capabilityId: "set-status",
+      keywords: [],
+      text: `User Request: set rdr2 to paused, taking a break from it
+Response JSON:
+{
+  "intents": [
+    {
+      "type": "SetStatus",
+      "targets": [{ "type": "Game", "name": "Red Dead Redemption 2" }],
+      "parameters": [{ "type": "Status", "value": "paused" }]
+    }
+  ]
+}`
+    },
+    {
+      id: "add-then-status",
+      capabilityId: "add-game",
+      keywords: [],
+      text: `User Request: I finished celeste last night (Celeste is not in the library)
+Response JSON:
+{
+  "intents": [
+    { "type": "AddGame", "targets": [{ "type": "Library", "name": "Celeste" }], "parameters": [] },
+    { "type": "SetStatus", "targets": [{ "type": "Game", "name": "Celeste" }], "parameters": [{ "type": "Status", "value": "completed" }] }
+  ]
+}`
+    },
+    {
+      id: "rate-with-text",
+      capabilityId: "review-game",
+      keywords: [],
+      text: `User Request: rate hollow knight 9 it was amazing
+Response JSON:
+{
+  "intents": [
+    {
+      "type": "RateGame",
+      "targets": [{ "type": "Game", "name": "Hollow Knight" }],
+      "parameters": [{ "type": "Rating", "value": 9 }, { "type": "Text", "value": "it was amazing" }]
+    }
+  ]
+}`
+    },
+    {
+      id: "library-question",
+      capabilityId: "library-question",
+      keywords: [],
+      text: `User Request: what's in my backlog?
+Response JSON:
+{
+  "intents": [
+    { "type": "LibraryQuestion", "targets": [], "parameters": [{ "type": "Text", "value": "what's in my backlog?" }] }
+  ]
+}`
+    },
+    {
+      id: "ask-question",
+      keywords: [],
+      text: `User Request: is elden ring too hard for someone new to soulslikes?
+Response JSON:
+{
+  "intents": [
+    {
+      "type": "AskQuestion",
+      "targets": [],
+      "parameters": [{ "type": "Text", "value": "It's challenging, but it's the most beginner-friendly soulslike: you can explore elsewhere when a boss is too hard, summon spirit ashes for help, and level up. Take it slow and it's very doable." }]
+    }
+  ]
+}`
+    },
+    {
+      id: "unsupported",
+      keywords: [],
+      text: `User Request: can u buy hades 2 for me on steam
+Response JSON:
+{
+  "intents": [
+    {
+      "type": "AskQuestion",
+      "targets": [],
+      "parameters": [{ "type": "Text", "value": "I can't buy games for you. I can add Hades II to your library as Plan to Play so you remember it -- just say \\"add Hades II\\"." }]
+    }
+  ]
+}`
+    },
     {
       id: "launch",
       capabilityId: "launch-game",
@@ -394,108 +488,90 @@ Response JSON:
   ];
 
   /**
-   * Generates prompt text instructs the model to return an LLMIntentResponse JSON matching player goals using capabilities.
+   * The prompt that turns one user message into intents. Every capability and
+   * example is always included: picking them by keyword (an earlier version)
+   * matched "ea" inside "dead" and left the model guessing, which once turned
+   * "change red dead redemption 2 status to paused" into a removal.
    */
   build(
     request: string,
     context: AIToolContext,
     capabilities: Capability[],
+    extras: PromptExtras = {},
   ): string {
-    const requestLower = request.toLowerCase();
-
-    // Determine active capability matches based on keywords
-    const isLaunch = requestLower.includes("launch") || requestLower.includes("start") || requestLower.includes("run") || requestLower.includes("play") || requestLower.includes("open") || requestLower.includes("again");
-    const isComplete = requestLower.includes("complete") || requestLower.includes("finish") || requestLower.includes("done") || requestLower.includes("ended") || requestLower.includes("completed");
-    const isReview = requestLower.includes("rate") || requestLower.includes("review") || requestLower.includes("opinion") || requestLower.includes("stars") || requestLower.includes("rating") || requestLower.includes("score");
-    const isCollection = requestLower.includes("collection") || requestLower.includes("group") || requestLower.includes("add") || requestLower.includes("remove") || requestLower.includes("create");
-    const isConnect = requestLower.includes("connect") || requestLower.includes("disconnect") || requestLower.includes("sync") || requestLower.includes("epic") || requestLower.includes("steam") || requestLower.includes("gog") || requestLower.includes("ea") || requestLower.includes("ubisoft") || requestLower.includes("xbox");
-    const isLibrary = requestLower.includes("add") || requestLower.includes("install") || requestLower.includes("remove") || requestLower.includes("delete") || requestLower.includes("search") || requestLower.includes("find") || requestLower.includes("library");
-    const isNote = requestLower.includes("note") || requestLower.includes("remember") || requestLower.includes("jot") || requestLower.includes("memo");
-    const isRecommend = requestLower.includes("recommend") || requestLower.includes("suggest") || requestLower.includes("what should i play") || requestLower.includes("what to play") || requestLower.includes("play next");
-
-    const hasAnyMatch = isLaunch || isComplete || isReview || isCollection || isConnect || isLibrary || isNote || isRecommend;
-
-    // Filter capabilities based on matched keywords
-    const activeCapabilities = capabilities.filter((cap) => {
-      if (!hasAnyMatch) return true;
-      if (cap.id === "complete-game") return isComplete;
-      if (cap.id === "launch-game") return isLaunch;
-      if (cap.id === "review-game") return isReview;
-      if (cap.id === "collection") return isCollection;
-      if (cap.id === "add-game" || cap.id === "remove-game" || cap.id === "search-library") return isLibrary;
-      if (cap.id === "add-note") return isNote;
-      if (cap.id === "recommend-games") return isRecommend;
-      return true;
-    });
-
-    const capabilityDetails = activeCapabilities
-      .map(
-        (cap) =>
-          `- Goal: ${cap.name}\n  Description: ${cap.description}`,
-      )
+    const capabilityDetails = capabilities
+      .map((cap) => `- Goal: ${cap.name}\n  Description: ${cap.description}`)
       .join("\n\n");
 
-    // Filter examples based on active capabilities
-    const activeExamples = this.examples.filter((ex) => {
-      if (!hasAnyMatch) return true;
-      if (ex.capabilityId === "complete-game") return isComplete;
-      if (ex.capabilityId === "launch-game") return isLaunch;
-      if (ex.capabilityId === "review-game") return isReview;
-      if (ex.capabilityId === "collection") return isCollection;
-      if (ex.capabilityId === "add-game" || ex.capabilityId === "remove-game" || ex.capabilityId === "search-library") return isLibrary;
-      if (ex.capabilityId === "add-note") return isNote;
-      if (ex.capabilityId === "recommend-games") return isRecommend;
-      if (!ex.capabilityId && ex.id === "connect") return isConnect;
-      return false;
-    });
+    const fewShotExamplesText = this.examples.map((ex) => ex.text).join("\n\n");
 
-    // Fallback: If no examples matched, include all
-    const examplesToUse = activeExamples.length > 0 ? activeExamples : this.examples;
+    const library = extras.library;
+    const libraryText = library
+      ? [
+          `The user has ${library.totalGames} game(s). Newest first (title — status):`,
+          ...(library.games.length > 0 ? library.games.map((g) => `- ${g.title} — ${g.status}`) : ["- (empty)"]),
+          library.totalGames > library.games.length ? `- …and ${library.totalGames - library.games.length} older games` : "",
+          `Collections: ${library.collections.length > 0 ? library.collections.join(", ") : "(none)"}`,
+        ].filter(Boolean).join("\n")
+      : "(not available)";
 
-    const fewShotExamplesText = examplesToUse
-      .map((ex) => ex.text)
-      .join("\n\n");
+    const exchanges = extras.recentExchanges ?? [];
+    const conversationText = exchanges.length > 0
+      ? exchanges.map((e) => `User: ${e.user}\nAssistant: ${e.assistant}`).join("\n")
+      : "(this is the first message)";
 
-    return `You are RoninArc AI, an assistant helping users manage their game libraries, collections, reviews, and gaming accounts.
+    return `You are RoninArc AI, the assistant inside a PC game library app. You help the user manage their games, statuses, ratings, notes, collections and recommendations, and you answer gaming questions briefly.
 
 Available Capabilities:
 ${capabilityDetails}
-Note:
-- Goal "Complete Game" maps to intent type "CompleteGame" and accepts parameter "Status" (value: "completed").
-- Goal "Review Game" maps to intent type "ReviewGame" (for text review comments) or "RateGame" (for numeric 1-10 rating scores).
-- If the user specifies a rating number or stars (e.g. "9", "10", "5 stars"), you MUST use intent type "RateGame" and include the "Rating" parameter. If the user only says "Review" without a rating number, use "ReviewGame". If the user asks to delete, remove, or erase their review, use intent type "DeleteReview".
-- Goal "Manage Collection" maps to intent type "CreateCollection" or "OrganizeCollection" and accepts Collection and Game targets.
-- Goal "Add Game" maps to intent type "AddGame". The game is not owned yet, so its target MUST use type "Library" (not "Game") with the game's name -- it is a search query, not something to look up in the user's existing library.
-- Goal "Remove Game" maps to intent type "RemoveGame" and accepts a Game target (the game must already be in the user's library).
-- Goal "Search Library" maps to intent type "SearchLibrary" and accepts a "Text" parameter with the search term (a tag, title, or status like "completed") -- no targets.
-- Goal "Add Note" maps to intent type "AddNote" and accepts a Game target (the game must already be in the user's library) plus a "Text" parameter with the note's content.
-- Goal "Recommend Games" maps to intent type "RecommendGame" for any "what should I play / recommend / suggest" request. Put any hint (a genre, or "like <game>") in a "Text" parameter and use no targets.
 
-User Context:
-- User ID: ${context.userId}
+How to map requests:
+- Status changes use intent "SetStatus" with a "Status" parameter whose value is exactly one of: plan, playing, paused, completed, dropped, none. "taking a break", "pause", "on hold" -> paused. "started", "playing again", "back to playing" -> playing. "finished", "beat", "done with" -> completed (or intent "CompleteGame"). "gave up", "drop" -> dropped. "want to play", "later", "backlog it" -> plan.
+- NEVER use "RemoveGame" unless the user explicitly asks to remove or delete a game from their library. Changing a status is never a removal.
+- "Add Game" uses intent "AddGame"; its target type MUST be "Library" with the game's full official title (expand abbreviations: "rdr 2" -> "Red Dead Redemption 2", "ds3" -> "Dark Souls III").
+- If the user says they finished, are playing, or paused a game that is NOT in their library, return two intents in this order: "AddGame" for it, then "SetStatus" with the status.
+- A plain "add X" is ONE "AddGame" intent and nothing else: new games start as Plan to Play. Only add a "SetStatus" when the user actually states a status in this message.
+- If one message asks for several things, return one intent per thing, in the order the user said them.
+- "Review Game": use "RateGame" with a "Rating" parameter (1-10) when a number is given; put any opinion words ("it was amazing") in a "Text" parameter on the same intent. Use "ReviewGame" for a text review without a number, "DeleteReview" to delete a review.
+- "Remove Game" maps to "RemoveGame" with a Game target that is in the user's library.
+- "Add Note" maps to "AddNote" with a Game target and a "Text" parameter holding the note.
+- "Manage Collection" maps to "CreateCollection" (Collection target) or "OrganizeCollection" (Collection target plus Game targets; add a "Boolean" false parameter to remove from the collection). "in there" / "to it" means the collection the conversation was just about.
+- "Search Library" maps to "SearchLibrary" with a "Text" parameter, for finding games by title, tag or genre.
+- "Library Question" maps to "LibraryQuestion" with the user's question in a "Text" parameter: anything asking about their own library, e.g. what's in my backlog, how many games do I have, what am I playing, what have I finished, what did I add recently, my top rated games.
+- "Recommend Games" maps to "RecommendGame" for "what should I play / recommend / suggest". Put every hint and constraint in one "Text" parameter (e.g. "like Hades, short, 2 hours tonight"). Use no targets.
+- "Launch Game" maps to "LaunchGame" only when the user wants to start playing a game now. "pause X" is a status change, not a launch.
+- General gaming questions and small talk (e.g. "is elden ring hard for beginners?") use intent "AskQuestion" with a "Text" parameter containing YOUR answer: two or three friendly, factual sentences.
+- Requests the app cannot do (buying or paying for games, downloading or installing, refunds, talking to other people, anything outside the user's library) use intent "AskQuestion" with a "Text" parameter that says briefly that you can't do that and offers the closest thing you can do (e.g. "I can't buy games, but I can add Hades II to your library as Plan to Play if you like."). Never turn "buy" into "AddGame".
+- Use "Help" only when the user asks what you can do.
+
+Naming games and collections:
+- When the user refers to a game in their library, use its exact title from the library list below, even if they abbreviate it ("ds3", "rdr2", "botw") or misspell it.
+- Pronouns like "it", "that one", "the game" mean the game the recent conversation was about (usually the one named or added most recently), NOT some other game. Write the actual title as the target name, never "it".
+- "the last game I added" is the first game in the library list (it is newest first).
+
+User's library:
+${libraryText}
+
+Recent conversation:
+${conversationText}
 
 User Request:
 ${request}
 
 Instruction:
-Understand the user request and map it to player-centric intents.
-You must return ONLY a valid JSON object matching the following structure without any markdown formatting, explanations, comments, reasoning, or additional text.
+Return ONLY a valid JSON object with the structure below. No markdown fences, no explanations, no text before or after.
 
 Allowed Enum Values:
-- intent type: CompleteGame, LaunchGame, RateGame, ReviewGame, DeleteReview, AddGame, RemoveGame, SearchLibrary, AddNote, RecommendGame, CreateCollection, OrganizeCollection, SyncLibrary, ConnectAccount, DisconnectAccount, AskQuestion, Help
+- intent type: CompleteGame, SetStatus, LaunchGame, RateGame, ReviewGame, DeleteReview, AddGame, RemoveGame, SearchLibrary, LibraryQuestion, AddNote, RecommendGame, CreateCollection, OrganizeCollection, SyncLibrary, ConnectAccount, DisconnectAccount, AskQuestion, Help
 - target type: Game, Collection, Provider, Library, Review
 - parameter type: Rating, Status, Platform, Provider, Date, Boolean, Text
 
 Strict Constraints:
 1. Output ONLY valid JSON starting with { and ending with }.
-2. Never output markdown code fences (e.g. do not wrap response in \`\`\`json or \`\`\`).
-3. Never output explanations, comments, corrections, or reasoning.
-4. Never output values outside the allowed enums.
-5. Never combine enum values (e.g., do not output "Game | Review" or "LaunchGame | StartGame").
-6. Use exactly one value for every enum.
-7. Preserve user supplied parameter values exactly whenever possible.
-8. Even if you think there is an error in the examples or instruction, you MUST NOT output explanations or corrections. You must return ONLY the JSON object.
-9. If the user's request does not name a specific game or collection, omit that target entirely from "targets" -- do NOT invent one. Never use the action word itself (e.g. "Launch", "Create", "Rate") or a generic category word (e.g. "Game", "Collection") as a target's "name". A request with no real name to extract should produce an intent with an empty or shorter "targets" array, not a made-up name.
+2. Never output markdown code fences.
+3. Never output values outside the allowed enums, and never combine enum values.
+4. Preserve user supplied values (ratings, note text) exactly.
+5. If the request does not name a game or collection and the conversation doesn't make one clear, omit that target -- never invent a name, and never use an action word ("Launch", "Rate") or a category word ("Game", "Collection") as a name.
 
 JSON Structure:
 {
@@ -503,16 +579,10 @@ JSON Structure:
     {
       "type": "<one of the allowed intent types>",
       "targets": [
-        {
-          "type": "<one of the allowed target types>",
-          "name": "<human-readable name>"
-        }
+        { "type": "<one of the allowed target types>", "name": "<exact title or name>" }
       ],
       "parameters": [
-        {
-          "type": "<one of the allowed parameter types>",
-          "value": <string or number or boolean value>
-        }
+        { "type": "<one of the allowed parameter types>", "value": <string or number or boolean> }
       ]
     }
   ]
@@ -525,4 +595,3 @@ ${fewShotExamplesText}`;
 }
 
 export default new PromptBuilder();
-

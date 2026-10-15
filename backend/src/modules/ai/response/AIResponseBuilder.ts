@@ -8,13 +8,13 @@ export class AIResponseBuilder {
     if (executionResult.status === "FAILED") {
       const failedStep = executionResult.steps.find((s) => s.status === "FAILED");
       if (failedStep && failedStep.error) {
-        return `I encountered an issue executing your request: ${failedStep.error}`;
+        return failedStep.error;
       }
       if (executionResult.errors && executionResult.errors.length > 0) {
         const cleanErr = executionResult.errors[0].replace(/^Validation failed:\s*/i, "");
-        return `I encountered an issue executing your request: ${cleanErr}`;
+        return cleanErr;
       }
-      return `I encountered an issue executing your request: ${executionResult.summary || "Unknown error."}`;
+      return executionResult.summary || "Something went wrong on my side. Please try that again.";
     }
 
     if (executionResult.steps.length === 0) {
@@ -24,6 +24,9 @@ export class AIResponseBuilder {
     const sentences: string[] = [];
 
     const getGameName = (step: any): string => {
+      // The tool's own result names the game exactly ("Celeste", not "celeste" or an id).
+      const outputTitle = step.output?.data?.title;
+      if (typeof outputTitle === "string" && outputTitle) return outputTitle;
       const targets = (step.input?.targets as any[]) || [];
       const gameTarget = targets.find((t) => t.type === "Game" || t.type?.toLowerCase() === "game");
       if (gameTarget && gameTarget.name) {
@@ -42,7 +45,7 @@ export class AIResponseBuilder {
 
     for (const step of executionResult.steps) {
       if (step.status !== "SUCCESS") {
-        sentences.push(`However, "${step.tool}" failed${step.error ? `: ${step.error}` : "."}`);
+        sentences.push(step.error ? step.error : "One of those steps didn't work.");
         continue;
       }
 
@@ -68,12 +71,16 @@ export class AIResponseBuilder {
         if (step.output && (step.output as any).metadata?.alreadyInStatus && step.output.message) {
           sentences.push(step.output.message as string);
         } else {
-          sentences.push(`I've marked ${gameName} as ${params.progressStatus || "completed"}.`);
+          const label: Record<string, string> = { plan: "Plan to Play", playing: "Playing", paused: "Paused", completed: "Completed", dropped: "Dropped" };
+          // The updated game says what the status really is now.
+          const status = String((step.output as any)?.data?.progressStatus || params.progressStatus || params.status || "completed");
+          sentences.push(status === "none" ? `I've cleared the status on ${gameName}.` : `I've marked ${gameName} as ${label[status] ?? status}.`);
         }
       } else if (step.tool === "CreateReviewTool" || step.tool === "create_review") {
-        sentences.push(`I've posted your ${params.rating}-star review for ${gameName}.`);
+        const withText = typeof params.reviewText === "string" && params.reviewText.trim() ? " with your comment" : "";
+        sentences.push(`I've rated ${gameName} ${params.rating}/10${withText}.`);
       } else if (step.tool === "UpdateReviewTool" || step.tool === "update_review") {
-        sentences.push(`I've updated your review for ${gameName} to ${params.rating} stars.`);
+        sentences.push(`I've updated your rating for ${gameName} to ${params.rating}/10.`);
       } else if (step.tool === "DeleteReviewTool" || step.tool === "delete_review") {
         sentences.push(`I've removed your review for ${gameName}.`);
       } else if (step.tool === "ConnectEpicTool" || step.tool === "connect_epic") {

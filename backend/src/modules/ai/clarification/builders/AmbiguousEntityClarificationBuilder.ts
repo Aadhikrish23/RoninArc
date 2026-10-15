@@ -16,14 +16,17 @@ export class AmbiguousEntityClarificationBuilder {
     const origReq = planningResult.clarificationRequest;
     const type = ClarificationType.AMBIGUOUS_ENTITY;
 
-    const question = clarificationTemplateRegistry.getQuestion(type, {
-      originalQuery: origReq.originalQuery,
-      entityType: origReq.entityType,
-    });
-
     const options = (origReq.candidates || []).map((c) =>
       clarificationOptionBuilder.build(c, origReq.entityType)
     );
+
+    // One close-but-not-exact match is a "did you mean", not a choice between several.
+    const question = options.length === 1
+      ? `Did you mean ${options[0].label}?`
+      : clarificationTemplateRegistry.getQuestion(type, {
+          originalQuery: origReq.originalQuery,
+          entityType: origReq.entityType,
+        });
 
     const allowFreeText = true;
     const trace = aiTraceLogger.current();
@@ -40,7 +43,8 @@ export class AmbiguousEntityClarificationBuilder {
       requestId: uuid,
       type,
       question,
-      reason: origReq.reason || `Multiple matches found for "${origReq.originalQuery}"`,
+      // Shown to the user as the card heading.
+      reason: options.length === 1 ? question : `A few games match "${origReq.originalQuery}". Which one?`,
       entityType: origReq.entityType,
       originalQuery: origReq.originalQuery,
       candidates: options,

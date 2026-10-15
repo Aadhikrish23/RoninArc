@@ -2,6 +2,11 @@ import Review from "./Reviewmodel";
 
 import mongoose from "mongoose";
 import activityService from "../activity/activityService";
+import LibraryGame from "../library/LibraryGame";
+
+/** The game's title for activity messages ("Rated Hades 9/10"), or a generic fallback. */
+const titleOf = async (userId: string, gameId: string) =>
+  ((await LibraryGame.findOne({ _id: gameId, userId }).select("title").lean()) as { title?: string } | null)?.title ?? "a game";
 
 const getReview = async (userId: string, gameId: string) => {
   return Review.findOne({
@@ -46,8 +51,8 @@ const upsertReview = async (
     userId,
     existingReview ? "REVIEW_UPDATED" : "REVIEW_CREATED",
     existingReview
-      ? `Updated review (${rating}/10)`
-      : `Reviewed a game (${rating}/10)`,
+      ? `Updated rating for ${await titleOf(userId, gameId)} to ${rating}/10`
+      : `Rated ${await titleOf(userId, gameId)} ${rating}/10`,
     new mongoose.Types.ObjectId(gameId),
   );
 
@@ -64,7 +69,7 @@ const deleteReview = async (userId: string, gameId: string) => {
     await activityService.createActivity(
       userId,
       "REVIEW_DELETED",
-      "Deleted a review",
+      `Deleted review for ${await titleOf(userId, gameId)}`,
       new mongoose.Types.ObjectId(gameId),
     );
   }

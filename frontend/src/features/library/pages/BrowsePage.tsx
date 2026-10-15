@@ -15,7 +15,7 @@ import {
   Button,
 } from "@chakra-ui/react";
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { FiGrid, FiList } from "react-icons/fi";
 import { ArrowBackIcon } from "@chakra-ui/icons";
 
@@ -47,7 +47,9 @@ export default function BrowsePage() {
 
   // Filters State
   const [searchText, setSearchText] = useState("");
-  const [selectedProgress, setSelectedProgress] = useState("all");
+  // The Dashboard links here with ?status=plan etc.
+  const [searchParams] = useSearchParams();
+  const [selectedProgress, setSelectedProgress] = useState(searchParams.get("status") || "all");
   const [selectedOwnership, setSelectedOwnership] = useState("all");
   const [selectedInstallation, setSelectedInstallation] = useState("all");
   const [sortBy, setSortBy] = useState("title-asc");
@@ -172,7 +174,9 @@ export default function BrowsePage() {
             <Select
               value={selectedProgress}
               onChange={(e) => setSelectedProgress(e.target.value)}
-              maxW="150px"
+              w="auto"
+              minW="170px"
+              aria-label="Progress"
               bg={useColorModeValue("white", "gray.800")}
             >
               <option value="all">All Progress</option>
@@ -186,7 +190,9 @@ export default function BrowsePage() {
             <Select
               value={selectedOwnership}
               onChange={(e) => setSelectedOwnership(e.target.value)}
-              maxW="160px"
+              w="auto"
+              minW="180px"
+              aria-label="Ownership"
               bg={useColorModeValue("white", "gray.800")}
             >
               <option value="all">All Ownership</option>
@@ -196,7 +202,9 @@ export default function BrowsePage() {
             <Select
               value={selectedInstallation}
               onChange={(e) => setSelectedInstallation(e.target.value)}
-              maxW="160px"
+              w="auto"
+              minW="180px"
+              aria-label="Installation"
               bg={useColorModeValue("white", "gray.800")}
             >
               <option value="all">All Installation</option>
@@ -206,7 +214,9 @@ export default function BrowsePage() {
             <Select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value)}
-              maxW="180px"
+              w="auto"
+              minW="210px"
+              aria-label="Sort by"
               bg={useColorModeValue("white", "gray.800")}
             >
               <option value="title-asc">Title (A-Z)</option>
@@ -286,9 +296,11 @@ export default function BrowsePage() {
             )}
           </Box>
         )}
-        <Button mt={6} onClick={() => setVisibleCount((v) => v + 24)}>
-          Load More
-        </Button>
+        {sortedGames.length > visibleCount && (
+          <Button mt={6} onClick={() => setVisibleCount((v) => v + 24)}>
+            Load More ({sortedGames.length - visibleCount} more)
+          </Button>
+        )}
 
         {/* Interactive Overlay Modals */}
         <ReviewModal

@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components, @typescript-eslint/no-explicit-any */
-import { createContext, useState, useEffect, useCallback } from "react";
+import { createContext, useState, useEffect, useCallback, useRef } from "react";
 import type { ReactNode } from "react";
 import { useToast } from "@chakra-ui/react";
 import { useAuth } from "../../auth/context/AuthContext";
@@ -32,15 +32,19 @@ export function LibraryProvider({ children }: { children: ReactNode }) {
   const toast = useToast();
   const { isAuthenticated } = useAuth();
 
+// Only the first load shows the full-page spinner; later refreshes (after an
+// add, a status change or an AI action) update in place.
+const hasLoadedRef = useRef(false);
 const fetchLibrary = useCallback(async () => {
   try {
-    setLoading(true);
+    if (!hasLoadedRef.current) setLoading(true);
     setError(null);
 
     const games = await libraryApi.getUserLibrary();
 
     setGames(games);
     setInitialized(true);
+    hasLoadedRef.current = true;
   } catch (err: any) {
     setError(err.message || "Failed to load library");
   } finally {
@@ -74,9 +78,9 @@ const fetchLibrary = useCallback(async () => {
     const created = await libraryApi.addGame(payload);
     setGames((prev) => [...prev, created]);
     toast({
-      title: "Game Added",
+      title: `Added ${created.title} to your library`,
       status: "success",
-      duration: 2000,
+      duration: 2500,
       isClosable: true,
     });
     return created;

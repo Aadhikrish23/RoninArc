@@ -333,9 +333,16 @@ function DashboardPage() {
                   </Text>
                 )}
 
-                <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={2}>
-                  Planned, not started yet{data.backlog.untouchedCount > 0 ? ` (${data.backlog.untouchedCount})` : ""}
-                </Text>
+                <Flex justify="space-between" align="center" mb={2}>
+                  <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase">
+                    Planned, not started yet{data.backlog.untouchedCount > 0 ? ` (${data.backlog.untouchedCount})` : ""}
+                  </Text>
+                  {data.backlog.untouchedCount > data.backlog.untouched.length && (
+                    <Button size="xs" variant="ghost" colorScheme="purple" onClick={() => navigate("/library/browse?status=plan")}>
+                      See all
+                    </Button>
+                  )}
+                </Flex>
                 {data.backlog.untouched.length === 0 ? (
                   <Text fontSize="sm" color={mutedText}>
                     {data.backlog.byStatus.plan === 0

@@ -2,6 +2,7 @@ import {
   Button,
   FormControl,
   FormLabel,
+  FormErrorMessage,
   Modal,
   ModalBody,
   ModalContent,
@@ -42,6 +43,7 @@ const ReviewModal = ({
   onDelete,
 }: ReviewModalProps) => {
   const [rating, setRating] = useState("");
+  const [ratingError, setRatingError] = useState<string | null>(null);
 
   const [reviewText, setReviewText] = useState("");
 
@@ -63,9 +65,11 @@ const ReviewModal = ({
   const handleSave = async () => {
     const parsedRating = Number(rating);
 
-    if (Number.isNaN(parsedRating) || parsedRating < 1 || parsedRating > 10) {
+    if (rating.trim() === "" || Number.isNaN(parsedRating) || parsedRating < 1 || parsedRating > 10) {
+      setRatingError("Enter a rating from 1 to 10.");
       return;
     }
+    setRatingError(null);
 
     try {
       setIsSaving(true);
@@ -95,8 +99,8 @@ const ReviewModal = ({
 
         <ModalBody>
           <VStack spacing={4}>
-            <FormControl>
-              <FormLabel>Rating</FormLabel>
+            <FormControl isInvalid={!!ratingError}>
+              <FormLabel>Rating (1–10)</FormLabel>
 
               <NumberInput
                 min={1}
@@ -104,10 +108,16 @@ const ReviewModal = ({
                 step={0.5}
                 precision={1}
                 value={rating}
-                onChange={(valueString) => setRating(valueString)}
+                clampValueOnBlur={false}
+                keepWithinRange={false}
+                onChange={(valueString) => {
+                  setRating(valueString);
+                  setRatingError(null);
+                }}
               >
-                <NumberInputField />
+                <NumberInputField placeholder="e.g. 8.5" />
               </NumberInput>
+              {ratingError && <FormErrorMessage>{ratingError}</FormErrorMessage>}
             </FormControl>
 
             <FormControl>

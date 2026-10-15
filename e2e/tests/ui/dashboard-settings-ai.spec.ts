@@ -225,7 +225,7 @@ test.describe("AI assistant (quick-access modal)", () => {
     await open(page, "/ai");
     await page.getByPlaceholder("Type a message...").fill("rate fallout shelter 9");
     await page.getByRole("button", { name: "Send message" }).click();
-    await expect(page.getByText("I've posted your 9-star review for Fallout Shelter.")).toBeVisible();
+    await expect(page.getByText("I've rated Fallout Shelter 9/10.")).toBeVisible();
     expect((await json(await api.get(`/review/${g._id}`))).Data.rating).toBe(9);
   });
 
@@ -240,9 +240,9 @@ test.describe("AI assistant (quick-access modal)", () => {
     await open(page, "/ai");
     await page.getByPlaceholder("Type a message...").fill("zxqv blorp");
     await page.keyboard.press("Enter");
-    await expect(page.getByRole("heading", { name: "Execution Failed" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Couldn't do that" })).toBeVisible();
     await expect(page.getByText(/The AI assistant is offline right now/)).toBeVisible();
-    await expect(page.getByRole("button", { name: "Retry Action" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 
   test("Clear empties the conversation @positive", async ({ authedPage: page, api }) => {

@@ -40,12 +40,12 @@ export default function ErrorCard({
       <VStack align="stretch" spacing={3}>
         <HStack spacing={3}>
           <Icon as={FiAlertTriangle} w={5} h={5} color={iconColor} />
-          <Heading size="xs" color={textColor} textTransform="uppercase" letterSpacing="wider">
-            Execution Failed
+          <Heading as="h3" size="xs" color={textColor}>
+            Couldn't do that
           </Heading>
         </HStack>
         <Text fontSize="sm" color={textColor}>
-          {message || "An unexpected error occurred during execution."}
+          {message || "Something went wrong. Please try again."}
         </Text>
         {onRetry && (
           <Box pt={1}>
@@ -61,7 +61,7 @@ export default function ErrorCard({
                 color: "white",
               }}
             >
-              Retry Action
+              Try again
             </Button>
           </Box>
         )}

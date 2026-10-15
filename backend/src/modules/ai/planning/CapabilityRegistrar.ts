@@ -15,6 +15,22 @@ export function registerCapabilities() {
   });
 
   registry.register({
+    id: "set-status",
+    name: "Set Status",
+    description: "Changes a game's progress status: plan to play, playing, paused, completed, dropped, or none.",
+    intentType: IntentType.SetStatus,
+    requirements: [{ contextCategory: ContextCategory.Library }],
+  });
+
+  registry.register({
+    id: "library-question",
+    name: "Library Question",
+    description: "Answers questions about the user's own library: backlog, counts, what's being played or finished, recently added, top rated.",
+    intentType: IntentType.LibraryQuestion,
+    requirements: [{ contextCategory: ContextCategory.Library }],
+  });
+
+  registry.register({
     id: "launch-game",
     name: "Launch Game",
     description: "Launches a game.",

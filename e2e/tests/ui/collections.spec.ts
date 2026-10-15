@@ -50,7 +50,7 @@ test.describe("Collections", () => {
       await page.getByRole("heading", { name: "Roguelikes" }).click();
       await expect(page).toHaveURL(new RegExp(`#/collections/${c._id}$`));
       const header = page.locator("div").filter({ has: page.getByRole("heading", { name: "Roguelikes" }) }).filter({ hasText: "Installed" }).last();
-      await expect(header).toContainText(/1\s*Games\s*0\s*Completed\s*1\s*Playing\s*0\s*Installed/);
+      await expect(header).toContainText(/1\s*Game\s*0\s*Completed\s*1\s*Playing\s*0\s*Installed/);
       await expect(page.getByRole("img", { name: "Hades" })).toBeVisible();
     });
 

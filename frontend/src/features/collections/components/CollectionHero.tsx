@@ -51,7 +51,7 @@ export default function CollectionHero({
         </Text>
 
         <HStack spacing={3}>
-          <Badge colorScheme="purple">{totalGames} Games</Badge>
+          <Badge colorScheme="purple">{totalGames} {totalGames === 1 ? "Game" : "Games"}</Badge>
 
           <Badge colorScheme="green">{completed} Completed</Badge>
 

@@ -8,6 +8,8 @@ const MULTI_TOOL_CAPABILITIES: Record<string, string[]> = {
 export class ToolMapper {
   private readonly map: Record<string, string> = {
     "complete-game": "update_status",
+    "set-status": "update_status",
+    "library-question": "library_question",
     "launch-game": "launch_game",
     "collection": "create_collection",
     "connect-account": "connect_epic",

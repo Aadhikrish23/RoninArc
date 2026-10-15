@@ -158,6 +158,7 @@ function GameCard({
               as={Button}
               size="xs"
               borderRadius="full"
+              bg="blackAlpha.700"
               backdropFilter="blur(12px)"
               color="white"
               border="1px solid"

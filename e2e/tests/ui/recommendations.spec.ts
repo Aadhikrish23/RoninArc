@@ -33,7 +33,7 @@ test.describe("For You (recommendations) page", () => {
     await expect(page.getByLabel("Your taste")).toContainText("You seem to love:");
     const backlogCard = cardIn(page, "Play Next", "Stardew Valley");
     await expect(backlogCard).toContainText("% match");
-    await expect(backlogCard).toContainText("you rated Hollow Knight 9/10");
+    await expect(backlogCard).toContainText("Similar to Hollow Knight, which you rated 9/10");
     await expect(cardIn(page, "Discover", "Celeste")).toBeVisible();
     await expect(section(page, "Discover").getByRole("article", { name: "Hollow Knight" })).toHaveCount(0);
   });

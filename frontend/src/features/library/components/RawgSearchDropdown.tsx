@@ -72,7 +72,7 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
                 </Badge>
               </Flex>
               <Text fontSize="xs" color="gray.500" mt={0.5}>
-                {game.developer || "Unknown Developer"}
+                {game.developer || ""}
               </Text>
             </Box>
           </Flex>

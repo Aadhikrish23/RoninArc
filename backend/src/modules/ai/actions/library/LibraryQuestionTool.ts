@@ -1,0 +1,113 @@
+import { Types } from "mongoose";
+import { BaseTool } from "../BaseTool";
+import { AIToolContext } from "../../sdk/AIToolContext";
+import { AIToolResult } from "../../sdk/AIToolResult";
+import LibraryGame from "../../../library/LibraryGame";
+import Review from "../../../review/Reviewmodel";
+
+interface LibraryQuestionInput {
+  question?: string;
+}
+
+const STATUS_LABEL: Record<string, string> = {
+  plan: "Plan to Play",
+  playing: "Playing",
+  paused: "Paused",
+  completed: "Completed",
+  dropped: "Dropped",
+  none: "No status",
+};
+
+const LIST_LIMIT = 10;
+
+/** "A, B and C", or "A, B, … and 7 more". */
+function listTitles(titles: string[]): string {
+  if (titles.length === 0) return "";
+  const shown = titles.slice(0, LIST_LIMIT);
+  const extra = titles.length - shown.length;
+  if (extra > 0) return `${shown.join(", ")} and ${extra} more`;
+  if (shown.length === 1) return shown[0];
+  return `${shown.slice(0, -1).join(", ")} and ${shown[shown.length - 1]}`;
+}
+
+const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+
+/**
+ * Answers questions about the user's own library from the database:
+ * backlog, counts, what's being played, finished, recently added, top rated.
+ */
+export class LibraryQuestionTool extends BaseTool<LibraryQuestionInput, any> {
+  readonly category = "library";
+
+  readonly name = "library_question";
+
+  readonly description = "Answers questions about the user's library: backlog, counts, statuses, recent additions, top rated.";
+
+  async execute(input: LibraryQuestionInput, context: AIToolContext): Promise<AIToolResult<any>> {
+    const q = (input.question || "").toLowerCase();
+    const uid = new Types.ObjectId(context.userId);
+    const games = await LibraryGame.find({ userId: uid }).sort({ createdAt: -1 }).select("title progressStatus createdAt").lean();
+
+    if (games.length === 0) {
+      return this.success({ total: 0 }, "Your library is empty so far. Tell me a game to add, like \"add Hades\".");
+    }
+
+    const by = (status: string) => games.filter((g: any) => (g.progressStatus || "none") === status).map((g: any) => g.title as string);
+    const counts = Object.fromEntries(Object.keys(STATUS_LABEL).map((s) => [s, by(s).length]));
+
+    const has = (...words: string[]) => words.some((w) => new RegExp(`\\b${w}`).test(q));
+
+    if (has("top", "best", "favou?rite", "highest", "rated", "rating")) {
+      const reviews = await Review.find({ userId: uid }).sort({ rating: -1 }).limit(5).populate("gameId", "title").lean();
+      const rated = reviews.filter((r: any) => r.gameId?.title).map((r: any) => `${r.gameId.title} (${r.rating}/10)`);
+      return this.success({ rated }, rated.length
+        ? `Your top rated: ${listTitles(rated)}.`
+        : "You haven't rated any games yet. Try \"rate Hades 9\".");
+    }
+
+    if (has("recent", "latest", "last added", "newest", "just added")) {
+      const recent = games.slice(0, 5).map((g: any) => g.title);
+      return this.success({ recent }, `Most recently added: ${listTitles(recent)}.`);
+    }
+
+    if (has("backlog", "to play", "plan", "queue", "pile", "left to")) {
+      const backlog = [...by("playing"), ...by("paused"), ...by("plan")];
+      if (backlog.length === 0) {
+        return this.success({ backlog }, "Your backlog is empty: nothing is set to Plan to Play, Playing or Paused.");
+      }
+      const parts = [
+        counts.playing ? `playing ${listTitles(by("playing"))}` : "",
+        counts.paused ? `paused ${listTitles(by("paused"))}` : "",
+        counts.plan ? `planned ${listTitles(by("plan"))}` : "",
+      ].filter(Boolean);
+      return this.success({ backlog }, `You have ${plural(backlog.length, "game")} in your backlog: ${parts.join("; ")}.`);
+    }
+
+    const statusAsked = (
+      [
+        ["completed", ["finish", "complete", "beat", "done"]],
+        ["playing", ["playing", "currently", "in progress", "on right now"]],
+        ["paused", ["pause", "on hold", "break"]],
+        ["dropped", ["drop", "abandon", "gave up"]],
+      ] as const
+    ).find(([, words]) => has(...words));
+    if (statusAsked && !has("how many games", "total", "everything", "stats", "summary")) {
+      const [status] = statusAsked;
+      const titles = by(status);
+      const label = STATUS_LABEL[status].toLowerCase();
+      return this.success({ status, titles }, titles.length
+        ? `${plural(titles.length, "game")} ${titles.length === 1 ? "is" : "are"} ${label}: ${listTitles(titles)}.`
+        : `Nothing is marked ${label} right now.`);
+    }
+
+    // Default: a summary with counts ("how many games do I have and how many have I finished?").
+    const breakdown = (["playing", "paused", "plan", "completed", "dropped", "none"] as const)
+      .filter((s) => counts[s] > 0)
+      .map((s) => `${counts[s]} ${STATUS_LABEL[s].toLowerCase()}`);
+    const playingNow = counts.playing ? ` You're playing ${listTitles(by("playing"))}.` : "";
+    return this.success(
+      { total: games.length, counts },
+      `You have ${plural(games.length, "game")}: ${breakdown.join(", ")}.${playingNow}`,
+    );
+  }
+}

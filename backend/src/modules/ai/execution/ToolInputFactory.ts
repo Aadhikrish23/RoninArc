@@ -1,6 +1,18 @@
 import { ExecutionStep } from "./ExecutionStep";
 import aiTraceLogger from "../debug/AITraceLogger";
 
+/** The model says "Paused", "on hold", "plan to play", "beaten"...; the library stores six values. */
+export function normalizeStatus(raw: string): string {
+  const s = raw.trim().toLowerCase().replace(/[_-]+/g, " ");
+  if (/^(none|no status|unset|clear)$/.test(s)) return "none";
+  if (/pause|hold|break/.test(s)) return "paused";
+  if (/drop|abandon|quit|gave up/.test(s)) return "dropped";
+  if (/complete|finish|beat|done/.test(s)) return "completed";
+  if (/plan|backlog|want|wishlist|later|to play/.test(s)) return "plan";
+  if (/play|start|progress|current/.test(s)) return "playing";
+  return s;
+}
+
 export class ToolInputFactory {
   /**
    * Builds the concrete tool input payload from abstract targets and parameters.
@@ -32,7 +44,7 @@ export class ToolInputFactory {
           } else {
             const statusVal = getParamValue("status", "Status");
             if (statusVal !== undefined) {
-              progressStatus = String(statusVal);
+              progressStatus = normalizeStatus(String(statusVal));
             }
           }
 
@@ -96,6 +108,11 @@ export class ToolInputFactory {
             gameId: gameIdVal !== undefined ? String(gameIdVal) : (gameTarget ? gameTarget.name : ""),
             content: contentVal !== undefined ? String(contentVal) : "",
           };
+        }
+
+        case "library_question": {
+          const questionVal = getParamValue("question", "Text");
+          return { question: questionVal !== undefined ? String(questionVal) : "" };
         }
 
         case "recommend_games": {

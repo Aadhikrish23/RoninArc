@@ -67,14 +67,14 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("playing");
 
       const answer = await chat(api, "completed");
-      expect(answer.body).toMatchObject({ success: true, status: "SUCCESS", message: "I've marked Fallout Shelter as completed." });
+      expect(answer.body).toMatchObject({ success: true, status: "SUCCESS", message: "I've marked Fallout Shelter as Completed." });
       expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("completed");
     });
 
     test("'rate <game>' creates a review with the requested rating @positive", async ({ api }) => {
       const game = await api.addGame(shelter);
       const { body } = await chat(api, "rate fallout shelter 9");
-      expect(body).toMatchObject({ success: true, message: "I've posted your 9-star review for Fallout Shelter." });
+      expect(body).toMatchObject({ success: true, message: "I've rated Fallout Shelter 9/10." });
       expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9 });
     });
 
@@ -121,7 +121,7 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect(status).toBe(200);
       expect(body.success, body.message).toBe(true);
       expect(body.message).toContain("From your backlog, I'd play next: Celeste");
-      expect(body.message).toContain("you rated Hollow Knight 9/10");
+      expect(body.message).toContain("Similar to Hollow Knight, which you rated 9/10");
       expect(body.message).toContain("New to discover:");
     });
 
@@ -187,5 +187,86 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect((await json(await api.get(`/review/${a._id}`))).Data.rating).toBe(9);
       expect(results[1].body.clientActions).toEqual([{ type: "launch_game", gameId: b._id, title: "Cyberpunk 2077" }]);
     });
+  });
+});
+
+// Behaviour added after the gamer playtest (2026-10-15). The mock model maps
+// phrases to intents; these check what the app then does with them.
+test.describe("AI chat API: everyday requests", () => {
+  test("'pause <game>' sets the status to Paused and names the game @positive", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "playing" });
+    const { body } = await chat(api, "pause fallout shelter, taking a break");
+    expect(body).toMatchObject({ success: true, message: "I've marked Fallout Shelter as Paused." });
+    expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("paused");
+  });
+
+  test("library questions are answered from the library, not searched as titles @positive", async ({ api }) => {
+    await api.addGame(shelter, { progressStatus: "playing" });
+    await api.addGame(byName("Celeste"), { progressStatus: "plan" });
+    await api.addGame(byName("Hades"), { progressStatus: "completed" });
+
+    const backlog = await chat(api, "what's in my backlog?");
+    expect(backlog.body.success).toBe(true);
+    expect(backlog.body.message).toBe("You have 2 games in your backlog: playing Fallout Shelter; planned Celeste.");
+
+    const counts = await chat(api, "how many games do i have and how many have i finished?");
+    expect(counts.body.message).toContain("You have 3 games: 1 playing, 1 plan to play, 1 completed.");
+  });
+
+  test("'buy <game>' is refused instead of adding it @negative", async ({ api }) => {
+    const { body } = await chat(api, "can u buy hades 2 for me on steam");
+    expect(body.success).toBe(true);
+    expect(body.message).toContain("I can't buy games");
+    expect((await json(await api.get("/game"))).Data).toEqual([]);
+  });
+
+  test("a general gaming question gets an answer, not the greeting @positive", async ({ api }) => {
+    const { body } = await chat(api, "is elden ring too hard for a beginner?");
+    expect(body.message).toContain("explore elsewhere");
+    expect(body.message).not.toContain("Hello! I am your RoninArc AI assistant");
+  });
+
+  test("'I finished <game>' for a game not in the library adds it, then marks it completed @positive", async ({ api }) => {
+    const { body } = await chat(api, "I finished celeste last night!!");
+    expect(body.success, body.message).toBe(true);
+    expect(body.message).toContain("Celeste");
+    expect(body.message).toContain("Completed");
+    const library = (await json(await api.get("/game"))).Data;
+    expect(library.map((g: any) => [g.title, g.progressStatus])).toEqual([["Celeste", "completed"]]);
+  });
+
+  test("'it' after adding a game means that game, not the one before @positive", async ({ api }) => {
+    const shelterGame = await api.addGame(shelter);
+    await chat(api, "rate fallout shelter 9");
+    await chat(api, "I finished celeste");
+    const { body } = await chat(api, "rate it 10");
+    expect(body.message).toBe("I've rated Celeste 10/10.");
+    expect((await json(await api.get(`/review/${shelterGame._id}`))).Data.rating).toBe(9);
+  });
+
+  test("removing a game asks first; 'yes' removes it @positive", async ({ api }) => {
+    const game = await api.addGame(shelter);
+    const ask = await chat(api, "remove fallout shelter");
+    expect(ask.body).toMatchObject({ success: false, status: "CONFIRMATION_REQUIRED" });
+    expect(ask.body.message).toBe("Remove Fallout Shelter from your library? Its review and notes will be deleted too.");
+    expect(ask.body.clarificationRequest.options.map((o: any) => o.label)).toEqual(["Yes, remove it", "No, keep it"]);
+    expect((await api.get(`/game/${game._id}`)).status()).toBe(200);
+
+    const yes = await chat(api, "Yes, remove it");
+    expect(yes.body.success, yes.body.message).toBe(true);
+    expect((await json(await api.get("/game"))).Data).toEqual([]);
+  });
+
+  test("'no' keeps the game, and an unrelated reply drops the pending removal @negative", async ({ api }) => {
+    const game = await api.addGame(shelter);
+    await chat(api, "remove fallout shelter");
+    const no = await chat(api, "No, keep it");
+    expect(no.body).toMatchObject({ success: true, message: "Okay, I kept Fallout Shelter in your library." });
+
+    await chat(api, "remove fallout shelter");
+    await chat(api, "what's in my backlog?");
+    const lateYes = await chat(api, "yes");
+    expect(lateYes.body.message).not.toContain("removed");
+    expect((await api.get(`/game/${game._id}`)).status()).toBe(200);
   });
 });

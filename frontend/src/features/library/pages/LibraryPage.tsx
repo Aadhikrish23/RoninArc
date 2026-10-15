@@ -28,7 +28,6 @@ import CreateCollectionModal from "../../collections/components/CreateCollection
 import LibraryHeader from "../sections/LibraryHeader";
 import RawgResultsSection from "../sections/RawgResultsSection";
 import RawgSearch from "../components/RawgSearch";
-import GameAddedModal from "../components/GameAddedModal";
 import { useProvider } from "../../providers/context/ProviderContext";
 
 import HorizontalSection from "../components/HorizontalSection";
@@ -65,9 +64,7 @@ function LibraryPage() {
 
   const toast = useToast();
 
-  const [addedGameTitle, setAddedGameTitle] = useState("");
 
-  const [showAddedModal, setShowAddedModal] = useState(false);
 
   const { refreshInstallations } = useProvider("steam");
   const [isRescanning, setIsRescanning] = useState(false);
@@ -172,19 +169,18 @@ function LibraryPage() {
       progressStatus: "plan",
     });
 
-    setAddedGameTitle(rawgGame.name);
-    await fetchLibrary();
-    await performSearch();
-
-    setShowAddedModal(true);
+    // addGame already updates the library and shows a toast; refresh the
+    // results quietly so the added game moves to "In your library".
+    await performSearch({ silent: true });
   };
   const continuePlayingGames = useMemo(() => {
     return games.filter((g) => g.progressStatus === "playing");
   }, [games]);
 
+  // Ratings are out of 10.
   const favoriteGames = useMemo(() => {
     return games.filter(
-      (g) => g.rating !== null && g.rating !== undefined && g.rating >= 4,
+      (g) => g.rating !== null && g.rating !== undefined && g.rating >= 8,
     );
   }, [games]);
 
@@ -206,6 +202,17 @@ function LibraryPage() {
       {/* ---------------- MAIN CONTENT ---------------- */}
       <Box maxW="1400px" mx="auto" px={6} py={8}>
         {showSearchResults ? (
+          <>
+          <RawgSearch
+            searchText={searchText}
+            onSearchChange={setSearchText}
+            ownedResults={ownedResults}
+            discoverResults={discoverResults}
+            loading={rawgLoading}
+            error={rawgError}
+            onAddGame={handleAddGame}
+            onSearchSubmit={handleSearchSubmit}
+          />
           <RawgResultsSection
             searchText={searchText}
             ownedResults={ownedResults}
@@ -216,6 +223,7 @@ function LibraryPage() {
             onLaunchGame={openLaunchModal}
             onBack={handleBackToLibrary}
           />
+          </>
         ) : (
           <>
             <RawgSearch
@@ -271,16 +279,16 @@ function LibraryPage() {
                 bg={useColorModeValue("white", "gray.800")}
               >
                 <VStack spacing={4}>
-                  <Heading size="md">Welcome to your gaming dashboard!</Heading>
-                  <Text color="gray.500" maxW="500px">
-                    Start search-adding games using the search bar above, or
-                    connect your Epic Games account in Settings.
+                  <Heading size="md">Your library is empty</Heading>
+                  <Text color="gray.500" maxW="520px">
+                    Search for a game above and press Enter to add it, or
+                    connect Steam or Epic Games to import everything you own.
                   </Text>
                   <Button
                     colorScheme="purple"
                     onClick={() => navigate("/settings")}
                   >
-                    Go to Settings
+                    Connect Steam or Epic
                   </Button>
                 </VStack>
               </Box>
@@ -300,7 +308,7 @@ function LibraryPage() {
                 <RecommendedStrip />
 
                 {favoriteGames.length > 0 && (
-                  <HorizontalSection title="Favorites (★ 4+)">
+                  <HorizontalSection title="Favorites (rated 8+)">
                     <GameCarousel
                       games={favoriteGames}
                       onLaunch={openLaunchModal}
@@ -384,20 +392,7 @@ function LibraryPage() {
             closeCollectionModal();
           }}
         />
-        <GameAddedModal
-          isOpen={showAddedModal}
-          gameTitle={addedGameTitle}
-          onContinue={() => {
-            setShowAddedModal(false);
-          }}
-          onViewLibrary={() => {
-            setShowAddedModal(false);
 
-            clearSearch();
-
-            setShowSearchResults(false);
-          }}
-        />
       </Box>
     </Box>
   );

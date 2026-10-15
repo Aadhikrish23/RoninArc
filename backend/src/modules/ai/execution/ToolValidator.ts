@@ -71,7 +71,7 @@ export class ToolValidator {
         );
         if (resolved && resolved.resolution?.status !== "RESOLVED") {
           if (target.type === "Game") {
-            errors.push(`Game "${target.name}" was not found in your library.`);
+            errors.push(`I couldn't find "${target.name}" in your library. Say "add ${target.name}" if you want me to add it.`);
           } else {
             errors.push(`Entity target "${target.name}" of type "${target.type}" could not be resolved.`);
           }

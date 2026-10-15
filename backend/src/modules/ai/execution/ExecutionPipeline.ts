@@ -77,7 +77,8 @@ export class ExecutionPipeline {
         startedAt: new Date(startTime),
         finishedAt: new Date(),
         steps: [],
-        summary: `Execution validation failed: ${validationErrors.join(" ")}`,
+        // Each validation error is already a user-facing sentence.
+        summary: validationErrors.join(" "),
         errors,
         warnings,
       };

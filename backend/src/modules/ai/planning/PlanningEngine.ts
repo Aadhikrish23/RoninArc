@@ -32,6 +32,7 @@ export const INTENT_PARAM_TYPE_BY_TOOL_PARAM: Record<string, string> = {
   searchvalue: "text",
   content: "text",
   query: "text",
+  question: "text",
 };
 
 // Tool parameters (lowercased) supplied from the intent's targets instead.

@@ -14,6 +14,8 @@ export interface LibrarySignalGame {
   rawgRating?: number;
   metacritic?: number | null;
   imageURL?: string;
+  /** RAWG's average hours to play, when known. */
+  avgHours?: number;
 }
 
 export interface DiscoverCandidate {
@@ -24,7 +26,11 @@ export interface DiscoverCandidate {
   released?: string;
   genres: string[];
   metacritic?: number | null;
+  avgHours?: number;
 }
+
+/** "short" keeps games under ~20h, "long" keeps games over ~25h (games with unknown length stay). */
+export type LengthPreference = "short" | "long";
 
 export interface GenreAffinity {
   genre: string;
@@ -34,7 +40,8 @@ export interface GenreAffinity {
 export interface TasteProfile {
   genres: GenreAffinity[];
   signalCount: number;
-  anchors: Record<string, { title: string; why: string }>;
+  /** Games the user likes, used to explain a pick by its closest match ("Similar to X, which you rated 9/10"). */
+  liked: { title: string; tags: string[]; weight: number; why: string }[];
 }
 
 export interface Recommendation {
@@ -59,7 +66,7 @@ const STATUS_WEIGHT: Record<ProgressStatus, number> = {
   dropped: -0.7,
 };
 
-const BACKLOG_STATUSES: ProgressStatus[] = ["plan", "none", "paused"];
+const BACKLOG_STATUSES: ProgressStatus[] = ["playing", "paused", "plan", "none"];
 
 const norm = (s: string) => s.trim().toLowerCase();
 
@@ -83,30 +90,30 @@ function isSignal(game: LibrarySignalGame): boolean {
   );
 }
 
+/** Completes "Similar to X, which …". */
 function anchorReason(game: LibrarySignalGame): string {
-  if (game.rating !== null && game.rating !== undefined) return `you rated ${game.title} ${game.rating}/10`;
-  if (game.progressStatus === "completed") return `you finished ${game.title}`;
-  if (game.progressStatus === "playing") return `you're playing ${game.title}`;
+  if (game.rating !== null && game.rating !== undefined) return `you rated ${game.rating}/10`;
+  if (game.progressStatus === "completed") return "you finished";
+  if (game.progressStatus === "playing") return "you're playing";
   const hours = Math.round((game.playMinutes / 60) * 10) / 10;
-  return `you've played ${game.title} for ${hours}h`;
+  return `you've played for ${hours}h`;
 }
 
 export function buildTasteProfile(library: LibrarySignalGame[]): TasteProfile {
   const totals = new Map<string, { label: string; sum: number }>();
-  const best = new Map<string, { weight: number; game: LibrarySignalGame }>();
+  const liked: TasteProfile["liked"] = [];
   let signalCount = 0;
 
   for (const game of library) {
     if (!isSignal(game)) continue;
     signalCount += 1;
     const weight = gameWeight(game);
+    if (weight > 0) liked.push({ title: game.title, tags: game.tags || [], weight, why: anchorReason(game) });
     for (const tag of game.tags || []) {
       const key = norm(tag);
       const entry = totals.get(key) ?? { label: tag, sum: 0 };
       entry.sum += weight;
       totals.set(key, entry);
-      const current = best.get(key);
-      if (weight > 0 && (!current || weight > current.weight)) best.set(key, { weight, game });
     }
   }
 
@@ -115,12 +122,8 @@ export function buildTasteProfile(library: LibrarySignalGame[]): TasteProfile {
     .map((t) => ({ genre: t.label, affinity: maxAbs > 0 ? Math.round((t.sum / maxAbs) * 100) / 100 : 0 }))
     .sort((a, b) => b.affinity - a.affinity || a.genre.localeCompare(b.genre));
 
-  const anchors: TasteProfile["anchors"] = {};
-  for (const [key, { game }] of best) {
-    anchors[key] = { title: game.title, why: anchorReason(game) };
-  }
-
-  return { genres, signalCount, anchors };
+  liked.sort((a, b) => b.weight - a.weight);
+  return { genres, signalCount, liked };
 }
 
 /** Genres the user clearly likes, strongest first. */
@@ -175,10 +178,34 @@ function qualityReason(rating?: number, metacritic?: number | null): string | nu
   return null;
 }
 
-function tasteReason(genre: string | undefined, profile: TasteProfile): string | null {
-  if (!genre) return null;
-  const anchor = profile.anchors[norm(genre)];
-  return anchor ? `${genre}, like ${anchor.title} -- ${anchor.why}` : `Matches your taste for ${genre}`;
+/**
+ * Explains a pick by the liked game it has most in common with, so each pick
+ * gets its own reason instead of every card citing the same favourite.
+ */
+function tasteReason(genres: string[], top: string | undefined, profile: TasteProfile, selfTitle: string): string | null {
+  const own = new Set(genres.map(norm));
+  let best: TasteProfile["liked"][number] | undefined;
+  let bestShared = 0;
+  for (const game of profile.liked) {
+    if (norm(game.title) === norm(selfTitle)) continue;
+    const shared = game.tags.filter((t) => own.has(norm(t))).length;
+    if (shared > bestShared) {
+      best = game;
+      bestShared = shared;
+    }
+  }
+  if (best) return `Similar to ${best.title}, which ${best.why}`;
+  return top ? `Matches your taste for ${top}` : null;
+}
+
+function lengthReason(hours?: number): string | null {
+  if (!hours || hours <= 0) return null;
+  return hours <= 15 ? `Short: about ${hours}h to play` : null;
+}
+
+function fitsLength(hours: number | undefined, length?: LengthPreference): boolean {
+  if (!length || !hours || hours <= 0) return true;
+  return length === "short" ? hours <= 20 : hours >= 25;
 }
 
 function overlapsFocus(genres: string[], focus: string[]): boolean {
@@ -195,19 +222,27 @@ function finalScore(taste: number, qual: number, boost: number, personalized: bo
 export function rankBacklog(
   library: LibrarySignalGame[],
   profile: TasteProfile,
-  options: { limit: number; focus?: string[] },
+  options: { limit: number; focus?: string[]; length?: LengthPreference },
 ): Recommendation[] {
   const personalized = profile.signalCount > 0;
   const focus = options.focus ?? [];
 
   return library
-    .filter((g) => BACKLOG_STATUSES.includes(g.progressStatus) && overlapsFocus(g.tags || [], focus))
+    .filter(
+      (g) =>
+        BACKLOG_STATUSES.includes(g.progressStatus) &&
+        overlapsFocus(g.tags || [], focus) &&
+        fitsLength(g.avgHours, options.length),
+    )
     .map((game) => {
       const match = tasteMatch(game.tags || [], profile);
-      const boost = game.progressStatus === "paused" ? 0.1 : game.progressStatus === "plan" ? 0.05 : 0;
+      const boost =
+        game.progressStatus === "playing" ? 0.15 : game.progressStatus === "paused" ? 0.1 : game.progressStatus === "plan" ? 0.05 : 0;
       const reasons = [
-        tasteReason(match.top, profile),
-        game.progressStatus === "paused" ? "You paused it -- a good time to pick it back up" : null,
+        game.progressStatus === "playing" ? "You're in the middle of it" : null,
+        game.progressStatus === "paused" ? "You paused it. A good time to pick it back up" : null,
+        tasteReason(game.tags || [], match.top, profile, game.title),
+        options.length === "short" ? lengthReason(game.avgHours) : null,
         qualityReason(game.rawgRating, game.metacritic),
       ].filter((r): r is string => !!r);
       if (reasons.length === 0) reasons.push("Waiting in your backlog");
@@ -232,7 +267,7 @@ export function rankDiscover(
   candidates: DiscoverCandidate[],
   library: LibrarySignalGame[],
   profile: TasteProfile,
-  options: { limit: number; dismissed: Set<number>; focus?: string[] },
+  options: { limit: number; dismissed: Set<number>; focus?: string[]; length?: LengthPreference },
 ): Recommendation[] {
   const personalized = profile.signalCount > 0;
   const ownedIds = new Set(library.map((g) => g.rawgId).filter((id): id is number => typeof id === "number"));
@@ -248,14 +283,17 @@ export function rankDiscover(
         !ownedIds.has(c.id) &&
         !ownedTitles.has(norm(c.name)) &&
         !options.dismissed.has(c.id) &&
-        overlapsFocus(c.genres, focus)
+        overlapsFocus(c.genres, focus) &&
+        fitsLength(c.avgHours, options.length)
       );
     })
     .map((c) => {
       const match = tasteMatch(c.genres, profile);
-      const reasons = [tasteReason(match.top, profile), qualityReason(c.rating, c.metacritic)].filter(
-        (r): r is string => !!r,
-      );
+      const reasons = [
+        tasteReason(c.genres, match.top, profile, c.name),
+        options.length === "short" ? lengthReason(c.avgHours) : null,
+        qualityReason(c.rating, c.metacritic),
+      ].filter((r): r is string => !!r);
       if (reasons.length === 0) reasons.push(personalized ? "Something new to try" : "Popular with players right now");
 
       return {

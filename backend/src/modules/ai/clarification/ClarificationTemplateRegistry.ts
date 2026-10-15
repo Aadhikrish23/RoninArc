@@ -29,10 +29,19 @@ export class ClarificationTemplateRegistry {
       if (fact === "status") {
         return "What status should I update the game to?";
       }
-      if (fact === "collection") {
+      if (fact === "collection" || fact === "collectionname" || fact === "name") {
         return "Which collection would you like to use?";
       }
-      return `Please provide the missing ${fact || "parameter"}.`;
+      if (fact === "searchvalue" || fact === "query") {
+        return "What should I look for in your library?";
+      }
+      if (fact === "content") {
+        return "What should the note say?";
+      }
+      if (fact === "gameid" || fact === "gamename" || fact === "game") {
+        return "Which game do you mean?";
+      }
+      return "Could you tell me a bit more about what you'd like me to do?";
     });
 
     this.templates.set(ClarificationType.CONFIRM_ACTION, () => {

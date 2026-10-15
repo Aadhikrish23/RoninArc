@@ -20,7 +20,10 @@ export class NvidiaNimProvider implements AIProvider {
     const toolContext = context.toolContext;
 
     try {
-      const prompt = promptBuilder.build(request, toolContext, capabilities);
+      const prompt = promptBuilder.build(request, toolContext, capabilities, {
+        library: context.library,
+        recentExchanges: context.recentExchanges,
+      });
       if (trace) {
         trace.log("Provider", "Prompt Generated", {
           model: AIConfig.nvidiaModel,

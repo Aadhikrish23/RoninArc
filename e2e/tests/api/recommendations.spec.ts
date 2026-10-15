@@ -39,7 +39,7 @@ test.describe("Recommendations API (/recommendations)", () => {
 
       expect(titles(backlog)).toEqual(["Celeste", "Elden Ring"]);
       expect(backlog[0]).toMatchObject({ source: "library", status: "plan", gameId: expect.any(String) });
-      expect(backlog[0].reasons[0]).toContain("like Hollow Knight -- you rated Hollow Knight 9/10");
+      expect(backlog[0].reasons[0]).toBe("Similar to Hollow Knight, which you rated 9/10");
       expect(backlog[0].score).toBeGreaterThan(backlog[1].score);
     });
 
@@ -57,14 +57,16 @@ test.describe("Recommendations API (/recommendations)", () => {
     test("paused games get a nudge to pick them back up @positive", async ({ api }) => {
       await api.addGame(byName("Celeste"), { progressStatus: "paused" });
       const { body } = await get(api, { type: "backlog" });
-      expect(body.Data.backlog[0].reasons).toContain("You paused it -- a good time to pick it back up");
+      expect(body.Data.backlog[0].reasons).toContain("You paused it. A good time to pick it back up");
     });
 
-    test("games already played, finished or dropped are never suggested from the backlog @negative", async ({ api }) => {
+    test("finished or dropped games are never suggested; ones you're playing are, first @negative", async ({ api }) => {
       for (const [name, status] of [["Hades", "playing"], ["Celeste", "completed"], ["Elden Ring", "dropped"]] as const) {
         await api.addGame(byName(name), { progressStatus: status });
       }
-      expect((await get(api, { type: "backlog" })).body.Data.backlog).toEqual([]);
+      const backlog = (await get(api, { type: "backlog" })).body.Data.backlog;
+      expect(backlog.map((r: any) => r.title)).toEqual(["Hades"]);
+      expect(backlog[0].reasons[0]).toBe("You're in the middle of it");
     });
 
     test("only uses the caller's own library @negative", async ({ api, request }) => {

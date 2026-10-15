@@ -1,4 +1,6 @@
 import type { Request, Response, NextFunction } from "express";
+import { expandAbbreviation } from "./gameAbbreviations";
+import { rankByTitle, titleMatchScore } from "./titleMatch";
 import AppError from "../../shared/errors/AppError";
 import rawgService from "./rawgService";
 import gameLibrarymodel from "../library/LibraryGame";
@@ -26,13 +28,15 @@ const searchgame = async (req: Request, res: Response, next: NextFunction) => {
     const normQuery = normalizeTitle(query.trim());
 
     // 2. Local Search: Filter local library games by comparing normalized titles
+    // Abbreviations players type ("ds3", "rdr 2") are searched by their full title.
+    const searchTerm = expandAbbreviation(query) ?? query.trim();
     const owned = userLibrary.filter((g) => {
       const normLocal = g.normalizedTitle || normalizeTitle(g.title);
-      return normLocal.includes(normQuery);
+      return normLocal.includes(normQuery) || titleMatchScore(searchTerm, g.title) >= 60;
     }).map((g) => g.toJSON());
 
-    // 3. Fetch discovery results from RAWG
-    const rawgResults = await rawgService.searchGames(query.trim(), page);
+    // 3. Fetch discovery results from RAWG, best title match first (ties keep RAWG's order)
+    const rawgResults = rankByTitle(searchTerm, await rawgService.searchGames(searchTerm, page)).map((r) => r.item);
 
     // 4. Discovery Search: Exclude already owned games using normalized match checks
     const discover = rawgResults.filter((rawgGame: any) => {

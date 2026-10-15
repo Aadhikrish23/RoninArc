@@ -17,6 +17,21 @@ import { PlanningRuntime } from "./planning/PlanningRuntime";
 import { PlanningStatus } from "./planning/PlanningStatus";
 import { ExecutionRuntime } from "./execution/ExecutionRuntime";
 import { IntentPlan } from "./intent/IntentPlan";
+import { IntentType } from "./intent/IntentType";
+import { IntentParameterType } from "./intent/IntentParameterType";
+import { ConversationSession } from "./conversation/ConversationSession";
+import pendingConfirmations, { isCancelReply, isConfirmReply } from "./conversation/PendingConfirmationStore";
+import { loadLibrarySnapshot } from "./context/LibrarySnapshot";
+import recentExchanges from "./conversation/RecentExchanges";
+
+/** Status words the model may use as their own intents; all become SetStatus. */
+const STATUS_INTENTS: Partial<Record<string, string>> = {
+  [IntentType.StartGame]: "playing",
+  [IntentType.PauseGame]: "paused",
+  [IntentType.DropGame]: "dropped",
+};
+
+type RuntimeResponse = Record<string, any> & { success: boolean; message: string; status?: string };
 
 export class AIRuntime {
   private readonly planningRuntime: PlanningRuntime;
@@ -56,6 +71,20 @@ export class AIRuntime {
         clientActions: [],
       };
 
+      const finish = (response: RuntimeResponse) => {
+        profiler.stopOverall();
+        const final = { ...response, metrics: profiler.getMetrics() };
+        recentExchanges.add(userId, cleanRequest, final.message || "");
+        if (trace) {
+          const status = final.status || (final.success ? "SUCCESS" : "FAILED");
+          trace.updateStats({ status });
+          trace.log("FinalResponse", "Completed", final);
+          trace.log("AIRuntime", "Runtime Finished", { status });
+          trace.end();
+        }
+        return final;
+      };
+
       try {
         // 1. Conversation Runtime: Load conversation session
         profiler.startLayer("conversation");
@@ -69,31 +98,33 @@ export class AIRuntime {
         profiler.stopLayer("memory");
 
         let intentPlan: IntentPlan | null = null;
+        let confirmed = false;
 
-        // 3. Clarification Runtime: Try to resume clarification if WAITING_FOR_CLARIFICATION
-        profiler.startLayer("clarification");
-        const resumeResult = await clarificationRuntime.resume(session, cleanRequest, requestId);
-        profiler.stopLayer("clarification");
-
-        if (resumeResult.errorResponse) {
-          profiler.stopOverall();
-          const response = {
-            ...resumeResult.errorResponse,
-            metrics: profiler.getMetrics(),
-          };
-          if (trace) {
-            trace.updateStats({
-              status: response.status || "FAILED",
-            });
-            trace.log("FinalResponse", "Completed", response);
-            trace.log("AIRuntime", "Runtime Finished", { status: response.status || "FAILED" });
-            trace.end();
+        // A removal we asked about last turn: "yes" runs it, "no" drops it,
+        // anything else drops it and is handled as a new request.
+        const pending = pendingConfirmations.take(userId);
+        if (pending) {
+          if (isConfirmReply(cleanRequest)) {
+            intentPlan = pending.plan;
+            confirmed = true;
+          } else if (isCancelReply(cleanRequest)) {
+            return finish({ success: true, status: "CANCELLED", message: `Okay, I kept ${pending.label} in your library.` });
           }
-          return response;
         }
 
-        if (resumeResult.isResumed && resumeResult.intentPlan) {
-          intentPlan = resumeResult.intentPlan;
+        // 3. Clarification Runtime: Try to resume clarification if WAITING_FOR_CLARIFICATION
+        if (!intentPlan) {
+          profiler.startLayer("clarification");
+          const resumeResult = await clarificationRuntime.resume(session, cleanRequest, requestId);
+          profiler.stopLayer("clarification");
+
+          if (resumeResult.errorResponse) {
+            return finish({ ...(resumeResult.errorResponse as any) });
+          }
+
+          if (resumeResult.isResumed && resumeResult.intentPlan) {
+            intentPlan = resumeResult.intentPlan;
+          }
         }
 
         // Inject memoryContext into AIRequestContext
@@ -102,10 +133,15 @@ export class AIRuntime {
         }
 
         // A pure greeting needs no model, so it's answered even when the LLM is offline.
-        const greetingKind = matchGreeting(cleanRequest);
+        const greetingKind = intentPlan ? null : matchGreeting(cleanRequest);
 
         // 4. Planning Runtime Step A: Call LLM Provider to plan intent if not resumed
         if (!intentPlan && !greetingKind && requestContext) {
+          // The model sees the library and the recent conversation, so it can
+          // name games itself ("it", "ds3", "the last game I added").
+          requestContext.library = await loadLibrarySnapshot(userId);
+          requestContext.recentExchanges = recentExchanges.get(userId);
+
           intentPlan = await this.provider.plan(
             cleanRequest,
             requestContext,
@@ -116,163 +152,41 @@ export class AIRuntime {
           intentPlan = conversationRuntime.resolveReferences(intentPlan, session);
         }
 
-        // Intercept general conversation: the whole message is a greeting, or the
-        // LLM itself classified the request as AskQuestion/Help.
-        const llmConversationalIntents = intentPlan?.intents?.filter(i => i.type === "AskQuestion" || i.type === "Help") ?? [];
+        if (intentPlan) normalizeStatusIntents(intentPlan);
 
-        if (greetingKind || llmConversationalIntents.length > 0) {
-          profiler.stopOverall();
+        // Conversation the model handles itself: greetings, help, questions it
+        // can answer, and requests the app can't do (it writes the reply).
+        const conversational = intentPlan?.intents?.filter((i) => i.type === IntentType.AskQuestion || i.type === IntentType.Help) ?? [];
+        const actionable = intentPlan?.intents?.filter((i) => i.type !== IntentType.AskQuestion && i.type !== IntentType.Help) ?? [];
+
+        if (greetingKind || (conversational.length > 0 && actionable.length === 0)) {
+          const answer = conversational
+            .map((i) => i.parameters?.find((p) => p.type === IntentParameterType.Text)?.value)
+            .find((v) => typeof v === "string" && v.trim().length > 0) as string | undefined;
           const replyKind: GreetingKind =
-            greetingKind ?? (llmConversationalIntents.some(i => i.type === "Help") ? "capabilities" : "hello");
-          const conversationalMessage = GREETING_REPLIES[replyKind];
-
-          const response = {
-            success: true,
-            message: conversationalMessage,
-            metrics: profiler.getMetrics(),
-          };
-
-          if (trace) {
-            trace.updateStats({
-              status: "SUCCESS",
-            });
-            trace.log("FinalResponse", "Completed", response);
-            trace.log("AIRuntime", "Runtime Finished", { status: "SUCCESS" });
-            trace.end();
-          }
-          return response;
+            greetingKind ?? (conversational.some((i) => i.type === IntentType.Help) ? "capabilities" : "hello");
+          const message = !greetingKind && answer ? answer.trim() : GREETING_REPLIES[replyKind];
+          return finish({ success: true, message });
         }
 
-        // 5. Planning Runtime Step B: Resolve capabilities, context, entities, and execute PlanningEngine
-        profiler.startLayer("planning");
-        const planningResultWrapper = await this.planningRuntime.plan(userId, intentPlan!, session, cleanRequest);
-        const planningResult = planningResultWrapper.planningResult;
-        const resolvedIntentPlan = planningResultWrapper.resolvedIntentPlan;
-        profiler.stopLayer("planning");
+        const plan: IntentPlan = { ...intentPlan!, intents: actionable };
 
-        // PlanningEngine already computes a specific, user-facing explanation when
-        // nothing matched (e.g. "No resolved capabilities matched the user's intent.
-        // Try rephrasing your request."). Without this check, that explanation was
-        // discarded and execution proceeded anyway with zero candidates, surfacing
-        // the far less helpful "Validation failed: Empty execution plan." instead.
-        if (planningResult.status === PlanningStatus.FAILED) {
-          profiler.stopOverall();
-          const response = {
-            success: false,
-            message: planningResult.explanation,
-            metrics: profiler.getMetrics(),
-          };
-          if (trace) {
-            trace.updateStats({
-              status: "FAILED",
-            });
-            trace.log("FinalResponse", "Completed", response);
-            trace.log("AIRuntime", "Runtime Finished", { status: "FAILED" });
-            trace.end();
-          }
-          return response;
-        }
-
-        // 6. Clarification Runtime: Evaluate planning result & handle pause if needed
-        profiler.startLayer("clarification");
-        const clarificationResult = await clarificationRuntime.evaluate(
-          planningResult,
-          session,
-          intentPlan!,
-          requestId,
-          cleanRequest,
-        );
-        profiler.stopLayer("clarification");
-
-        if (clarificationResult.pause) {
-          profiler.stopOverall();
-          const response = {
-            ...clarificationResult.response,
-            metrics: profiler.getMetrics(),
-          };
-          if (trace) {
-            trace.updateStats({
-              status: "CLARIFICATION_REQUIRED",
-            });
-            trace.log("FinalResponse", "Completed", response);
-            trace.log("AIRuntime", "Runtime Finished", { status: "CLARIFICATION_REQUIRED" });
-            trace.end();
-          }
-          return response;
-        }
-
-        // 7. Execution Runtime: Build execution plan, validate, adapt, and execute
-        profiler.startLayer("execution");
-        const executionResult = await this.executionRuntime.execute(
-          planningResult,
-          resolvedIntentPlan,
-          userId,
-          requestId,
-          toolContext,
-          session,
-          memoryContext,
-          cleanRequest
-        );
-        profiler.stopLayer("execution");
-
-        let response;
-        if (executionResult.status === "FAILED") {
-          profiler.stopOverall();
-          response = {
-            success: false,
-            message: executionResult.summary,
-            errors: executionResult.errors,
-            metrics: profiler.getMetrics(),
-          };
-          if (trace) {
-            trace.updateStats({
-              status: "FAILED",
-            });
-            trace.log("FinalResponse", "Completed", response);
-            trace.log("AIRuntime", "Runtime Finished", { status: "FAILED" });
-            trace.end();
-          }
-          return response;
-        }
-
-        // 8. Conversation Runtime: Record success and save references
-        profiler.startLayer("conversation");
-        const conversationResult = await conversationRuntime.handleSuccess(
-          userId,
-          session,
-          intentPlan!,
-          resolvedIntentPlan,
-          executionResult.executionId,
-          requestId,
-          cleanRequest,
-        );
-        profiler.stopLayer("conversation");
-
-        // Map raw execution result details into a natural user summary
-        const friendlyMessage = aiResponseBuilder.buildResponse(executionResult);
-        profiler.stopOverall();
-        const isFullSuccess = executionResult.status === "SUCCESS";
-        response = {
-          ...conversationResult,
-          success: isFullSuccess,
-          status: executionResult.status,
-          message: friendlyMessage,
-          // Work only the app can do (e.g. start a game on this PC); see AIClientAction.
-          ...(toolContext.clientActions?.length ? { clientActions: toolContext.clientActions } : {}),
-          metrics: profiler.getMetrics(),
-        };
-
-        if (trace) {
-          trace.updateStats({
-            status: executionResult.status,
+        // "add celeste and mark it completed": the game has to exist before the
+        // second step can find it, so additions run as their own first phase.
+        const additions = plan.intents.filter((i) => i.type === IntentType.AddGame);
+        const rest = plan.intents.filter((i) => i.type !== IntentType.AddGame);
+        if (additions.length > 0 && rest.length > 0) {
+          const first = await this.runPlanned({ ...plan, intents: additions }, session, cleanRequest, toolContext, memoryContext, profiler, confirmed);
+          if (!first.success) return finish(first);
+          const second = await this.runPlanned({ ...plan, intents: rest }, session, cleanRequest, toolContext, memoryContext, profiler, confirmed);
+          return finish({
+            ...second,
+            message: `${first.message} ${second.message}`.trim(),
+            ...(toolContext.clientActions?.length ? { clientActions: toolContext.clientActions } : {}),
           });
-          trace.log("FinalResponse", "Completed", response);
-          trace.log("AIRuntime", "Runtime Finished", { status: executionResult.status });
-          trace.end();
         }
 
-        profiler.stopOverall();
-        return response;
+        return finish(await this.runPlanned(plan, session, cleanRequest, toolContext, memoryContext, profiler, confirmed));
       } catch (error: unknown) {
         const errorMsg = error instanceof Error ? error.message : String(error);
         if (trace) {
@@ -284,7 +198,7 @@ export class AIRuntime {
           trace.end();
         }
         profiler.stopOverall();
-        
+
         if (error instanceof AIRuntimeError) {
           throw error;
         }
@@ -292,5 +206,145 @@ export class AIRuntime {
       }
     });
   }
+
+  /** Planning, clarification, confirmation and execution for one intent plan. */
+  private async runPlanned(
+    intentPlan: IntentPlan,
+    session: ConversationSession,
+    cleanRequest: string,
+    toolContext: AIToolContext,
+    memoryContext: any,
+    profiler: RuntimeProfiler,
+    confirmed: boolean,
+  ): Promise<RuntimeResponse> {
+    const { userId, requestId = "" } = toolContext;
+
+    // 5. Planning Runtime Step B: Resolve capabilities, context, entities, and execute PlanningEngine
+    profiler.startLayer("planning");
+    const planningResultWrapper = await this.planningRuntime.plan(userId, intentPlan, session, cleanRequest);
+    const planningResult = planningResultWrapper.planningResult;
+    const resolvedIntentPlan = planningResultWrapper.resolvedIntentPlan;
+    profiler.stopLayer("planning");
+
+    if (planningResult.status === PlanningStatus.FAILED) {
+      return { success: false, message: planningResult.explanation };
+    }
+
+    // 6. Clarification Runtime: Evaluate planning result & handle pause if needed
+    profiler.startLayer("clarification");
+    const clarificationResult = await clarificationRuntime.evaluate(
+      planningResult,
+      session,
+      intentPlan,
+      requestId,
+      cleanRequest,
+    );
+    profiler.stopLayer("clarification");
+
+    if (clarificationResult.pause) {
+      return { ...(clarificationResult.response as any) };
+    }
+
+    // Removing a game deletes its review and notes too, so it always asks first.
+    if (!confirmed) {
+      const removals = resolvedIntentPlan.intents.filter((i) => i.type === IntentType.RemoveGame);
+      const titles = removals.flatMap((i) =>
+        i.resolvedTargets.map((t) => (t.resolution?.entity as any)?.title).filter((title): title is string => !!title),
+      );
+      if (titles.length > 0) {
+        // Re-ask with exact titles so "yes" removes exactly what was named.
+        const titleByName = new Map<string, string>();
+        for (const removal of removals) {
+          for (const rt of removal.resolvedTargets) {
+            const title = (rt.resolution?.entity as any)?.title;
+            if (title) titleByName.set(rt.originalTarget.name, title);
+          }
+        }
+        const exactPlan: IntentPlan = JSON.parse(JSON.stringify(intentPlan));
+        for (const intent of exactPlan.intents) {
+          if (intent.type !== IntentType.RemoveGame) continue;
+          intent.targets = intent.targets.map((t) => ({ ...t, name: titleByName.get(t.name) ?? t.name }));
+        }
+        const label = titles.length === 1 ? titles[0] : `${titles.slice(0, -1).join(", ")} and ${titles[titles.length - 1]}`;
+        pendingConfirmations.put(userId, { plan: exactPlan, label });
+        const question = `Remove ${label} from your library? ${titles.length === 1 ? "Its" : "Their"} review and notes will be deleted too.`;
+        const options = [
+          { id: "confirm-yes", label: "Yes, remove it" },
+          { id: "confirm-no", label: "No, keep it" },
+        ];
+        return {
+          success: false,
+          status: "CONFIRMATION_REQUIRED",
+          message: question,
+          clarificationRequest: {
+            id: requestId,
+            requestId,
+            type: "CONFIRMATION",
+            question,
+            reason: "Please confirm",
+            entityType: "confirmation",
+            originalQuery: cleanRequest,
+            candidates: options,
+            options,
+            allowFreeText: false,
+          },
+        };
+      }
+    }
+
+    // 7. Execution Runtime: Build execution plan, validate, adapt, and execute
+    profiler.startLayer("execution");
+    const executionResult = await this.executionRuntime.execute(
+      planningResult,
+      resolvedIntentPlan,
+      userId,
+      requestId,
+      toolContext,
+      session,
+      memoryContext,
+      cleanRequest,
+    );
+    profiler.stopLayer("execution");
+
+    if (executionResult.status === "FAILED") {
+      return { success: false, message: executionResult.summary, errors: executionResult.errors };
+    }
+
+    // 8. Conversation Runtime: Record success and save references
+    profiler.startLayer("conversation");
+    const conversationResult = await conversationRuntime.handleSuccess(
+      userId,
+      session,
+      intentPlan,
+      resolvedIntentPlan,
+      executionResult.executionId,
+      requestId,
+      cleanRequest,
+    );
+    profiler.stopLayer("conversation");
+
+    return {
+      ...conversationResult,
+      success: executionResult.status === "SUCCESS",
+      status: executionResult.status,
+      message: aiResponseBuilder.buildResponse(executionResult),
+      // Work only the app can do (e.g. start a game on this PC); see AIClientAction.
+      ...(toolContext.clientActions?.length ? { clientActions: toolContext.clientActions } : {}),
+    };
+  }
 }
+
+/** StartGame / PauseGame / DropGame become SetStatus with the matching status. */
+function normalizeStatusIntents(plan: IntentPlan) {
+  for (const intent of plan.intents ?? []) {
+    const implied = STATUS_INTENTS[intent.type];
+    if (!implied) continue;
+    intent.type = IntentType.SetStatus;
+    intent.parameters = intent.parameters ?? [];
+    if (!intent.parameters.some((p) => p.type === IntentParameterType.Status)) {
+      intent.parameters.push({ type: IntentParameterType.Status, value: implied } as any);
+    }
+  }
+}
+
 export default AIRuntime;

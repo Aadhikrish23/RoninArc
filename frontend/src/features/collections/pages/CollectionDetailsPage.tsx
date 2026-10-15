@@ -138,7 +138,7 @@ export default function CollectionDetailsPage() {
         <Button
           leftIcon={<ArrowBackIcon />}
           variant="ghost"
-          onClick={() => navigate("/library")}
+          onClick={() => navigate("/")}
         >
           Back to Library
         </Button>

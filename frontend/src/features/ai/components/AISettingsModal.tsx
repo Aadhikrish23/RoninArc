@@ -13,6 +13,9 @@ import {
   VStack,
   Icon,
   useColorModeValue,
+  FormControl,
+  FormLabel,
+  Switch,
 } from "@chakra-ui/react";
 import type { JSX } from "react";
 import { FiSettings } from "react-icons/fi";
@@ -20,6 +23,8 @@ import { FiSettings } from "react-icons/fi";
 export interface AISettings {
   systemPersona: "default" | "technical" | "gamer";
   temperature: number;
+  /** Show how long each step of a reply took (for debugging). Off by default. */
+  showTechnicalDetails?: boolean;
 }
 
 interface AISettingsModalProps {
@@ -73,9 +78,20 @@ export default function AISettingsModal({
 
         <ModalBody py={6}>
           <VStack spacing={4} align="stretch">
-            <Text fontSize="sm" color="gray.500">
-              Model parameters (such as creativity temperature and system prompt persona) are pre-configured on the backend Ollama service and cannot be modified dynamically.
-            </Text>
+            <FormControl display="flex" alignItems="center" justifyContent="space-between" gap={4}>
+              <FormLabel htmlFor="ai-show-technical" mb={0}>
+                Show timing details on replies
+                <Text fontSize="sm" color="gray.500" fontWeight="normal">
+                  Adds a breakdown of how long each step took. Useful for debugging.
+                </Text>
+              </FormLabel>
+              <Switch
+                id="ai-show-technical"
+                colorScheme="purple"
+                isChecked={!!localSettings.showTechnicalDetails}
+                onChange={(e) => setLocalSettings((s) => ({ ...s, showTechnicalDetails: e.target.checked }))}
+              />
+            </FormControl>
           </VStack>
         </ModalBody>
 

@@ -158,6 +158,18 @@ export class ToolMetadataRegistry {
         ],
       },
       {
+        id: "library_question",
+        supportedIntent: "library_question",
+        supportedEntityTypes: [],
+        executionPolicy: "SEQUENTIAL",
+        requiredParameters: [],
+        optionalParameters: ["question"],
+        description: "Answers questions about the user's library",
+        parameters: [
+          { name: "question", type: "string", required: false },
+        ],
+      },
+      {
         id: "update_status",
         supportedIntent: "update_status",
         supportedEntityTypes: ["Game"],

@@ -64,7 +64,8 @@ export class MissingParameterClarificationBuilder {
       requestId: uuid,
       type,
       question,
-      reason: `Missing required context parameter: "${missingFact}"`,
+      // Shown to the user as the card heading, so it is the question itself.
+      reason: question,
       entityType: missingFact,
       originalQuery: "",
       candidates: options,

@@ -111,6 +111,7 @@ async function discoverByGenres(genreSlugs: string[], pageSize = 40) {
       released: g.released,
       genres: g.genres?.map((x: any) => x.name) || [],
       metacritic: g.metacritic,
+      avgHours: typeof g.playtime === "number" ? g.playtime : undefined,
     }));
   } catch (err) {
     throw new AppError("Failed to fetch RAWG data", 502);
@@ -150,7 +151,10 @@ async function getGameDetails(rawgId: string | number) {
     return {
       id: g.id,
       name: g.name,
-      description: g.description_raw,
+      // RAWG often appends a full Spanish translation after an "Español" line.
+      description: typeof g.description_raw === "string"
+        ? g.description_raw.split(/\n\s*Español\s*:?\s*\n/i)[0].trim()
+        : g.description_raw,
 
       imageURL: g.background_image,
       imageAlt: g.background_image_additional,

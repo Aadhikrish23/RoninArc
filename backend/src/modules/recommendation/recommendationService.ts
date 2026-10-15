@@ -11,6 +11,7 @@ import {
   focusGenres,
   rankBacklog,
   rankDiscover,
+  type LengthPreference,
 } from "./recommendationEngine";
 
 export type RecommendationType = "all" | "backlog" | "discover";
@@ -57,6 +58,14 @@ export interface RecommendationResult {
   discoverError?: string;
 }
 
+/** "something short", "a quick one" -> short; "a long rpg" -> long. */
+function lengthPreference(query?: string): LengthPreference | undefined {
+  const q = (query || "").toLowerCase();
+  if (/\b(short|shorter|quick|bite[- ]?sized|small|brief)\b/.test(q)) return "short";
+  if (/\b(long|longer|lengthy|epic|huge|big)\b/.test(q)) return "long";
+  return undefined;
+}
+
 async function loadSignals(userId: string): Promise<LibrarySignalGame[]> {
   const [library, minutes] = await Promise.all([
     libraryServices.getUserLibrary(userId),
@@ -78,6 +87,7 @@ async function loadSignals(userId: string): Promise<LibrarySignalGame[]> {
     rawgRating: g.rawgRating,
     metacritic: g.metacritic,
     imageURL: g.imageURL || g.artwork?.sources?.[g.artwork?.selectedSource] || undefined,
+    avgHours: typeof g.playtime === "number" ? g.playtime : undefined,
   }));
 }
 
@@ -89,6 +99,7 @@ async function getRecommendations(
   const profile = buildTasteProfile(library);
   const libraryTags = Array.from(new Set(library.flatMap((g) => g.tags)));
   const focus = focusGenres(options.query, library, Array.from(new Set([...KNOWN_GENRES, ...libraryTags])));
+  const length = lengthPreference(options.query);
 
   const result: RecommendationResult = {
     profile: {
@@ -102,7 +113,7 @@ async function getRecommendations(
   };
 
   if (options.type !== "discover") {
-    result.backlog = rankBacklog(library, profile, { limit: options.limit, focus });
+    result.backlog = rankBacklog(library, profile, { limit: options.limit, focus, length });
   }
 
   if (options.type !== "backlog") {
@@ -117,6 +128,7 @@ async function getRecommendations(
         limit: options.limit,
         dismissed: new Set(dismissed.map((d: any) => d.rawgId)),
         focus,
+        length,
       });
     } catch {
       // Discovery needs RAWG; backlog picks are computed locally and still work offline.

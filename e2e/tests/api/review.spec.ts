@@ -13,7 +13,7 @@ test.describe("Review API (/review)", () => {
     expect((await json(res)).Data).toMatchObject({ gameId: game._id, rating: 9, reviewText: "Fantastic loop" });
 
     const activity = await json(await api.get("/activity"));
-    expect(activity.Data.some((a: any) => a.type === "REVIEW_CREATED" && a.message === "Reviewed a game (9/10)")).toBe(true);
+    expect(activity.Data.some((a: any) => a.type === "REVIEW_CREATED" && /^Rated .+ 9\/10$/.test(a.message))).toBe(true);
   });
 
   test("reads back the review for a game @positive", async ({ api }) => {
