@@ -58,7 +58,13 @@ export class AIController {
     const { message } = req.body;
     const requestId = crypto.randomUUID();
     // Anything other than an explicit `true` means "can't launch" (older clients, the web build).
-    const client = { canLaunchGames: req.body?.client?.canLaunchGames === true };
+    const raw = req.body?.client ?? {};
+    const id = (v: unknown) => (typeof v === "string" && /^[A-Za-z0-9]{1,40}$/.test(v) ? v : undefined);
+    const client = {
+      canLaunchGames: raw.canLaunchGames === true,
+      pageGameId: id(raw.pageGameId),
+      pageCollectionId: id(raw.pageCollectionId),
+    };
 
     if (typeof message !== "string" || message.trim() === "") {
       res.status(400).json({
@@ -100,3 +106,9 @@ export class AIController {
 }
 
 export const aiController = new AIController();
+
+/** POST /ai/reset -- "Clear" in the chat: forget the conversation, not just the visible messages. */
+export async function resetConversation(req: Request, res: Response): Promise<void> {
+  await aiService.reset(req.user!.id);
+  res.status(200).json({ Status: "Success", Message: "Conversation cleared" });
+}

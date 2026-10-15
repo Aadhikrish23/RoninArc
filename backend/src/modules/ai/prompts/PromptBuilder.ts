@@ -6,6 +6,7 @@ import type { Exchange } from "../conversation/RecentExchanges";
 export interface PromptExtras {
   library?: LibrarySnapshot;
   recentExchanges?: Exchange[];
+  page?: { gameTitle?: string; collectionName?: string };
 }
 
 interface FewShotExample {
@@ -580,6 +581,8 @@ Naming games and collections:
 
 User's library:
 ${libraryText}
+
+What the user has open right now: ${extras.page?.gameTitle ? `the game page for "${extras.page.gameTitle}" ("this game" / "this one" means it)` : extras.page?.collectionName ? `the collection "${extras.page.collectionName}" ("this collection" means it)` : "nothing specific"}
 
 Recent conversation:
 ${conversationText}

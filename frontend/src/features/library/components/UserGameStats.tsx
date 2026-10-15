@@ -19,7 +19,10 @@ import {
   Divider,
 } from "@chakra-ui/react";
 
-import { FiPlay, FiTrash2 } from "react-icons/fi";
+import { FiPlay, FiPlus, FiTrash2 } from "react-icons/fi";
+import { useState } from "react";
+import CreateCollectionModal from "../../collections/components/CreateCollectionModal";
+import { useCollection } from "../../collections/context/CollectionContext";
 
 import type { Status, Game } from "../types/library";
 import type { Collection } from "../../collections/types/collection";
@@ -94,6 +97,8 @@ export default function UserGameStats({
   onRemoveFromCollection,
   onLaunch,isRunning
 }: Props) {
+  const { createCollection } = useCollection();
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
   const bg = useColorModeValue("white", "gray.800");
   const borderColor = useColorModeValue("gray.200", "gray.700");
 
@@ -288,7 +293,9 @@ export default function UserGameStats({
             </MenuButton>
             <MenuList>
               {collectionsToAddTo.length === 0 ? (
-                <MenuItem isDisabled>Already in all collections</MenuItem>
+                <MenuItem isDisabled>
+                  {collections.length === 0 ? "No collections yet" : "Already in all collections"}
+                </MenuItem>
               ) : (
                 collectionsToAddTo.map((collection) => (
                   <MenuItem
@@ -299,8 +306,17 @@ export default function UserGameStats({
                   </MenuItem>
                 ))
               )}
+              <Divider my={1} />
+              <MenuItem icon={<FiPlus />} onClick={() => setIsCreateOpen(true)}>
+                New collection…
+              </MenuItem>
             </MenuList>
           </Menu>
+          <CreateCollectionModal
+            isOpen={isCreateOpen}
+            onClose={() => setIsCreateOpen(false)}
+            onCreate={createCollection}
+          />
         </Box>
 
         <Divider my={2} />

@@ -81,7 +81,7 @@ export default function GameDetailsPage() {
     : (games.find((g) => g.rawgId === Number(rawgId)) ?? null);
 
   const { game, loading, error } = useGameDetails(rawgId, libraryGame);
-  const { notes, loading: notesLoading, saving: notesSaving, addNote, removeNote } = useNotes(libraryGame?._id);
+  const { notes, loading: notesLoading, saving: notesSaving, addNote, editNote, removeNote } = useNotes(libraryGame?._id);
 
   const handleAddGame = async () => {
     if (!game) return;
@@ -286,6 +286,7 @@ export default function GameDetailsPage() {
           saving={notesSaving}
           onAdd={addNote}
           onDelete={removeNote}
+          onEdit={editNote}
         />
       )}
 

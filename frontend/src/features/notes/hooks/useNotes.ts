@@ -68,5 +68,22 @@ export function useNotes(gameId: string | undefined) {
     }
   };
 
-  return { notes, loading, saving, addNote, removeNote };
+  const editNote = async (noteId: string, content: string) => {
+    if (!content.trim()) return false;
+    try {
+      const updated = await noteApi.updateNote(noteId, content);
+      setNotes((prev) => prev.map((n) => (n._id === noteId ? updated : n)));
+      return true;
+    } catch {
+      toast({
+        title: "Failed to save note",
+        status: "error",
+        duration: 2000,
+        isClosable: true,
+      });
+      return false;
+    }
+  };
+
+  return { notes, loading, saving, addNote, editNote, removeNote };
 }

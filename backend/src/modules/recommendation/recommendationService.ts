@@ -89,6 +89,8 @@ function lengthPreference(query?: string): LengthPreference | undefined {
   const limit = q.match(/\b(under|less than|below|max|at most|<)\s*(\d{1,3})\s*(h|hr|hrs|hours?)\b/);
   if (limit) return { maxHours: Number(limit[2]) };
   if (/\bi (don'?t|dont) have \d{2,3}\s*(h|hrs?|hours?)\b/.test(q)) return "short";
+  // "something I could beat in a weekend" is roughly a 15-hour game.
+  if (/\bweekend\b/.test(q)) return { maxHours: 15 };
   if (/\b(short|shorter|quick|bite[- ]?sized|small|brief)\b/.test(q)) return "short";
   if (/\b(long|longer|lengthy|epic|huge|big)\b/.test(q)) return "long";
   return undefined;
@@ -160,7 +162,10 @@ async function getRecommendations(
     const slugs = seedGenres.map(toSlug).filter((s): s is string => !!s);
     try {
       const [candidates, dismissed] = await Promise.all([
-        rawgService.discoverByGenres(styles.slugs.length > 0 ? [] : slugs, 40, styles.slugs),
+        // One retry: RAWG is sometimes slow or briefly unavailable.
+        rawgService
+          .discoverByGenres(styles.slugs.length > 0 ? [] : slugs, 40, styles.slugs)
+          .catch(() => rawgService.discoverByGenres(styles.slugs.length > 0 ? [] : slugs, 40, styles.slugs)),
         RecommendationFeedback.find({ userId }).select("rawgId").lean(),
       ]);
       result.discover = rankDiscover(candidates, library, profile, {

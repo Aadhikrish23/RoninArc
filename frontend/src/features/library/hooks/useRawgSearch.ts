@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import libraryApi from "../api/libraryApi";
 import type { SearchResponse } from "../types/library";
@@ -18,8 +18,12 @@ export function useRawgSearch() {
 
   const [error, setError] = useState<string | null>(null);
 
+  // Only the newest search may update results: a slow earlier reply must not overwrite it.
+  const latestRequest = useRef(0);
+
   // ---------- Reusable search ----------
   const performSearch = async (options: { silent?: boolean } = {}) => {
+    const requestId = ++latestRequest.current;
     if (searchText.trim().length < 3) {
       setResults({
         owned: [],
@@ -35,6 +39,7 @@ export function useRawgSearch() {
       setError(null);
 
       const data = await libraryApi.searchRawgGames(searchText, 1);
+      if (requestId !== latestRequest.current) return;
 
       if (!data) {
         setError("Failed to search RAWG");
@@ -43,9 +48,9 @@ export function useRawgSearch() {
 
       setResults(data);
     } catch (error) {
-      setError(getErrorMessage(error));
+      if (requestId === latestRequest.current) setError(getErrorMessage(error));
     } finally {
-      setLoading(false);
+      if (requestId === latestRequest.current) setLoading(false);
     }
   };
 
@@ -58,6 +63,7 @@ export function useRawgSearch() {
   }, [searchText]);
 
   const clearSearch = () => {
+    latestRequest.current++;
     setSearchText("");
     setResults({
       owned: [],

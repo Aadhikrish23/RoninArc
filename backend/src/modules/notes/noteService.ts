@@ -1,6 +1,16 @@
 import mongoose from "mongoose";
 import Note from "./Notemodel";
 import activityService from "../activity/activityService";
+import LibraryGame from "../library/LibraryGame";
+
+/** "Added a note to Hades" reads better in the activity feed than "Added a note". */
+const titleOf = async (userId: string, gameId: unknown) =>
+  ((await LibraryGame.findOne({ _id: String(gameId), userId }).select("title").lean()) as { title?: string } | null)?.title;
+
+const noteLabel = async (prefix: string, userId: string, gameId: unknown, fallback: string) => {
+  const title = await titleOf(userId, gameId);
+  return title ? `${prefix} ${title}` : fallback;
+};
 
 const getNotesForGame = async (userId: string, gameId: string) => {
   return Note.find({ userId, gameId }).sort({ createdAt: -1 });
@@ -12,7 +22,7 @@ const createNote = async (userId: string, gameId: string, content: string) => {
   await activityService.createActivity(
     userId,
     "NOTE_CREATED",
-    "Added a note",
+    await noteLabel("Added a note to", userId, gameId, "Added a note"),
     new mongoose.Types.ObjectId(gameId),
   );
 
@@ -34,7 +44,7 @@ const deleteNote = async (userId: string, noteId: string) => {
     await activityService.createActivity(
       userId,
       "NOTE_DELETED",
-      "Deleted a note",
+      await noteLabel("Deleted a note on", userId, note.gameId, "Deleted a note"),
       note.gameId,
     );
   }

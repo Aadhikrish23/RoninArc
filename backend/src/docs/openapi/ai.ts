@@ -10,7 +10,15 @@ export const aiSchemas: Record<string, Schema> = {
         type: "object",
         description:
           "What the calling app can do itself. Send `canLaunchGames: true` only from the desktop app; anything else (or omitting it) means launch requests are answered with an explanation instead of a `launch_game` client action.",
-        properties: { canLaunchGames: { type: "boolean", default: false } },
+        properties: {
+          canLaunchGames: { type: "boolean", default: false },
+          pageGameId: {
+            type: "string",
+            pattern: "^[A-Za-z0-9]{1,40}$",
+            description: "The game page the user has open (library id or RAWG id), so \"add this game to cozy nights\" means that game.",
+          },
+          pageCollectionId: { type: "string", pattern: "^[A-Za-z0-9]{1,40}$", description: "The collection page the user has open." },
+        },
       },
     },
   },
@@ -170,6 +178,19 @@ export const aiPaths = {
             },
           },
         },
+      },
+    },
+  },
+  "/ai/reset": {
+    post: {
+      tags: ["AI assistant"],
+      summary: "Clear the conversation",
+      description:
+        "What \"Clear\" in the chat does: forgets recent exchanges, any removal waiting for a yes/no, and what \"it\" refers to. Library data is untouched.",
+      security: bearerAuth,
+      responses: {
+        200: okMessage("Conversation cleared.", "Conversation cleared"),
+        401: responses.unauthorized,
       },
     },
   },

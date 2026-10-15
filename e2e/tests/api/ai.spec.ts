@@ -146,6 +146,13 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect(body.message).not.toContain("Stardew Valley");
     });
 
+    test("'anything i could beat this weekend?' is a recommendation and skips long games @positive", async ({ api }) => {
+      await api.addGame(byName("Elden Ring"));
+      const { body } = await chat(api, "anything i could beat this weekend?");
+      expect(body.success, body.message).toBe(true);
+      expect(body.message).not.toContain("Elden Ring");
+    });
+
     test("with nothing to go on it says how to get better picks @negative", async ({ api }) => {
       for (const [name, status] of [["Hades", "playing"], ["Celeste", "completed"]] as const) {
         await api.addGame(byName(name), { progressStatus: status });
@@ -168,6 +175,20 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect(added.body.success, added.body.message).toBe(true);
       collections = (await json(await api.get("/collection"))).Data;
       expect(collections[0].gameIds.map((g: any) => g._id)).toEqual([game._id]);
+    });
+
+    test("'what's in <collection>?' lists its games from the data, no model needed @positive", async ({ api }) => {
+      const game = await api.addGame(shelter);
+      const col = (await json(await api.post("/collection", { name: "Cozy Nights" }))).Data;
+      await api.post(`/collection/${col._id}/games`, { gameId: game._id });
+      const { body } = await chat(api, "what's in cozy nights?");
+      expect(body).toMatchObject({ success: true, message: "**Cozy Nights** has 1 game:\n- Fallout Shelter" });
+    });
+
+    test("an empty collection says so instead of inventing games @negative", async ({ api }) => {
+      await api.post("/collection", { name: "Cozy Nights" });
+      const { body } = await chat(api, "what's in cozy nights");
+      expect(body.message).toBe("**Cozy Nights** is empty right now.");
     });
   });
 
@@ -324,5 +345,30 @@ test.describe("AI chat API: only changes what the user asked for", () => {
     await api.put(`/review/${game._id}`, { rating: 6, reviewText: "Good on the bus" });
     await chat(api, "rate fallout shelter 9");
     expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9, reviewText: "Good on the bus" });
+  });
+});
+
+// Round 4 of the gamer playtest: "Clear" has to make the assistant forget, too.
+test.describe("AI conversation reset (/ai/reset)", () => {
+  test("requires authentication @negative", async ({ anon }) => {
+    expect((await anon.post("/ai/reset")).status()).toBe(401);
+  });
+
+  test("drops a pending removal: 'yes' after Clear removes nothing @negative", async ({ api }) => {
+    const game = await api.addGame(shelter);
+    expect((await chat(api, "remove fallout shelter")).body.status).toBe("CONFIRMATION_REQUIRED");
+
+    const reset = await api.post("/ai/reset");
+    expect(reset.status()).toBe(200);
+    expect(await json(reset)).toEqual({ Status: "Success", Message: "Conversation cleared" });
+
+    await chat(api, "Yes, remove it");
+    expect((await api.get(`/game/${game._id}`)).status()).toBe(200);
+  });
+
+  test("ignores page ids that aren't ids @negative", async ({ api }) => {
+    await api.addGame(shelter);
+    const res = await api.post("/ai/chat", { message: "hi", client: { pageGameId: "{$ne:1}", pageCollectionId: 42 } });
+    expect(res.status()).toBe(200);
   });
 });

@@ -22,7 +22,9 @@ const READ_ONLY = new Set<string>([
 ]);
 
 const REFERENCE_WORDS =
-  /\b(it|its|it's|that|this|them|they|those|these|one|ones|there|same|again|yes|yeah|ya|yep|yup|sure|ok|okay|do it|do that|the game|last|latest|previous|first|second|third|both|all)\b/i;
+  /\b(it|its|it's|that|this|them|they|those|these|there|here|same|again|yes|yeah|ya|yep|yup|sure|ok|okay|do it|do that|the game|last|latest|previous|both)\b/i;
+/** "this game", "this one", "here" point at the page the user has open. */
+const PAGE_WORDS = /\b(this game|this one|this|here)\b/i;
 
 const ROMAN: Record<string, string> = { ii: "2", iii: "3", iv: "4", v: "5", vi: "6", vii: "7", viii: "8", ix: "9", x: "10" };
 
@@ -93,6 +95,8 @@ export interface GroundingContext {
   currentGame?: string | null;
   /** The user's library titles, newest first. */
   owned?: string[];
+  /** The game whose page the user has open. */
+  pageGame?: string | null;
 }
 
 const LAST_ADDED = /\b(last|latest|newest|most recent(ly)?)\b[^.?!]*\badd(ed)?\b|\badded (last|most recently)\b/i;
@@ -120,6 +124,11 @@ export function dropUngroundedIntents(plan: IntentPlan, ctx: GroundingContext): 
         target.name = owned[0];
         return true;
       }
+      // "add this game to cozy nights" on Hollow Knight's page: this game is Hollow Knight.
+      if (ctx.pageGame && PAGE_WORDS.test(ctx.message) && games.length === 1 && named.length === 0) {
+        target.name = ctx.pageGame;
+        return true;
+      }
       // The message names exactly one library game but the model picked another: use the named one.
       if (named.length === 1 && games.length === 1 && target.type === IntentTargetType.Game) {
         target.name = named[0];
@@ -127,9 +136,9 @@ export function dropUngroundedIntents(plan: IntentPlan, ctx: GroundingContext): 
       }
       if (!referential) return false;
       if (ctx.currentGame && (titleMatchScore(name, ctx.currentGame) >= 90 || mentions(name, ctx.currentGame))) return true;
-      // Removals never rely on the previous reply happening to mention a game.
-      if (removing) return false;
-      if (mentions(ctx.recentText, name)) return true;
+      // Removals never rely on the previous reply happening to mention a game
+      // (they fall through to "it" = the current game, and always ask first).
+      if (!removing && mentions(ctx.recentText, name)) return true;
       // "add a note to it" right after rating Hollow Knight: the model guessed some other
       // game, but "it" is the game the conversation is on.
       if (ctx.currentGame && games.length === 1) {

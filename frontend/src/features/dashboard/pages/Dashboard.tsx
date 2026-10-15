@@ -309,7 +309,7 @@ function DashboardPage() {
                   </Text>
                 </Flex>
                 <Text fontSize="xs" color={mutedText} mb={2}>
-                  {data.backlog.byStatus.completed} of {committed} finished
+                  Your backlog is everything set to Plan to Play, Playing or Paused. {data.backlog.byStatus.completed} of {committed} finished.
                 </Text>
                 <Progress value={completedShare} colorScheme="green" size="sm" borderRadius="full" mb={4} aria-label="Finished out of planned, playing, paused and completed games" />
 

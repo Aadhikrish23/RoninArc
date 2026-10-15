@@ -154,7 +154,7 @@ export default function RecommendationsPage() {
           subtitle="Games already in your library that you haven't finished."
           items={data?.backlog ?? []}
           loading={loading && !data}
-          empty="Nothing waiting in your backlog. Add a few games you'd like to play."
+          empty={q ? "None of your backlog games match that. Try the Discover picks below." : "Nothing waiting in your backlog. Add a few games you'd like to play."}
           actions={actions}
         />
 

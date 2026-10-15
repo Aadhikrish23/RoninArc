@@ -24,6 +24,10 @@ import { ConversationSession } from "./conversation/ConversationSession";
 import pendingConfirmations, { isCancelReply, isConfirmReply } from "./conversation/PendingConfirmationStore";
 import { loadLibrarySnapshot } from "./context/LibrarySnapshot";
 import recentExchanges from "./conversation/RecentExchanges";
+import conversationManager from "./conversation/ConversationManager";
+import { Types } from "mongoose";
+import LibraryGame from "../library/LibraryGame";
+import CollectionModel from "../collection/CollectionModel";
 import { dropUngroundedIntents, mentions } from "./conversation/TargetGrounding";
 import { titleMatchScore } from "../rawg/titleMatch";
 
@@ -46,7 +50,7 @@ const PER_GAME_INTENTS = new Set<string>([
 ]);
 
 /** Asking for suggestions, and the words that mean "do something" instead. */
-const RECOMMEND_ASK = /\b(recommend|suggest|similar to|something like|anything like|games? like|what should i play|what to play)\b/i;
+const RECOMMEND_ASK = /\b(recommend|suggest|similar to|something like|anything like|games? like|what should i play|what to play)\b|\b(something|anything|a game)\b[^?.!]*\bweekend\b/i;
 const EXPLICIT_ACTION = /\b(add|put|mark|set|remove|delete|rate|note|pause|drop|launch|yeet|move|take)\b/i;
 
 const NOT_SURE_WHICH_GAME =
@@ -176,11 +180,33 @@ export class AIRuntime {
           requestContext.library = await loadLibrarySnapshot(userId);
           requestContext.recentExchanges = recentExchanges.get(userId);
 
-          intentPlan = await this.provider.plan(
-            cleanRequest,
-            requestContext,
-            this.capabilityRegistry.list(),
-          );
+          // What the user is looking at, for "this game" / "this collection".
+          const page = await resolvePage(userId, client);
+          requestContext.page = page;
+
+          // "what's in cozy nights?" is answered from the collection itself, never guessed.
+          const contents = await describeCollection(userId, cleanRequest, requestContext.library.collections, page.collectionName);
+          if (contents) return finish({ success: true, message: contents });
+
+          if (RECOMMEND_ASK.test(cleanRequest) && !EXPLICIT_ACTION.test(cleanRequest)) {
+            // "any roguelikes like hades?" -- a recommendation; no need to ask the planner.
+            intentPlan = {
+              id: requestId,
+              requestId,
+              intents: [{ type: IntentType.RecommendGame, targets: [], parameters: [{ type: IntentParameterType.Text, value: cleanRequest }] } as any],
+            };
+          } else {
+            try {
+              intentPlan = await this.planWithRetry(cleanRequest, requestContext);
+            } catch (error: any) {
+              // The planner couldn't produce a plan; a question still deserves an answer.
+              if (error?.code === "PROVIDER_VALIDATION_ERROR" && LOOKS_LIKE_QUESTION.test(cleanRequest)) {
+                const answer = await this.provider.answer(cleanRequest, requestContext).catch(() => "");
+                if (answer) return finish({ success: true, message: answer });
+              }
+              throw error;
+            }
+          }
           fromModel = true;
 
           // Resolve pronoun references
@@ -194,11 +220,15 @@ export class AIRuntime {
         const skippedMissing: string[] = [];
         if (intentPlan && fromModel) {
           const last = recentExchanges.get(userId).slice(-1)[0];
+          const ownedTitles = requestContext?.library?.games.map((g) => g.title) ?? [];
+          const current = session.references.currentGame?.displayName ?? null;
           ungrounded = dropUngroundedIntents(intentPlan, {
             message: cleanRequest,
             recentText: last ? `${last.user} ${last.assistant}` : "",
-            currentGame: session.references.currentGame?.displayName ?? null,
-            owned: requestContext?.library?.games.map((g) => g.title) ?? [],
+            // "it" can't point at a game that has since been removed.
+            currentGame: current && ownedTitles.some((t) => titleMatchScore(current, t) >= 90 || mentions(current, t)) ? current : null,
+            owned: ownedTitles,
+            pageGame: requestContext?.page?.gameTitle ?? null,
           });
 
           // A review comment must come from the user's own words, not the prompt's examples
@@ -215,7 +245,13 @@ export class AIRuntime {
 
           // "finished X" for a game already owned: no need to re-add it before changing its status.
           const owned = requestContext?.library?.games.map((g) => g.title) ?? [];
-          const isOwned = (name: string) => owned.some((t) => titleMatchScore(name, t) >= 70 || mentions(name, t));
+          // Games being added in this same message count as owned for the steps after.
+          const adding = intentPlan.intents
+            .filter((i) => i.type === IntentType.AddGame)
+            .map((i) => i.targets?.[0]?.name ?? "")
+            .filter(Boolean);
+          const isOwned = (name: string) =>
+            [...owned, ...adding].some((t) => titleMatchScore(name, t) >= 70 || mentions(name, t) || mentions(t, name));
 
           // "I'm playing sekiro" / "rate celeste 9" for a game not in the library yet: add it first.
           // Anything else aimed at a missing game is skipped with a note, so the rest still runs.
@@ -225,7 +261,7 @@ export class AIRuntime {
               const missing = (intent.targets ?? []).filter((t) => t.type === IntentTargetType.Game && t.name && !isOwned(t.name));
               if (missing.length === 0 || intent.type === IntentType.AddGame) {
                 next.push(intent);
-              } else if (AUTO_ADD_FOR.has(intent.type)) {
+              } else if (AUTO_ADD_FOR.has(intent.type) || isCollectionAdd(intent)) {
                 for (const m of missing) {
                   const alreadyAdding = next.some((i) => i.type === IntentType.AddGame && i.targets?.some((t) => titleMatchScore(t.name ?? "", m.name) >= 90));
                   if (!alreadyAdding) next.push({ ...intent, type: IntentType.AddGame, targets: [{ type: IntentTargetType.Library, name: m.name }], parameters: [] } as any);
@@ -390,6 +426,25 @@ export class AIRuntime {
     });
   }
 
+  /** "Clear" in the chat: drop the remembered exchanges, pending confirmation and references. */
+  async reset(userId: string) {
+    recentExchanges.clear(userId);
+    pendingConfirmations.take(userId);
+    const session = await conversationManager.getOrCreateSession(userId);
+    session.references = { ...session.references, currentGame: null, currentCollection: null, currentProvider: null, lastEntity: null };
+    await conversationManager.saveSession(session);
+  }
+
+  /** The planner occasionally returns malformed JSON; one retry usually fixes it. */
+  private async planWithRetry(request: string, context: any): Promise<IntentPlan> {
+    try {
+      return await this.provider.plan(request, context, this.capabilityRegistry.list());
+    } catch (error: any) {
+      if (error?.code !== "PROVIDER_VALIDATION_ERROR") throw error;
+      return this.provider.plan(request, context, this.capabilityRegistry.list());
+    }
+  }
+
   /** Planning, clarification, confirmation and execution for one intent plan. */
   private async runPlanned(
     intentPlan: IntentPlan,
@@ -528,6 +583,58 @@ function normalizeStatusIntents(plan: IntentPlan) {
       intent.parameters.push({ type: IntentParameterType.Status, value: implied } as any);
     }
   }
+}
+
+/** "put ds3 in soulslikes" for a game not in the library: add it, then put it in. */
+function isCollectionAdd(intent: any): boolean {
+  if (intent.type !== IntentType.OrganizeCollection) return false;
+  const flag = (intent.parameters ?? []).find((p: any) => String(p.type).toLowerCase() === "boolean");
+  return !flag || (flag.value !== false && flag.value !== "false");
+}
+
+const COLLECTION_CONTENTS = /\b(what'?s in|whats in|what is in|what are in|what games are in|what do i have in|games in|show( me)?|list)\b/i;
+const squash = (text: string) => text.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/** The games in the collection a question names ("what's in cozy nights?"), or undefined. */
+async function describeCollection(userId: string, message: string, collections: string[], pageCollection?: string): Promise<string | undefined> {
+  if (!COLLECTION_CONTENTS.test(message) || EXPLICIT_ACTION.test(message)) return undefined;
+  const text = ` ${squash(message)} `;
+  const named = collections
+    .filter((c) => squash(c) && text.includes(` ${squash(c)} `))
+    .sort((a, b) => b.length - a.length)[0];
+  const name = named ?? (pageCollection && /\bthis (collection|list|one)\b|\bhere\b/i.test(message) ? pageCollection : undefined);
+  if (!name) return undefined;
+  const col = await CollectionModel.findOne({ userId: new Types.ObjectId(userId), name })
+    .populate<{ gameIds: { title: string }[] }>({ path: "gameIds", select: "title" })
+    .lean();
+  if (!col) return undefined;
+  const titles = (col.gameIds ?? []).map((g: any) => g?.title).filter(Boolean) as string[];
+  if (titles.length === 0) return `**${col.name}** is empty right now.`;
+  const list = titles.map((t) => `- ${t}`).join("\n");
+  return `**${col.name}** has ${titles.length} ${titles.length === 1 ? "game" : "games"}:\n${list}`;
+}
+
+/** Titles for the page the user has open, if it's theirs. */
+async function resolvePage(userId: string, client: AIClientCapabilities): Promise<{ gameTitle?: string; collectionName?: string }> {
+  const page: { gameTitle?: string; collectionName?: string } = {};
+  try {
+    const uid = new Types.ObjectId(userId);
+    if (client.pageGameId) {
+      const id = client.pageGameId;
+      const or: any[] = [];
+      if (Types.ObjectId.isValid(id) && id.length === 24) or.push({ _id: id });
+      if (/^\d+$/.test(id)) or.push({ rawgId: Number(id) });
+      const game = or.length ? await LibraryGame.findOne({ userId: uid, $or: or }).select("title").lean() : null;
+      if (game) page.gameTitle = (game as any).title;
+    }
+    if (client.pageCollectionId && Types.ObjectId.isValid(client.pageCollectionId)) {
+      const col = await CollectionModel.findOne({ _id: client.pageCollectionId, userId: uid }).select("name").lean();
+      if (col) page.collectionName = (col as any).name;
+    }
+  } catch {
+    // page context is a hint; never fail the request over it
+  }
+  return page;
 }
 
 export default AIRuntime;

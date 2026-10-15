@@ -188,6 +188,8 @@ export function AIProvider({ children }: { children: ReactNode }) {
 
   const clearConversation = useCallback(() => {
     setMessages([]);
+    // The assistant also forgets what "it" pointed at; a failed reset only leaves stale context.
+    aiApi.reset().catch(() => undefined);
   }, []);
 
   const retry = useCallback(async (failedMessageId: string) => {

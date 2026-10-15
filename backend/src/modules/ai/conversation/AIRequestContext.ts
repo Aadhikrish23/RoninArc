@@ -12,6 +12,8 @@ export interface AIRequestContext {
   library?: LibrarySnapshot;
   /** The last few exchanges, including failures and questions. */
   recentExchanges?: Exchange[];
+  /** The game or collection page the user has open. */
+  page?: { gameTitle?: string; collectionName?: string };
 }
 
 

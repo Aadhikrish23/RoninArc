@@ -28,6 +28,10 @@ export class AIService {
   async chat(userId: string, request: string, requestId: string, client?: AIClientCapabilities) {
     return this.runtime.chat(userId, request, requestId, client);
   }
+
+  async reset(userId: string) {
+    return this.runtime.reset(userId);
+  }
 }
 
 

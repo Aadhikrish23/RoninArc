@@ -102,7 +102,7 @@ async function discoverByGenres(genreSlugs: string[], pageSize = 40, tagSlugs: s
         ordering: "-added",
         page_size: pageSize,
       },
-      timeout: 8000,
+      timeout: 15000,
     });
 
     return (response.data.results || []).map((g: any) => ({
