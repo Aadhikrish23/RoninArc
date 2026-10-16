@@ -54,11 +54,18 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
 
   const openedRef = useRef(false);
   useEffect(() => {
-    const behavior = openedRef.current ? "smooth" : "auto";
+    const firstOpen = !openedRef.current;
+    const behavior = firstOpen ? "auto" : "smooth";
     openedRef.current = true;
     // Wait a frame so the modal has laid out the messages before scrolling.
     const id = requestAnimationFrame(() => messagesEndRef.current?.scrollIntoView({ behavior, block: "end" }));
-    return () => cancelAnimationFrame(id);
+    // On open, scroll again once the slide-in animation and long replies have settled
+    // (it reopened mid-history otherwise).
+    const settle = firstOpen ? setTimeout(() => messagesEndRef.current?.scrollIntoView({ block: "end" }), 350) : undefined;
+    return () => {
+      cancelAnimationFrame(id);
+      if (settle) clearTimeout(settle);
+    };
   }, [messages, isTyping]);
 
   return (

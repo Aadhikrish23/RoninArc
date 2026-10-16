@@ -8,6 +8,9 @@ import type { Exchange } from "../conversation/RecentExchanges";
 import { titleMatchScore } from "../../rawg/titleMatch";
 import { AUTO_ADD_FOR, REWRITES_REVIEW } from "./Patterns";
 
+/** Comment text that's really the command: "bump my rating to an 8", "mark it done n rate it 9". */
+export const INSTRUCTION_TEXT = /\b(my rating|rating to|rate it|rated it|score it|bump|mark it|set it|change it|give it|out of 10)\b|\b\d+(\.5)?\s*\/\s*10\b/i;
+
 export interface GroundingResult {
   /** Changes dropped because the message didn't name or refer to their game. */
   ungrounded: number;
@@ -52,6 +55,8 @@ export async function groundPlan(plan: IntentPlan, { userId, message, owned, las
     intent.parameters = (intent.parameters ?? []).filter((p) => {
       if (p.type !== IntentParameterType.Text || typeof p.value !== "string") return true;
       const words = p.value.toLowerCase().match(/[a-z']+/g) ?? [];
+      // "bump my rating to an 8" is the instruction, not a review ("it was amazing" is one).
+      if (INSTRUCTION_TEXT.test(p.value)) return false;
       return words.length > 0 && words.filter((w) => said.has(w)).length / words.length >= 0.6;
     });
   }

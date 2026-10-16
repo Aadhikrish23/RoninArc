@@ -1,6 +1,7 @@
 import { IntentPlan } from "../intent/IntentPlan";
 import pendingConfirmations, { isCancelReply, isConfirmReply, yesAndMore } from "../conversation/PendingConfirmationStore";
 import type { RuntimeResponse } from "./Replies";
+import { forgetChange } from "./UndoLog";
 
 /** What the reply to a pending yes/no question turned out to be. */
 export type PendingOutcome =
@@ -20,6 +21,8 @@ export async function handlePending(userId: string, message: string): Promise<Pe
   if (!pending) return { kind: "none" };
 
   const rest = pending.run ? yesAndMore(message) : undefined;
+  // Offers run outside the plan runner, so "undo" can't put them back: don't let it reach past them.
+  if (pending.run && (isConfirmReply(message) || rest)) forgetChange(userId);
   if (isConfirmReply(message) && pending.run) {
     return { kind: "reply", response: { success: true, message: await pending.run() } };
   }

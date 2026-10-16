@@ -43,6 +43,8 @@ const searchgame = async (req: Request, res: Response, next: NextFunction) => {
       const seen = new Set(ranked.map((r: any) => r.item.id));
       ranked = rankByTitle(searchTerm, [...ranked.map((r) => r.item), ...fuzzy.filter((g: any) => !seen.has(g.id))]);
     }
+    // Nothing even half-matches ("zxqvplm game" -> "bob's game"): show no results rather than junk.
+    if ((ranked[0]?.score ?? 0) < 30) ranked = [];
     // Entries without cover art are usually mods and fan uploads ("Skyrim Stuff"): real games first.
     const rawgResults = ranked
       .map((r: any, index) => ({ item: r.item, index, score: r.score - (r.item.imageURL ? 0 : 15) }))

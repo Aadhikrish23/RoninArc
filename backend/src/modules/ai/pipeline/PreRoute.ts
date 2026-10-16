@@ -22,14 +22,19 @@ import {
   withPageGame,
 } from "../conversation/FollowUps";
 import { editReview, runCollectionCommand } from "../conversation/DirectActions";
-import { EXPLICIT_ACTION, LOOKS_LIKE_QUESTION, RECOMMEND_ASK } from "./Patterns";
+import { CORRECTION, EXPLICIT_ACTION, LOOKS_LIKE_QUESTION, RECOMMEND_ASK } from "./Patterns";
+import { forgetChange, lastChange, lastChangeTouched, undoLastChange } from "./UndoLog";
+
+/** "undo", "undo that", "revert that", "put it back". */
+const UNDO_ASK = /\b(undo|revert|reverse that|take (that|it) back|put it back)\b/i;
 import { resolvePage } from "./PageContext";
 import { ModelGateway } from "./ModelGateway";
 import { confirmationResponse, type RuntimeResponse } from "./Replies";
 
 export type PreRouteOutcome =
   | { kind: "reply"; response: RuntimeResponse }
-  | { kind: "plan"; plan: IntentPlan };
+  /** `notice` goes in front of the reply ("Sorry about that. I've undone that. ..."). */
+  | { kind: "plan"; plan: IntentPlan; notice?: string };
 
 interface PreRouteInput {
   userId: string;
@@ -60,10 +65,30 @@ export async function preRoute({ userId, requestId, message, client, session, re
   const direct = directContext(userId, owned, requestContext.library.collections, page, session);
   const reply = (response: RuntimeResponse): PreRouteOutcome => ({ kind: "reply", response });
 
+  // "undo that": put back what the last message changed.
+  if (UNDO_ASK.test(message)) {
+    const undone = await undoLastChange(userId);
+    if (undone) return reply({ success: true, message: undone });
+  }
+
+  // "no, i said the witcher not dead cells": undo the change on the wrong game first.
+  let notice: string | undefined;
+  if (CORRECTION.test(message) && lastChange(userId)) {
+    const meant = owned.find((t) => namedTitles(message, [t]).length > 0 && !lastChangeTouched(userId, t));
+    if (meant) {
+      const undone = await undoLastChange(userId);
+      if (!EXPLICIT_ACTION.test(message) && !/\b(done|finished|beat|completed|playing|paused|dropped|rated?)\b/i.test(message)) {
+        return reply({ success: true, message: `Sorry about that. ${undone} What should I do for ${meant}?` });
+      }
+      notice = `Sorry about that. ${undone}`;
+    }
+  }
+
   // "change my review on it to: ..." keeps the score and replaces only the text.
   const reviewEdit = parseReviewEdit(message);
   const reviewGame = reviewEdit ? gameFor(reviewEdit.target || message, direct) ?? gameFor(message, direct) : undefined;
   if (reviewEdit && reviewGame) {
+    forgetChange(userId);
     return reply(await editReview(userId, reviewGame, reviewEdit.text, reviewEdit.rating));
   }
 
@@ -92,6 +117,7 @@ export async function preRoute({ userId, requestId, message, client, session, re
   // "delete that collection", "rename soulslikes to hard games".
   const collectionCommand = parseCollectionCommand(message, requestContext.library.collections, recentExchanges.get(userId), page.collectionName);
   if (collectionCommand) {
+    forgetChange(userId);
     const result = await runCollectionCommand(userId, collectionCommand, requestContext.library.collections);
     if (result.kind === "reply") return reply({ success: result.success, message: result.message });
     pendingConfirmations.put(userId, { run: result.run, label: result.label });
@@ -107,7 +133,7 @@ export async function preRoute({ userId, requestId, message, client, session, re
 
   // "rate hollow knight 9 it was amazing", "pause rdr2", "note for rdr2: ...": no planner needed.
   const quick = quickIntent(message, owned, direct.pageGame ?? direct.currentGame ?? undefined);
-  if (quick) return plan(requestId, quick);
+  if (quick) return { ...plan(requestId, quick), notice } as PreRouteOutcome;
 
   // "add gta 5": nothing for the planner to work out.
   const addTitle = simpleAddTitle(message);
@@ -116,7 +142,7 @@ export async function preRoute({ userId, requestId, message, client, session, re
   }
 
   try {
-    return { kind: "plan", plan: await model.planWithRetry(message, requestContext) };
+    return { kind: "plan", plan: await model.planWithRetry(message, requestContext), notice };
   } catch (error: any) {
     // The planner couldn't produce a plan; a question still deserves an answer.
     if (error?.code === "PROVIDER_VALIDATION_ERROR" && LOOKS_LIKE_QUESTION.test(message)) {

@@ -400,7 +400,7 @@ test.describe("AI chat API: round 6", () => {
 
   test("'undo' is refused honestly @negative", async ({ api }) => {
     const { body } = await chat(api, "undo the last thing you did");
-    expect(body.message).toMatch(/^I can't undo changes yet/);
+    expect(body.message).toMatch(/^There's nothing I can undo right now/);
   });
 
   test("a collection can be deleted from chat, after a yes @positive", async ({ api }) => {
@@ -574,5 +574,32 @@ test.describe("AI chat API: round 10", () => {
     const { body } = await chat(api, "rate hollow knight 9 it was amazing");
     expect(body.success, body.message).toBe(true);
     expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9, reviewText: "it was amazing" });
+  });
+});
+
+// Round 11 of the gamer playtest: put mistakes right.
+test.describe("AI chat API: round 11", () => {
+  test("'undo that' puts back the last status and rating @positive", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "plan" });
+    await chat(api, "rate fallout shelter 9");
+    await chat(api, "no");
+    const { body } = await chat(api, "undo that");
+    expect(body.message).toBe("I've undone that. Fallout Shelter: rating removed.");
+    expect((await json(await api.get(`/review/${game._id}`))).Data).toBeNull();
+  });
+
+  test("'no, i said X not Y' undoes the change on Y @positive", async ({ api }) => {
+    await api.addGame(byName("Hades"), { progressStatus: "plan" });
+    const wrong = await api.addGame(shelter, { progressStatus: "plan" });
+    await chat(api, "pause fallout shelter");
+    const { body } = await chat(api, "wtf no, i said hades not fallout shelter");
+    expect(body.message).toBe("Sorry about that. I've undone that. Fallout Shelter: status back to Plan to Play. What should I do for Hades?");
+    expect((await json(await api.get(`/game/${wrong._id}`))).Data.progressStatus).toBe("plan");
+  });
+
+  test("asking about a collection that doesn't exist says so @negative", async ({ api }) => {
+    await api.post("/collection", { name: "Soulslikes" });
+    const { body } = await chat(api, "whats in my git gud collection");
+    expect(body.message).toBe('I couldn\'t find a collection called "git gud". Your collections: "Soulslikes".');
   });
 });

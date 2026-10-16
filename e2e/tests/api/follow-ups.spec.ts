@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
 import { isConfirmReply, yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
-import { sameGame } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
+import { namedTitles, sameGame } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
 import { matchesTitle } from "../../../frontend/src/features/library/utils/titleSearch";
 
 // Playtest round 5: follow-ups the assistant got wrong.
@@ -52,7 +52,7 @@ test.describe("AI notes: reading is not writing", () => {
 // Playtest round 6: requests the assistant can't do turned into random changes.
 test.describe("AI: things it can't do yet", () => {
   for (const text of ["remind me on friday to play bg3 with the boys", "can you set a reminder for saturday", "undo the last thing you did"]) {
-    test(`${JSON.stringify(text)} gets an honest no @negative`, () => expect(unsupportedReply(text)).toMatch(/^I can't/));
+    test(`${JSON.stringify(text)} gets an honest no @negative`, () => expect(unsupportedReply(text)).toMatch(/^(I can't|There's nothing I can undo)/));
   }
   test("ordinary requests aren't refused @positive", () => {
     expect(unsupportedReply("rate hollow knight 9")).toBeUndefined();
@@ -192,4 +192,25 @@ test.describe("AI: quick commands and yes", () => {
   test("'Hades II' is not 'Hades' @negative", () => expect(sameGame("Hades II", "Hades")).toBe(false));
   test("'Hollow Knight: Silksong' is not 'Hollow Knight' @negative", () => expect(sameGame("Hollow Knight: Silksong", "Hollow Knight")).toBe(false));
   test("'gta 5' is Grand Theft Auto V @positive", () => expect(sameGame("gta 5", "Grand Theft Auto V")).toBe(true));
+});
+
+// Playtest round 11.
+test.describe("AI: round 11 names and renames", () => {
+  const owned = ["The Witcher 3: Wild Hunt", "Dead Cells", "Hollow Knight", "Hades II"];
+  test("'the witcher' is The Witcher 3 when it's the only Witcher @positive", () => {
+    expect(namedTitles("yo just beat the witcher finally, mark it done", owned)).toEqual(["The Witcher 3: Wild Hunt"]);
+  });
+  test("'last night' doesn't typo-match Hollow Knight @negative", () => {
+    expect(namedTitles("started hades last night", owned)).toEqual([]);
+  });
+  test("'rename X to Git Gud and tell me whats in it' names it Git Gud @positive", () => {
+    expect(parseCollectionCommand("rename the soulslike list to Git Gud and tell me whats in it", ["Soulslike"], [])).toEqual({ kind: "rename", name: "Soulslike", newName: "Git Gud" });
+  });
+  test("'rename it to just Git Gud' finds the collection just renamed @positive", () => {
+    const recent = [{ user: "x", assistant: 'I\'ve renamed the collection "Soulslike" to "Git Gud and tell me".' }];
+    expect(parseCollectionCommand("lol no, rename it to just Git Gud", ["Git Gud and tell me"], recent)).toEqual({ kind: "rename", name: "Git Gud and tell me", newName: "Git Gud" });
+  });
+  test("a reminder plus a purchase: both get an answer @negative", () => {
+    expect(unsupportedReply("remind me on friday to play witcher, and also buy silksong for me on steam")).toMatch(/^I can't set reminders or buy games yet/);
+  });
 });

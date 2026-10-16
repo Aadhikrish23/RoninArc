@@ -64,7 +64,13 @@ async function describeCollection(question: string, ctx: DirectAnswerContext): P
   const name =
     namedCollection(question, ctx.collections) ??
     (ctx.pageCollection && /\bthis (collection|list|one)\b|\bhere\b/i.test(question) ? ctx.pageCollection : undefined);
-  if (!name) return undefined;
+  if (!name) {
+    // "whats in my git gud collection" when there's no such collection: say so, don't guess.
+    const asked = question.match(/\b(?:my|the)\s+(.+?)\s+(?:collection|list)\b/i)?.[1]?.trim();
+    if (!asked || /^(game|games|backlog|library|whole)$/i.test(asked)) return undefined;
+    const have = ctx.collections.length ? ` Your collections: ${ctx.collections.map((c) => `"${c}"`).join(", ")}.` : " You don't have any collections yet.";
+    return `I couldn't find a collection called "${asked}".${have}`;
+  }
   const col = await CollectionModel.findOne({ userId: new Types.ObjectId(ctx.userId), name })
     .populate<{ gameIds: { title: string }[] }>({ path: "gameIds", select: "title" })
     .lean();

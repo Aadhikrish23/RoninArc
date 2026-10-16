@@ -80,11 +80,11 @@ export default function ClarificationCard({
                 opacity={chosen !== null && chosen !== option.id ? 0.5 : 1}
                 variant={safe ? "outline" : "solid"}
                 bg={destructive ? "red.500" : safe ? "transparent" : buttonBg}
-                color={safe ? undefined : "white"}
+                color="white"
                 size="md"
                 borderRadius="xl"
                 borderWidth="1px"
-                borderColor={destructive ? "red.500" : "purple.500"}
+                borderColor={destructive ? "red.500" : safe ? "whiteAlpha.600" : "purple.500"}
                 _hover={{
                   bg: destructive ? "red.600" : safe ? "whiteAlpha.100" : "purple.600",
                   transform: "translateY(-1px)",

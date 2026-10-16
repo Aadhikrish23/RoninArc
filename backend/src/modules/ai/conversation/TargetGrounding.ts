@@ -84,7 +84,7 @@ export function mentions(text: string, title: string): boolean {
   return words.some((w) =>
     w.length >= 4 &&
     // Typos only count on longer words: "play" is one letter from "slay" (Slay the Spire).
-    titleWords.some((tw) => tw.length >= 4 && (w === tw || (w.length >= 5 && tw.length >= 5 && editDistance(w, tw) <= (tw.length >= 7 ? 2 : 1)))),
+    titleWords.some((tw) => tw.length >= 4 && (w === tw || (w.length >= 5 && tw.length >= 5 && w[0] === tw[0] && editDistance(w, tw) <= (tw.length >= 7 ? 2 : 1)))),
   );
 }
 
@@ -100,7 +100,16 @@ export function namedTitles(text: string, owned: string[]): string[] {
     return distinctive.length > 0 && distinctive.every((w) => said.has(w));
   });
   const pool = exact.length > 0 ? exact : named;
-  return [...pool].sort((a, b) => b.length - a.length);
+  if (pool.length > 0) return [...pool].sort((a, b) => b.length - a.length);
+
+  // "the witcher" is The Witcher 3: Wild Hunt when that's the only Witcher owned. Only for
+  // "Series N: Subtitle" titles -- a plain sequel ("Hades II") still needs its number.
+  const bySeries = owned.filter((title) => {
+    if (!/:/.test(title)) return false;
+    const series = tokens(title.split(":")[0]).filter((w) => !GENERIC.has(w) && !/^\d+$/.test(w));
+    return series.length > 0 && series.every((w) => said.has(w)) && series.some((w) => w.length >= 5);
+  });
+  return bySeries.length === 1 ? bySeries : [];
 }
 
 const FRANCHISE_FILLER =new Set(["the", "of", "a", "an", "and"]);

@@ -72,7 +72,7 @@ export function titleMatchScore(query: string, title: string): number {
   }
   // With typos, the closest part counts ("skyrimm" is the "Skyrim" in "The Elder Scrolls V: Skyrim").
   const typoScores = parts
-    .filter((p) => q.every((qt) => p.some((pt) => pt === qt || (qt.length >= 3 && pt.startsWith(qt)) || (qt.length >= 5 && pt.length >= 5 && typoDistance(qt, pt) <= (pt.length >= 8 ? 2 : 1)))))
+    .filter((p) => q.every((qt) => p.some((pt) => pt === qt || (qt.length >= 3 && pt.startsWith(qt)) || (qt.length >= 5 && pt.length >= 5 && qt[0] === pt[0] && typoDistance(qt, pt) <= (pt.length >= 8 ? 2 : 1)))))
     .map((p) => Math.max(55, 72 - (p.length - q.length) * 2));
   if (typoScores.length > 0) return Math.max(...typoScores);
   return Math.round((matched / q.length) * 50);

@@ -53,13 +53,19 @@ export function recommendationFollowUp(message: string, last?: Exchange): string
 // (The model turned "remind me friday to play bg3" into "mark BG3 as Playing".)
 const REMINDER = /\b(remind|reminder|reminders|alarm|notify|notification|alert me|ping me|schedule|calendar)\b/i;
 const UNDO = /\b(undo|revert|take (that|it) back|reverse that)\b/i;
+const BUY = /\b(buy|purchase|order|pre-?order|gift)\b/i;
 
 export function unsupportedReply(message: string): string | undefined {
-  if (REMINDER.test(message)) {
-    return "I can't set reminders yet, so I didn't change anything. If you like, I can put the game in your backlog as Plan to Play so it's waiting for you.";
+  // "remind me friday ... and also buy silksong": answer every part it can't do, not just the first.
+  // (A plain "buy X" goes to the model, whose reply offers to add X instead.)
+  const cant: string[] = [];
+  if (REMINDER.test(message)) cant.push("set reminders");
+  if (cant.length > 0 && BUY.test(message)) cant.push("buy games");
+  if (cant.length > 0) {
+    return `I can't ${cant.join(" or ")} yet, so I didn't change anything. Tell me if you want a game added to your backlog instead.`;
   }
   if (UNDO.test(message)) {
-    return "I can't undo changes yet, so nothing changed. Tell me what to set back, like \"rate Dead Cells 7\" or \"mark it as Plan to Play\".";
+    return "There's nothing I can undo right now, so nothing changed. I can undo the last status, rating, note or added game from the past 30 minutes; collection changes you can fix with \"take X out of <collection>\".";
   }
   return undefined;
 }
@@ -81,7 +87,8 @@ export function namedCollection(message: string, collections: string[]): string 
   const text = ` ${squash(message)} `;
   return collections
     .filter((c) => {
-      const name = squash(c);
+      // "Soulslike Collection" is also "the soulslike list".
+      const name = squash(c).replace(/\s+(collection|list)$/, "");
       return name && (text.includes(` ${name} `) || text.includes(` ${name}s `) || (name.endsWith("s") && text.includes(` ${name.slice(0, -1)} `)));
     })
     .sort((a, b) => b.length - a.length)[0];
@@ -90,11 +97,24 @@ export function namedCollection(message: string, collections: string[]): string 
 /** The last collection the assistant talked about ('your collection "Outer Wilds"'), for "that collection". */
 export function lastMentionedCollection(exchanges: Exchange[], collections: string[]): string | undefined {
   for (let i = exchanges.length - 1; i >= 0; i--) {
-    const names = [...exchanges[i].assistant.matchAll(/collection "([^"]+)"/g)].map((m) => m[1]);
+    // Any quoted name that is a collection: 'renamed the collection "Soulslike" to "Git Gud"' ends on the new name.
+    const names = [...exchanges[i].assistant.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
     const found = names.reverse().find((n) => collections.some((c) => c.toLowerCase() === n.toLowerCase()));
     if (found) return collections.find((c) => c.toLowerCase() === found.toLowerCase());
   }
   return undefined;
+}
+
+/**
+ * "Git Gud and tell me whats in it" -> "Git Gud": the new name stops at a second request;
+ * "just Git Gud" -> "Git Gud".
+ */
+function cleanNewName(raw: string): string {
+  return raw
+    .split(/\s+(?:and|then|also|plus)\s+(?=(?:tell|show|list|what|whats|what's|add|put|remove|delete|mark|rate)\b)|[,;]\s+/i)[0]
+    .replace(/^(?:just|simply|only)\s+/i, "")
+    .replace(/["'.!?]+$/g, "")
+    .trim();
 }
 
 export function parseCollectionCommand(message: string, collections: string[], exchanges: Exchange[], pageCollection?: string): CollectionCommand | undefined {
@@ -102,7 +122,7 @@ export function parseCollectionCommand(message: string, collections: string[], e
   if (rename) {
     const pointsBack = !rename[1].trim() || /\b(that|this|it)\b/i.test(rename[1]);
     const from = namedCollection(rename[1], collections) ?? (pointsBack ? pageCollection ?? lastMentionedCollection(exchanges, collections) : undefined);
-    if (from || /\b(collection|list)\b/i.test(message)) return { kind: "rename", name: from, newName: rename[2].trim() };
+    if (from || /\b(collection|list)\b/i.test(message)) return { kind: "rename", name: from, newName: cleanNewName(rename[2]) };
   }
   if (!DELETE_COLLECTION.test(message) || /\bfrom\b/i.test(message)) return undefined;
   const name =

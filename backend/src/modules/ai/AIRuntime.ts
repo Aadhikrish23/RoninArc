@@ -30,6 +30,7 @@ import { correctPlan } from "./pipeline/PlanCorrections";
 import { groundPlan, type GroundingResult } from "./pipeline/PlanGrounding";
 import { normalizeStatusIntents, shapePlan } from "./pipeline/PlanShaping";
 import { PlanRunner } from "./pipeline/PlanRunner";
+import { forgetChange, hasUntrackedChanges, rememberChange, snapshotBefore } from "./pipeline/UndoLog";
 
 /**
  * One chat message, start to finish. The stages live in ./pipeline:
@@ -98,6 +99,7 @@ export class AIRuntime {
         let confirmed = false;
         let fromModel = false;
         let unrequested = 0;
+        let notice: string | undefined;
 
         // An offer or removal we asked about last turn.
         const pending = await handlePending(userId, cleanRequest);
@@ -134,6 +136,7 @@ export class AIRuntime {
         if (!intentPlan && !greetingKind && requestContext) {
           const routed = await preRoute({ userId, requestId, message: cleanRequest, client, session, requestContext, model: this.model });
           if (routed.kind === "reply") return finish(routed.response);
+          notice = routed.notice;
           intentPlan = conversationRuntime.resolveReferences(routed.plan, session);
           fromModel = true;
           unrequested = correctPlan(intentPlan, cleanRequest).unrequested;
@@ -208,12 +211,20 @@ export class AIRuntime {
           if (response.success && keptReviews.length > 0) {
             message += " I kept the review you'd already written; say \"change my review to ...\" if you want to replace it.";
           }
-          if (response.success && CORRECTION.test(cleanRequest)) message = `Sorry about that. ${message}`;
+          if (notice) message = `${notice} ${message}`;
+          else if (response.success && CORRECTION.test(cleanRequest)) message = `Sorry about that. ${message}`;
           // "pause rdr2. also is elden ring hard?" -- answer the question part too.
           if (generalAnswer) message = `${message} ${generalAnswer.trim()}`;
           return { ...response, message };
         };
         const run = (p: IntentPlan) => this.runner.run(p, session, cleanRequest, toolContext, memoryContext, profiler, confirmed);
+        // What this plan is about to change, so "undo" / "no, I meant X" can put it back.
+        const before = await snapshotBefore(userId, plan).catch(() => undefined);
+        const remember = (response: RuntimeResponse) => {
+          if (!response.success || response.status?.match(/CONFIRMATION|CLARIFICATION/)) return;
+          if (hasUntrackedChanges(plan)) forgetChange(userId);
+          else if (before) rememberChange(userId, before);
+        };
 
         // "add celeste and mark it completed": the game has to exist before the
         // second step can find it, so additions run as their own first phase.
@@ -223,6 +234,7 @@ export class AIRuntime {
           const first = await run({ ...plan, intents: additions });
           if (!first.success) return finish(first);
           const second = await run({ ...plan, intents: rest });
+          remember(second);
           return finish(decorate({
             ...second,
             message: `${first.message} ${second.message}`.trim(),
@@ -231,6 +243,7 @@ export class AIRuntime {
         }
 
         const outcome = decorate(await run(plan));
+        remember(outcome);
         // "Want me to add DS3 and Elden Ring to it?" / "Want me to mark it Completed?"
         if (outcome.success && !outcome.status?.match(/CONFIRMATION|CLARIFICATION/)) {
           const offer = await followUpOffer(userId, plan.intents as any).catch(() => undefined);
