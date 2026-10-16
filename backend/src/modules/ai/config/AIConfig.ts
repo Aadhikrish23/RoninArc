@@ -45,6 +45,13 @@ export const AIConfig = {
   nvidiaTimeout: process.env.NVIDIA_TIMEOUT
     ? parseInt(process.env.NVIDIA_TIMEOUT, 10)
     : 60000,
+  /** Tried in order when the main model is slow or failing (same key and endpoint). */
+  nvidiaFallbackModels: (process.env.NVIDIA_FALLBACK_MODELS ?? "nvidia/nemotron-3-super-120b-a12b,openai/gpt-oss-20b")
+    .split(",")
+    .map((m) => m.trim())
+    .filter(Boolean),
+  /** How long the first model gets before the next one is tried (healthy replies take 1-5s). */
+  nvidiaPrimaryTimeout: process.env.NVIDIA_PRIMARY_TIMEOUT ? parseInt(process.env.NVIDIA_PRIMARY_TIMEOUT, 10) : 8000,
 };
 
 export default AIConfig;
