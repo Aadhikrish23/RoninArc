@@ -28,10 +28,10 @@ import conversationManager from "./conversation/ConversationManager";
 import { Types } from "mongoose";
 import LibraryGame from "../library/LibraryGame";
 import CollectionModel from "../collection/CollectionModel";
-import { READ_ONLY, dropUngroundedIntents, mentions, namedTitles } from "./conversation/TargetGrounding";
+import { READ_ONLY, dropUngroundedIntents, franchiseMatch, mentions, namedTitles, sameGame } from "./conversation/TargetGrounding";
 import { titleMatchScore } from "../rawg/titleMatch";
 import { answerDirectly, gameFor } from "./conversation/DirectAnswers";
-import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseReviewEdit, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "./conversation/FollowUps";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseReviewEdit, recommendationFollowUp, parseQuickCommand, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "./conversation/FollowUps";
 import { editReview, existingReviewText, followUpOffer, runCollectionCommand, writtenFor } from "./conversation/DirectActions";
 
 /** "wait no, I said celeste" -- the reply should own the mistake. */
@@ -58,6 +58,9 @@ const EXPLICIT_ACTION = /\b(add|put|mark|set|remove|delete|rate|note|pause|drop|
 /** An answer-mode reply saying it changed something ("I've added X", "I marked it ...") -- it can't have. */
 const CLAIMS_ACTION =
   /\bI(?:'ve| have)?\s+(?:just\s+|now\s+|also\s+)?(?:added|removed|marked|rated|created|deleted|updated|included|put|moved|set|changed|renamed|dropped|paused)\b/i;
+
+/** The model offering an add in its own words: "I can add Silksong to your library ..." */
+const OFFER_ADD = /\bI can (?:add|put) ("?[^".?!]{2,60}?"?) (?:to|in|into) your (?:library|backlog)\b/i;
 
 /** Words that ask for the review text itself to change, not just the score. */
 const REWRITES_REVIEW = /\breview\b|\b(change|update|edit|replace|rewrite)\b[^.?!]*\b(comment|text|what i wrote)\b/i;
@@ -118,6 +121,16 @@ export class AIRuntime {
         profiler.stopOverall();
         const final = { ...response, message: tidyReply(response.message), metrics: profiler.getMetrics() };
         recentExchanges.add(userId, cleanRequest, final.message || "");
+        // "I can add Silksong to your library if you like" -- make "ok" work.
+        const offered = typeof final.message === "string" ? final.message.match(OFFER_ADD) : null;
+        if (offered && !pendingConfirmations.has(userId)) {
+          const title = offered[1].replace(/^"|"$/g, "").trim();
+          pendingConfirmations.put(userId, {
+            plan: { id: requestId, requestId, intents: [{ type: IntentType.AddGame, targets: [{ type: IntentTargetType.Library, name: title }], parameters: [] } as any] },
+            label: title,
+            cancelMessage: `Okay, I won't add ${title}.`,
+          });
+        }
         if (trace) {
           const status = final.status || (final.success ? "SUCCESS" : "FAILED");
           trace.updateStats({ status });
@@ -162,7 +175,11 @@ export class AIRuntime {
             intentPlan = pending.plan;
             confirmed = true;
           } else if (isCancelReply(cleanRequest)) {
-            return finish({ success: true, status: "CANCELLED", message: pending.run ? `Okay, I kept ${pending.label}.` : `Okay, I kept ${pending.label} in your library.` });
+            return finish({
+              success: true,
+              status: "CANCELLED",
+              message: pending.cancelMessage ?? (pending.run ? `Okay, I kept ${pending.label}.` : `Okay, I kept ${pending.label} in your library.`),
+            });
           }
         }
 
@@ -291,6 +308,9 @@ export class AIRuntime {
               requestId,
               intents: [{ type: IntentType.RecommendGame, targets: [], parameters: [{ type: IntentParameterType.Text, value: followUp ?? cleanRequest }] } as any],
             };
+          } else if (quickPlan(cleanRequest, requestId, ownedNow, directContext.pageGame ?? directContext.currentGame ?? undefined)) {
+            // "rate hollow knight 9 it was amazing", "pause rdr2", "note for rdr2: ...": no planner needed.
+            intentPlan = quickPlan(cleanRequest, requestId, ownedNow, directContext.pageGame ?? directContext.currentGame ?? undefined)!;
           } else if (simpleAddTitle(cleanRequest)) {
             // "add gta 5": nothing for the planner to work out.
             intentPlan = {
@@ -428,7 +448,7 @@ export class AIRuntime {
             .map((i) => i.targets?.[0]?.name ?? "")
             .filter(Boolean);
           const isOwned = (name: string) =>
-            [...owned, ...adding].some((t) => titleMatchScore(name, t) >= 70 || mentions(name, t) || mentions(t, name));
+            [...owned, ...adding].some((t) => sameGame(name, t));
 
           // "I'm playing sekiro" / "rate celeste 9" for a game not in the library yet: add it first.
           // Anything else aimed at a missing game is skipped with a note, so the rest still runs.
@@ -454,7 +474,7 @@ export class AIRuntime {
           intentPlan.intents = intentPlan.intents.filter((i) => {
             if (i.type !== IntentType.AddGame || changed.length === 0) return true;
             const name = i.targets?.[0]?.name ?? "";
-            const ownedAlready = owned.some((t) => titleMatchScore(name, t) >= 95 || mentions(name, t));
+            const ownedAlready = owned.some((t) => sameGame(name, t));
             const touchedLater = changed.some((c) => (c.targets ?? []).some((t) => titleMatchScore(t.name ?? "", name) >= 90 || mentions(t.name ?? "", name)));
             return !(ownedAlready && touchedLater);
           });
@@ -831,6 +851,33 @@ function tidyReply(message: string): string {
     /I've added (.+?) to your library as Plan to Play\. I've marked \1 as ([A-Za-z ]+?)\.( Congrats on finishing it!)?/g,
     (_m, title, status, congrats) => `I've added ${title} to your library as ${status}.${congrats ?? ""}`,
   );
+}
+
+/**
+ * A plain single command about an owned game as an intent plan, or undefined (the planner handles it).
+ * Games not in the library go to the planner too, which adds them first.
+ */
+function quickPlan(message: string, requestId: string, owned: string[], referent?: string): IntentPlan | undefined {
+  const command = parseQuickCommand(message);
+  if (!command) return undefined;
+  const pointsBack = /^(it|that one|this one|this|that|this game|that game)$/i.test(command.game);
+  const title = pointsBack ? referent : namedTitles(command.game, owned)[0] ?? franchiseMatch(command.game, owned);
+  if (!title || !owned.includes(title)) return undefined;
+  const target = [{ type: IntentTargetType.Game, name: title }];
+  const intent =
+    command.kind === "rate"
+      ? {
+          type: IntentType.RateGame,
+          targets: target,
+          parameters: [
+            { type: IntentParameterType.Rating, value: command.rating },
+            ...(command.comment ? [{ type: IntentParameterType.Text, value: command.comment }] : []),
+          ],
+        }
+      : command.kind === "status"
+        ? { type: IntentType.SetStatus, targets: target, parameters: [{ type: IntentParameterType.Status, value: command.status }] }
+        : { type: IntentType.AddNote, targets: target, parameters: [{ type: IntentParameterType.Text, value: command.text }] };
+  return { id: requestId, requestId, intents: [intent as any] };
 }
 
 /** "hollow knight too. also put ds3 in there" after a collection offer -> "put hollow knight in Soulslikes. also put ds3 in there". */

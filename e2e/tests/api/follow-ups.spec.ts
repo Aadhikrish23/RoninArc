@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
-import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
-import { yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
+import { isConfirmReply, yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
+import { sameGame } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
 import { matchesTitle } from "../../../frontend/src/features/library/utils/titleSearch";
 
 // Playtest round 5: follow-ups the assistant got wrong.
@@ -169,4 +170,26 @@ test.describe("AI: round 9 helpers", () => {
     expect(yesAndMore("yeah do it, and hollow knight too. also put ds3 in there")).toBe("hollow knight too. also put ds3 in there");
   });
   test("a plain 'yes' is not 'yes plus more' @negative", () => expect(yesAndMore("yes")).toBeUndefined());
+});
+
+// Playtest round 10: commands that don't need the model, and plain "yes".
+test.describe("AI: quick commands and yes", () => {
+  for (const [text, expected] of [
+    ["rate hollow knight 9 it was amazing", { kind: "rate", game: "hollow knight", rating: 9, comment: "it was amazing" }],
+    ["pause rdr2 im taking a break from it", { kind: "status", game: "rdr2", status: "paused" }],
+    ["I finished celeste!! that summit was brutal", { kind: "status", game: "celeste", status: "completed" }],
+    ["note for rdr2: stopped at chapter 4", { kind: "note", game: "rdr2", text: "stopped at chapter 4" }],
+    ["mark witcher 3 as playing", { kind: "status", game: "witcher 3", status: "playing" }],
+  ] as const) {
+    test(`${JSON.stringify(text)} is a quick command @positive`, () => expect(parseQuickCommand(text)).toEqual(expected));
+  }
+  test("two requests in one message go to the planner @negative", () => {
+    expect(parseQuickCommand("drop disco elysium, too much reading. and im starting stardew tonight")).toBeUndefined();
+  });
+  for (const text of ["yes", "yeah do it", "ok", "sure thing", "yes please"]) {
+    test(`${JSON.stringify(text)} is a yes @positive`, () => expect(isConfirmReply(text)).toBe(true));
+  }
+  test("'Hades II' is not 'Hades' @negative", () => expect(sameGame("Hades II", "Hades")).toBe(false));
+  test("'Hollow Knight: Silksong' is not 'Hollow Knight' @negative", () => expect(sameGame("Hollow Knight: Silksong", "Hollow Knight")).toBe(false));
+  test("'gta 5' is Grand Theft Auto V @positive", () => expect(sameGame("gta 5", "Grand Theft Auto V")).toBe(true));
 });

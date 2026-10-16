@@ -183,3 +183,20 @@ export function dropUngroundedIntents(plan: IntentPlan, ctx: GroundingContext): 
 
   return dropped;
 }
+
+/** Are these two names the same game? "Hades II" is not "Hades": sequel numbers have to agree. */
+export function sameGame(a: string, b: string): boolean {
+  // Numbers inside abbreviations count too ("cod mw2" is Modern Warfare 2); years don't.
+  const numbersOf = (text: string) =>
+    tokens(expandAbbreviation(text) ?? text)
+      .flatMap((t) => t.match(/\d+/g) ?? [])
+      .filter((n) => Number(n) < 100)
+      .join(",");
+  if (numbersOf(a) !== numbersOf(b)) return false;
+  // `a` is what was asked for, `b` an owned title: every word asked for must be in the title
+  // ("Hollow Knight: Silksong" is not "Hollow Knight"), allowing a typo only without extra words.
+  const asked = tokens(expandAbbreviation(a) ?? a).filter((w) => !GENERIC.has(w));
+  const title = new Set(tokens(b).filter((w) => !GENERIC.has(w)));
+  if (asked.length > 0 && asked.every((w) => title.has(w))) return true;
+  return asked.length <= title.size && (mentions(a, b) || titleMatchScore(a, b) >= 85);
+}

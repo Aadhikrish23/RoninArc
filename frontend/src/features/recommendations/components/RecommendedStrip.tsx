@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import RecommendationCard from "./RecommendationCard";
 import { useRecommendations } from "../hooks/useRecommendations";
+import { useLibrary } from "../../library/hooks/useLibrary";
 
 /** Compact "Recommended for you" row for the library home page. */
 export default function RecommendedStrip() {
@@ -12,7 +13,10 @@ export default function RecommendedStrip() {
   const { data, dismiss, addToLibrary, startPlaying } = useRecommendations({ limit: 8 });
 
   // New games only: your own games are already in the sections above (and on For You's "Play Next").
-  const picks = data ? data.discover.slice(0, 4) : [];
+  // A game added a moment ago (from search) drops out before the next refresh.
+  const { games } = useLibrary();
+  const owned = new Set(games.map((g) => g.rawgId).filter(Boolean));
+  const picks = data ? data.discover.filter((r) => !r.rawgId || !owned.has(r.rawgId)).slice(0, 4) : [];
   if (picks.length === 0) return null;
 
   return (

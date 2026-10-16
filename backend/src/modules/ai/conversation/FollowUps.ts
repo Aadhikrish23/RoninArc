@@ -229,3 +229,55 @@ export function statedScore(message: string): number | undefined {
 
 /** "add silksong pls" -> "silksong": politeness isn't part of a title. */
 export const withoutPoliteness = (title: string) => title.replace(/[\s,]+(please|pls|plz|thanks|thx|ty)[.!]*$/i, "").trim();
+
+// ---- Plain single commands, parsed without the model (it can take a minute to answer). ----
+export type QuickCommand =
+  | { kind: "rate"; game: string; rating: number; comment?: string }
+  | { kind: "status"; game: string; status: string }
+  | { kind: "note"; game: string; text: string };
+
+const STATUS_VERBS: Record<string, string> = {
+  pause: "paused", paused: "paused",
+  drop: "dropped", dropped: "dropped",
+  start: "playing", started: "playing", starting: "playing",
+  finish: "completed", finished: "completed", complete: "completed", completed: "completed", beat: "completed",
+};
+const STATUS_WORDS_AS: Record<string, string> = {
+  playing: "playing", paused: "paused", completed: "completed", done: "completed", finished: "completed",
+  beaten: "completed", dropped: "dropped", "plan to play": "plan", planned: "plan", backlog: "plan",
+};
+/** Where the game name stops: "pause rdr2 im taking a break" -> "rdr2". */
+const NAME_END = /[,.!;:?]|\s+(?:im|i'm|i am|its|it's|it is|because|cuz|coz|since|lol|lmao|tho|bc|for now|rn|right now|already|finally|last night|yesterday|today|tonight|again)\b/i;
+/** A second request in the same message goes to the planner. */
+const SECOND_REQUEST = /\b(and|also|plus|then)\s+(?:i'?m\s+|im\s+|i\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|starting|move|note|give)\b/i;
+
+const cutName = (text: string) => text.split(NAME_END)[0].trim();
+
+export function parseQuickCommand(message: string): QuickCommand | undefined {
+  const m = message.trim();
+  if (SECOND_REQUEST.test(m)) return undefined;
+
+  const note = m.match(/^(?:(?:add|write|leave|make)\s+(?:a\s+)?)?note\s+(?:for|on|to|about)\s+(.+?)\s*:\s*(.+)$/i);
+  if (note) return { kind: "note", game: note[1].trim(), text: note[2].trim() };
+
+  const rate = m.match(/^(?:rate|give)\s+(.+?)\s+(?:an?\s+)?(\d{1,2}(?:\.5)?)(?:\s*(?:\/|out of)\s*10)?(?:[\s,.:;!-]+(.+))?$/i);
+  if (rate) {
+    const rating = Number(rate[2]);
+    if (rating < 1 || rating > 10) return undefined;
+    const comment = rate[3]?.trim();
+    return { kind: "rate", game: rate[1].trim(), rating, ...(comment ? { comment } : {}) };
+  }
+
+  const markAs = m.match(/^(?:mark|set|move|put)\s+(.+?)\s+(?:as|to)\s+(playing|paused|completed|done|finished|beaten|dropped|plan to play|planned|backlog)\b/i);
+  if (markAs) return { kind: "status", game: markAs[1].trim(), status: STATUS_WORDS_AS[markAs[2].toLowerCase()] };
+
+  const told = m.match(/^(?:i\s+(?:just\s+|finally\s+|have\s+|already\s+)?|just\s+|finally\s+)?(finished|completed|beat|started|dropped|paused)\s+(.+)$/i);
+  const imperative = m.match(/^(pause|drop|start|finish|complete)\s+(.+)$/i);
+  const verbMatch = told ?? imperative;
+  if (verbMatch) {
+    const game = cutName(verbMatch[2]);
+    if (!game) return undefined;
+    return { kind: "status", game, status: STATUS_VERBS[verbMatch[1].toLowerCase()] };
+  }
+  return undefined;
+}

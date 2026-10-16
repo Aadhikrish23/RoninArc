@@ -59,15 +59,11 @@ test.describe("AI chat API (/ai/chat)", () => {
   });
 
   test.describe("library actions", () => {
-    test("'complete <game>' asks for the missing status, then completes on the answer @positive", async ({ api }) => {
+    test("'complete <game>' completes it straight away, no follow-up question @positive", async ({ api }) => {
       const game = await api.addGame(shelter, { progressStatus: "playing" });
-      const ask = await chat(api, "complete fallout shelter");
-      expect(ask.status).toBe(200);
-      expect(ask.body).toMatchObject({ success: false, status: "CLARIFICATION_REQUIRED", message: "What status should I update the game to?" });
-      expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("playing");
-
-      const answer = await chat(api, "completed");
-      expect(answer.body).toMatchObject({ success: true, status: "SUCCESS", message: "I've marked Fallout Shelter as Completed. Congrats on finishing it!" });
+      const { status, body } = await chat(api, "complete fallout shelter");
+      expect(status).toBe(200);
+      expect(body).toMatchObject({ success: true, status: "SUCCESS", message: "I've marked Fallout Shelter as Completed. Congrats on finishing it!" });
       expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("completed");
     });
 
@@ -553,5 +549,30 @@ test.describe("AI chat API: round 9", () => {
     await api.put(`/review/${game._id}`, { rating: 9.5, reviewText: "Lost 200 hours" });
     const res = await api.post("/ai/chat", { message: "what did i rate this one again", client: { pageGameId: game._id } });
     expect((await json(res)).message).toBe('You rated Stardew Valley 9.5/10 -- "Lost 200 hours"');
+  });
+});
+
+// Round 10 of the gamer playtest.
+test.describe("AI chat API: round 10", () => {
+  test("'yeah do it' accepts the assistant's own offer @positive", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "plan" });
+    await chat(api, "rate fallout shelter 9");
+    const { body } = await chat(api, "yeah do it");
+    expect(body.message).toBe("I've marked Fallout Shelter as Completed.");
+    expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("completed");
+  });
+
+  test("'pause <game> im taking a break' needs no model @positive", async ({ api }) => {
+    const game = await api.addGame(byName("Hades"), { progressStatus: "playing" });
+    const { body } = await chat(api, "pause hades im taking a break from it");
+    expect(body.message).toBe("I've marked Hades as Paused.");
+    expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("paused");
+  });
+
+  test("'rate <game> 9 it was amazing' saves the rating and comment without the model @positive", async ({ api }) => {
+    const game = await api.addGame(byName("Hollow Knight"), { progressStatus: "completed" });
+    const { body } = await chat(api, "rate hollow knight 9 it was amazing");
+    expect(body.success, body.message).toBe(true);
+    expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 9, reviewText: "it was amazing" });
   });
 });

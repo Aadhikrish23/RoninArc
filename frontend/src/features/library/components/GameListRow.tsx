@@ -9,12 +9,8 @@ import {
   TagLabel,
   Button,
   Badge,
-  Menu,
-  MenuButton,
-  MenuList,
-  MenuItem,
-  Portal,
   useColorModeValue,
+  Select,
 } from "@chakra-ui/react";
 import { FiPlay } from "react-icons/fi";
 import type { Game, Status } from "../types/library";
@@ -162,49 +158,25 @@ function GameListRow({
 
         {/* Right Side: Action Controls */}
         <HStack spacing={3} onClick={(e) => e.stopPropagation()}>
-          {/* Status Dropdown */}
-          <Menu>
-            <MenuButton
-              as={Button}
-              size="sm"
-              colorScheme={STATUS_COLOR[game.progressStatus || "none"]}
-              variant="outline"
-              borderRadius="full"
-              textTransform="capitalize"
-              fontSize="xs"
-              px={3}
-            >
-              {STATUS_LABEL[game.progressStatus || "none"]}
-            </MenuButton>
-
-            <Portal>
-              <MenuList>
-                <MenuItem onClick={() => onStatusChange(game._id, "none")}>
-                  ⚪ No Status
-                </MenuItem>
-
-                <MenuItem onClick={() => onStatusChange(game._id, "plan")}>
-                  🟡 Plan To Play
-                </MenuItem>
-
-                <MenuItem onClick={() => onStatusChange(game._id, "playing")}>
-                  🟣 Playing
-                </MenuItem>
-
-                <MenuItem onClick={() => onStatusChange(game._id, "paused")}>
-                  🟠 Paused
-                </MenuItem>
-
-                <MenuItem onClick={() => onStatusChange(game._id, "completed")}>
-                  🟢 Completed
-                </MenuItem>
-
-                <MenuItem onClick={() => onStatusChange(game._id, "dropped")}>
-                  🔴 Dropped
-                </MenuItem>
-              </MenuList>
-            </Portal>
-          </Menu>
+          {/* Status: a native select, so the option clicked is the option you get
+              (the animated menu could flip upward and land a click on a different status). */}
+          <Select
+            aria-label={`Status for ${game.title}`}
+            size="sm"
+            w="auto"
+            minW="140px"
+            borderRadius="full"
+            fontSize="xs"
+            borderColor={`${STATUS_COLOR[game.progressStatus || "none"]}.400`}
+            value={game.progressStatus || "none"}
+            onChange={(e) => onStatusChange(game._id, e.target.value as Status)}
+          >
+            {(Object.keys(STATUS_LABEL) as (keyof typeof STATUS_LABEL)[]).map((status) => (
+              <option key={status} value={status}>
+                {STATUS_LABEL[status]}
+              </option>
+            ))}
+          </Select>
 
           {/* Launch button */}
           {canLaunchGames() && (

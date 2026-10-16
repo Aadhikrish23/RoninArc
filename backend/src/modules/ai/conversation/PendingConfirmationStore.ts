@@ -6,6 +6,8 @@ interface PendingConfirmation {
   run?: () => Promise<string>;
   /** The collection an offer was about, so "yeah, and hollow knight too" goes into it. */
   collection?: string;
+  /** What "no" says, when "Okay, I kept X in your library" doesn't fit. */
+  cancelMessage?: string;
   /** What the question named, e.g. "Red Dead Redemption 2". */
   label: string;
   expiresAt: number;
@@ -24,6 +26,11 @@ class PendingConfirmationStore {
     this.pending.set(userId, { ...value, expiresAt: Date.now() + TTL_MS });
   }
 
+  has(userId: string): boolean {
+    const value = this.pending.get(userId);
+    return !!value && value.expiresAt > Date.now();
+  }
+
   /** Returns and clears the pending action, if it hasn't expired. */
   take(userId: string): PendingConfirmation | null {
     const value = this.pending.get(userId);
@@ -32,7 +39,9 @@ class PendingConfirmationStore {
   }
 }
 
-const YES = /^(y|yes|yep|yeah|yup|sure|ok|okay|confirm|do it|go ahead|yes,? (please|remove it|do it|delete it)|remove it|delete it)[.!]*$/i;
+/** "yes", "yeah do it", "ok sure", "yes please", "bet", "sounds good" -- any run of yes-words. */
+const YES_WORD = "(?:y|ya|yes|yea|yeah|yep|yup|sure|ok|okay|k|confirm|do it|go ahead|go for it|please|pls|plz|bet|sounds good|why not|absolutely|definitely|yes please|remove it|delete it|add it|mark it|thanks|ty|cool|alright|alr|fine|sure thing|of course|yessir|yes sir|lets go|let's go)";
+const YES = new RegExp(`^${YES_WORD}(?:[\\s,!.]+${YES_WORD})*[\\s.!]*$`, "i");
 const NO = /^(n|no|nope|nah|cancel|stop|don'?t|keep it|never ?mind|nvm|forget it|no,? (keep it|cancel|thanks|don'?t))[.!]*$/i;
 
 export const isConfirmReply = (text: string) => YES.test(text.trim());

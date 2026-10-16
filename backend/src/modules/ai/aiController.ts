@@ -13,7 +13,7 @@ import toolMetadataRegistry from "./execution/ToolMetadataRegistry";
 import { Request, Response } from "express";
 import crypto from "crypto";
 import AIConfig from "./config/AIConfig";
-import { AI_OFFLINE_MESSAGE } from "./runtime/errors/AIProviderUnavailableError";
+import { AI_OFFLINE_MESSAGE, AI_SLOW_MESSAGE } from "./runtime/errors/AIProviderUnavailableError";
 
 const toolRegistry = createToolRegistry();
 const contextRegistry = registerContextProviders();
@@ -81,7 +81,8 @@ export class AIController {
       res.status(200).json(result);
     } catch (error: any) {
       if (error && error.code === "AI_PROVIDER_UNAVAILABLE") {
-        res.status(503).json({ success: false, offline: true, message: AI_OFFLINE_MESSAGE });
+        const slow = /timed out/i.test(String(error.message ?? ""));
+        res.status(503).json({ success: false, offline: true, message: slow ? AI_SLOW_MESSAGE : AI_OFFLINE_MESSAGE });
         return;
       }
       if (error && error.code === "PROVIDER_VALIDATION_ERROR") {

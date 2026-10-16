@@ -110,7 +110,8 @@ function Login() {
             <Divider mb={6} borderColor="gray.700" />
 
             {/* Form fields */}
-            <Stack spacing={4}>
+            {/* Enter in any field submits, like a normal login form. */}
+            <Stack spacing={4} onKeyDown={(e) => { if (e.key === "Enter" && !loading && (e.target as HTMLElement).tagName !== "BUTTON") handlesubmit(); }}>
               <FormControl>
                 <FormLabel color="gray.200">Username</FormLabel>
                 <Input
