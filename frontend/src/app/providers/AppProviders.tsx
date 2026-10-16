@@ -15,9 +15,9 @@ interface Props {
 }
 
 export default function AppProviders({ children }: Props) {
-  // Toasts at the top right, clear of the buttons at the bottom of pages (e.g. "Remove From Library").
+  // Toasts at the top centre: clear of the username (top right), the assistant button (bottom right) and page buttons like "Remove From Library".
   return (
-    <ChakraProvider toastOptions={{ defaultOptions: { position: "top-right" } }}>
+    <ChakraProvider toastOptions={{ defaultOptions: { position: "top" } }}>
       <AppErrorBoundary>
       <AuthProvider>
         <ProviderProvider>

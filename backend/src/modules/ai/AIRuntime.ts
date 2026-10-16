@@ -100,6 +100,7 @@ export class AIRuntime {
         let fromModel = false;
         let unrequested = 0;
         let notice: string | undefined;
+        let planText = cleanRequest;
 
         // An offer or removal we asked about last turn.
         const pending = await handlePending(userId, cleanRequest);
@@ -137,9 +138,11 @@ export class AIRuntime {
           const routed = await preRoute({ userId, requestId, message: cleanRequest, client, session, requestContext, model: this.model });
           if (routed.kind === "reply") return finish(routed.response);
           notice = routed.notice;
+          // With "it" pinned to a game ("put Dead Cells in there, and start sekiro"), later checks read that.
+          planText = routed.pinned ?? cleanRequest;
           intentPlan = conversationRuntime.resolveReferences(routed.plan, session);
           fromModel = true;
-          unrequested = correctPlan(intentPlan, cleanRequest).unrequested;
+          unrequested = correctPlan(intentPlan, planText).unrequested;
         }
 
         if (intentPlan) normalizeStatusIntents(intentPlan);
@@ -149,7 +152,7 @@ export class AIRuntime {
         if (intentPlan && fromModel) {
           grounding = await groundPlan(intentPlan, {
             userId,
-            message: cleanRequest,
+            message: planText,
             owned: requestContext?.library?.games.map((g) => g.title) ?? [],
             lastExchange: recentExchanges.get(userId).slice(-1)[0],
             currentGame: session.references.currentGame?.displayName ?? null,

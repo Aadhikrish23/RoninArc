@@ -3,6 +3,7 @@ import LibraryGame from "../../library/LibraryGame";
 import libraryServices from "../../library/libraryServices";
 import Review from "../../review/Reviewmodel";
 import Note from "../../notes/Notemodel";
+import Activity from "../../activity/ActivityModel";
 import RecommendationFeedback from "../../recommendation/RecommendationFeedback";
 import reviewToolService from "../services/ReviewToolService";
 import { IntentPlan } from "../intent/IntentPlan";
@@ -105,7 +106,10 @@ export async function undoLastChange(userId: string): Promise<string | undefined
     if (!game) continue;
     const parts: string[] = [];
     if ((game.progressStatus || "none") !== before.status) {
-      await libraryServices.updateGame(userId, before.gameId, { progressStatus: before.status });
+      // Put the status back as if it never changed: no new "marked as" entry, and the entries the
+      // undone change made go too (the dashboard dates "planned" games by them).
+      await LibraryGame.updateOne({ _id: before.gameId, userId: uid }, { $set: { progressStatus: before.status } });
+      await Activity.deleteMany({ userId: uid, gameId: before.gameId, type: "STATUS_CHANGED", createdAt: { $gte: change.at } });
       parts.push(`status back to ${STATUS_WORDS[before.status] ?? before.status}`);
     }
     const review = (await Review.findOne({ userId: uid, gameId: before.gameId }).lean()) as any;

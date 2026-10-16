@@ -328,7 +328,16 @@ export function rankDiscover(
   candidates: DiscoverCandidate[],
   library: LibrarySignalGame[],
   profile: TasteProfile,
-  options: { limit: number; dismissed: Set<number>; focus?: string[]; length?: LengthPreference; like?: LikeGame; tagLabel?: string },
+  options: {
+    limit: number;
+    dismissed: Set<number>;
+    focus?: string[];
+    length?: LengthPreference;
+    like?: LikeGame;
+    tagLabel?: string;
+    /** The style reason for this candidate, if it really has the style (else no style reason). */
+    tagLabelFor?: (candidate: DiscoverCandidate) => string | undefined;
+  },
 ): Recommendation[] {
   const used = new Map<string, number>();
   const personalized = profile.signalCount > 0;
@@ -364,7 +373,7 @@ export function rankDiscover(
       const reasons = [
         likeReason(c.genres, options.like) ?? tasteReason(c.genres, match.top, profile, c.name, used),
         options.length ? lengthReason(c.avgHours) : null,
-        options.tagLabel ? `${options.tagLabel}` : null,
+        options.tagLabelFor ? options.tagLabelFor(c) ?? null : options.tagLabel ?? null,
         qualityReason(c.rating, c.metacritic),
       ].filter((r): r is string => !!r);
       if (reasons.length === 0) reasons.push(personalized ? "Something new to try" : "Popular with players right now");

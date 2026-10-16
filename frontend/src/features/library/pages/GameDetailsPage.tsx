@@ -109,8 +109,13 @@ export default function GameDetailsPage() {
     navigate("/");
   };
 
+  const STATUS_NAMES: Record<string, string> = {
+    none: "No Status", plan: "Plan to Play", playing: "Playing", paused: "Paused", completed: "Completed", dropped: "Dropped",
+  };
   const handleStatusChange = async (gameId: string, status: Status) => {
     await updateStatus(gameId, status);
+    // The status menu closes silently otherwise; collection changes already confirm with a toast.
+    toast({ title: `Marked as ${STATUS_NAMES[status] ?? status}`, status: "success", duration: 2000, isClosable: true });
   };
 
   const updateGameRating = async (gameId: string, rating: number | null) => {

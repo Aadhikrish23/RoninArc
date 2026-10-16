@@ -18,6 +18,7 @@ import type { JSX } from "react";
 import { FiSettings, FiTrash2, FiX } from "react-icons/fi";
 import { IoSparklesOutline } from "react-icons/io5";
 import { useAI } from "../context/AIContext";
+import { useLibrary } from "../../library/hooks/useLibrary";
 import MessageBubbles from "./MessageBubbles";
 import TypingIndicator from "./TypingIndicator";
 import ChatInput from "./ChatInput";
@@ -39,6 +40,10 @@ interface AIChatPanelProps {
 export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element {
   const { messages, isTyping, sendMessage, clearConversation, retry, settings, updateSettings } = useAI();
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  // "Add Hades" isn't a useful example when Hades is already in the library.
+  const { games } = useLibrary();
+  const owns = (title: string) => games.some((g) => g.title.toLowerCase() === title.toLowerCase());
+  const prompts = EXAMPLE_PROMPTS.filter((p) => !(p.startsWith("Add ") && owns(p.slice(4))));
   const settingsModal = useDisclosure();
   // Clearing wipes the whole chat, so it takes a second click to confirm.
   const [confirmClear, setConfirmClear] = useState(false);
@@ -119,7 +124,7 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
                 take notes, organise collections, answer questions and suggest what to play.
               </Text>
               <Wrap justify="center" spacing={2} mt={5} maxW="520px">
-                {EXAMPLE_PROMPTS.map((prompt) => (
+                {prompts.map((prompt) => (
                   <WrapItem key={prompt}>
                     <Button size="sm" variant="outline" colorScheme="purple" borderRadius="full" onClick={() => sendMessage(prompt)}>
                       {prompt}

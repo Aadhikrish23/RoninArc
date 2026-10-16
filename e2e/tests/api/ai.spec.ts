@@ -603,3 +603,29 @@ test.describe("AI chat API: round 11", () => {
     expect(body.message).toBe('I couldn\'t find a collection called "git gud". Your collections: "Soulslikes".');
   });
 });
+
+// Round 12 of the gamer playtest.
+test.describe("AI chat API: round 12", () => {
+  test("'save that as a note' saves the assistant's answer, not the command @positive", async ({ api }) => {
+    const game = await api.addGame(shelter);
+    await chat(api, "whats the difference between a roguelike and a roguelite");
+    const { body } = await chat(api, 'save that as a note on fallout shelter but also add "check the vault layout"');
+    expect(body.message).toBe("I've added that note to Fallout Shelter.");
+    const notes = (await json(await api.get(`/notes/${game._id}`))).Data;
+    expect(notes[0].content).toBe("Mock answer about: whats the difference between a roguelike and a roguelite\n\ncheck the vault layout");
+  });
+
+  test("a reminder that mentions co-op is still answered as a reminder @negative", async ({ api }) => {
+    await api.addGame(byName("Stardew Valley"));
+    const { body } = await chat(api, "remind me friday 8pm to play stardew coop with my buddy");
+    expect(body.message).toMatch(/^I can't set reminders yet/);
+  });
+
+  test("putting a game into a collection it's already in says so @negative", async ({ api }) => {
+    const game = await api.addGame(shelter);
+    const col = (await json(await api.post("/collection", { name: "RPG Collection" }))).Data;
+    await api.post(`/collection/${col._id}/games`, { gameId: game._id });
+    const { body } = await chat(api, "add fallout shelter to my rpg collection");
+    expect(body.message).toContain('Fallout Shelter was already in your collection "RPG Collection".');
+  });
+});

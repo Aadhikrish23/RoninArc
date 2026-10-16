@@ -82,7 +82,11 @@ export class AIResponseBuilder {
       } else if (step.tool === "CreateCollectionTool" || step.tool === "create_collection") {
         sentences.push(`I've created the collection "${params.name}".`);
       } else if (step.tool === "AddToCollectionTool" || step.tool === "add_to_collection") {
-        sentences.push(`I've added ${gameName} to your collection "${params.collectionName}".`);
+        sentences.push(
+          (step.output as any)?.metadata?.alreadyInCollection
+            ? `${gameName} was already in your collection "${params.collectionName}".`
+            : `I've added ${gameName} to your collection "${params.collectionName}".`,
+        );
       } else if (step.tool === "RemoveFromCollectionTool" || step.tool === "remove_from_collection") {
         sentences.push(`I've removed ${gameName} from your collection "${params.collectionName}".`);
       } else if (step.tool === "UpdateStatusTool" || step.tool === "update_status") {

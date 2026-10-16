@@ -14,6 +14,8 @@ import {
   type LengthPreference,
 } from "./recommendationEngine";
 import { mentions } from "../ai/conversation/TargetGrounding";
+import { expandAbbreviation } from "../rawg/gameAbbreviations";
+import { rankByTitle } from "../rawg/titleMatch";
 
 export type RecommendationType = "all" | "backlog" | "discover";
 
@@ -156,6 +158,24 @@ async function loadSignals(userId: string): Promise<LibrarySignalGame[]> {
   }));
 }
 
+/** "something like hades but shorter" -> "hades": the game a hint compares to. */
+const LIKE_NAME = /\b(?:like|similar to|games? like)\s+([a-z0-9][a-z0-9 :'&.-]{1,40}?)(?=\s+(?:but|and|that|which|with|for|except|only|though|tho)\b|[,.?!]|$)/i;
+
+/** The game named after "like", looked up on RAWG when it isn't in the library. */
+async function likeGameOutsideLibrary(query?: string): Promise<{ title: string; rawgId: number; genres: string[] } | undefined> {
+  const name = query?.match(LIKE_NAME)?.[1]?.trim();
+  if (!name || /^(this|that|it|these|those|them|me|my|something|anything)$/i.test(name)) return undefined;
+  try {
+    const term = expandAbbreviation(name) ?? name;
+    const [best] = rankByTitle(term, await rawgService.searchGames(term, 1));
+    if (!best || best.score < 80) return undefined;
+    const game = best.item as any;
+    return { title: game.name, rawgId: game.id, genres: game.genres ?? [] };
+  } catch {
+    return undefined; // a hint, not a requirement
+  }
+}
+
 async function getRecommendations(
   userId: string,
   options: { type: RecommendationType; limit: number; query?: string },
@@ -172,17 +192,21 @@ async function getRecommendations(
         .filter((g) => mentions(options.query!, g.title))
         .sort((a, b) => b.title.length - a.title.length)[0]
     : undefined;
-  const like = likeGame ? { title: likeGame.title, tags: likeGame.tags } : undefined;
+  // "like Hades" when Hades isn't in the library: look it up, so its genres and style still count.
+  const outside = likeGame ? undefined : await likeGameOutsideLibrary(options.query);
+  const likeTitle = likeGame?.title ?? outside?.title;
+  const likeRawgId = likeGame?.rawgId ?? outside?.rawgId;
+  const like = likeGame ? { title: likeGame.title, tags: likeGame.tags } : outside ? { title: outside.title, tags: outside.genres } : undefined;
   // "like Hades" also means "plays like Hades": borrow its play style (roguelike) from RAWG.
   let discoverStyles = styles;
-  if (styles.slugs.length === 0 && likeGame?.rawgId) {
-    const tags = await rawgService.getGameTagSlugs(likeGame.rawgId);
+  if (styles.slugs.length === 0 && likeRawgId) {
+    const tags = await rawgService.getGameTagSlugs(likeRawgId);
     const style = STYLE_TAGS.find(([, slug]) => DISTINCTIVE_STYLES.has(slug) && tags.includes(slug));
-    if (style) discoverStyles = { slugs: [style[1]], label: `${style[2]}, like ${likeGame.title}` };
+    if (style) discoverStyles = { slugs: [style[1]], label: `${style[2]}, like ${likeTitle}` };
   }
   // No ask at all: discover in the style of the user's favourite (Hollow Knight -> metroidvanias),
   // not just the most popular games in a broad genre like Action.
-  if (discoverStyles.slugs.length === 0 && focus.length === 0 && !likeGame) {
+  if (discoverStyles.slugs.length === 0 && focus.length === 0 && !like) {
     const favourite = library
       .filter((g) => typeof g.rating === "number" && g.rating >= 8 && g.rawgId)
       .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
@@ -226,7 +250,10 @@ async function getRecommendations(
       const tagged = await Promise.all(
         backlogPool.map(async (g) => ({ game: g, tags: g.rawgId ? await tagsFor(g.rawgId) : [] })),
       );
-      const styled = tagged.filter((t) => styles.slugs.some((s) => hasStyle(t.tags, s))).map((t) => t.game);
+      // Games with every style asked for come first ("cozy co-op" is Stardew, not RDR2's online mode).
+      const matched = (tags: string[]) => styles.slugs.filter((s) => hasStyle(tags, s)).length;
+      const best = Math.max(0, ...tagged.map((t) => matched(t.tags)));
+      const styled = best > 0 ? tagged.filter((t) => matched(t.tags) === best).map((t) => t.game) : [];
       const styleGenres = styles.slugs.flatMap((s) => STYLE_GENRES[s] ?? []);
       result.backlog =
         styled.length > 0
@@ -255,11 +282,19 @@ async function getRecommendations(
       const pool = withAll.length >= Math.min(3, options.limit) ? withAll : candidates;
       result.discover = rankDiscover(pool, library, profile, {
         limit: options.limit,
-        dismissed: new Set(dismissed.map((d: any) => d.rawgId)),
+        // The game it's "like" isn't a suggestion for itself.
+        dismissed: new Set([...dismissed.map((d: any) => d.rawgId), ...(outside ? [outside.rawgId] : [])]),
         focus: discoverStyles.slugs.length > 0 ? [] : focus,
         length,
         like,
         tagLabel: discoverStyles.label,
+        // "Cozy, Co-op" only on games that are: Half-Life 2: Deathmatch isn't cozy.
+        tagLabelFor: (c) => {
+          const has = STYLE_TAGS.filter(([, slug]) => discoverStyles.slugs.includes(slug) && hasStyle(c.tags ?? [], slug)).map(([, , label]) => label);
+          if (has.length === 0) return undefined;
+          const like = discoverStyles.label?.match(/, like .+$/)?.[0] ?? "";
+          return `${has.join(", ")}${like}`;
+        },
       });
     } catch {
       // Discovery needs RAWG; backlog picks are computed locally and still work offline.

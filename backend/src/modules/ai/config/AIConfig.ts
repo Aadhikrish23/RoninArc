@@ -51,7 +51,7 @@ export const AIConfig = {
     .map((m) => m.trim())
     .filter(Boolean),
   /** How long the first model gets before the next one is tried (healthy replies take 1-5s). */
-  nvidiaPrimaryTimeout: process.env.NVIDIA_PRIMARY_TIMEOUT ? parseInt(process.env.NVIDIA_PRIMARY_TIMEOUT, 10) : 8000,
+  nvidiaPrimaryTimeout: process.env.NVIDIA_PRIMARY_TIMEOUT ? parseInt(process.env.NVIDIA_PRIMARY_TIMEOUT, 10) : 6000,
 };
 
 export default AIConfig;

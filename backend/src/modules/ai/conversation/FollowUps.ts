@@ -54,11 +54,17 @@ export function recommendationFollowUp(message: string, last?: Exchange): string
 const REMINDER = /\b(remind|reminder|reminders|alarm|notify|notification|alert me|ping me|schedule|calendar)\b/i;
 const UNDO = /\b(undo|revert|take (that|it) back|reverse that)\b/i;
 const BUY = /\b(buy|purchase|order|pre-?order|gift)\b/i;
+const WHOLE_LIBRARY =
+  /\b(nuke|wipe|clear|delete|remove|reset|empty)\b[^.?!]*\b(whole|entire|all( of)?( my)?|everything in)\s+(my\s+)?(library|games)\b|\b(start|starting) (fresh|over|from scratch)\b/i;
 
 export function unsupportedReply(message: string): string | undefined {
   // "remind me friday ... and also buy silksong": answer every part it can't do, not just the first.
   // (A plain "buy X" goes to the model, whose reply offers to add X instead.)
   const cant: string[] = [];
+  // "nuke my whole library": too much to do (or undo) from one chat message.
+  if (WHOLE_LIBRARY.test(message)) {
+    return "I can't clear your whole library from chat, so nothing changed. You can remove games one at a time (\"remove hades\"), or from the All Games page.";
+  }
   if (REMINDER.test(message)) cant.push("set reminders");
   if (cant.length > 0 && BUY.test(message)) cant.push("buy games");
   if (cant.length > 0) {
@@ -300,4 +306,46 @@ export function parseQuickCommand(message: string): QuickCommand | undefined {
     return { kind: "status", game, status: STATUS_VERBS[verbMatch[1].toLowerCase()] };
   }
   return undefined;
+}
+
+/**
+ * "save that as a note on sekiro but also add 'jump + attack to reverse lightning'": the note is
+ * the assistant's last answer (plus the user's addition), not the command itself.
+ */
+const SAVE_THAT = /\b(save|add|put|keep|write|jot)\s+(that|this|it|those|these|those tips|that tip|that answer)\s+(down\s+)?(as|in|to|into)\s+(a\s+|my\s+)?notes?\b/i;
+
+export function saveThatAsNote(message: string, last?: Exchange): { gameText: string; text: string } | undefined {
+  if (!last || !SAVE_THAT.test(message)) return undefined;
+  const gameText = message.match(/\bnotes?\s+(?:on|for|about|to)\s+(.+?)(?:\s+(?:but|and|also|plus)\b|[,.;:!?]|$)/i)?.[1]?.trim() ?? "";
+  // A quoted addition, or whatever follows "also add".
+  const addition = message.match(/["“']([^"”']{3,200})["”']/)?.[1] ?? message.match(/\b(?:also|and)\s+(?:add|put|include)\s*:?\s*(.{3,200})$/i)?.[1];
+  const answer = last.assistant.trim();
+  if (!answer) return undefined;
+  return { gameText, text: addition ? `${answer}\n\n${addition.trim()}` : answer };
+}
+
+/**
+ * "put it in the soulslike one too, and start playing sekiro": the "it" clause names no game,
+ * so "it" is the game the conversation was on -- not Sekiro, named in the other clause.
+ * Rewrites that clause's "it" to the referent so the planner can't mix them up.
+ */
+export function pinPronoun(message: string, referent: string | undefined, nameIn: (text: string) => string | undefined): string {
+  const clauses = message.split(/(,\s*|\s+and\s+|\s+also\s+|\s+then\s+)/i);
+  if (clauses.filter((_, i) => i % 2 === 0).length < 2) return message;
+  if (!clauses.some((c, i) => i % 2 === 0 && nameIn(c))) return message;
+  // "it" is the nearest game named before it in the message ("beat the witcher, mark it done"),
+  // or the conversation's game when nothing came before ("put it in there, and start sekiro").
+  let lastNamed: string | undefined;
+  return clauses
+    .map((c, i) => {
+      if (i % 2 === 1) return c;
+      const named = nameIn(c);
+      if (named) {
+        lastNamed = named;
+        return c;
+      }
+      const target = lastNamed ?? referent;
+      return target && /\b(it|that one)\b/i.test(c) ? c.replace(/\b(it|that one)\b/i, target) : c;
+    })
+    .join("");
 }

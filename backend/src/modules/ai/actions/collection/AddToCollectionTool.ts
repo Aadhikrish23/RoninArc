@@ -40,6 +40,9 @@ export class AddToCollectionTool extends BaseTool<
       );
     }
 
+    // "already there" is reported as such, not as "I've added ...".
+    const alreadyIn = collection.gameIds.some((id: any) => String(id) === String(input.gameId));
+
     const resultCollection = await collectionToolService.addGameToCollection(
       context.userId,
       collection._id.toString(),
@@ -50,6 +53,8 @@ export class AddToCollectionTool extends BaseTool<
       return this.failure("Failed to add game to collection.");
     }
 
-    return this.success(resultCollection, "Game added to collection successfully.");
+    return this.success(resultCollection, alreadyIn ? "Game was already in the collection." : "Game added to collection successfully.", {
+      alreadyInCollection: alreadyIn,
+    });
   }
 }

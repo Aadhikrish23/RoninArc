@@ -16,7 +16,9 @@ import {
   parseCollectionCommand,
   parseQuickCommand,
   parseReviewEdit,
+  pinPronoun,
   recommendationFollowUp,
+  saveThatAsNote,
   simpleAddTitle,
   unsupportedReply,
   withPageGame,
@@ -34,7 +36,7 @@ import { confirmationResponse, type RuntimeResponse } from "./Replies";
 export type PreRouteOutcome =
   | { kind: "reply"; response: RuntimeResponse }
   /** `notice` goes in front of the reply ("Sorry about that. I've undone that. ..."). */
-  | { kind: "plan"; plan: IntentPlan; notice?: string };
+  | { kind: "plan"; plan: IntentPlan; notice?: string; pinned?: string };
 
 interface PreRouteInput {
   userId: string;
@@ -92,6 +94,20 @@ export async function preRoute({ userId, requestId, message, client, session, re
     return reply(await editReview(userId, reviewGame, reviewEdit.text, reviewEdit.rating));
   }
 
+  // Things there's no tool for yet ("remind me friday...", "nuke my library"): say so, change
+  // nothing -- before anything else answers a nearby question ("...elden ring coop" got a co-op list).
+  const unsupported = unsupportedReply(message);
+  if (unsupported) return reply({ success: true, message: unsupported });
+
+  // "save that as a note on sekiro": the note is the assistant's last answer.
+  const saved = saveThatAsNote(message, recentExchanges.get(userId).slice(-1)[0]);
+  if (saved) {
+    const title = (saved.gameText && (namedTitles(saved.gameText, owned)[0] ?? franchiseMatch(saved.gameText, owned))) || direct.currentGame || direct.pageGame;
+    if (title && owned.includes(title)) {
+      return plan(requestId, { type: IntentType.AddNote, targets: [{ type: IntentTargetType.Game, name: title }], parameters: [{ type: IntentParameterType.Text, value: saved.text }] });
+    }
+  }
+
   // "what's in cozy nights?", "read me my notes": answered from the data, never guessed.
   const answered = await answerDirectly(message, direct);
   if (answered.answer) return reply({ success: true, message: answered.answer });
@@ -110,9 +126,6 @@ export async function preRoute({ userId, requestId, message, client, session, re
     if (opinion) return reply({ success: true, message: opinion.trim() });
   }
 
-  // Things there's no tool for yet ("remind me friday...", "undo"): say so, change nothing.
-  const unsupported = unsupportedReply(message);
-  if (unsupported) return reply({ success: true, message: unsupported });
 
   // "delete that collection", "rename soulslikes to hard games".
   const collectionCommand = parseCollectionCommand(message, requestContext.library.collections, recentExchanges.get(userId), page.collectionName);
@@ -142,7 +155,10 @@ export async function preRoute({ userId, requestId, message, client, session, re
   }
 
   try {
-    return { kind: "plan", plan: await model.planWithRetry(message, requestContext), notice };
+    // "put it in the soulslike one too, and start playing sekiro": "it" is the conversation's game.
+    const referent = direct.currentGame ?? direct.pageGame ?? undefined;
+    const pinned = pinPronoun(message, referent, (clause) => namedTitles(clause, owned)[0] ?? franchiseMatch(clause, owned));
+    return { kind: "plan", plan: await model.planWithRetry(pinned, requestContext), notice, pinned: pinned !== message ? pinned : undefined };
   } catch (error: any) {
     // The planner couldn't produce a plan; a question still deserves an answer.
     if (error?.code === "PROVIDER_VALIDATION_ERROR" && LOOKS_LIKE_QUESTION.test(message)) {

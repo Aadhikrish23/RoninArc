@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, pinPronoun, saveThatAsNote, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
 import { isConfirmReply, yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
 import { namedTitles, sameGame } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
 import { matchesTitle } from "../../../frontend/src/features/library/utils/titleSearch";
@@ -212,5 +212,31 @@ test.describe("AI: round 11 names and renames", () => {
   });
   test("a reminder plus a purchase: both get an answer @negative", () => {
     expect(unsupportedReply("remind me on friday to play witcher, and also buy silksong for me on steam")).toMatch(/^I can't set reminders or buy games yet/);
+  });
+});
+
+// Playtest round 12.
+test.describe("AI: round 12 pronouns, notes and limits", () => {
+  const owned = ["Dead Cells", "Sekiro: Shadows Die Twice", "The Witcher 3: Wild Hunt"];
+  const nameIn = (clause: string) => namedTitles(clause, owned)[0];
+  test("'put it in there, and start sekiro': it is the conversation's game @positive", () => {
+    expect(pinPronoun("put it in the soulslike one too, and start playing sekiro", "Dead Cells", nameIn))
+      .toBe("put Dead Cells in the soulslike one too, and start playing sekiro");
+  });
+  test("'beat the witcher, mark it done': it is the game named before it @positive", () => {
+    expect(pinPronoun("just beat the witcher, mark it done", "Dead Cells", nameIn)).toBe("just beat the witcher, mark The Witcher 3: Wild Hunt done");
+  });
+  test("a single clause is left alone @negative", () => expect(pinPronoun("rate it 9", "Dead Cells", nameIn)).toBe("rate it 9"));
+
+  test("'save that as a note on sekiro but also add \"...\"' saves the last answer plus the addition @positive", () => {
+    const last = { user: "tips for genichiro?", assistant: "Watch his posture and use the Mikiri Counter." };
+    expect(saveThatAsNote('save that as a note on sekiro but also add "jump + attack to reverse lightning"', last))
+      .toEqual({ gameText: "sekiro", text: "Watch his posture and use the Mikiri Counter.\n\njump + attack to reverse lightning" });
+  });
+  test("'nuke my whole library' is refused clearly @negative", () => {
+    expect(unsupportedReply("ugh nuke my whole library i wanna start fresh")).toMatch(/^I can't clear your whole library/);
+  });
+  test("'remind me ... elden ring coop' is a reminder, not a co-op question @negative", () => {
+    expect(unsupportedReply("remind me friday 8pm to play elden ring coop with my buddy")).toMatch(/^I can't set reminders/);
   });
 });
