@@ -315,8 +315,8 @@ export function parseQuickCommand(message: string): QuickCommand | undefined {
   const markAs = m.match(/^(?:mark|set|move|put)\s+(.+?)\s+(?:as|to)\s+(playing|paused|completed|done|finished|beaten|dropped|plan to play|planned|backlog)\b/i);
   if (markAs) return { kind: "status", game: markAs[1].trim(), status: STATUS_WORDS_AS[markAs[2].toLowerCase()] };
 
-  const told = m.match(/^(?:i\s+(?:just\s+|finally\s+|have\s+|already\s+)?|just\s+|finally\s+)?(finished|completed|beat|started|dropped|paused)\s+(.+)$/i);
-  const imperative = m.match(/^(pause|drop|start|finish|complete|unpause|resume|continue)\s+(.+)$/i);
+  const told = m.match(/^(?:i\s+(?:just\s+|finally\s+|have\s+|already\s+)?|just\s+|finally\s+)?(finished|completed|beat|started|dropped|paused)\s+(?:playing\s+|on\s+)?(.+)$/i);
+  const imperative = m.match(/^(pause|drop|start|finish|complete|unpause|resume|continue)\s+(?:playing\s+|on\s+)?(.+)$/i);
   const verbMatch = told ?? imperative;
   if (verbMatch) {
     const game = cutName(verbMatch[2]);

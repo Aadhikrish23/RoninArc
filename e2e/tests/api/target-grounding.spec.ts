@@ -95,3 +95,14 @@ test.describe("AI target grounding: round 14", () => {
     expect(lastNamedTitle('I\'ve added Sekiro: Shadows Die Twice and Elden Ring to Soulslike. I\'ve added Dark Souls III to your collection "Soulslike".', owned)).toBe("Dark Souls III");
   });
 });
+
+// Regression replay after round 15: "drop cod" with a sequel-less Call of Duty went to Sekiro.
+test.describe("AI target grounding: abbreviations without a sequel number", () => {
+  const owned = ["Sekiro: Shadows Die Twice", "Call of Duty: Modern Warfare Remastered", "Hollow Knight"];
+  test('"cod" names Call of Duty: Modern Warfare Remastered @positive', () => {
+    expect(namedTitles("cod", owned)).toEqual(["Call of Duty: Modern Warfare Remastered"]);
+  });
+  test('"hades" still does not name Hades II @negative', () => {
+    expect(namedTitles("hades", ["Hades II"])).toEqual([]);
+  });
+});

@@ -75,9 +75,10 @@ export function mentions(text: string, title: string): boolean {
       // Short common words ("top", "the") don't name a game unless they are its whole title.
       const score = titleMatchScore(window, title);
       if (hasNumbers && score >= 70 && (window.replace(/ /g, "").length >= 4 || score >= 95)) return true;
-      // A franchise abbreviation ("cod" for Call of Duty: Modern Warfare II) names the game
-      // even without the sequel number; plain words ("hades") still need it.
-      if (!hasNumbers && score >= 90 && window.replace(/ /g, "").length >= 3) return true;
+      // A franchise abbreviation ("cod" for Call of Duty: Modern Warfare II, or for Call of Duty:
+      // Modern Warfare Remastered) names the game with or without a sequel number; plain words
+      // ("hades") score lower and still need the number.
+      if (score >= 90 && window.replace(/ /g, "").length >= 3) return true;
     }
   }
   if (!hasNumbers) return false;

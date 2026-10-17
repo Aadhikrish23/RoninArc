@@ -78,12 +78,23 @@ export function correctPlan(plan: IntentPlan, message: string, lastReply = ""): 
   // "make a soulslike collection" is a collection called "Soulslike", not "Soulslike Collection"
   // (unless the name was given outright: 'called "Retro Collection"').
   if (!/\b(called|named)\b|["“]/i.test(message)) {
+    const renamed = new Map<string, string>();
     for (const intent of plan.intents) {
       if (intent.type !== IntentType.CreateCollection) continue;
       for (const target of intent.targets ?? []) {
         if (target.type === IntentTargetType.Collection && / collection$/i.test(target.name ?? "") && target.name.length > 11) {
-          target.name = target.name.replace(/ collection$/i, "");
+          const short = target.name.replace(/ collection$/i, "");
+          renamed.set(target.name.toLowerCase(), short);
+          target.name = short;
         }
+      }
+    }
+    // The same plan's "add it to Soulslike Collection" must use the new name too, or the add
+    // step creates a second collection.
+    for (const intent of plan.intents) {
+      for (const target of intent.targets ?? []) {
+        const short = target.type === IntentTargetType.Collection ? renamed.get((target.name ?? "").toLowerCase()) : undefined;
+        if (short) target.name = short;
       }
     }
   }

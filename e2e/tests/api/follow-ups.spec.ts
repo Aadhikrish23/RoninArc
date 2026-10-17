@@ -3,6 +3,7 @@ import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, m
 import { isConfirmReply, yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
 import { namedTitles, sameGame } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
 import { dropUnstatedStatusChanges, ensureCollectionAdds } from "../../../backend/src/modules/ai/pipeline/StatusEvidence";
+import { correctPlan } from "../../../backend/src/modules/ai/pipeline/PlanCorrections";
 import { matchesTitle } from "../../../frontend/src/features/library/utils/titleSearch";
 
 // Playtest round 5: follow-ups the assistant got wrong.
@@ -288,5 +289,32 @@ test.describe("AI: round 15 status evidence and collection adds", () => {
   test("'i finished celeste' keeps its Completed @positive", () => {
     const plan: any = { intents: [status("Hollow Knight", "completed")] };
     expect(dropUnstatedStatusChanges(plan, "finally beat hollow knight!!", owned)).toBe(0);
+  });
+});
+
+// Regression replay after round 15.
+test.describe("AI: regression replay fixes", () => {
+  test('"start playing it" points at it, not a game called "playing it" @positive', () => {
+    expect(parseQuickCommand("also start playing it")).toEqual({ kind: "status", game: "it", status: "playing" });
+    expect(parseQuickCommand("continue playing hollow knight")).toEqual({ kind: "status", game: "hollow knight", status: "playing" });
+  });
+  test('"drop cod. give it a 4" is two commands on the same game @positive', () => {
+    expect(parseQuickCommands("drop cod. give it a 4")).toEqual([
+      { kind: "status", game: "cod", status: "dropped" },
+      { kind: "rate", game: "it", rating: 4 },
+    ]);
+  });
+});
+
+test.describe("AI: collection name trimmed everywhere in the plan", () => {
+  test('"put it in a soulslike collection" creates and fills the same "Soulslike" @positive', () => {
+    const plan: any = {
+      intents: [
+        { type: "CreateCollection", targets: [{ type: "Collection", name: "Soulslike Collection" }], parameters: [] },
+        { type: "OrganizeCollection", targets: [{ type: "Game", name: "Sekiro: Shadows Die Twice" }, { type: "Collection", name: "Soulslike Collection" }], parameters: [{ type: "Boolean", value: true }] },
+      ],
+    };
+    correctPlan(plan, "put it in a soulslike collection");
+    expect(plan.intents.map((i: any) => i.targets.find((t: any) => t.type === "Collection").name)).toEqual(["Soulslike", "Soulslike"]);
   });
 });
