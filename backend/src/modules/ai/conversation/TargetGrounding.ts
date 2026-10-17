@@ -67,6 +67,8 @@ export function mentions(text: string, title: string): boolean {
 
   for (let size = 1; size <= Math.min(4, words.length); size++) {
     for (let i = 0; i + size <= words.length; i++) {
+      // "out of the soulslike collection": "of the" alone doesn't name "Return of the Obra Dinn".
+      if (words.slice(i, i + size).every((w) => GENERIC.has(w))) continue;
       const window = words.slice(i, i + size).join(" ");
       const expanded = expandAbbreviation(window);
       if (expanded && titleMatchScore(expanded, title) >= 90) return true;
@@ -208,4 +210,17 @@ export function sameGame(a: string, b: string): boolean {
   const title = new Set(tokens(b).filter((w) => !GENERIC.has(w)));
   if (asked.length > 0 && asked.every((w) => title.has(w))) return true;
   return asked.length <= title.size && (mentions(a, b) || titleMatchScore(a, b) >= 85);
+}
+
+/**
+ * Of the library games a reply names, the one named last: after "I've added Sekiro, Elden Ring
+ * and Dark Souls III to Soulslike", "remove that last game" / "it" is Dark Souls III.
+ */
+export function lastNamedTitle(text: string, owned: string[]): string | undefined {
+  const named = namedTitles(text, owned);
+  if (named.length <= 1) return named[0];
+  const lower = text.toLowerCase();
+  const position = (title: string) =>
+    Math.max(-1, ...tokens(title).filter((w) => !GENERIC.has(w) && w.length >= 3).map((w) => lower.lastIndexOf(w)));
+  return [...named].sort((a, b) => position(b) - position(a))[0];
 }

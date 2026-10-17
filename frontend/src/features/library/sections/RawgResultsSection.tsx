@@ -42,6 +42,12 @@ export default function RawgResultsSection({
 }: Props) {
   const [viewMode, setViewMode] = useState<"list" | "grid">("list");
   const navigate = useNavigate();
+  // The results refresh a few seconds after an add; until then, the card shows it's done.
+  const [added, setAdded] = useState<Set<number>>(new Set());
+  const add = async (game: RawgGameResult) => {
+    await onAddGame(game);
+    setAdded((prev) => new Set(prev).add(game.id));
+  };
 
   const renderOwnedGrid = (game: Game) => {
     const isOwned = game.providers && Object.keys(game.providers).length > 0;
@@ -183,12 +189,13 @@ export default function RawgResultsSection({
           mt={3}
           w="100%"
           colorScheme="purple"
+          isDisabled={added.has(game.id)}
           onClick={(e) => {
             e.stopPropagation();
-            onAddGame(game);
+            add(game);
           }}
         >
-          Add
+          {added.has(game.id) ? "In your library" : "Add"}
         </Button>
       </Box>
     </Box>
@@ -233,12 +240,13 @@ export default function RawgResultsSection({
       </Box>
       <Button
         colorScheme="purple"
+        isDisabled={added.has(game.id)}
         onClick={(e) => {
           e.stopPropagation();
-          onAddGame(game);
+          add(game);
         }}
       >
-        Add
+        {added.has(game.id) ? "In your library" : "Add"}
       </Button>
     </Flex>
   );

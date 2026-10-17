@@ -665,3 +665,21 @@ test.describe("AI chat API: round 13", () => {
     expect((await json(await api.get(`/game/${shelterGame._id}`))).Data.progressStatus).toBe("plan");
   });
 });
+
+// Round 14 of the gamer playtest.
+test.describe("AI chat API: round 14", () => {
+  test("'drop X, ... give it a 4' does both @positive", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "playing" });
+    const { body } = await chat(api, "drop fallout shelter, got boring. give it a 4");
+    expect(body.message).toContain("Dropped");
+    expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("dropped");
+    expect((await json(await api.get(`/review/${game._id}`))).Data).toMatchObject({ rating: 4 });
+  });
+
+  test("'where was i stuck in X' reads the notes @positive", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "playing" });
+    await api.post(`/notes/${game._id}`, { content: "stuck on the deathclaw raid" });
+    const { body } = await chat(api, "where was i stuck in fallout shelter again?");
+    expect(body.message).toBe("Your note on Fallout Shelter:\n- stuck on the deathclaw raid");
+  });
+});

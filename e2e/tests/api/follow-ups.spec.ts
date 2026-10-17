@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, pinPronoun, saveThatAsNote, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, parseQuickCommands, pinPronoun, saveThatAsNote, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
 import { isConfirmReply, yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
 import { namedTitles, sameGame } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
 import { matchesTitle } from "../../../frontend/src/features/library/utils/titleSearch";
@@ -249,5 +249,18 @@ test.describe("AI: round 13 commands after questions", () => {
   });
   test("a question with a trailing command isn't only a question @positive", () => {
     expect(isQuestionOnly("how long is disco elysium? thinking of going back to it, unpause it")).toBe(false);
+  });
+});
+
+// Playtest round 14.
+test.describe("AI: round 14 multi-command and collection direction", () => {
+  test("'drop cod, mp is dead anyway. give it a 4' is two commands @positive", () => {
+    expect(parseQuickCommands("drop cod, mp is dead anyway. give it a 4")).toEqual([
+      { kind: "status", game: "cod", status: "dropped" },
+      { kind: "rate", game: "it", rating: 4 },
+    ]);
+  });
+  test("'i want dark souls 3 out of soulslike' takes it out @positive", () => {
+    expect(collectionDirection("huh? i want dark souls 3 out of soulslike")).toBe("remove");
   });
 });

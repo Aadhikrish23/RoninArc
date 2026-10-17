@@ -194,7 +194,8 @@ export function withPageGame(message: string, pageGame?: string | null): string 
 
 /** Whether a collection message adds or takes out -- the model once reported "removed" for "put ds3 in there". */
 const COLLECTION_ADD = /\b(put|add|throw|chuck|toss|stick|include|in there|into)\b/i;
-const COLLECTION_REMOVE = /\b(remove|take|pull|delete|kick|drop)\b[^.?!]*\b(out|from|off)\b|\b(remove|take out|pull out)\b/i;
+// "i want dark souls 3 out of soulslike" has no verb, but "out of" says it all.
+const COLLECTION_REMOVE = /\b(remove|take|pull|delete|kick|drop)\b[^.?!]*\b(out|from|off)\b|\b(remove|take out|pull out)\b|\bout of\b/i;
 export function collectionDirection(message: string): "add" | "remove" | undefined {
   const add = COLLECTION_ADD.test(message);
   const remove = COLLECTION_REMOVE.test(message);
@@ -276,7 +277,8 @@ const STATUS_WORDS_AS: Record<string, string> = {
 /** Where the game name stops: "pause rdr2 im taking a break" -> "rdr2". */
 const NAME_END = /[,.!;:?]|\s+(?:im|i'm|i am|its|it's|it is|because|cuz|coz|since|lol|lmao|tho|bc|for now|rn|right now|already|finally|last night|yesterday|today|tonight|again)\b/i;
 /** A second request in the same message goes to the planner. */
-const SECOND_REQUEST = /\b(and|also|plus|then)\s+(?:i'?m\s+|im\s+|i\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|starting|move|note|give)\b/i;
+const SECOND_REQUEST =
+  /\b(and|also|plus|then)\s+(?:i'?m\s+|im\s+|i\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|starting|move|note|give)\b|[.;!]\s+(?:(?:ok|and|also|so|then|now)\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|move|note|give)\b/i;
 
 const cutName = (text: string) => text.split(NAME_END)[0].trim();
 /** "ok, and ...", "so ...", "now ..." in front of a command. */
@@ -363,4 +365,26 @@ export function pinPronoun(message: string, referent: string | undefined, nameIn
       return target && /\b(it|that one)\b/i.test(c) ? c.replace(/\b(it|that one)\b/i, target) : c;
     })
     .join("");
+}
+
+const ACTION_START = /^(?:(?:ok|okay|and|also|so|then|now|pls|please|just)[,!.]?\s+)*(?:rate|give|pause|drop|start|finish|complete|unpause|resume|continue|mark|set|move|put|add|remove|delete|note)\b/i;
+
+/**
+ * "drop cod, mp is dead anyway. give it a 4" -> two commands; "it" is the game before it.
+ * Every piece that starts like a command has to parse, or the whole message goes to the planner.
+ */
+export function parseQuickCommands(message: string): QuickCommand[] | undefined {
+  const pieces = message
+    .split(/[.;!?]+\s+|,\s+(?=(?:and\s+)?(?:give|rate|pause|drop|start|unpause|resume|mark|set|note)\b)/i)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (pieces.length < 2) return undefined;
+  const commands: QuickCommand[] = [];
+  for (const piece of pieces) {
+    if (!ACTION_START.test(piece)) continue; // "mp is dead anyway"
+    const command = parseQuickCommand(piece);
+    if (!command) return undefined;
+    commands.push(command);
+  }
+  return commands.length >= 2 ? commands : undefined;
 }

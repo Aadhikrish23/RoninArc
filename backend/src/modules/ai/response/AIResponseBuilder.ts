@@ -88,7 +88,11 @@ export class AIResponseBuilder {
             : `I've added ${gameName} to your collection "${params.collectionName}".`,
         );
       } else if (step.tool === "RemoveFromCollectionTool" || step.tool === "remove_from_collection") {
-        sentences.push(`I've removed ${gameName} from your collection "${params.collectionName}".`);
+        sentences.push(
+          (step.output as any)?.metadata?.notInCollection
+            ? `${gameName} wasn't in your collection "${params.collectionName}", so nothing changed.`
+            : `I've removed ${gameName} from your collection "${params.collectionName}".`,
+        );
       } else if (step.tool === "UpdateStatusTool" || step.tool === "update_status") {
         if (step.output && (step.output as any).metadata?.alreadyInStatus && step.output.message) {
           sentences.push(step.output.message as string);

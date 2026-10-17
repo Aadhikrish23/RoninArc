@@ -18,7 +18,7 @@ import { ACTION, NOTES_READ, NOTE_WRITE, namedCollection } from "./FollowUps";
 const COLLECTION_CONTENTS = /\b(what'?s in|whats in|what is in|what are in|what games are in|what do i have in|games in|show( me)?|list)\b/i;
 /** "what did I write about X", and "where did I leave off in X" -- the answer is in the user's notes. */
 const WROTE_ABOUT =
-  /\bwhat did i (write|say|put|think)\b|\bmy (review|thoughts)\b|\bwhere (did|was) i (leave|left) off\b|\bwhere (am|was) i (at|up to)\b|\bhow far (am|was|did) i\b|\bmy progress (in|on|with)\b/i;
+  /\bwhat did i (write|say|put|think)\b|\bmy (review|thoughts)\b|\bwhere (did|was) i (leave|left) off\b|\bwhere (am|was) i (at|up to)\b|\bwhere (was|am|did) i (get )?stuck\b|\bhow far (am|was|did) i\b|\bmy progress (in|on|with)\b/i;
 const PLAYTIME = /\bhow long\b|\bhow many hours\b|\bhours? (to beat|to finish|long)\b|\btime to beat\b|\blength of\b/i;
 const FAVOURITE = /\b(fav|fave|favs|faves|favou?rites?|best|top rated|highest rated)\b/i;
 const PLAYING_NOW = /\bwhat am i (playing|on)\b|\b(currently|right now|rn) playing\b|\bplaying (rn|right now|now|at the moment|currently)\b/i;
@@ -264,7 +264,8 @@ export async function answerDirectly(message: string, ctx: DirectAnswerContext):
   }
   // One question, or a fragment that only makes sense with the rest ("what did i write about gta? any notes?").
   // ("she's not into hard stuff" isn't a question; it qualifies the one before it.)
-  const realQuestions = unanswered.filter((q) => words(q).length > 3 && QUESTION_START.test(q));
+  // "any tips" is short but still a real question for the model.
+  const realQuestions = unanswered.filter((q) => (words(q).length > 3 && QUESTION_START.test(q)) || /\b(tips?|advice|help|strateg\w*)\b/i.test(q));
   if (realQuestions.length > 0) {
     // A real second question we can't answer goes to the model instead of being dropped.
     return answers.length > 0 ? { partial: { answers, rest: unanswered } } : {};

@@ -242,7 +242,8 @@ async function getRecommendations(
     const backlogLength = shortSession ? undefined : length;
     let backlogPool = backlogLength ? library.filter((g) => (g.avgHours ?? 0) >= 3) : library;
     if (shortSession) {
-      backlogPool = backlogPool.filter((g) => g.progressStatus === "playing" || ((g.avgHours ?? 0) >= 3 && (g.avgHours ?? 0) <= 25));
+      // Drop only games known to be long; unknown lengths (new adds) stay, so Hades and Celeste still show.
+      backlogPool = backlogPool.filter((g) => g.progressStatus === "playing" || (g.avgHours ?? 0) <= 25);
     }
     if (styles.slugs.length === 0) {
       result.backlog = rankBacklog(backlogPool, profile, { limit: options.limit, focus, length: backlogLength, like, session });

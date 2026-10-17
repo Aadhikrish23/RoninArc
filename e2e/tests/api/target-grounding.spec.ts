@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { dropUngroundedIntents, franchiseMatch, mentions, namedTitles } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
+import { dropUngroundedIntents, franchiseMatch, lastNamedTitle, mentions, namedTitles } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
 
 // The AI only changes a game the user actually named (or referred to). These
 // cases come from the gamer playtests: gibberish and two-part messages made the
@@ -82,5 +82,16 @@ test.describe("AI target grounding: franchise shorthand", () => {
 test.describe("AI target grounding: exact names beat typo matches", () => {
   test('"outer wilds" is Outer Wilds, not Breath of the Wild @positive', () => {
     expect(namedTitles("is outer wilds worth playing?", ["The Legend of Zelda: Breath of the Wild", "Outer Wilds"])).toEqual(["Outer Wilds"]);
+  });
+});
+
+// Playtest round 14: filler words and "that last game".
+test.describe("AI target grounding: round 14", () => {
+  const owned = ["Sekiro: Shadows Die Twice", "Elden Ring", "Dark Souls III", "Return Of The Obra Dinn"];
+  test('"out of the soulslike collection" does not name Return of the Obra Dinn @negative', () => {
+    expect(namedTitles("nah i meant just take it out of the soulslike collection lol", owned)).toEqual([]);
+  });
+  test('"that last game" after a list is the game named last @positive', () => {
+    expect(lastNamedTitle('I\'ve added Sekiro: Shadows Die Twice and Elden Ring to Soulslike. I\'ve added Dark Souls III to your collection "Soulslike".', owned)).toBe("Dark Souls III");
   });
 });

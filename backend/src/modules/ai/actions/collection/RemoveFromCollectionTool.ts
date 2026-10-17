@@ -36,6 +36,9 @@ export class RemoveFromCollectionTool extends BaseTool<
       return this.failure(`Collection "${input.collectionName}" not found.`);
     }
 
+    // "wasn't in there" is reported as such, not as "I've removed ...".
+    const wasIn = collection.gameIds.some((id: any) => String(id) === String(input.gameId));
+
     const resultCollection = await collectionToolService.removeGameFromCollection(
       context.userId,
       collection._id.toString(),
@@ -46,6 +49,8 @@ export class RemoveFromCollectionTool extends BaseTool<
       return this.failure("Failed to remove game from collection.");
     }
 
-    return this.success(resultCollection, "Game removed from collection successfully.");
+    return this.success(resultCollection, wasIn ? "Game removed from collection successfully." : "Game wasn't in the collection.", {
+      notInCollection: !wasIn,
+    });
   }
 }

@@ -19,6 +19,7 @@ import pendingConfirmations, { isCancelReply } from "./conversation/PendingConfi
 import recentExchanges from "./conversation/RecentExchanges";
 import conversationManager from "./conversation/ConversationManager";
 import { normalizeSlang, resolveOrdinals, withPageGame } from "./conversation/FollowUps";
+import { lastNamedTitle } from "./conversation/TargetGrounding";
 import { followUpOffer } from "./conversation/DirectActions";
 
 import { CORRECTION, KEEP_MODEL_REPLY, LOOKS_LIKE_QUESTION, NOT_SURE_WHAT_TO_CHANGE, NOT_SURE_WHICH_GAME } from "./pipeline/Patterns";
@@ -155,7 +156,12 @@ export class AIRuntime {
             message: planText,
             owned: requestContext?.library?.games.map((g) => g.title) ?? [],
             lastExchange: recentExchanges.get(userId).slice(-1)[0],
-            currentGame: session.references.currentGame?.displayName ?? null,
+            // "it" = the game the assistant just talked about, before an older session reference
+            // ("take it out of the soulslike collection" right after "I kept Dark Souls III").
+            currentGame:
+              lastNamedTitle(recentExchanges.get(userId).slice(-1)[0]?.assistant ?? "", requestContext?.library?.games.map((g) => g.title) ?? []) ??
+              session.references.currentGame?.displayName ??
+              null,
             pageGame: requestContext?.page?.gameTitle ?? null,
           });
         }

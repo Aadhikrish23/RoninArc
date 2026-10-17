@@ -8,13 +8,15 @@ import type { ConversationSession } from "../conversation/ConversationSession";
 import { loadLibrarySnapshot } from "../context/LibrarySnapshot";
 import recentExchanges from "../conversation/RecentExchanges";
 import pendingConfirmations from "../conversation/PendingConfirmationStore";
-import { franchiseMatch, namedTitles } from "../conversation/TargetGrounding";
+import { franchiseMatch, lastNamedTitle, namedTitles } from "../conversation/TargetGrounding";
 import { answerDirectly, gameFor, type DirectAnswerContext } from "../conversation/DirectAnswers";
 import {
   asksForOpinion,
   isQuestionOnly,
   parseCollectionCommand,
   parseQuickCommand,
+  parseQuickCommands,
+  type QuickCommand,
   parseReviewEdit,
   pinPronoun,
   recommendationFollowUp,
@@ -124,8 +126,12 @@ export async function preRoute({ userId, requestId, message, client, session, re
   // "how long does it take to beat? and is it on steam deck": the data answers the first part,
   // the model the rest.
   if (answered.partial && isQuestionOnly(message)) {
-    const about = page.gameTitle ?? direct.currentGame;
-    const rest = answered.partial.rest.map((q) => (about ? q.replace(/\b(this one|this game|this|it)\b/i, about) : q)).join(". ");
+    const about = namedTitles(message, owned)[0] ?? page.gameTitle ?? direct.currentGame;
+    // "any tips" alone doesn't say which game: add it.
+    const rest = answered.partial.rest
+      .map((q) => (about ? q.replace(/\b(this one|this game|this|it)\b/i, about) : q))
+      .map((q) => (about && !namedTitles(q, owned).length && !q.includes(about) ? `${q} (for ${about})` : q))
+      .join(". ");
     const general = await model.answerSafely(rest, requestContext).catch(() => "");
     return reply({ success: true, message: [...answered.partial.answers, general.trim()].filter(Boolean).join("\n\n") });
   }
@@ -157,6 +163,8 @@ export async function preRoute({ userId, requestId, message, client, session, re
   // "rate hollow knight 9 it was amazing", "pause rdr2", "note for rdr2: ...": no planner needed.
   const quick = quickIntent(message, owned, direct.pageGame ?? direct.currentGame ?? undefined);
   if (quick) return { ...plan(requestId, quick), notice } as PreRouteOutcome;
+  const quickMany = quickIntents(message, owned, direct.pageGame ?? direct.currentGame ?? undefined);
+  if (quickMany) return { kind: "plan", plan: { id: requestId, requestId, intents: quickMany as any[] }, notice };
 
   // "add gta 5": nothing for the planner to work out.
   const addTitle = simpleAddTitle(message);
@@ -201,6 +209,8 @@ function directContext(
     pageCollection: page.collectionName,
     // "it" = the game the conversation is on; failing that, the last game the assistant named.
     currentGame:
+      // The game the assistant just named first, then the session's, then older replies.
+      lastNamedTitle(recentExchanges.get(userId).slice(-1)[0]?.assistant ?? "", owned) ??
       (current && owned.includes(current) ? current : null) ??
       recentExchanges
         .get(userId)
@@ -218,7 +228,25 @@ function directContext(
  */
 function quickIntent(message: string, owned: string[], referent?: string): object | undefined {
   const command = parseQuickCommand(message);
-  if (!command) return undefined;
+  return command ? intentFor(command, owned, referent) : undefined;
+}
+
+/** "drop cod, mp is dead anyway. give it a 4": every command, with "it" = the game before it. */
+function quickIntents(message: string, owned: string[], referent?: string): object[] | undefined {
+  const commands = parseQuickCommands(message);
+  if (!commands) return undefined;
+  const intents: object[] = [];
+  let previous = referent;
+  for (const command of commands) {
+    const intent = intentFor(command, owned, previous) as any;
+    if (!intent) return undefined;
+    previous = intent.targets[0].name;
+    intents.push(intent);
+  }
+  return intents;
+}
+
+function intentFor(command: QuickCommand, owned: string[], referent?: string): object | undefined {
   const pointsBack = /^(it|that one|this one|this|that|this game|that game)$/i.test(command.game);
   const title = pointsBack ? referent : namedTitles(command.game, owned)[0] ?? franchiseMatch(command.game, owned);
   if (!title || !owned.includes(title)) return undefined;
