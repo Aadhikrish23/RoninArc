@@ -70,7 +70,6 @@ function Login() {
         status: "success",
         duration: 3000,
         isClosable: true,
-        position: "top",
       });
 
       navigate("/");
@@ -81,7 +80,6 @@ function Login() {
         status: "error",
         duration: 4000,
         isClosable: true,
-        position: "top",
       });
     } finally {
       setLoading(false);

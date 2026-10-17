@@ -88,7 +88,6 @@ function Signup() {
         status: "success",
         duration: 3000,
         isClosable: true,
-        position: "top",
       });
 
       // Go to login page
@@ -100,7 +99,6 @@ function Signup() {
     status: "error",
     duration: 4000,
     isClosable: true,
-    position: "top",
   });
 } finally {
       setLoading(false);
@@ -191,7 +189,6 @@ function Signup() {
                         status: "error",
                         duration: 3000,
                         isClosable: true,
-                        position: "top",
                       });
                       setEmailErrorShown(true);
                       setEmail("");

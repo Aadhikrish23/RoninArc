@@ -31,7 +31,8 @@ import { CORRECTION, EXPLICIT_ACTION, LOOKS_LIKE_QUESTION, RECOMMEND_ASK } from 
 import { forgetChange, lastChange, lastChangeTouched, undoLastChange } from "./UndoLog";
 
 /** "undo", "undo that", "revert that", "put it back". */
-const UNDO_ASK = /\b(undo|revert|reverse that|take (that|it) back|put it back)\b/i;
+/** "undo that", and after a removal "add it back" / "bring it back". */
+const UNDO_ASK = /\b(undo|revert|reverse that|take (that|it) back|put it back|add (it|that|them) back|bring (it|that|them) back|restore (it|that))\b/i;
 import { resolvePage } from "./PageContext";
 import { ModelGateway } from "./ModelGateway";
 import { confirmationResponse, type RuntimeResponse } from "./Replies";

@@ -71,7 +71,7 @@ export function unsupportedReply(message: string): string | undefined {
     return `I can't ${cant.join(" or ")} yet, so I didn't change anything. Tell me if you want a game added to your backlog instead.`;
   }
   if (UNDO.test(message)) {
-    return "There's nothing I can undo right now, so nothing changed. I can undo the last status, rating, note or added game from the past 30 minutes; collection changes you can fix with \"take X out of <collection>\".";
+    return "There's nothing I can undo right now, so nothing changed. I can undo the last status, rating, note, added game or removal from the past 30 minutes. For a collection, say something like \"take Hades out of Soulslike\".";
   }
   return undefined;
 }
@@ -255,7 +255,8 @@ export function statedScore(message: string): number | undefined {
 }
 
 /** "add silksong pls" -> "silksong": politeness isn't part of a title. */
-export const withoutPoliteness = (title: string) => title.replace(/[\s,]+(please|pls|plz|thanks|thx|ty)[.!]*$/i, "").trim();
+// "add cod mw2 back" -> "cod mw2": politeness and "back"/"again" aren't part of a title.
+export const withoutPoliteness = (title: string) => title.replace(/[\s,]+(please|pls|plz|thanks|thx|ty|back|again|too)[.!]*$/i, "").trim();
 
 // ---- Plain single commands, parsed without the model (it can take a minute to answer). ----
 export type QuickCommand =

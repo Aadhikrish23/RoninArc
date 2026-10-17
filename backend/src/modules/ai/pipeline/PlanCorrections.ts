@@ -10,7 +10,22 @@ import { asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatu
  * is checked against the message's own words. Returns how many planned changes were
  * dropped because nothing in the message asked for them.
  */
-export function correctPlan(plan: IntentPlan, message: string): { unrequested: number } {
+export function correctPlan(plan: IntentPlan, message: string, lastReply = ""): { unrequested: number } {
+  // "remove that last game" right after "I've added Dark Souls III to your collection "Soulslike"":
+  // the conversation is about the collection, so it comes out of the collection, not the library.
+  const collectionJustUsed = lastReply.match(/to your collection "([^"]+)"/)?.[1];
+  if (collectionJustUsed && !/\b(library|entirely|completely|for good|altogether|uninstall)\b/i.test(message)) {
+    for (const intent of plan.intents) {
+      if (intent.type !== IntentType.RemoveGame || !/\b(that|it|last|this)\b/i.test(message)) continue;
+      intent.type = IntentType.OrganizeCollection;
+      intent.targets = [
+        ...(intent.targets ?? []).map((t) => ({ ...t, type: IntentTargetType.Game })),
+        { type: IntentTargetType.Collection, name: collectionJustUsed },
+      ];
+      intent.parameters = [{ type: IntentParameterType.Boolean, value: false } as any];
+    }
+  }
+
   // A question never changes anything ("should i play elden ring or sekiro first?").
   if (isQuestionOnly(message)) {
     const reads = plan.intents.filter((intent) => READ_ONLY.has(intent.type));

@@ -123,9 +123,9 @@ function lengthPreference(query?: string): LengthPreference | undefined {
   const range = q.match(/\b(\d{1,3})\s*(?:-|–|to)\s*(\d{1,3})\s*(h|hr|hrs|hours?)\b/);
   if (range) return { maxHours: Math.max(Number(range[1]), Number(range[2])) };
   // "only got like 2 hrs tonight": a short session, so a short game.
-  if (/\b(only )?(got|have)( like| about| maybe)? \d\s*(h|hrs?|hours?)\b/.test(q)) return "short";
+  if (/\b(only )?(got|have)( like| about| maybe)? \d\s*(h|hrs?|hours?)\b/.test(q)) return { maxHours: 12 }; // a couple of hours tonight: new picks you could actually get through
   // "only got like an hour", "30 mins", "half an hour": a short session too.
-  if (/\b(an|one|half an?) hour\b|\b\d+\s*(min|mins|minutes)\b/.test(q)) return "short";
+  if (/\b(an|one|half an?) hour\b|\b\d+\s*(min|mins|minutes)\b/.test(q)) return { maxHours: 12 };
   if (/\bi (don'?t|dont) have \d{2,3}\s*(h|hrs?|hours?)\b/.test(q)) return "short";
   // "something I could beat in a weekend" is roughly a 15-hour game.
   if (/\bweekend\b/.test(q)) return { maxHours: 15 };

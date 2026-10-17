@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, parseQuickCommands, pinPronoun, saveThatAsNote, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
 import { isConfirmReply, yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
 import { namedTitles, sameGame } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
+import { dropUnstatedStatusChanges, ensureCollectionAdds } from "../../../backend/src/modules/ai/pipeline/StatusEvidence";
 import { matchesTitle } from "../../../frontend/src/features/library/utils/titleSearch";
 
 // Playtest round 5: follow-ups the assistant got wrong.
@@ -262,5 +263,30 @@ test.describe("AI: round 14 multi-command and collection direction", () => {
   });
   test("'i want dark souls 3 out of soulslike' takes it out @positive", () => {
     expect(collectionDirection("huh? i want dark souls 3 out of soulslike")).toBe("remove");
+  });
+});
+
+// Playtest round 15: status changes need a reason next to the game.
+test.describe("AI: round 15 status evidence and collection adds", () => {
+  const owned = ["Elden Ring", "Hollow Knight", "Red Dead Redemption 2"];
+  const status = (name: string, value: string) => ({ type: "SetStatus", targets: [{ type: "Game", name }], parameters: [{ type: "Status", value }] });
+  test("'put A and B in soulslike, and pause rdr2' keeps only the pause, and adds both @positive", () => {
+    const plan: any = { intents: [status("Hollow Knight", "plan"), status("Red Dead Redemption 2", "paused")] };
+    const message = "ok put elden ring and hollow knight in soulslike, and pause rdr2 im taking a break from it";
+    expect(dropUnstatedStatusChanges(plan, message, owned)).toBe(1);
+    ensureCollectionAdds(plan, message, owned, ["Soulslike"]);
+    expect(plan.intents.map((i: any) => [i.type, i.targets[0].name])).toEqual([
+      ["SetStatus", "Red Dead Redemption 2"],
+      ["OrganizeCollection", "Elden Ring"],
+      ["OrganizeCollection", "Hollow Knight"],
+    ]);
+  });
+  test("'pause' in one clause doesn't pause a game named in another @negative", () => {
+    const plan: any = { intents: [status("Hollow Knight", "paused")] };
+    expect(dropUnstatedStatusChanges(plan, "put them in soulslike. and hollow knight was completed, i finished it", owned)).toBe(1);
+  });
+  test("'i finished celeste' keeps its Completed @positive", () => {
+    const plan: any = { intents: [status("Hollow Knight", "completed")] };
+    expect(dropUnstatedStatusChanges(plan, "finally beat hollow knight!!", owned)).toBe(0);
   });
 });

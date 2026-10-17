@@ -168,7 +168,7 @@ export default function CollectionDetailsPage() {
           <option value="installed">Installed</option>
           <option value="completed">Completed</option>
           <option value="playing">Playing</option>
-          <option value="plan">Plan To Play</option>
+          <option value="plan">Plan to Play</option>
           <option value="paused">Paused</option>
           <option value="dropped">Dropped</option>
           <option value="not-installed">Not Installed</option>

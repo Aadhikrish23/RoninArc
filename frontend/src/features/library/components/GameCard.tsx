@@ -177,7 +177,7 @@ function GameCard({
               </MenuItem>
 
               <MenuItem onClick={() => onStatusChange(game._id, "plan")}>
-                Plan
+                Plan to Play
               </MenuItem>
 
               <MenuItem onClick={() => onStatusChange(game._id, "playing")}>

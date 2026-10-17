@@ -3,6 +3,7 @@ import LibraryGame from "../../library/LibraryGame";
 import libraryServices from "../../library/libraryServices";
 import Review from "../../review/Reviewmodel";
 import Note from "../../notes/Notemodel";
+import CollectionModel from "../../collection/CollectionModel";
 import Activity from "../../activity/ActivityModel";
 import RecommendationFeedback from "../../recommendation/RecommendationFeedback";
 import reviewToolService from "../services/ReviewToolService";
@@ -29,11 +30,20 @@ export interface LastChange {
   games: GameBefore[];
   /** Titles the plan was adding (not owned before). */
   adding: string[];
+  /** Games the plan removed, kept whole so "undo" / "add it back" can restore them. */
+  removed?: RemovedGame[];
+}
+
+interface RemovedGame {
+  game: Record<string, unknown>;
+  review: { rating: number; reviewText: string } | null;
+  notes: string[];
+  collectionIds: string[];
 }
 
 const CHANGES = new Set<string>([
   IntentType.SetStatus, IntentType.CompleteGame, IntentType.RateGame, IntentType.ReviewGame,
-  IntentType.DeleteReview, IntentType.AddNote, IntentType.AddGame,
+  IntentType.DeleteReview, IntentType.AddNote, IntentType.AddGame, IntentType.RemoveGame,
 ]);
 /** How long "undo" reaches back. */
 const UNDO_WINDOW_MS = 30 * 60 * 1000;
@@ -59,9 +69,33 @@ export async function snapshotBefore(userId: string, plan: IntentPlan): Promise<
   const uid = new Types.ObjectId(userId);
   const games = (await LibraryGame.find({ userId: uid, title: { $in: ownedTitles } }).select("_id title progressStatus").lean()) as any[];
   const reviews = (await Review.find({ userId: uid, gameId: { $in: games.map((g) => g._id) } }).lean()) as any[];
+
+  // A removal deletes the game with its review, notes and collection places: keep a copy.
+  const removing = new Set(
+    intents
+      .filter((i) => i.type === IntentType.RemoveGame)
+      .flatMap((i) => (i.targets ?? []).map((t) => owned.find((o) => sameGame(t.name, o))))
+      .filter((t): t is string => !!t),
+  );
+  const removed: RemovedGame[] = [];
+  for (const title of removing) {
+    const game = (await LibraryGame.findOne({ userId: uid, title }).lean()) as any;
+    if (!game) continue;
+    const review = reviews.find((r) => String(r.gameId) === String(game._id)) ?? ((await Review.findOne({ userId: uid, gameId: game._id }).lean()) as any);
+    const notes = ((await Note.find({ userId: uid, gameId: game._id }).sort({ createdAt: 1 }).lean()) as any[]).map((n) => n.content as string);
+    const collections = (await CollectionModel.find({ userId: uid, gameIds: game._id }).select("_id").lean()) as any[];
+    removed.push({
+      game,
+      review: review ? { rating: review.rating, reviewText: review.reviewText ?? "" } : null,
+      notes,
+      collectionIds: collections.map((c) => String(c._id)),
+    });
+  }
+
   return {
     at: new Date(),
     adding,
+    removed,
     games: games.map((g) => {
       const review = reviews.find((r) => String(r.gameId) === String(g._id));
       return {
@@ -101,7 +135,8 @@ export async function undoLastChange(userId: string, only?: string): Promise<str
   const pick = (title: string) => !only || sameGame(only, title) || sameGame(title, only);
   const games = change.games.filter((g) => pick(g.title));
   const adding = change.adding.filter((t) => pick(t));
-  if (only && games.length === 0 && adding.length === 0) return undefined;
+  const removedPicked = (change.removed ?? []).filter((r) => pick(String(r.game.title)));
+  if (only && games.length === 0 && adding.length === 0 && removedPicked.length === 0) return undefined;
   const keptGames = change.games.filter((g) => !games.includes(g));
   const keptAdding = change.adding.filter((t) => !adding.includes(t));
   if (keptGames.length > 0 || keptAdding.length > 0) lastChanges.set(userId, { ...change, games: keptGames, adding: keptAdding });
@@ -142,6 +177,20 @@ export async function undoLastChange(userId: string, only?: string): Promise<str
     // Undoing an add isn't "not interested".
     if (typeof game.rawgId === "number") await RecommendationFeedback.deleteOne({ userId: uid, rawgId: game.rawgId });
     done.push(`${game.title}: removed from your library again`);
+  }
+
+  for (const gone of change.removed ?? []) {
+    if (only && !pick(String(gone.game.title))) continue;
+    const { _id, createdAt, updatedAt, __v, ...fields } = gone.game as any;
+    const back = (await LibraryGame.create({ ...fields, userId: uid } as any)) as any;
+    // Removing marked it "not interested"; it's back, so that goes.
+    if (typeof back.rawgId === "number") await RecommendationFeedback.deleteOne({ userId: uid, rawgId: back.rawgId });
+    if (gone.review) await reviewToolService.upsertReview(userId, String(back._id), gone.review.rating, gone.review.reviewText);
+    for (const content of gone.notes) await Note.create({ userId: uid, gameId: back._id, content });
+    if (gone.collectionIds.length) {
+      await CollectionModel.updateMany({ _id: { $in: gone.collectionIds }, userId: uid }, { $addToSet: { gameIds: back._id } });
+    }
+    done.push(`${back.title}: back in your library${gone.review || gone.notes.length ? " with its review and notes" : ""}`);
   }
 
   return done.length > 0 ? `I've undone that. ${done.join(". ")}.` : "There was nothing left to undo.";

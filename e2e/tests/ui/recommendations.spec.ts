@@ -54,7 +54,7 @@ test.describe("For You (recommendations) page", () => {
     const g = await api.addGame(byName("Celeste"));
     await open(page, "/recommendations");
     await cardIn(page, "Play Next", "Celeste").getByRole("button", { name: "Start Playing" }).click();
-    await expect(page.getByText("Moved to Continue Playing.")).toBeVisible();
+    await expect(page.getByText("Marked Celeste as Playing")).toBeVisible();
     await expect.poll(async () => (await json(await api.get(`/game/${g._id}`))).Data.progressStatus).toBe("playing");
   });
 

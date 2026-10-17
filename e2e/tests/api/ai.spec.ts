@@ -683,3 +683,27 @@ test.describe("AI chat API: round 14", () => {
     expect(body.message).toBe("Your note on Fallout Shelter:\n- stuck on the deathclaw raid");
   });
 });
+
+// Round 15 of the gamer playtest.
+test.describe("AI chat API: round 15", () => {
+  test("a removed game comes back with 'undo that', review and notes included @positive", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "dropped" });
+    await api.put(`/review/${game._id}`, { rating: 4, reviewText: "meh" });
+    await api.post(`/notes/${game._id}`, { content: "vault 3 layout" });
+    await chat(api, "remove fallout shelter");
+    await chat(api, "Yes, remove it");
+    expect((await json(await api.get("/game"))).Data).toEqual([]);
+    const { body } = await chat(api, "hmm wait undo that");
+    expect(body.message).toBe("I've undone that. Fallout Shelter: back in your library with its review and notes.");
+    const back = (await json(await api.get("/game"))).Data[0];
+    expect(back).toMatchObject({ title: "Fallout Shelter", progressStatus: "dropped" });
+    expect((await json(await api.get(`/review/${back._id}`))).Data).toMatchObject({ rating: 4, reviewText: "meh" });
+    expect((await json(await api.get(`/notes/${back._id}`))).Data.map((n: any) => n.content)).toEqual(["vault 3 layout"]);
+  });
+
+  test("'add X back' adds X, not a game called 'X back' @positive", async ({ api }) => {
+    const { body } = await chat(api, "add hades back");
+    expect(body.message).toContain("Hades");
+    expect((await json(await api.get("/game"))).Data.map((g: any) => g.title)).toEqual(["Hades"]);
+  });
+});

@@ -28,6 +28,7 @@ import { ModelGateway } from "./pipeline/ModelGateway";
 import { handlePending } from "./pipeline/PendingStage";
 import { preRoute } from "./pipeline/PreRoute";
 import { correctPlan } from "./pipeline/PlanCorrections";
+import { dropUnstatedStatusChanges, ensureCollectionAdds } from "./pipeline/StatusEvidence";
 import { groundPlan, type GroundingResult } from "./pipeline/PlanGrounding";
 import { normalizeStatusIntents, shapePlan } from "./pipeline/PlanShaping";
 import { PlanRunner } from "./pipeline/PlanRunner";
@@ -143,7 +144,11 @@ export class AIRuntime {
           planText = routed.pinned ?? cleanRequest;
           intentPlan = conversationRuntime.resolveReferences(routed.plan, session);
           fromModel = true;
-          unrequested = correctPlan(intentPlan, planText).unrequested;
+          unrequested = correctPlan(intentPlan, planText, recentExchanges.get(userId).slice(-1)[0]?.assistant ?? "").unrequested;
+          // No status change without a word for it next to that game; "put A and B in soulslike" adds them.
+          const ownedTitles = requestContext.library?.games.map((g) => g.title) ?? [];
+          unrequested += dropUnstatedStatusChanges(intentPlan, planText, ownedTitles);
+          ensureCollectionAdds(intentPlan, planText, ownedTitles, requestContext.library?.collections ?? []);
         }
 
         if (intentPlan) normalizeStatusIntents(intentPlan);

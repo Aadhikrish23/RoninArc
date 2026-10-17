@@ -171,7 +171,7 @@ export default function UserGameStats({
                 No Status
               </MenuItem>
               <MenuItem onClick={() => onStatusChange(game._id, "plan")}>
-                Plan To Play
+                Plan to Play
               </MenuItem>
 
               <MenuItem onClick={() => onStatusChange(game._id, "playing")}>
