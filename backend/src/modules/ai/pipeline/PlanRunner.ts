@@ -15,6 +15,7 @@ import { ConversationSession } from "../conversation/ConversationSession";
 import pendingConfirmations from "../conversation/PendingConfirmationStore";
 import { writtenFor } from "../conversation/DirectActions";
 import { confirmationResponse, type RuntimeResponse } from "./Replies";
+import { NOT_SURE_WHAT_TO_CHANGE } from "./Patterns";
 
 /** Planning, clarification, confirmation and execution for one intent plan. */
 export class PlanRunner {
@@ -45,7 +46,9 @@ export class PlanRunner {
     profiler.stopLayer("planning");
 
     if (planningResult.status === PlanningStatus.FAILED) {
-      return { success: false, message: planningResult.explanation };
+      // "No resolved capabilities matched the user's intent." is for the trace log, not the user.
+      const internal = /no resolved capabilities/i.test(planningResult.explanation ?? "");
+      return { success: false, message: internal ? NOT_SURE_WHAT_TO_CHANGE : planningResult.explanation };
     }
 
     // Evaluate the planning result and pause for a clarifying question if needed.
@@ -135,6 +138,8 @@ export class PlanRunner {
     // Only warn about a review or notes that actually exist.
     const written = await writtenFor(userId, titles);
     const question = `Remove ${label} from your library?${written ? ` ${titles.length === 1 ? "Its" : "Their"} ${written} will be deleted too.` : ""}`;
-    return confirmationResponse(requestId, cleanRequest, question, "Yes, remove it");
+    // Re-adding a game is easy; what can't come back is what the user wrote about it.
+    const reason = written ? `You can add it back later, but the ${written} can't be recovered.` : "You can add it back any time.";
+    return confirmationResponse(requestId, cleanRequest, question, "Yes, remove it", reason);
   }
 }

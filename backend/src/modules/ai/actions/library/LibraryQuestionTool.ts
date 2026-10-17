@@ -99,12 +99,13 @@ export class LibraryQuestionTool extends BaseTool<LibraryQuestionInput, any> {
       if (backlog.length === 0) {
         return this.success({ backlog }, "Your backlog is empty: nothing is set to Plan to Play, Playing or Paused.");
       }
+      // A short list per status reads better than one long sentence.
       const parts = [
-        counts.playing ? `playing ${listTitles(by("playing"))}` : "",
-        counts.paused ? `paused ${listTitles(by("paused"))}` : "",
-        counts.plan ? `planned ${listTitles(by("plan"))}` : "",
+        counts.playing ? `- Playing: ${listTitles(by("playing"))}` : "",
+        counts.paused ? `- Paused: ${listTitles(by("paused"))}` : "",
+        counts.plan ? `- Planned: ${listTitles(by("plan"))}` : "",
       ].filter(Boolean);
-      return this.success({ backlog }, `You have ${plural(backlog.length, "game")} in your backlog: ${parts.join("; ")}.`);
+      return this.success({ backlog }, `You have ${plural(backlog.length, "game")} in your backlog:\n${parts.join("\n")}`);
     }
 
     const statusAsked = (

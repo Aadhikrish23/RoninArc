@@ -16,7 +16,9 @@ import { ACTION, NOTES_READ, NOTE_WRITE, namedCollection } from "./FollowUps";
  */
 
 const COLLECTION_CONTENTS = /\b(what'?s in|whats in|what is in|what are in|what games are in|what do i have in|games in|show( me)?|list)\b/i;
-const WROTE_ABOUT = /\bwhat did i (write|say|put|think)\b|\bmy (review|thoughts)\b/i;
+/** "what did I write about X", and "where did I leave off in X" -- the answer is in the user's notes. */
+const WROTE_ABOUT =
+  /\bwhat did i (write|say|put|think)\b|\bmy (review|thoughts)\b|\bwhere (did|was) i (leave|left) off\b|\bwhere (am|was) i (at|up to)\b|\bhow far (am|was|did) i\b|\bmy progress (in|on|with)\b/i;
 const PLAYTIME = /\bhow long\b|\bhow many hours\b|\bhours? (to beat|to finish|long)\b|\btime to beat\b|\blength of\b/i;
 const FAVOURITE = /\b(fav|fave|favs|faves|favou?rites?|best|top rated|highest rated)\b/i;
 const PLAYING_NOW = /\bwhat am i (playing|on)\b|\b(currently|right now|rn) playing\b|\bplaying (rn|right now|now|at the moment|currently)\b/i;
@@ -120,7 +122,8 @@ async function describePlaytime(question: string, ctx: DirectAnswerContext): Pro
   const hours = typeof game.playtime === "number" && game.playtime > 0 ? game.playtime : game.rawgId ? (await factsOf(game.rawgId)).playtime : 0;
   // RAWG's average is unreliable below a few hours (few players logged it).
   if (hours < 3) return `I don't have a reliable playtime for ${game.title}, sorry.`;
-  return `Players spend about ${hours} hours on ${game.title} on average (RAWG's playtime average, so a focused run can be shorter).`;
+  // The figure is what players log on RAWG, which often runs low for long games; say so plainly.
+  return `Players log about ${hours} hours on ${game.title} on average. That's a community average, so a full run often takes longer.`;
 }
 
 const factCache = new Map<number, { tags: string[]; playtime: number }>();

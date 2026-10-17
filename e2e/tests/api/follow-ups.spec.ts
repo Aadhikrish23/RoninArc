@@ -240,3 +240,14 @@ test.describe("AI: round 12 pronouns, notes and limits", () => {
     expect(unsupportedReply("remind me friday 8pm to play elden ring coop with my buddy")).toMatch(/^I can't set reminders/);
   });
 });
+
+// Playtest round 13.
+test.describe("AI: round 13 commands after questions", () => {
+  test("'unpause it' / 'resume X' are status commands @positive", () => {
+    expect(parseQuickCommand("ok, and unpause it?")).toEqual({ kind: "status", game: "it", status: "playing" });
+    expect(parseQuickCommand("resume disco elysium")).toEqual({ kind: "status", game: "disco elysium", status: "playing" });
+  });
+  test("a question with a trailing command isn't only a question @positive", () => {
+    expect(isQuestionOnly("how long is disco elysium? thinking of going back to it, unpause it")).toBe(false);
+  });
+});

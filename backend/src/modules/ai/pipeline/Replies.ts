@@ -33,6 +33,7 @@ export function confirmationResponse(
   originalQuery: string,
   question: string,
   yesLabel: string,
+  reason = "This can't be undone.",
 ): RuntimeResponse {
   const options = [
     { id: "confirm-yes", label: yesLabel },
@@ -47,7 +48,7 @@ export function confirmationResponse(
       requestId,
       type: "CONFIRMATION",
       question,
-      reason: "This can't be undone.",
+      reason,
       entityType: "confirmation",
       originalQuery,
       candidates: options,

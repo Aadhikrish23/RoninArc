@@ -252,7 +252,7 @@ test.describe("AI chat API: everyday requests", () => {
 
     const backlog = await chat(api, "what's in my backlog?");
     expect(backlog.body.success).toBe(true);
-    expect(backlog.body.message).toBe("You have 2 games in your backlog: playing Fallout Shelter; planned Celeste.");
+    expect(backlog.body.message).toBe("You have 2 games in your backlog:\n- Playing: Fallout Shelter\n- Planned: Celeste");
 
     const counts = await chat(api, "how many games do i have and how many have i finished?");
     expect(counts.body.message).toContain("You have 3 games: 1 playing, 1 plan to play, 1 completed.");
@@ -442,7 +442,7 @@ test.describe("AI chat API: round 6", () => {
   test("'how long is <game>' answers with the average playtime @positive", async ({ api }) => {
     await api.addGame(shelter);
     const { body } = await chat(api, "how long is fallout shelter to beat?");
-    expect(body.message).toBe("Players spend about 20 hours on Fallout Shelter on average (RAWG's playtime average, so a focused run can be shorter).");
+    expect(body.message).toBe("Players log about 20 hours on Fallout Shelter on average. That's a community average, so a full run often takes longer.");
   });
 
   test("'any co-op games in my library' reads the games' tags @positive", async ({ api }) => {
@@ -627,5 +627,41 @@ test.describe("AI chat API: round 12", () => {
     await api.post(`/collection/${col._id}/games`, { gameId: game._id });
     const { body } = await chat(api, "add fallout shelter to my rpg collection");
     expect(body.message).toContain('Fallout Shelter was already in your collection "RPG Collection".');
+  });
+});
+
+// Round 13 of the gamer playtest.
+test.describe("AI chat API: round 13", () => {
+  test("'where did i leave off in <game>' reads the notes @positive", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "playing" });
+    await api.post(`/notes/${game._id}`, { content: "left off building the nuka-cola plant" });
+    const { body } = await chat(api, "where did i leave off in fallout shelter again?");
+    expect(body.message).toBe("Your note on Fallout Shelter:\n- left off building the nuka-cola plant");
+  });
+
+  test("a question with a command tacked on answers and does the command @positive", async ({ api }) => {
+    const game = await api.addGame(shelter, { progressStatus: "paused" });
+    const { body } = await chat(api, "how long is fallout shelter? thinking of going back to it, unpause it");
+    expect(body.message).toContain("Players log about 20 hours on Fallout Shelter on average.");
+    expect(body.message).toContain("I've marked Fallout Shelter as Playing.");
+    expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("playing");
+  });
+
+  test("'eh nvm keep it' at a removal card keeps the game @negative", async ({ api }) => {
+    const game = await api.addGame(shelter);
+    await chat(api, "remove fallout shelter");
+    const { body } = await chat(api, "eh nvm keep it, i might play it");
+    expect(body.message).toBe("Okay, I kept Fallout Shelter in your library.");
+    expect((await api.get(`/game/${game._id}`)).status()).toBe(200);
+  });
+
+  test("'undo the X one' only undoes X @positive", async ({ api }) => {
+    const hades = await api.addGame(byName("Hades"), { progressStatus: "plan" });
+    const shelterGame = await api.addGame(shelter, { progressStatus: "plan" });
+    await chat(api, "pause hades");
+    const { body } = await chat(api, "wait undo the hades one");
+    expect(body.message).toBe("I've undone that. Hades: status back to Plan to Play.");
+    expect((await json(await api.get(`/game/${hades._id}`))).Data.progressStatus).toBe("plan");
+    expect((await json(await api.get(`/game/${shelterGame._id}`))).Data.progressStatus).toBe("plan");
   });
 });

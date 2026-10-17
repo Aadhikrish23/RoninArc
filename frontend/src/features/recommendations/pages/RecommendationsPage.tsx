@@ -104,7 +104,7 @@ export default function RecommendationsPage() {
           </InputLeftElement>
           <Input
             aria-label="What are you in the mood for?"
-            placeholder="In the mood for something specific? Try “like Hades” or “a platformer”"
+            placeholder="In the mood for…? Try “like Hades” or “cozy”"
             value={hint}
             onChange={(e) => setHint(e.target.value)}
           />

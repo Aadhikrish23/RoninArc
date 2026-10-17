@@ -94,14 +94,22 @@ export function lastChange(userId: string): LastChange | undefined {
 }
 
 /** Puts back what the last change touched. Returns a description of what was undone. */
-export async function undoLastChange(userId: string): Promise<string | undefined> {
+export async function undoLastChange(userId: string, only?: string): Promise<string | undefined> {
   const change = lastChange(userId);
   if (!change) return undefined;
-  lastChanges.delete(userId);
+  // "undo the cod one": just that game; the rest of the change stays (and stays undoable).
+  const pick = (title: string) => !only || sameGame(only, title) || sameGame(title, only);
+  const games = change.games.filter((g) => pick(g.title));
+  const adding = change.adding.filter((t) => pick(t));
+  if (only && games.length === 0 && adding.length === 0) return undefined;
+  const keptGames = change.games.filter((g) => !games.includes(g));
+  const keptAdding = change.adding.filter((t) => !adding.includes(t));
+  if (keptGames.length > 0 || keptAdding.length > 0) lastChanges.set(userId, { ...change, games: keptGames, adding: keptAdding });
+  else lastChanges.delete(userId);
   const uid = new Types.ObjectId(userId);
   const done: string[] = [];
 
-  for (const before of change.games) {
+  for (const before of games) {
     const game = (await LibraryGame.findOne({ _id: before.gameId, userId: uid }).select("progressStatus").lean()) as any;
     if (!game) continue;
     const parts: string[] = [];
@@ -126,7 +134,7 @@ export async function undoLastChange(userId: string): Promise<string | undefined
     if (parts.length > 0) done.push(`${before.title}: ${parts.join(", ")}`);
   }
 
-  for (const title of change.adding) {
+  for (const title of adding) {
     const added = (await LibraryGame.find({ userId: uid, createdAt: { $gte: change.at } }).select("_id title rawgId").lean()) as any[];
     const game = added.find((g) => sameGame(title, g.title) || sameGame(g.title, title));
     if (!game) continue;

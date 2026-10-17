@@ -1,5 +1,5 @@
 import { IntentPlan } from "../intent/IntentPlan";
-import pendingConfirmations, { isCancelReply, isConfirmReply, yesAndMore } from "../conversation/PendingConfirmationStore";
+import pendingConfirmations, { isCancelReply, isConfirmReply, isLooseCancel, yesAndMore } from "../conversation/PendingConfirmationStore";
 import type { RuntimeResponse } from "./Replies";
 import { forgetChange } from "./UndoLog";
 
@@ -33,7 +33,7 @@ export async function handlePending(userId: string, message: string): Promise<Pe
   if (isConfirmReply(message) && pending.plan) {
     return { kind: "plan", plan: pending.plan };
   }
-  if (isCancelReply(message)) {
+  if (isCancelReply(message) || isLooseCancel(message)) {
     return {
       kind: "reply",
       response: {

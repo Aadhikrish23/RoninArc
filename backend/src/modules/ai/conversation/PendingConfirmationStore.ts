@@ -60,3 +60,10 @@ export function yesAndMore(text: string): string | undefined {
   const rest = text.trim().slice(match[0].length).replace(/^(and|also|plus|then)\b[\s,]*/i, "").trim();
   return rest.split(/\s+/).length >= 2 ? rest : undefined;
 }
+
+/**
+ * A "no" to a question we just asked, said casually: "eh nvm keep it, i might emulate it".
+ * Only used while a confirmation is pending; on its own "no i meant celeste" is a correction.
+ */
+const LOOSE_NO = /^(?:(?:eh|uh|um|hmm|wait|actually|oh|ah|lol)[,!.]?\s+)*(?:n|no|nope|nah|nvm|never ?mind|cancel|stop|don'?t|keep it|leave it|forget it|scratch that)\b/i;
+export const isLooseCancel = (text: string) => LOOSE_NO.test(text.trim());

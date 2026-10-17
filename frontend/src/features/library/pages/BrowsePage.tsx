@@ -173,7 +173,8 @@ export default function BrowsePage() {
 
   return (
     <Box minH="100vh" bg={bg}>
-      <Box maxW="1400px" mx="auto" px={6} py={8}>
+      {/* Extra bottom space so the floating assistant button never covers the last row's status. */}
+      <Box maxW="1400px" mx="auto" px={6} pt={8} pb={24}>
         {/* Back navigation & Header */}
         <Flex align="center" gap={4} mb={6}>
           <IconButton

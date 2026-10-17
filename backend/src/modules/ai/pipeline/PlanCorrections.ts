@@ -60,6 +60,19 @@ export function correctPlan(plan: IntentPlan, message: string): { unrequested: n
   plan.intents = plan.intents.filter((intent) => wasAskedFor(intent.type, message));
   const unrequested = before - plan.intents.length;
 
+  // "make a soulslike collection" is a collection called "Soulslike", not "Soulslike Collection"
+  // (unless the name was given outright: 'called "Retro Collection"').
+  if (!/\b(called|named)\b|["“]/i.test(message)) {
+    for (const intent of plan.intents) {
+      if (intent.type !== IntentType.CreateCollection) continue;
+      for (const target of intent.targets ?? []) {
+        if (target.type === IntentTargetType.Collection && / collection$/i.test(target.name ?? "") && target.name.length > 11) {
+          target.name = target.name.replace(/ collection$/i, "");
+        }
+      }
+    }
+  }
+
   // "read me my notes" is never a note to save.
   if (asksToReadNotes(message)) {
     plan.intents = plan.intents.map((intent) =>

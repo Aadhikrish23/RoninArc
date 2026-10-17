@@ -19,6 +19,7 @@ import {
   pinPronoun,
   recommendationFollowUp,
   saveThatAsNote,
+  trailingCommand,
   simpleAddTitle,
   unsupportedReply,
   withPageGame,
@@ -69,7 +70,9 @@ export async function preRoute({ userId, requestId, message, client, session, re
 
   // "undo that": put back what the last message changed.
   if (UNDO_ASK.test(message)) {
-    const undone = await undoLastChange(userId);
+    // "undo the cod one" undoes only COD.
+    const only = namedTitles(message, owned)[0] ?? franchiseMatch(message, owned);
+    const undone = await undoLastChange(userId, only);
     if (undone) return reply({ success: true, message: undone });
   }
 
@@ -110,7 +113,14 @@ export async function preRoute({ userId, requestId, message, client, session, re
 
   // "what's in cozy nights?", "read me my notes": answered from the data, never guessed.
   const answered = await answerDirectly(message, direct);
-  if (answered.answer) return reply({ success: true, message: answered.answer });
+  if (answered.answer) {
+    // "how long is disco elysium? ... unpause it": answer, then do the command (about the game asked about).
+    const command = trailingCommand(message);
+    const about = namedTitles(message, owned)[0] ?? franchiseMatch(message, owned) ?? direct.currentGame ?? undefined;
+    const intent = command ? quickIntent(command, owned, about) : undefined;
+    if (intent) return { ...plan(requestId, intent), notice: answered.answer } as PreRouteOutcome;
+    return reply({ success: true, message: answered.answer });
+  }
   // "how long does it take to beat? and is it on steam deck": the data answers the first part,
   // the model the rest.
   if (answered.partial && isQuestionOnly(message)) {

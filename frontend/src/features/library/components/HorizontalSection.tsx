@@ -120,7 +120,7 @@ export default function HorizontalSection({ title, children }: HorizontalSection
             left={-4}
             top="50%"
             transform="translateY(-50%)"
-            zIndex={10}
+            zIndex={2}
             onClick={() => scroll("left")}
             color="white"
             bg={arrowBg}
@@ -165,7 +165,7 @@ export default function HorizontalSection({ title, children }: HorizontalSection
             right={-4}
             top="50%"
             transform="translateY(-50%)"
-            zIndex={10}
+            zIndex={2}
             onClick={() => scroll("right")}
             color="white"
             bg={arrowBg}

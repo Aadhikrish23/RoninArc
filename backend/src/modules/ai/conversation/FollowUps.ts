@@ -140,7 +140,7 @@ export function parseCollectionCommand(message: string, collections: string[], e
 
 // ---- Changes the model planned that the message never asked for. ----
 const STATUS_WORDS =
-  /\b(play\w*|start\w*|began|begun|finish\w*|beat\w*|complete\w*|complted|done|paus\w*|break|on hold|drop\w*|quit\w*|gave up|giving up|abandon\w*|plan\w*|backlog|status|mark\w*|set|move|100%|platinum\w*|credits)\b/i;
+  /\b(play\w*|start\w*|began|begun|finish\w*|beat\w*|complete\w*|complted|done|paus\w*|unpaus\w*|resum\w*|continu\w*|break|on hold|drop\w*|quit\w*|gave up|giving up|abandon\w*|plan\w*|backlog|status|mark\w*|set|move|100%|platinum\w*|credits)\b/i;
 const RATE_WORDS = /\b(rat\w*|scor\w*|review\w*|stars?|out of|give it|giving it|gave it|\d+(\.\d)?)\b|\/\s*10/i;
 const COLLECTION_WORDS = /\b(collection\w*|list|folder|group|shelf|put|throw|chuck|toss|stick|in there|into|add\w*|move|organi[sz]e|remove|take|out|from)\b/i;
 const NOTE_WORDS = /\b(note\w*|jot|write (it )?down|remember|memo)\b/i;
@@ -173,7 +173,7 @@ const REQUEST_FORM = /^(?:(?:hey|yo|ok|okay|so)[,!]?\s+)*(can|could|would|will) 
 const THEN_DO = /\b(and|also|then|so)\s+(add|put|mark|set|remove|delete|rate|pause|drop|start|move)\b/i;
 
 export const isQuestionOnly = (message: string) =>
-  QUESTION_FORM.test(message.trim()) && !REQUEST_FORM.test(message) && !THEN_DO.test(message);
+  QUESTION_FORM.test(message.trim()) && !REQUEST_FORM.test(message) && !THEN_DO.test(message) && !trailingCommand(message);
 
 /** "is this worth playing?", "is outer wilds any good?" want an opinion, not a library readout. */
 const WORTH = /\b(worth (it|playing|buying|getting|the money|my time|a try|starting)|any good|is (it|this|that)( one| game)? good|hype)\b/i;
@@ -266,6 +266,7 @@ const STATUS_VERBS: Record<string, string> = {
   pause: "paused", paused: "paused",
   drop: "dropped", dropped: "dropped",
   start: "playing", started: "playing", starting: "playing",
+  unpause: "playing", resume: "playing", continue: "playing",
   finish: "completed", finished: "completed", complete: "completed", completed: "completed", beat: "completed",
 };
 const STATUS_WORDS_AS: Record<string, string> = {
@@ -278,9 +279,23 @@ const NAME_END = /[,.!;:?]|\s+(?:im|i'm|i am|its|it's|it is|because|cuz|coz|sinc
 const SECOND_REQUEST = /\b(and|also|plus|then)\s+(?:i'?m\s+|im\s+|i\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|starting|move|note|give)\b/i;
 
 const cutName = (text: string) => text.split(NAME_END)[0].trim();
+/** "ok, and ...", "so ...", "now ..." in front of a command. */
+const FILLER_START = /^(?:(?:ok|okay|k|and|also|so|then|now|alright|pls|please|just)[,!.]?\s+)+/i;
+
+/**
+ * "how long is disco elysium? thinking of going back to it, unpause it" -> "unpause it":
+ * a command tacked on after a question, so the question's answer doesn't swallow it.
+ */
+export function trailingCommand(message: string): string | undefined {
+  const clauses = message.split(/[?!.;,]+\s*/).map((c) => c.trim()).filter(Boolean);
+  if (clauses.length < 2) return undefined;
+  const last = clauses[clauses.length - 1];
+  return parseQuickCommand(last) ? last : undefined;
+}
 
 export function parseQuickCommand(message: string): QuickCommand | undefined {
-  const m = message.trim();
+  // "ok, and unpause it?" -> "unpause it"
+  const m = message.trim().replace(FILLER_START, "").replace(/[?!.]+$/, "").trim();
   if (SECOND_REQUEST.test(m)) return undefined;
 
   const note = m.match(/^(?:(?:add|write|leave|make)\s+(?:a\s+)?)?note\s+(?:for|on|to|about)\s+(.+?)\s*:\s*(.+)$/i);
@@ -298,7 +313,7 @@ export function parseQuickCommand(message: string): QuickCommand | undefined {
   if (markAs) return { kind: "status", game: markAs[1].trim(), status: STATUS_WORDS_AS[markAs[2].toLowerCase()] };
 
   const told = m.match(/^(?:i\s+(?:just\s+|finally\s+|have\s+|already\s+)?|just\s+|finally\s+)?(finished|completed|beat|started|dropped|paused)\s+(.+)$/i);
-  const imperative = m.match(/^(pause|drop|start|finish|complete)\s+(.+)$/i);
+  const imperative = m.match(/^(pause|drop|start|finish|complete|unpause|resume|continue)\s+(.+)$/i);
   const verbMatch = told ?? imperative;
   if (verbMatch) {
     const game = cutName(verbMatch[2]);

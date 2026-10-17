@@ -98,7 +98,8 @@ const STYLE_GENRES: Record<string, string[]> = { cozy: ["Simulation", "Casual", 
 
 /** Tags that count as a style on a game the user owns (Stardew is "relaxing" and "farming", not always "cozy"). */
 const STYLE_SYNONYMS: Record<string, string[]> = {
-  cozy: ["cozy", "relaxing", "cute", "farming", "life-sim", "casual"],
+  // "cute" and "casual" are too broad: Hollow Knight is tagged cute and came back as "cozy".
+  cozy: ["cozy", "relaxing", "farming", "life-sim", "wholesome"],
   "co-op": ["co-op", "online-co-op", "local-co-op", "cooperative", "split-screen"],
   farming: ["farming", "agriculture", "life-sim"],
 };
