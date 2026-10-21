@@ -19,7 +19,7 @@ export const PER_GAME_INTENTS = new Set<string>([
 ]);
 
 /** Asking for suggestions, and the words that mean "do something" instead. */
-export const RECOMMEND_ASK = /\b(recommend|suggest|similar to|something like|anything like|games? like|what should i play|what to play)\b|\b(something|anything|a game)\b[^?.!]*\bweekend\b/i;
+export const RECOMMEND_ASK = /\b(recommend|suggest|similar to|something like|anything like|games? like|what should i play|what to play)\b|\b(something|anything|a game)\b[^?.!]*\bweekend\b|\b(something|anything|a game|smth)\s+(chill|relaxing|cozy|cosy|comfy|short|quick|light|easy|calm|mindless)\b|\b(want|need|feel like|in the mood for)\s+(something|anything|a game)\b/i;
 export const EXPLICIT_ACTION = /\b(add|put|mark|set|remove|delete|rate|note|pause|drop|launch|yeet|move|take)\b/i;
 
 /** An answer-mode reply saying it changed something ("I've added X", "I marked it ...") -- it can't have. */

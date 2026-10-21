@@ -1,5 +1,5 @@
 import { IntentPlan } from "../intent/IntentPlan";
-import pendingConfirmations, { isCancelReply, isConfirmReply, isLooseCancel, yesAndMore } from "../conversation/PendingConfirmationStore";
+import pendingConfirmations, { isCancelReply, isConfirmReply, isLooseCancel, noAndMore, yesAndMore } from "../conversation/PendingConfirmationStore";
 import type { RuntimeResponse } from "./Replies";
 import { forgetChange } from "./UndoLog";
 
@@ -33,15 +33,12 @@ export async function handlePending(userId: string, message: string): Promise<Pe
   if (isConfirmReply(message) && pending.plan) {
     return { kind: "plan", plan: pending.plan };
   }
+  const cancelled = pending.cancelMessage ?? (pending.run ? `Okay, I kept ${pending.label}.` : `Okay, I kept ${pending.label} in your library.`);
+  // "nah. where did i leave off in disco elysium?": say no, then answer the question too.
+  const after = noAndMore(message);
+  if (after) return { kind: "more", done: cancelled, rest: after };
   if (isCancelReply(message) || isLooseCancel(message)) {
-    return {
-      kind: "reply",
-      response: {
-        success: true,
-        status: "CANCELLED",
-        message: pending.cancelMessage ?? (pending.run ? `Okay, I kept ${pending.label}.` : `Okay, I kept ${pending.label} in your library.`),
-      },
-    };
+    return { kind: "reply", response: { success: true, status: "CANCELLED", message: cancelled } };
   }
   return { kind: "none" };
 }

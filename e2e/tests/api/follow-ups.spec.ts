@@ -1,6 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, parseQuickCommands, pinPronoun, saveThatAsNote, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
-import { isConfirmReply, yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
+import { isConfirmReply, noAndMore, yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
+import { RECOMMEND_ASK } from "../../../backend/src/modules/ai/pipeline/Patterns";
 import { namedTitles, sameGame } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
 import { dropUnstatedStatusChanges, ensureCollectionAdds } from "../../../backend/src/modules/ai/pipeline/StatusEvidence";
 import { correctPlan } from "../../../backend/src/modules/ai/pipeline/PlanCorrections";
@@ -316,5 +317,29 @@ test.describe("AI: collection name trimmed everywhere in the plan", () => {
     };
     correctPlan(plan, "put it in a soulslike collection");
     expect(plan.intents.map((i: any) => i.targets.find((t: any) => t.type === "Collection").name)).toEqual(["Soulslike", "Soulslike"]);
+  });
+});
+
+// Playtest round 16.
+test.describe("AI: round 16 moods, slang ratings and no-then-ask", () => {
+  test('"want something chill for like 30 min from what i own" is a recommendation ask @positive', () => {
+    expect(RECOMMEND_ASK.test("im wiped from work, want something chill for like 30 min from what i own")).toBe(true);
+    expect(RECOMMEND_ASK.test("i mean something relaxing to play for half an hour, from my library")).toBe(true);
+  });
+  test('"rate hollow knight 9" is not a recommendation ask @negative', () => {
+    expect(RECOMMEND_ASK.test("rate hollow knight 9")).toBe(false);
+  });
+  test('"dropped cod its mid, and gimme stardew a 8" is two commands @positive', () => {
+    expect(parseQuickCommands("dropped cod its mid, and gimme stardew a 8 cuz its comfy af")).toEqual([
+      { kind: "status", game: "cod", status: "dropped" },
+      { kind: "rate", game: "stardew", rating: 8, comment: "cuz its comfy af" },
+    ]);
+  });
+  test('"nah. where did i leave off in disco elysium" declines, then asks @positive', () => {
+    expect(noAndMore("nah. where did i leave off in disco elysium again")).toBe("where did i leave off in disco elysium again");
+  });
+  test('"nah keep it" is only a no @negative', () => {
+    expect(noAndMore("nah keep it")).toBeUndefined();
+    expect(noAndMore("no thanks!")).toBeUndefined();
   });
 });

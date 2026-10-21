@@ -181,8 +181,11 @@ export async function undoLastChange(userId: string, only?: string): Promise<str
 
   for (const gone of change.removed ?? []) {
     if (only && !pick(String(gone.game.title))) continue;
-    const { _id, createdAt, updatedAt, __v, ...fields } = gone.game as any;
+    const { _id, updatedAt, __v, ...fields } = gone.game as any;
+    // Keeps its original createdAt, so it doesn't jump to the front of "Recently Added".
     const back = (await LibraryGame.create({ ...fields, userId: uid } as any)) as any;
+    // The removal didn't stick, so the activity feed shouldn't say it happened.
+    await Activity.deleteMany({ userId: uid, type: "GAME_REMOVED", message: `Removed ${back.title} from library`, createdAt: { $gte: change.at } });
     // Removing marked it "not interested"; it's back, so that goes.
     if (typeof back.rawgId === "number") await RecommendationFeedback.deleteOne({ userId: uid, rawgId: back.rawgId });
     if (gone.review) await reviewToolService.upsertReview(userId, String(back._id), gone.review.rating, gone.review.reviewText);

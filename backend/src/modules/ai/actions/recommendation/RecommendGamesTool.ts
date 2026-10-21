@@ -14,6 +14,9 @@ const PICKS = 3;
 /** "got 2 hrs tonight", "quick session": time-boxed, so lead with games already in progress. */
 const SESSION = /\b\d+(\.\d+)?\s*(h|hr|hrs|hour|hours|min|mins|minutes)\b|\btonight\b|\bquick (session|game)\b|\bshort session\b/i;
 
+/** "something chill from what i own": only the user's own games. */
+const OWN_ONLY = /\b(what i (own|have|got)|i (already )?own|from my (library|backlog|games|collection)|in my (library|backlog)|my own games)\b/i;
+
 /** Playing first, then paused, then the rest, for time-boxed requests. */
 const rank = (r: Recommendation) => (r.status === "playing" ? 0 : r.status === "paused" ? 1 : 2);
 
@@ -44,7 +47,9 @@ export class RecommendGamesTool extends BaseTool<RecommendGamesInput, any> {
           : "For a session tonight, I'd pick from your backlog:";
       parts.push(`${heading}\n${backlog.slice(0, PICKS).map(describe).join("\n")}`);
     }
-    if (result.discover.length > 0) {
+    // "what should I play tonight?" with a backlog to pick from: games they don't own are noise.
+    const ownOnly = !!query && (OWN_ONLY.test(query) || (SESSION.test(query) && result.backlog.length >= 2));
+    if (result.discover.length > 0 && !(ownOnly && result.backlog.length > 0)) {
       parts.push(`New to discover:\n${result.discover.slice(0, PICKS).map(describe).join("\n")}`);
     }
 

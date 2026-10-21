@@ -162,10 +162,12 @@ export async function preRoute({ userId, requestId, message, client, session, re
   }
 
   // "rate hollow knight 9 it was amazing", "pause rdr2", "note for rdr2: ...": no planner needed.
-  const quick = quickIntent(message, owned, direct.pageGame ?? direct.currentGame ?? undefined);
-  if (quick) return { ...plan(requestId, quick), notice } as PreRouteOutcome;
+  // Several commands first: "dropped cod its mid, and gimme stardew a 8" also parses as one
+  // command ("dropped cod") and would lose the rating.
   const quickMany = quickIntents(message, owned, direct.pageGame ?? direct.currentGame ?? undefined);
   if (quickMany) return { kind: "plan", plan: { id: requestId, requestId, intents: quickMany as any[] }, notice };
+  const quick = quickIntent(message, owned, direct.pageGame ?? direct.currentGame ?? undefined);
+  if (quick) return { ...plan(requestId, quick), notice } as PreRouteOutcome;
 
   // "add gta 5": nothing for the planner to work out.
   const addTitle = simpleAddTitle(message);

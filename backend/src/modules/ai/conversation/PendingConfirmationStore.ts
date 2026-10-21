@@ -67,3 +67,15 @@ export function yesAndMore(text: string): string | undefined {
  */
 const LOOSE_NO = /^(?:(?:eh|uh|um|hmm|wait|actually|oh|ah|lol)[,!.]?\s+)*(?:n|no|nope|nah|nvm|never ?mind|cancel|stop|don'?t|keep it|leave it|forget it|scratch that)\b/i;
 export const isLooseCancel = (text: string) => LOOSE_NO.test(text.trim());
+
+/**
+ * "nah. where did i leave off in disco elysium again": a no to the pending offer, then a new
+ * question. Returns the new part, or undefined when the message is only a no ("nah keep it").
+ */
+const NO_THEN = /^(?:(?:eh|uh|um|hmm|oh|ah)[,!.]?\s+)*(?:no|nope|nah|nvm|never ?mind)(?:,?\s+(?:thanks|thx|ty))?[.!,;]+\s*/i;
+export function noAndMore(text: string): string | undefined {
+  const match = text.trim().match(NO_THEN);
+  if (!match) return undefined;
+  const rest = text.trim().slice(match[0].length).replace(/^(and|also|but|so)\b[\s,]*/i, "").trim();
+  return rest.split(/\s+/).length >= 3 ? rest : undefined;
+}

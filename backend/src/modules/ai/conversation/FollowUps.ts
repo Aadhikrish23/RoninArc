@@ -279,7 +279,7 @@ const STATUS_WORDS_AS: Record<string, string> = {
 const NAME_END = /[,.!;:?]|\s+(?:im|i'm|i am|its|it's|it is|because|cuz|coz|since|lol|lmao|tho|bc|for now|rn|right now|already|finally|last night|yesterday|today|tonight|again)\b/i;
 /** A second request in the same message goes to the planner. */
 const SECOND_REQUEST =
-  /\b(and|also|plus|then)\s+(?:i'?m\s+|im\s+|i\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|starting|move|note|give)\b|[.;!]\s+(?:(?:ok|and|also|so|then|now)\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|move|note|give)\b/i;
+  /\b(and|also|plus|then)\s+(?:i'?m\s+|im\s+|i\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|starting|move|note|give|gimme|gib)\b|[.;!]\s+(?:(?:ok|and|also|so|then|now)\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|move|note|give|gimme|gib)\b/i;
 
 const cutName = (text: string) => text.split(NAME_END)[0].trim();
 /** "ok, and ...", "so ...", "now ..." in front of a command. */
@@ -304,7 +304,7 @@ export function parseQuickCommand(message: string): QuickCommand | undefined {
   const note = m.match(/^(?:(?:add|write|leave|make)\s+(?:a\s+)?)?note\s+(?:for|on|to|about)\s+(.+?)\s*:\s*(.+)$/i);
   if (note) return { kind: "note", game: note[1].trim(), text: note[2].trim() };
 
-  const rate = m.match(/^(?:rate|give)\s+(.+?)\s+(?:an?\s+)?(\d{1,2}(?:\.5)?)(?:\s*(?:\/|out of)\s*10)?(?:[\s,.:;!-]+(.+))?$/i);
+  const rate = m.match(/^(?:rate|give|gimme|gib)\s+(.+?)\s+(?:an?\s+)?(\d{1,2}(?:\.5)?)(?:\s*(?:\/|out of)\s*10)?(?:[\s,.:;!-]+(.+))?$/i);
   if (rate) {
     const rating = Number(rate[2]);
     if (rating < 1 || rating > 10) return undefined;
@@ -368,7 +368,7 @@ export function pinPronoun(message: string, referent: string | undefined, nameIn
     .join("");
 }
 
-const ACTION_START = /^(?:(?:ok|okay|and|also|so|then|now|pls|please|just)[,!.]?\s+)*(?:rate|give|pause|drop|start|finish|complete|unpause|resume|continue|mark|set|move|put|add|remove|delete|note)\b/i;
+const ACTION_START = /^(?:(?:ok|okay|and|also|so|then|now|pls|please|just)[,!.]?\s+)*(?:i\s+(?:just\s+|finally\s+)?)?(?:rate|give|gimme|gib|finished|completed|beat|started|dropped|paused|pause|drop|start|finish|complete|unpause|resume|continue|mark|set|move|put|add|remove|delete|note)\b/i;
 
 /**
  * "drop cod, mp is dead anyway. give it a 4" -> two commands; "it" is the game before it.
@@ -376,7 +376,7 @@ const ACTION_START = /^(?:(?:ok|okay|and|also|so|then|now|pls|please|just)[,!.]?
  */
 export function parseQuickCommands(message: string): QuickCommand[] | undefined {
   const pieces = message
-    .split(/[.;!?]+\s+|,\s+(?=(?:and\s+)?(?:give|rate|pause|drop|start|unpause|resume|mark|set|note)\b)/i)
+    .split(/[.;!?]+\s+|,\s+(?=(?:and\s+)?(?:give|gimme|gib|rate|pause|drop|start|unpause|resume|mark|set|note)\b)/i)
     .map((p) => p.trim())
     .filter(Boolean);
   if (pieces.length < 2) return undefined;
