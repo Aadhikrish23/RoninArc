@@ -4,6 +4,8 @@ import {
   VStack,
 } from "@chakra-ui/react";
 
+import { FiAlertTriangle } from "react-icons/fi";
+
 import SettingsCard from "./SettingsCard";
 
 interface Props {
@@ -16,7 +18,8 @@ export default function DangerZoneSection({
   return (
     <SettingsCard
       danger
-      title="⚠ Danger Zone"
+      title="Danger Zone"
+      icon={FiAlertTriangle}
       description="Permanent actions."
     >
       <VStack

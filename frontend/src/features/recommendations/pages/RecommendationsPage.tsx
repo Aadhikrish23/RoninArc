@@ -47,7 +47,7 @@ function Section({
   items: Recommendation[];
   loading: boolean;
   empty: string;
-  actions: Pick<React.ComponentProps<typeof RecommendationCard>, "onAddToLibrary" | "onDismiss" | "onStartPlaying">;
+  actions: Pick<React.ComponentProps<typeof RecommendationCard>, "onAddToLibrary" | "onDismiss" | "onStartPlaying" | "showScore">;
 }) {
   const muted = useColorModeValue("gray.600", "gray.400");
   return (
@@ -83,7 +83,7 @@ export default function RecommendationsPage() {
   const q = useDebounced(hint.trim(), 400);
   const { data, loading, error, refresh, dismiss, addToLibrary, startPlaying } = useRecommendations({ limit: 6, q });
   const muted = useColorModeValue("gray.600", "gray.400");
-  const actions = { onAddToLibrary: addToLibrary, onDismiss: dismiss, onStartPlaying: startPlaying };
+  const actions = { onAddToLibrary: addToLibrary, onDismiss: dismiss, onStartPlaying: startPlaying, showScore: !!data?.profile.personalized };
 
   return (
     <Box maxW="1200px" mx="auto" px={6} py={8}>

@@ -12,7 +12,7 @@ import {
   SunIcon,
 } from "@chakra-ui/icons";
 
-import { FiMonitor } from "react-icons/fi";
+import { FiDroplet, FiMonitor } from "react-icons/fi";
 
 import SettingsCard from "./SettingsCard";
 
@@ -24,7 +24,8 @@ export default function AppearanceSection() {
 
   return (
     <SettingsCard
-      title="🎨 Appearance"
+      title="Appearance"
+      icon={FiDroplet}
       description="Customize RoninArc theme and display."
     >
       <HStack
@@ -38,7 +39,7 @@ export default function AppearanceSection() {
             Current Theme:
             {" "}
             <strong>
-              {colorMode}
+              {colorMode === "light" ? "Light" : "Dark"}
             </strong>
           </Text>
         </HStack>

@@ -105,7 +105,7 @@ export default function EpicOAuthCallback() {
                 Redirecting back to settings...
               </Text>
               <Button
-                colorScheme="blue"
+                colorScheme="purple"
                 onClick={() => navigate("/settings")}
               >
                 Go to Settings

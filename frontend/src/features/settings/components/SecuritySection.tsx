@@ -4,6 +4,8 @@ import {
   Divider,
 } from "@chakra-ui/react";
 
+import { FiLock } from "react-icons/fi";
+
 import SettingsCard from "./SettingsCard";
 
 interface Props {
@@ -17,7 +19,8 @@ export default function SecuritySection({
 }: Props) {
   return (
     <SettingsCard
-      title="🔒 Security"
+      title="Security"
+      icon={FiLock}
       description="Manage passwords and active sessions."
     >
       <VStack

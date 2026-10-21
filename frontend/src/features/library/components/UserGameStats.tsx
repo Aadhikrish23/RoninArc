@@ -20,7 +20,9 @@ import {
 } from "@chakra-ui/react";
 
 import { FiPlay, FiPlus, FiTrash2 } from "react-icons/fi";
+import { ChevronDownIcon } from "@chakra-ui/icons";
 import { useState } from "react";
+import RatingText from "../../../shared/components/RatingText";
 import CreateCollectionModal from "../../collections/components/CreateCollectionModal";
 import { useCollection } from "../../collections/context/CollectionContext";
 
@@ -159,9 +161,8 @@ export default function UserGameStats({
               as={Button}
               size="sm"
               colorScheme={STATUS_COLORS[game.progressStatus || "none"]}
-              textTransform="capitalize"
               borderRadius="full"
-              rightIcon={<span>▼</span>}
+              rightIcon={<ChevronDownIcon />}
             >
               {STATUS_LABELS[game.progressStatus || "none"]}
             </MenuButton>
@@ -201,9 +202,9 @@ export default function UserGameStats({
 
           {review ? (
             <VStack align="stretch" spacing={3}>
-              <Text fontWeight="bold" fontSize="lg">
-                ⭐ {review.rating}/10
-              </Text>
+              <RatingText fontWeight="bold" fontSize="lg">
+                {review.rating}/10
+              </RatingText>
               {review.reviewText ? (
                 <Text
                   fontSize="sm"
@@ -290,7 +291,7 @@ export default function UserGameStats({
               colorScheme="purple"
               width="fit-content"
             >
-              Add To Collection
+              Add to Collection
             </MenuButton>
             <MenuList>
               {collectionsToAddTo.length === 0 ? (
@@ -371,7 +372,7 @@ export default function UserGameStats({
             variant="outline"
             onClick={() => onDelete(game._id)}
           >
-            Remove From Library
+            Remove from Library
           </Button>
         </Box>
       </VStack>

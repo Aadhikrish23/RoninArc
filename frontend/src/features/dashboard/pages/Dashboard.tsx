@@ -67,7 +67,7 @@ function timeAgo(iso: string | null): string {
 }
 
 const STATUS_ROWS: { key: keyof DashboardOverview["backlog"]["byStatus"]; label: string; color: string }[] = [
-  { key: "plan", label: "Plan to Play", color: "blue" },
+  { key: "plan", label: "Plan to Play", color: "yellow" },
   { key: "playing", label: "Playing", color: "purple" },
   { key: "paused", label: "Paused", color: "orange" },
   { key: "completed", label: "Completed", color: "green" },

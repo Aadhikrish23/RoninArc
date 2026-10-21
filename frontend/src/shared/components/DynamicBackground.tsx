@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { Box, Flex, usePrefersReducedMotion } from "@chakra-ui/react";
+import { Box, Flex, Icon, usePrefersReducedMotion } from "@chakra-ui/react";
+import { GiAlienBug, GiCrossedSwords, GiGamepad, GiSpikedDragonHead } from "react-icons/gi";
 import { keyframes } from "@emotion/react";
 
 const float = keyframes`
@@ -86,7 +87,7 @@ function DynamicGameBackground({ children }: Props) {
         transform={layer(-12, -6)}
         transition="transform 0.12s ease-out"
       >
-        🎮
+        <Icon as={GiGamepad} aria-hidden />
       </Box>
 
       <Box
@@ -100,7 +101,7 @@ function DynamicGameBackground({ children }: Props) {
         transform={layer(10, -5)}
         transition="transform 0.12s ease-out"
       >
-        ⚔️
+        <Icon as={GiCrossedSwords} aria-hidden />
       </Box>
 
       <Box
@@ -114,7 +115,7 @@ function DynamicGameBackground({ children }: Props) {
         transform={layer(-8, 7)}
         transition="transform 0.12s ease-out"
       >
-        🐉
+        <Icon as={GiSpikedDragonHead} aria-hidden />
       </Box>
 
       <Box
@@ -128,7 +129,7 @@ function DynamicGameBackground({ children }: Props) {
         transform={layer(9, 9)}
         transition="transform 0.12s ease-out"
       >
-        👾
+        <Icon as={GiAlienBug} aria-hidden />
       </Box>
 
       {/* Content wrapper (your login card goes here) */}

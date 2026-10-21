@@ -20,6 +20,7 @@ import { PROVIDER_CONFIGS } from "../../providers/constants/providers";
 import type { ProviderId } from "../../providers/types/provider";
 import { memo, useState } from "react";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
+import RatingText from "../../../shared/components/RatingText";
 
 interface GameCardProps {
   game: Game;
@@ -207,9 +208,9 @@ function GameCard({
             {game.title}
           </Text>
           {typeof game.rating === "number" && (
-            <Text fontSize="sm" color="yellow.400" fontWeight="semibold" aria-label={`Your rating: ${game.rating} out of 10`}>
-              ★ {game.rating}/10
-            </Text>
+            <RatingText fontSize="sm" fontWeight="semibold" aria-label={`Your rating: ${game.rating} out of 10`}>
+              {game.rating}/10
+            </RatingText>
           )}
         </Box>
 

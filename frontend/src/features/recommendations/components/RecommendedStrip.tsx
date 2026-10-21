@@ -38,6 +38,7 @@ export default function RecommendedStrip() {
             onAddToLibrary={addToLibrary}
             onDismiss={dismiss}
             onStartPlaying={startPlaying}
+            showScore={!!data?.profile.personalized}
           />
         ))}
       </SimpleGrid>

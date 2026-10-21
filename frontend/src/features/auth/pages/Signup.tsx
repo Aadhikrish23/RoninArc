@@ -121,12 +121,12 @@ function Signup() {
             {/* Brand / Title */}
             <Stack spacing={1} mb={6} textAlign="center" direction="column">
               <Heading size="lg" color="white">
-                ⚔️ Welcome Ronin ⚔️
+                Welcome Ronin
               </Heading>
 
               <Tag
                 bg="transparent"
-                color="#98272b"
+                color="#ff5c7a"
                 mt={5}
                 p={4}
                 alignSelf="center"
@@ -276,7 +276,7 @@ function Signup() {
                 isLoading={loading}
                 loadingText="Creating account..."
               >
-                SignUp
+                Sign up
               </Button>
             </Stack>
 

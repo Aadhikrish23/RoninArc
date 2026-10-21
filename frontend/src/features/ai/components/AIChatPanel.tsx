@@ -113,7 +113,7 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
         <Box w="full" flex="1">
           {messages.length === 0 ? (
             <Flex direction="column" align="center" justify="center" h="full" textAlign="center" py={10}>
-              <Box p={4} borderRadius="full" bgGradient="linear(to-tr, purple.500, blue.500)" color="white" shadow="lg" mb={5}>
+              <Box p={4} borderRadius="full" bg="purple.500" color="white" shadow="lg" mb={5}>
                 <Icon as={IoSparklesOutline} w={8} h={8} />
               </Box>
               <Heading size="md" mb={2}>

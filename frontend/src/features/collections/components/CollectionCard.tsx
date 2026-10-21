@@ -62,8 +62,7 @@ export default function CollectionCard({
               mt={1}
               noOfLines={2}
             >
-              {collection.description ||
-                "No description"}
+              {collection.description}
             </Text>
           </Box>
 

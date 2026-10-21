@@ -158,12 +158,12 @@ test.describe("RAWG search from the library", () => {
     await expect(page.getByText("Hades").first()).toBeVisible();
   });
 
-  test("'← Back To Library' leaves the results view @positive", async ({ authedPage: page }) => {
+  test("'← Back to Library' leaves the results view @positive", async ({ authedPage: page }) => {
     await open(page, "/");
     const search = page.getByPlaceholder("Search games...");
     await search.fill("Celeste");
     await search.press("Enter");
-    await page.getByRole("button", { name: "← Back To Library" }).click();
+    await page.getByRole("button", { name: "← Back to Library" }).click();
     await expect(page.getByRole("heading", { name: "My Library" })).toBeVisible();
   });
 

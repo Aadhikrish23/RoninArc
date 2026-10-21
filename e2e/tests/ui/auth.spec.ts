@@ -82,9 +82,9 @@ test.describe("Login page", () => {
     await expectToast(page, "Login failed", "Please enter both username and password");
   });
 
-  test("the SignUp link opens the signup page @positive", async ({ page }) => {
+  test("the Sign up link opens the signup page @positive", async ({ page }) => {
     await open(page, "/login");
-    await page.getByRole("link", { name: "SignUp" }).click();
+    await page.getByRole("link", { name: "Sign up" }).click();
     await expect(page.getByRole("heading", { name: /Welcome Ronin/ })).toBeVisible();
   });
 });
@@ -95,7 +95,7 @@ test.describe("Signup page", () => {
     if (f.email !== undefined) await page.getByRole("textbox", { name: "Email" }).fill(f.email);
     if (f.password !== undefined) await page.getByRole("textbox", { name: "Password", exact: true }).fill(f.password);
     if (f.confirm !== undefined) await page.getByRole("textbox", { name: "Confirm Password" }).fill(f.confirm);
-    await page.getByRole("button", { name: "SignUp" }).click();
+    await page.getByRole("button", { name: "Sign up" }).click();
   };
 
   test("creates an account, signs in and shows the onboarding wizard @positive", async ({ page }) => {
@@ -167,7 +167,7 @@ test.describe("Onboarding wizard", () => {
     await fillLogin(page, user.username, user.password, true);
     const wizard = page.getByRole("dialog", { name: "Welcome to RoninArc" });
     await expect(wizard).toBeVisible();
-    await expect(wizard).toContainText("Steam — available now");
+    await expect(wizard).toContainText("Steam: available now");
     await wizard.getByRole("button", { name: "Skip" }).click();
     await expect(wizard).toBeHidden();
     await page.reload();
@@ -180,7 +180,7 @@ test.describe("Onboarding wizard", () => {
     await fillLogin(page, user.username, user.password);
     await page.getByRole("button", { name: "Set Up Connections" }).click();
     await expect(page).toHaveURL(/#\/settings$/);
-    await expect(page.getByRole("heading", { name: "🔌 Account Connections" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Account Connections" })).toBeVisible();
   });
 
   test("cannot be dismissed with Escape @negative", async ({ page, user }) => {

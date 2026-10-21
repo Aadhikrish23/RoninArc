@@ -46,18 +46,20 @@ export default function CollectionHero({
       <Box>
         <Heading mb={3}>{collection.name}</Heading>
 
-        <Text color="gray.500" mb={4}>
-          {collection.description || "No description"}
-        </Text>
+        {collection.description && (
+          <Text color="gray.500" mb={4}>
+            {collection.description}
+          </Text>
+        )}
 
         <HStack spacing={3}>
           <Badge colorScheme="purple">{totalGames} {totalGames === 1 ? "Game" : "Games"}</Badge>
 
-          <Badge colorScheme="green">{completed} Completed</Badge>
+          {completed > 0 && <Badge colorScheme="green">{completed} Completed</Badge>}
 
-          <Badge colorScheme="blue">{playing} Playing</Badge>
+          {playing > 0 && <Badge colorScheme="purple" variant="outline">{playing} Playing</Badge>}
 
-          <Badge colorScheme="orange">{installed} Installed</Badge>
+          {installed > 0 && <Badge colorScheme="gray">{installed} Installed</Badge>}
         </HStack>
         <HStack mt={6} spacing={3}>
           <Button colorScheme="purple" variant="outline" onClick={onEdit}>

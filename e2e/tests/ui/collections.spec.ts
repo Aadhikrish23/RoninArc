@@ -49,8 +49,10 @@ test.describe("Collections", () => {
       await open(page, "/");
       await page.getByRole("heading", { name: "Roguelikes" }).click();
       await expect(page).toHaveURL(new RegExp(`#/collections/${c._id}$`));
-      const header = page.locator("div").filter({ has: page.getByRole("heading", { name: "Roguelikes" }) }).filter({ hasText: "Installed" }).last();
-      await expect(header).toContainText(/1\s*Game\s*0\s*Completed\s*1\s*Playing\s*0\s*Installed/);
+      const header = page.locator("div").filter({ has: page.getByRole("heading", { name: "Roguelikes" }) }).filter({ hasText: "Playing" }).last();
+      // Zero counts are left out: "1 Game, 1 Playing", not "0 Completed ... 0 Installed".
+      await expect(header).toContainText(/1\s*Game\s*1\s*Playing/);
+      await expect(header).not.toContainText("0 Completed");
       await expect(page.getByRole("img", { name: "Hades" })).toBeVisible();
     });
 

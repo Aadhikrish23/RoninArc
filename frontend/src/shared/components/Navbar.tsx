@@ -38,7 +38,6 @@ function Navbar() {
       as="header"
       borderBottomWidth="1px"
       borderColor={subtleBorder}
-      px={8}
       py={4}
       bg={useColorModeValue("whiteAlpha.900", "gray.900")}
       backdropFilter="blur(12px)"
@@ -46,7 +45,8 @@ function Navbar() {
       top={0}
       zIndex={10}
     >
-      <Flex align="center" maxW="1200px" mx="auto">
+      {/* Same width and gutter as the library pages, so the logo lines up with the content. */}
+      <Flex align="center" maxW="1400px" mx="auto" px={6}>
         <Heading size="md" cursor="pointer" onClick={() => navigate("/", { state: { libraryHome: Date.now() } })}>
           RoninArc
         </Heading>

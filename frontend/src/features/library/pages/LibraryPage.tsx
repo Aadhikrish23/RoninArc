@@ -252,7 +252,7 @@ function LibraryPage() {
               <HStack spacing={3}>
                 {canLaunchGames() && (
                   <Button
-                    colorScheme="teal"
+                    colorScheme="purple"
                     variant="outline"
                     onClick={handleRescanInstallations}
                     isLoading={isRescanning}

@@ -58,15 +58,15 @@ export default function FirstLaunchModal() {
             </Text>
 
             <Text fontSize="sm" color="gray.500">
-              ✓ Epic Games — available now
+              Epic Games: available now
             </Text>
 
             <Text fontSize="sm" color="gray.500">
-              ✓ Steam — available now
+              Steam: available now
             </Text>
 
             <Text fontSize="sm" color="gray.500">
-              🔜 GOG and more — coming soon
+              GOG and more: coming soon
             </Text>
           </VStack>
         </ModalBody>

@@ -150,7 +150,7 @@ const ReviewModal = ({
             Cancel
           </Button>
 
-          <Button colorScheme="blue" onClick={handleSave} isLoading={isSaving}>
+          <Button colorScheme="purple" onClick={handleSave} isLoading={isSaving}>
             Save
           </Button>
         </ModalFooter>

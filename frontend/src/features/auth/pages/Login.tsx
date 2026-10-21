@@ -101,7 +101,7 @@ function Login() {
             {/* Brand / Title */}
             <Stack spacing={1} mb={6} textAlign="center">
               <Heading size="lg" color="white">
-                Welcome back, Ronin ⚔️
+                Welcome back, Ronin
               </Heading>
             </Stack>
 
@@ -199,7 +199,7 @@ function Login() {
                 color="purple.300"
                 _hover={{ color: "purple.200" }}
               >
-                SignUp
+                Sign up
               </Link>
             </Text>
           </Box>

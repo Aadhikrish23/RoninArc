@@ -5,6 +5,8 @@ import {
   Badge,
 } from "@chakra-ui/react";
 
+import { FiUser } from "react-icons/fi";
+
 import SettingsCard from "./SettingsCard";
 
 interface Props {
@@ -18,7 +20,8 @@ export default function AccountSection({
 }: Props) {
   return (
     <SettingsCard
-      title="👤 Account"
+      title="Account"
+      icon={FiUser}
       description="Your RoninArc profile."
     >
       <VStack
@@ -28,6 +31,8 @@ export default function AccountSection({
         <Badge
           colorScheme="purple"
           w="fit-content"
+          textTransform="none"
+          fontSize="sm"
           p={2}
           borderRadius="md"
         >
@@ -35,7 +40,7 @@ export default function AccountSection({
         </Badge>
 
         <Button
-          colorScheme="red"
+          variant="outline"
           onClick={onLogout}
         >
           Logout

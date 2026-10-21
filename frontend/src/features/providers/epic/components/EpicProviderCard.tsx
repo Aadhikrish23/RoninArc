@@ -24,7 +24,7 @@ export default function EpicProviderCard() {
       {isConnected ? (
         <>
           <Button
-            colorScheme="blue"
+            colorScheme="purple"
             onClick={resync}
             isLoading={loading || connectionState === "syncing"}
             loadingText="Syncing..."

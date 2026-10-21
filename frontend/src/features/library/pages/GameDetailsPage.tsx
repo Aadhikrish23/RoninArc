@@ -240,7 +240,7 @@ export default function GameDetailsPage() {
 
         {!libraryGame && (
           <Button colorScheme="purple" onClick={handleAddGame}>
-            Add To Library
+            Add to Library
           </Button>
         )}
       </Flex>

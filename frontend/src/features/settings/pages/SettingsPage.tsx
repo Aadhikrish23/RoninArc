@@ -37,7 +37,7 @@ export default function SettingsPage() {
   const deleteModal = useDisclosure();
 
   useEffect(() => {
-    setUsername(user?.name?.toUpperCase() ?? "RONIN");
+    setUsername(user?.name ?? "Ronin");
   }, [user]);
 
   const handleLogout = async () => {
@@ -71,7 +71,7 @@ export default function SettingsPage() {
           </GridItem>
 
           <GridItem colSpan={{ base: 1, md: 2 }}>
-            <ProviderSection title="🔌 Account Connections">
+            <ProviderSection title="Account Connections">
               <EpicProviderCard />
               <SteamProviderCard />
               {/* <ComingSoonProviderCard providerId="gog" /> */}

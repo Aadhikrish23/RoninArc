@@ -19,6 +19,7 @@ import { PROVIDER_CONFIGS } from "../../providers/constants/providers";
 import type { ProviderId } from "../../providers/types/provider";
 import { memo } from "react";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
+import RatingText from "../../../shared/components/RatingText";
 
 interface GameListRowProps {
   game: Game;
@@ -53,6 +54,7 @@ function GameListRow({
 }: GameListRowProps) {
   const rowBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
+  const rowHoverBg = useColorModeValue("gray.50", "whiteAlpha.100");
   const navigate = useNavigate();
 
   const isProviderGame =
@@ -77,7 +79,7 @@ function GameListRow({
       _hover={{
         borderColor: "purple.400",
         boxShadow: "md",
-        bg: "gray.750",
+        bg: rowHoverBg,
       }}
       transition="all 0.2s ease"
       cursor="pointer"
@@ -101,9 +103,9 @@ function GameListRow({
                 {game.title}
               </Text>
               {typeof game.rating === "number" && (
-                <Text fontSize="sm" color="yellow.400" fontWeight="semibold" aria-label={`Your rating: ${game.rating} out of 10`}>
-                  ★ {game.rating}/10
-                </Text>
+                <RatingText fontSize="sm" fontWeight="semibold" aria-label={`Your rating: ${game.rating} out of 10`}>
+                  {game.rating}/10
+                </RatingText>
               )}
 
               {isProviderGame && (

@@ -119,7 +119,7 @@ export default function NotesSection({
                 <Box flex="1">
                   <Text whiteSpace="pre-wrap">{note.content}</Text>
                   <Text fontSize="xs" color="gray.500" mt={1}>
-                    {new Date(note.createdAt).toLocaleString()}
+                    {new Date(note.createdAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}
                   </Text>
                 </Box>
               )}

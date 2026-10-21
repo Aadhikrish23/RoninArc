@@ -37,7 +37,7 @@ export default function EpicConnectButton({ isLoading: parentLoading }: Props) {
   return (
     <Button
       id="epic-connect-button"
-      colorScheme="blue"
+      colorScheme="purple"
       onClick={handleClick}
       isLoading={loading || parentLoading}
       loadingText="Connecting..."

@@ -20,9 +20,11 @@ interface Props {
   onAddToLibrary: (rec: Recommendation) => void;
   onDismiss: (rec: Recommendation) => void;
   onStartPlaying: (rec: Recommendation) => void;
+  /** "82% match" only means something once picks are personal, and never on a game you own. */
+  showScore?: boolean;
 }
 
-export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onStartPlaying }: Props) {
+export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onStartPlaying, showScore = true }: Props) {
   const navigate = useNavigate();
   const cardBg = useColorModeValue("white", "gray.800");
   const border = useColorModeValue("gray.200", "gray.700");
@@ -47,11 +49,13 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
     >
       <Box position="relative" cursor={rec.rawgId ? "pointer" : "default"} onClick={openDetails}>
         <Image src={rec.imageURL} alt={rec.title} h="160px" w="100%" objectFit="cover" fallbackSrc={PLACEHOLDER_IMAGE} />
-        <Tooltip label="How well this fits your taste" hasArrow>
-          <Badge position="absolute" top={3} right={3} colorScheme="purple" variant="solid" fontSize="0.8em" px={2} py={1} borderRadius="md" boxShadow="md">
-            {rec.score}% match
-          </Badge>
-        </Tooltip>
+        {showScore && !fromLibrary && (
+          <Tooltip label="How well this fits your taste" hasArrow>
+            <Badge position="absolute" top={3} right={3} colorScheme="purple" variant="solid" fontSize="0.8em" px={2} py={1} borderRadius="md" boxShadow="md">
+              {rec.score}% match
+            </Badge>
+          </Tooltip>
+        )}
         {fromLibrary && (
           <Badge position="absolute" top={3} left={3} colorScheme="green" variant="solid" fontSize="0.7em" px={2} py={1} borderRadius="md" boxShadow="md">
             In your library

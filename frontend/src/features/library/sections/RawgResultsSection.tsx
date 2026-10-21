@@ -18,6 +18,8 @@ import { BsGrid3X3Gap } from "react-icons/bs";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
+import RatingText from "../../../shared/components/RatingText";
+import { useColorModeValue } from "@chakra-ui/react";
 
 interface Props {
   searchText: string;
@@ -44,6 +46,8 @@ export default function RawgResultsSection({
   const navigate = useNavigate();
   // The results refresh a few seconds after an add; until then, the card shows it's done.
   const [added, setAdded] = useState<Set<number>>(new Set());
+  const mutedText = useColorModeValue("gray.600", "gray.400");
+
   const add = async (game: RawgGameResult) => {
     await onAddGame(game);
     setAdded((prev) => new Set(prev).add(game.id));
@@ -179,9 +183,9 @@ export default function RawgResultsSection({
         <Text fontWeight="bold" noOfLines={1}>
           {game.name}
         </Text>
-        <Text color="gray.500" fontSize="sm">
-          ⭐ {game.rating ? `${(game.rating * 2).toFixed(1)}/10` : "No rating"}
-        </Text>
+        <RatingText color={mutedText} fontSize="sm">
+          {game.rating ? `${(game.rating * 2).toFixed(1)}/10` : "No rating"}
+        </RatingText>
         <Text color="gray.500" fontSize="sm" noOfLines={1}>
           {game.genres.join(", ")}
         </Text>
@@ -228,9 +232,9 @@ export default function RawgResultsSection({
         <Text fontWeight="bold" fontSize="lg">
           {game.name}
         </Text>
-        <Text color="gray.500" mt={1}>
-          ⭐ {game.rating ? `${(game.rating * 2).toFixed(1)}/10` : "No rating"}
-        </Text>
+        <RatingText color={mutedText} mt={1}>
+          {game.rating ? `${(game.rating * 2).toFixed(1)}/10` : "No rating"}
+        </RatingText>
         <Text color="gray.500" mt={1}>
           {game.genres.join(", ")}
         </Text>
@@ -274,7 +278,7 @@ export default function RawgResultsSection({
           </Box>
 
           <Button size="sm" variant="link" onClick={onBack}>
-            ← Back To Library
+            ← Back to Library
           </Button>
         </Flex>
 

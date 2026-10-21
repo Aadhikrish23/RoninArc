@@ -1,13 +1,17 @@
 import {
   Box,
   Heading,
+  HStack,
+  Icon,
   Text,
   useColorModeValue,
   VStack,
 } from "@chakra-ui/react";
+import type { IconType } from "react-icons";
 
 interface SettingsCardProps {
   title: string;
+  icon?: IconType;
   description?: string;
   children: React.ReactNode;
   danger?: boolean;
@@ -15,6 +19,7 @@ interface SettingsCardProps {
 
 export default function SettingsCard({
   title,
+  icon,
   description,
   children,
   danger = false,
@@ -25,13 +30,14 @@ export default function SettingsCard({
     "rgba(17,24,39,0.9)"
   );
 
-  const borderColor = danger
-    ? "red.500"
-    : useColorModeValue(
-        "gray.200",
-        "whiteAlpha.100"
-      );
+  const borderColor = useColorModeValue(
+    danger ? "red.300" : "gray.200",
+    danger ? "red.500" : "whiteAlpha.100"
+  );
+  const descriptionColor = useColorModeValue("gray.600", "gray.400");
+  const iconColor = useColorModeValue(danger ? "red.500" : "purple.500", danger ? "red.300" : "purple.300");
 
+  // Not clickable, so no hover lift: the controls inside are what you interact with.
   return (
     <Box
       bg={danger ? "rgba(127,29,29,0.15)" : darkBg}
@@ -39,29 +45,20 @@ export default function SettingsCard({
       borderColor={borderColor}
       borderRadius="2xl"
       p={6}
-      transition="all .2s"
-      _hover={{
-        transform: "translateY(-2px)",
-        borderColor: danger
-          ? "red.400"
-          : "purple.400",
-      }}
     >
       <VStack
         align="stretch"
         spacing={4}
       >
         <Box>
-          <Heading
-            size="md"
-            mb={2}
-          >
-            {title}
-          </Heading>
+          <HStack spacing={2} mb={2}>
+            {icon && <Icon as={icon} boxSize={5} color={iconColor} aria-hidden />}
+            <Heading size="md">{title}</Heading>
+          </HStack>
 
           {description && (
             <Text
-              color="gray.400"
+              color={descriptionColor}
               fontSize="sm"
             >
               {description}

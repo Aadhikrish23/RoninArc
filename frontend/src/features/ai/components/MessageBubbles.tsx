@@ -1,6 +1,6 @@
 import { useAI } from "../context/AIContext";
 import { useAuth } from "../../auth/context/AuthContext";
-import { Box, Flex, Avatar, Text, Icon } from "@chakra-ui/react";
+import { Box, Flex, Avatar, Text, Icon, useColorModeValue } from "@chakra-ui/react";
 import type { JSX } from "react";
 import type { Message, ClarificationOption } from "../types/conversation";
 import { IoSparklesOutline } from "react-icons/io5";
@@ -22,6 +22,9 @@ export default function MessageBubbles({
 }: MessageBubblesProps): JSX.Element {
   const { settings } = useAI();
   const { user } = useAuth();
+  const assistantBg = useColorModeValue("gray.100", "gray.800");
+  const assistantText = useColorModeValue("gray.800", "gray.100");
+  const assistantBorder = useColorModeValue("gray.200", "gray.700");
   return (
     <Box display="flex" flexDirection="column" gap={4} w="full">
       {messages.map((message, index) => {
@@ -69,10 +72,10 @@ export default function MessageBubbles({
                   borderRadius="2xl"
                   borderBottomRightRadius={isUser ? "sm" : "2xl"}
                   borderBottomLeftRadius={isUser ? "2xl" : "sm"}
-                  bg={isUser ? "purple.600" : "gray.800"}
-                  color={isUser ? "white" : "gray.100"}
+                  bg={isUser ? "purple.600" : assistantBg}
+                  color={isUser ? "white" : assistantText}
                   borderWidth="1px"
-                  borderColor={isUser ? "purple.500" : "gray.700"}
+                  borderColor={isUser ? "purple.500" : assistantBorder}
                   shadow="md"
                   position="relative"
                 >
@@ -129,7 +132,7 @@ export default function MessageBubbles({
               <Avatar
                 size="sm"
                 name={user?.name || "Player"}
-                bg="blue.600"
+                bg="purple.700"
                 color="white"
                 shadow="md"
               />

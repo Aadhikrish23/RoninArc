@@ -29,7 +29,7 @@ export default function GameDetailHero({ game }: Props) {
         </Heading>
 
         <Flex gap={3}>
-          <Badge colorScheme="yellow" variant="solid">Players ⭐ {(game.rating * 2).toFixed(1)}/10</Badge>
+          <Badge colorScheme="yellow" variant="solid">Players {(game.rating * 2).toFixed(1)}/10</Badge>
 
           {game.metacritic && (
             <Badge colorScheme="green" variant="solid">Metacritic {game.metacritic}</Badge>

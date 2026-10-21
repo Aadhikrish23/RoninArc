@@ -39,7 +39,6 @@ export function AIAssistantLauncherProvider({ children }: { children: ReactNode 
             h="56px"
             borderRadius="full"
             colorScheme="purple"
-            bgGradient="linear(to-tr, purple.500, blue.500)"
             color="white"
             shadow="xl"
             _hover={{ transform: "translateY(-2px)", shadow: "2xl" }}

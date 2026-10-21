@@ -35,12 +35,12 @@ export default function SteamProviderCard() {
       lastSync={provider.lastSync}
       importedGames={provider.importedGames}
       loading={loading}
-      description="Sign in with Steam to import your full library -- including games you haven't installed -- and detect which ones are installed on this PC."
+      description="Sign in with Steam to import your full library, including games you haven't installed, and see which ones are on this PC."
     >
       {isConnected ? (
         <>
           <Button
-            colorScheme="blue"
+            colorScheme="purple"
             onClick={resync}
             isLoading={loading || connectionState === "syncing"}
             loadingText="Syncing..."

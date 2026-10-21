@@ -60,7 +60,7 @@ test.describe("Game details page", () => {
       await dialog.getByRole("textbox", { name: "Review" }).fill("Tight combat");
       await dialog.getByRole("button", { name: "Save" }).click();
 
-      await expect(page.getByText("⭐ 8/10")).toBeVisible();
+      await expect(page.getByText("8/10", { exact: true })).toBeVisible();
       await expect(page.getByText('"Tight combat"')).toBeVisible();
       expect((await json(await api.get(`/review/${g._id}`))).Data).toMatchObject({ rating: 8, reviewText: "Tight combat" });
     });
@@ -74,7 +74,7 @@ test.describe("Game details page", () => {
       await expect(dialog.getByRole("spinbutton", { name: "Rating" })).toHaveValue("6");
       await dialog.getByRole("spinbutton", { name: "Rating" }).fill("10");
       await dialog.getByRole("button", { name: "Save" }).click();
-      await expect(page.getByText("⭐ 10/10")).toBeVisible();
+      await expect(page.getByText("10/10", { exact: true })).toBeVisible();
     });
 
     test("deletes a review @positive", async ({ authedPage: page, api }) => {
@@ -85,7 +85,7 @@ test.describe("Game details page", () => {
       const confirm = page.getByRole("alertdialog", { name: "Delete Review?" });
       await expect(confirm).toContainText("This action cannot be undone.");
       await confirm.getByRole("button", { name: "Delete", exact: true }).click();
-      await expect(page.getByText("⭐ 6/10")).toHaveCount(0);
+      await expect(page.getByText("6/10", { exact: true })).toHaveCount(0);
       await expect(page.getByText("No review yet.")).toBeVisible();
       await expect.poll(async () => (await json(await api.get(`/review/${g._id}`))).Data).toBeNull();
     });
@@ -96,7 +96,7 @@ test.describe("Game details page", () => {
       await open(page, `/library/game/${hades.id}`);
       await page.getByRole("button", { name: "Delete Review" }).click();
       await page.getByRole("alertdialog", { name: "Delete Review?" }).getByRole("button", { name: "Cancel" }).click();
-      await expect(page.getByText("⭐ 6/10")).toBeVisible();
+      await expect(page.getByText("6/10", { exact: true })).toBeVisible();
       expect((await json(await api.get(`/review/${g._id}`))).Data.rating).toBe(6);
     });
 
@@ -122,7 +122,7 @@ test.describe("Game details page", () => {
       await page.getByRole("paragraph").filter({ hasText: /^Hades$/ }).last().click();
       await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
 
-      await page.getByRole("button", { name: "Add To Collection" }).click();
+      await page.getByRole("button", { name: "Add to Collection" }).click();
       await page.getByRole("menuitem", { name: "Roguelikes" }).click();
       await expect(page.getByText("Collections (1)")).toBeVisible();
       await expect.poll(async () => (await json(await api.get(`/collection/${c._id}`))).Data.gameIds.length).toBe(1);
@@ -136,7 +136,7 @@ test.describe("Game details page", () => {
       await api.addGame(hades);
       await api.createCollection("Roguelikes");
       await open(page, `/library/game/${hades.id}`);
-      await page.getByRole("button", { name: "Add To Collection" }).click();
+      await page.getByRole("button", { name: "Add to Collection" }).click();
       await expect(page.getByRole("menuitem", { name: "Roguelikes" })).toBeVisible({ timeout: 3000 });
     });
 
@@ -147,7 +147,7 @@ test.describe("Game details page", () => {
       await open(page, "/");
       await page.getByRole("paragraph").filter({ hasText: /^Hades$/ }).first().click();
       await expect(page.getByText("Collections (1)")).toBeVisible();
-      await page.getByRole("button", { name: "Add To Collection" }).click();
+      await page.getByRole("button", { name: "Add to Collection" }).click();
       await expect(page.getByRole("menuitem", { name: "Already in all collections" })).toBeDisabled();
     });
   });
@@ -187,7 +187,7 @@ test.describe("Game details page", () => {
   test("removes the game from the library @positive", async ({ authedPage: page, api }) => {
     await api.addGame(hades);
     await open(page, `/library/game/${hades.id}`);
-    await page.getByRole("button", { name: "Remove From Library" }).click();
+    await page.getByRole("button", { name: "Remove from Library" }).click();
     await page.getByRole("alertdialog", { name: "Remove Hades from your library?" }).getByRole("button", { name: "Remove" }).click();
     await expectToast(page, "Game Removed", "Game has been removed from library.");
     await expect(page).toHaveURL(/#\/$/);
@@ -197,7 +197,7 @@ test.describe("Game details page", () => {
   test("asks for confirmation before removing a game @negative", async ({ authedPage: page, api }) => {
     await api.addGame(hades);
     await open(page, `/library/game/${hades.id}`);
-    await page.getByRole("button", { name: "Remove From Library" }).click();
+    await page.getByRole("button", { name: "Remove from Library" }).click();
     const confirm = page.getByRole("alertdialog", { name: "Remove Hades from your library?" });
     await expect(confirm).toContainText("This action cannot be undone.");
     // Nothing is deleted until the user confirms.
@@ -207,7 +207,7 @@ test.describe("Game details page", () => {
   test("cancelling removal keeps the game @negative", async ({ authedPage: page, api }) => {
     await api.addGame(hades);
     await open(page, `/library/game/${hades.id}`);
-    await page.getByRole("button", { name: "Remove From Library" }).click();
+    await page.getByRole("button", { name: "Remove from Library" }).click();
     await page.getByRole("alertdialog", { name: "Remove Hades from your library?" }).getByRole("button", { name: "Cancel" }).click();
     await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
     expect((await json(await api.get("/game"))).Data).toHaveLength(1);
