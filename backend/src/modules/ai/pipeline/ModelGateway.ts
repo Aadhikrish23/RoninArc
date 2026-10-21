@@ -3,6 +3,7 @@ import { CapabilityRegistry } from "../planning/CapabilityRegistry";
 import { IntentPlan } from "../intent/IntentPlan";
 import { CLAIMS_ACTION } from "./Patterns";
 import { expandAbbreviation } from "../../rawg/gameAbbreviations";
+import { factsForQuestion } from "../conversation/GameFacts";
 
 /**
  * "is elden ring harder than ds3?" -> "... than ds3 (Dark Souls III)?": the answer model read
@@ -40,7 +41,10 @@ export class ModelGateway {
    * included it in the Soulslikes collection" when nothing ran. A reply claiming an action is replaced.
    */
   async answerSafely(question: string, context: any): Promise<string> {
-    const answer = await this.provider.answer(spellOutShorthand(question), context);
+    // Release dates, developers and playtimes from the game database, so the model doesn't guess them.
+    const owned: string[] = context?.library?.games?.map((g: { title: string }) => g.title) ?? [];
+    const gameFacts = await factsForQuestion(question, owned).catch(() => undefined);
+    const answer = await this.provider.answer(spellOutShorthand(question), gameFacts ? { ...context, gameFacts } : context);
     if (CLAIMS_ACTION.test(answer)) {
       return "I didn't change anything with that message. Tell me what you'd like done, like \"add Elden Ring to Soulslikes\", and I'll do it.";
     }

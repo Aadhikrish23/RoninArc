@@ -9,7 +9,7 @@ export const ANSWER_PROMPT_MARKER = "[[ANSWER MODE]]";
  * Hollow Knight?", "roguelike vs roguelite?"), written like a friend who plays
  * a lot. Used when the request is a question, not an action.
  */
-export function buildAnswerPrompt(question: string, library?: LibrarySnapshot, recent: Exchange[] = []): string {
+export function buildAnswerPrompt(question: string, library?: LibrarySnapshot, recent: Exchange[] = [], facts?: string): string {
   const games = library?.games.slice(0, 60).map((g) => `${g.title} (${g.status})`).join(", ") || "(none)";
   const convo = recent.slice(-3).map((e) => `User: ${e.user}\nAssistant: ${e.assistant}`).join("\n") || "(none)";
   return `${ANSWER_PROMPT_MARKER}
@@ -21,7 +21,7 @@ You are RoninArc's assistant, a friendly gamer who knows games well. Answer the 
 - You may use the user's library for context (e.g. they loved Hollow Knight), but answer the question they asked.
 
 User's games: ${games}
-
+${facts ? `\nFacts from the game database (these are correct and newer than your training; never contradict them, and don't add dates, developers or hours they don't give):\n${facts}\n` : ""}
 Recent conversation:
 ${convo}
 

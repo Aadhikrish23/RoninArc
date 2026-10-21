@@ -72,7 +72,7 @@ export class OllamaProvider implements AIProvider {
   }
 
   async answer(question: string, context: AIRequestContext): Promise<string> {
-    const prompt = buildAnswerPrompt(question, context.library, context.recentExchanges);
+    const prompt = buildAnswerPrompt(question, context.library, context.recentExchanges, context.gameFacts);
     const raw = await ollamaClient.generate(prompt);
     return raw.replace(/^\s*(answer:)?\s*/i, "").trim();
   }

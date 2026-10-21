@@ -5,6 +5,7 @@ import Review from "../../review/Reviewmodel";
 import LibraryGame from "../../library/LibraryGame";
 import rawgService from "../../rawg/rawgService";
 import { rankByTitle } from "../../rawg/titleMatch";
+import { gamesInQuestion, playtimeFor } from "./GameFacts";
 import dashboardOverviewService from "../../dashboard/dashboardOverviewService";
 import { franchiseMatch, namedTitles } from "./TargetGrounding";
 import { ACTION, NOTES_READ, NOTE_WRITE, namedCollection } from "./FollowUps";
@@ -117,14 +118,20 @@ async function describeNotes(question: string, ctx: DirectAnswerContext): Promis
 async function describePlaytime(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   if (!PLAYTIME.test(question)) return undefined;
   const title = gameFor(question, ctx);
-  if (!title) return undefined;
+  if (!title) {
+    // "how long is outer wilds" for a game they don't own: RAWG's average, not the model's guess.
+    const [asked] = gamesInQuestion(question, []);
+    const found = asked ? await playtimeFor(asked) : undefined;
+    return found ? `Players log about ${found.hours} hours on ${found.name} on average. That's a community average, so a full run often takes longer.` : undefined;
+  }
   const game = await libraryGame(ctx.userId, title);
   if (!game) return undefined;
   // The library copy is filled in by background enrichment; ask RAWG if it isn't there yet.
   const hours = typeof game.playtime === "number" && game.playtime > 0 ? game.playtime : game.rawgId ? (await factsOf(game.rawgId)).playtime : 0;
   // RAWG's average is unreliable below a few hours (few players logged it).
-  // Outer Wilds came back as "about 4 hours": below 5 the average is mostly people who bounced off.
-  if (hours < 5) return `I don't have a reliable playtime for ${game.title}, sorry.`;
+  // RAWG's figure is hours its users logged, not time to beat: Hollow Knight came back as 7 and
+  // Outer Wilds as 4. Under 15 it misleads, so the answer model gives a cautious range instead.
+  if (hours < 15) return `I don't have a reliable playtime for ${game.title}, sorry.`;
   // The figure is what players log on RAWG, which often runs low for long games; say so plainly.
   return `Players log about ${hours} hours on ${game.title} on average. That's a community average, so a full run often takes longer.`;
 }

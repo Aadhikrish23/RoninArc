@@ -65,7 +65,8 @@ async function searchBestMatch(query: string, pageSize: number) {
     search: query,
     page_size: pageSize,
     search_precise: true,
-}
+},
+      timeout: 8000,
     });
 
     const results = response.data.results;
@@ -202,13 +203,26 @@ async function getGameDetails(rawgId: string | number) {
 }
 
 /** One game's tag slugs ("roguelike", "co-op") and average playtime, from a single light request. */
-async function getGameFacts(rawgId: string | number): Promise<{ tags: string[]; playtime: number }> {
+export interface GameFacts {
+  tags: string[];
+  playtime: number;
+  name?: string;
+  released?: string | null;
+  genres?: string[];
+  developers?: string[];
+}
+
+async function getGameFacts(rawgId: string | number): Promise<GameFacts> {
   if (!RAWG_BASE_URL || !RAWG_API_KEY) return { tags: [], playtime: 0 };
   try {
     const res = await axios.get(`${RAWG_BASE_URL}/games/${rawgId}`, { params: { key: RAWG_API_KEY }, timeout: 8000 });
     return {
       tags: (res.data?.tags ?? []).map((t: any) => String(t.slug)),
       playtime: typeof res.data?.playtime === "number" ? res.data.playtime : 0,
+      name: res.data?.name,
+      released: res.data?.released ?? null,
+      genres: (res.data?.genres ?? []).map((g: any) => String(g.name)),
+      developers: (res.data?.developers ?? []).map((d: any) => String(d.name)),
     };
   } catch {
     return { tags: [], playtime: 0 };
