@@ -15,7 +15,7 @@ import { Button } from "@chakra-ui/react";
 
 import { useNavigate } from "react-router-dom";
 
-import { useParams } from "react-router-dom";
+import { useLocation, useParams } from "react-router-dom";
 
 import { useGameDetails } from "../hooks/useGameDetails";
 
@@ -49,6 +49,7 @@ import {
 
 export default function GameDetailsPage() {
   const { rawgId } = useParams();
+  const location = useLocation();
   const aboutText = useColorModeValue("gray.600", "gray.400");
 
   const {
@@ -108,7 +109,9 @@ export default function GameDetailsPage() {
       duration: 2000,
       isClosable: true,
     });
-    navigate("/");
+    // Back to where you came from (All Games, a collection); a direct visit lands on the library.
+    if (location.key !== "default") navigate(-1);
+    else navigate("/");
   };
 
   const STATUS_NAMES: Record<string, string> = {
@@ -215,8 +218,9 @@ export default function GameDetailsPage() {
 
   if (loading) {
     return (
-      <Flex minH="70vh" justify="center" align="center">
-        <Spinner size="xl" />
+      <Flex minH="70vh" direction="column" justify="center" align="center" gap={4} color={aboutText}>
+        <Spinner size="xl" label="Loading game" />
+        <Text>Loading game...</Text>
       </Flex>
     );
   }

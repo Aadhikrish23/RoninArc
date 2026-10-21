@@ -164,14 +164,14 @@ export default function CollectionDetailsPage() {
           onChange={(e) => setFilter(e.target.value)}
           maxW="220px"
         >
-          <option value="all">All Games</option>
-          <option value="installed">Installed</option>
-          <option value="completed">Completed</option>
+          <option value="all">All games</option>
           <option value="playing">Playing</option>
           <option value="plan">Plan to Play</option>
           <option value="paused">Paused</option>
+          <option value="completed">Completed</option>
           <option value="dropped">Dropped</option>
-          <option value="not-installed">Not Installed</option>
+          <option value="installed">Installed</option>
+          <option value="not-installed">Not installed</option>
         </Select>
       </HStack>
 

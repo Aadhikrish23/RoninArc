@@ -13,7 +13,7 @@ import {
 } from "@chakra-ui/react";
 import { useNavigate } from "react-router-dom";
 import type { Recommendation } from "../types/recommendation";
-import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
+import { PLACEHOLDER_IMAGE, coverImage } from "../../../shared/utils/placeholderImage";
 
 interface Props {
   rec: Recommendation;
@@ -57,11 +57,11 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
         }}
         _focusVisible={{ outline: "2px solid", outlineColor: "purple.400", outlineOffset: "2px" }}
       >
-        <Image src={rec.imageURL} alt={rec.title} h="160px" w="100%" objectFit="cover" fallbackSrc={PLACEHOLDER_IMAGE} />
+        <Image src={coverImage(rec.imageURL)} alt={rec.title} h="160px" w="100%" objectFit="cover" fallbackSrc={PLACEHOLDER_IMAGE} />
         {showScore && !fromLibrary && (
-          <Tooltip label="How well this fits your taste" hasArrow>
+          <Tooltip label={`${rec.score}% match for your taste`} hasArrow>
             <Badge position="absolute" top={3} right={3} colorScheme="purple" variant="solid" fontSize="0.8em" px={2} py={1} borderRadius="full" boxShadow="md">
-              {rec.score}% match
+              Top pick
             </Badge>
           </Tooltip>
         )}

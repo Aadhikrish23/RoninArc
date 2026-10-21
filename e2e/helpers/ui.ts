@@ -20,7 +20,7 @@ export async function fillLogin(page: Page, username: string, password: string, 
   await page.getByRole("textbox", { name: "Username" }).fill(username);
   await page.getByRole("textbox", { name: "Password" }).fill(password);
   if (rememberMe) await page.getByText("Remember me").click();
-  await page.getByRole("button", { name: "Login" }).click();
+  await page.getByRole("button", { name: "Log in" }).click();
 }
 
 /** A library card: scoped by the card's visible title. */

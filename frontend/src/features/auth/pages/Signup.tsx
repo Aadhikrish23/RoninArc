@@ -126,7 +126,7 @@ function Signup() {
             {/* Brand / Title */}
             <Stack spacing={1} mb={6} textAlign="center" direction="column">
               <Heading size="lg" color="white">
-                Welcome Ronin
+                Welcome, Ronin
               </Heading>
 
 
@@ -286,7 +286,7 @@ function Signup() {
                 color="purple.300"
                 _hover={{ color: "purple.200" }}
               >
-                Login
+                Log in
               </Link>
             </Text>
           </Box>

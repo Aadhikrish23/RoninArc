@@ -52,9 +52,23 @@ export default function ClarificationCard({
 
         {/* Reason / Prompt */}
         <Box>
-          <Text fontSize="md" fontWeight="semibold" color={textColor}>
-            {request.reason || "I need a bit more information to complete your request."}
-          </Text>
+          {/* A confirmation leads with what it's asking ("Remove Call of Duty...?"); the reason is the small print. */}
+          {request.type === "CONFIRMATION" && request.question ? (
+            <>
+              <Text fontSize="md" fontWeight="semibold" color={textColor}>
+                {request.question}
+              </Text>
+              {request.reason && (
+                <Text fontSize="sm" color={mutedColor} mt={1}>
+                  {request.reason}
+                </Text>
+              )}
+            </>
+          ) : (
+            <Text fontSize="md" fontWeight="semibold" color={textColor}>
+              {request.reason || "I need a bit more information to complete your request."}
+            </Text>
+          )}
           {request.originalQuery && (
             <Text fontSize="xs" color={mutedColor} mt={1} fontStyle="italic">
               Original request: "{request.originalQuery}"

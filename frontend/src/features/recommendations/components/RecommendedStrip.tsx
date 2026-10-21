@@ -31,14 +31,14 @@ export default function RecommendedStrip() {
         {data?.profile.personalized ? "New games picked from what you rate, finish and play." : "Popular games to get you started. Rate or finish a few and these get personal."}
       </Text>
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={5}>
-        {picks.map((rec) => (
+        {picks.map((rec, i) => (
           <RecommendationCard
             key={`${rec.source}-${rec.gameId ?? rec.rawgId}`}
             rec={rec}
             onAddToLibrary={addToLibrary}
             onDismiss={dismiss}
             onStartPlaying={startPlaying}
-            showScore={!!data?.profile.personalized}
+            showScore={!!data?.profile.personalized && i === 0}
           />
         ))}
       </SimpleGrid>

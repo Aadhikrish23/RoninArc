@@ -7,7 +7,7 @@ test.describe("Collections", () => {
   test("creates a collection from the library page @positive", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");
-    await page.getByRole("button", { name: "+ New Collection" }).click();
+    await page.getByRole("button", { name: "New collection" }).click();
     const dialog = page.getByRole("dialog", { name: "Create Collection" });
     await dialog.getByRole("textbox", { name: "Name" }).fill("Soulslikes");
     await dialog.getByRole("textbox", { name: "Description" }).fill("Games that punish me");
@@ -21,7 +21,7 @@ test.describe("Collections", () => {
   test("a blank name does not create a collection @negative", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");
-    await page.getByRole("button", { name: "+ New Collection" }).click();
+    await page.getByRole("button", { name: "New collection" }).click();
     const dialog = page.getByRole("dialog", { name: "Create Collection" });
     await dialog.getByRole("textbox", { name: "Name" }).fill("   ");
     await dialog.getByRole("button", { name: "Create" }).click();
@@ -32,7 +32,7 @@ test.describe("Collections", () => {
   test("cancelling the dialog creates nothing @negative", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");
-    await page.getByRole("button", { name: "+ New Collection" }).click();
+    await page.getByRole("button", { name: "New collection" }).click();
     const dialog = page.getByRole("dialog", { name: "Create Collection" });
     await dialog.getByRole("textbox", { name: "Name" }).fill("Never mind");
     await dialog.getByRole("button", { name: "Cancel" }).click();

@@ -71,7 +71,7 @@ test.describe("Login page", () => {
     await open(page, "/login");
     let called = false;
     page.on("request", (r) => r.url().includes("/auth/login") && (called = true));
-    await page.getByRole("button", { name: "Login" }).click();
+    await page.getByRole("button", { name: "Log in" }).click();
     await expectToast(page, "Login failed", "Please enter both username and password");
     expect(called).toBe(false);
   });
@@ -85,7 +85,7 @@ test.describe("Login page", () => {
   test("the Sign up link opens the signup page @positive", async ({ page }) => {
     await open(page, "/login");
     await page.getByRole("link", { name: "Sign up" }).click();
-    await expect(page.getByRole("heading", { name: /Welcome Ronin/ })).toBeVisible();
+    await expect(page.getByRole("heading", { name: /Welcome, Ronin/ })).toBeVisible();
   });
 });
 
@@ -157,7 +157,7 @@ test.describe("Signup page", () => {
 
   test("the Login link goes back to the login page @positive", async ({ page }) => {
     await open(page, "/signup");
-    await page.getByRole("link", { name: "Login" }).click();
+    await page.getByRole("link", { name: "Log in" }).click();
     await expect(page).toHaveURL(/#\/login$/);
   });
 });
@@ -199,13 +199,13 @@ test.describe("Session & route guard", () => {
     test(`unauthenticated visit to ${path} redirects to login @negative`, async ({ page }) => {
       await open(page, path);
       await expect(page).toHaveURL(/#\/login$/);
-      await expect(page.getByRole("button", { name: "Login" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
     });
   }
 
   test("Logout (Settings) ends the session and protects pages again @positive", async ({ authedPage: page }) => {
     await open(page, "/settings");
-    await page.getByRole("button", { name: "Logout", exact: true }).click();
+    await page.getByRole("button", { name: "Log out", exact: true }).click();
     await expect(page).toHaveURL(/#\/login$/);
     expect(await page.evaluate(() => localStorage.getItem("roninarc_token") ?? sessionStorage.getItem("roninarc_token"))).toBeNull();
     await open(page, "/dashboard");

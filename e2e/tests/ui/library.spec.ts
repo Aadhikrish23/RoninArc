@@ -65,7 +65,7 @@ test.describe("Library home page", () => {
   test("in a plain browser there is nothing to launch or rescan @negative", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"), { progressStatus: "playing" });
     await open(page, "/");
-    await expect(section(page, "Recently Added").getByText("Celeste")).toBeVisible();
+    await expect(section(page, "Continue Playing").getByText("Celeste")).toBeVisible();
     await expect(page.getByRole("button", { name: /^(Launch|Running|Not Installed)$/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Rescan PC Games" })).toHaveCount(0);
     await open(page, `/library/game/${byName("Celeste").id}`);

@@ -61,7 +61,7 @@ export default function LogoutAllDevicesModal({
   <SettingsModal
     isOpen={isOpen}
     onClose={onClose}
-    title="Logout All Devices"
+    title="Log out of all devices"
     footer={
       <>
         <Button
@@ -76,7 +76,7 @@ export default function LogoutAllDevicesModal({
           isLoading={loading}
           onClick={handleSubmit}
         >
-          Logout Everywhere
+          Log out everywhere
         </Button>
       </>
     }

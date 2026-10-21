@@ -68,8 +68,8 @@ function Section({
         </Box>
       ) : (
         <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={5}>
-          {items.map((rec) => (
-            <RecommendationCard key={`${rec.source}-${rec.gameId ?? rec.rawgId}`} rec={rec} {...actions} />
+          {items.map((rec, i) => (
+            <RecommendationCard key={`${rec.source}-${rec.gameId ?? rec.rawgId}`} rec={rec} {...actions} showScore={actions.showScore && i === 0} />
           ))}
         </SimpleGrid>
       )}

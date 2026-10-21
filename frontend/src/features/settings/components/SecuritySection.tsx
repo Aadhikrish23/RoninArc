@@ -44,7 +44,7 @@ export default function SecuritySection({
             onLogoutAllDevices
           }
         >
-          Logout All Devices
+          Log out of all devices
         </Button>
       </VStack>
     </SettingsCard>

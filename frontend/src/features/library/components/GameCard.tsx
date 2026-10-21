@@ -22,6 +22,7 @@ import type { ProviderId } from "../../providers/types/provider";
 import { memo, useState } from "react";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 import RatingText from "../../../shared/components/RatingText";
+import { coverImage } from "../../../shared/utils/placeholderImage";
 
 interface GameCardProps {
   game: Game;
@@ -60,6 +61,7 @@ function GameCard({
 }: GameCardProps) {
   const cardBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
+  const mutedText = useColorModeValue("gray.600", "gray.400");
   // Behind the cover while it loads, so the dark gradient never sits on a white card.
   const coverBg = useColorModeValue("gray.200", "gray.700");
   const navigate = useNavigate();
@@ -92,6 +94,8 @@ function GameCard({
         boxShadow: "xl",
       }}
       onClick={handleCardClick}
+      role="group"
+      aria-label={game.title}
       tabIndex={0}
       onKeyDown={(e) => {
         // Enter opens it from the keyboard, like a click; keys inside the card's own controls don't.
@@ -102,7 +106,7 @@ function GameCard({
       {/* COVER */}
       <Box position="relative" bg={coverBg}>
         <Image
-          src={game.imageURL || PLACEHOLDER_IMAGE}
+          src={coverImage(game.imageURL) || PLACEHOLDER_IMAGE}
           alt={game.title}
           h="240px"
           w="100%"
@@ -216,6 +220,11 @@ function GameCard({
           <Text fontWeight="bold" fontSize="lg" noOfLines={2}>
             {game.title}
           </Text>
+          {game.tags?.length > 0 && (
+            <Text fontSize="xs" color={mutedText} noOfLines={1} mb={1}>
+              {game.tags.slice(0, 3).join(", ")}
+            </Text>
+          )}
           {typeof game.rating === "number" && (
             <RatingText fontSize="sm" fontWeight="semibold" aria-label={`Your rating: ${game.rating} out of 10`}>
               {game.rating}/10

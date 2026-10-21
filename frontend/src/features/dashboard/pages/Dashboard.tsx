@@ -234,7 +234,7 @@ function DashboardPage() {
               )}
             </Panel>
 
-            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
+            <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6} alignItems="start">
               {/* Playtime */}
               <Panel title="Playtime" icon={FiClock}>
                 {data.playtime.totalMinutes === 0 ? (
@@ -311,6 +311,12 @@ function DashboardPage() {
 
               {/* Backlog progress */}
               <Panel title="Backlog progress" icon={FiBookmark}>
+                {data.backlog.size === 0 && data.backlog.byStatus.completed === 0 && data.backlog.byStatus.dropped === 0 ? (
+                  <Text fontSize="sm" color={mutedText}>
+                    Nothing in your backlog yet. Mark games as Plan to Play and they'll show up here.
+                  </Text>
+                ) : (
+                <>
                 <Flex justify="space-between" align="baseline" mb={1}>
                   <Text fontSize="sm">
                     <Text as="span" fontSize="2xl" fontWeight="bold">
@@ -377,6 +383,8 @@ function DashboardPage() {
                       </HStack>
                     ))}
                   </VStack>
+                )}
+                </>
                 )}
               </Panel>
             </SimpleGrid>

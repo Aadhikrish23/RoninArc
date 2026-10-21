@@ -38,8 +38,9 @@ test.describe("Dashboard", () => {
     await open(page, "/dashboard");
     await expect(panel(page, "Pick up where you left off")).toContainText("Nothing in progress.");
     await expect(panel(page, "Playtime")).toContainText("Playtime is tracked when you launch games from the RoninArc desktop app.");
-    await expect(panel(page, "Backlog progress")).toContainText("0 games in your backlog");
-    await expect(panel(page, "Backlog progress")).toContainText("Nothing planned yet.");
+    // An empty account gets one line, not "0 games ... 0 of 0 finished" over a grid of zeros.
+    await expect(panel(page, "Backlog progress")).toContainText("Nothing in your backlog yet.");
+    await expect(panel(page, "Backlog progress")).not.toContainText("0 of 0");
     await expect(panel(page, "Recent activity")).toContainText("No activity yet.");
   });
 
@@ -121,8 +122,8 @@ test.describe("Settings", () => {
 
   test("logout everywhere returns to login @positive", async ({ authedPage: page }) => {
     await open(page, "/settings");
-    await page.getByRole("button", { name: "Logout All Devices" }).click();
-    await page.getByRole("dialog", { name: "Logout All Devices" }).getByRole("button", { name: "Logout Everywhere" }).click();
+    await page.getByRole("button", { name: "Log out of all devices" }).click();
+    await page.getByRole("dialog", { name: "Log out of all devices" }).getByRole("button", { name: "Log out everywhere" }).click();
     await expect(page).toHaveURL(/#\/login$/);
   });
 

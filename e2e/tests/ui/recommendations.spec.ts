@@ -130,7 +130,8 @@ test.describe("Recommended For You strip (library home)", () => {
       await route.fulfill({ response: res, json: body });
     });
     await open(page, "/");
-    await expect(page.getByRole("heading", { name: "Recently Added" })).toBeVisible();
+    // A small library doesn't repeat Celeste under Recently Added; it's under Completed Games.
+    await expect(page.getByRole("heading", { name: "Completed Games" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Recommended For You" })).toHaveCount(0);
   });
 });

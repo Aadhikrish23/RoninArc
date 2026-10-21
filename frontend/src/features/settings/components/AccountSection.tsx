@@ -43,7 +43,7 @@ export default function AccountSection({
           variant="outline"
           onClick={onLogout}
         >
-          Logout
+          Log out
         </Button>
       </VStack>
     </SettingsCard>

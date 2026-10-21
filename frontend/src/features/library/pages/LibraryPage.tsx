@@ -36,6 +36,7 @@ import CollectionCarousel from "../components/CollectionCarousel";
 import { useLaunchGame } from "../hooks/useLaunchGame";
 import RecommendedStrip from "../../recommendations/components/RecommendedStrip";
 import LoadError from "../../../shared/components/LoadError";
+import { FiPlus } from "react-icons/fi";
 
 function LibraryPage() {
   const {
@@ -200,12 +201,11 @@ function LibraryPage() {
   }, [games]);
 
   const recentlyAddedGames = useMemo(() => {
-    return [...games]
-      .sort(
-        (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-      )
-      .slice(0, 20);
+    const newest = [...games].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    // In a small library every game is "recent", so this row repeated the rows above it card for
+    // card. Leave out games already shown there; big libraries keep the plain newest-first list.
+    if (games.length > 8) return newest.slice(0, 20);
+    return newest.filter((g) => g.progressStatus !== "playing" && g.progressStatus !== "completed" && !(typeof g.rating === "number" && g.rating >= 8));
   }, [games]);
 
   const completedGames = useMemo(() => {
@@ -340,8 +340,9 @@ function LibraryPage() {
                       colorScheme="purple"
                       variant="outline"
                       onClick={openCollectionModal}
+                      leftIcon={<FiPlus />}
                     >
-                      + New Collection
+                      New collection
                     </Button>
                   </Flex>
                   <Box
@@ -364,14 +365,16 @@ function LibraryPage() {
                   </Box>
                 </VStack>
 
-                <HorizontalSection title="Recently Added">
-                  <GameCarousel
-                    games={recentlyAddedGames}
-                    onLaunch={openLaunchModal}
-                    onStatusChange={updateStatus}
-                    runningGames={runningGames}
-                  />
-                </HorizontalSection>
+                {recentlyAddedGames.length > 0 && (
+                  <HorizontalSection title="Recently Added">
+                    <GameCarousel
+                      games={recentlyAddedGames}
+                      onLaunch={openLaunchModal}
+                      onStatusChange={updateStatus}
+                      runningGames={runningGames}
+                    />
+                  </HorizontalSection>
+                )}
 
                 {/* Your own games first; picks for you after them. */}
                 <RecommendedStrip />

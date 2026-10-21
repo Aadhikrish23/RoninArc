@@ -99,6 +99,7 @@ function Login() {
           <Box
             w="full"
             maxW="md"
+            width={["90%", "460px", "500px"]}
             bg="gray.800"
             borderRadius="xl"
             boxShadow="8px 8px 15px #ff004d"
@@ -192,7 +193,7 @@ function Login() {
                 isLoading={loading}
                 loadingText="Logging in..."
               >
-                Login
+                Log in
               </Button>
             </Stack>
 

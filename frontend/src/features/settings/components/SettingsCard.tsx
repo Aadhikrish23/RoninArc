@@ -27,7 +27,7 @@ export default function SettingsCard({
 
   const darkBg = useColorModeValue(
     "white",
-    "rgba(17,24,39,0.9)"
+    "gray.800"
   );
 
   const borderColor = useColorModeValue(
