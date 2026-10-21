@@ -32,6 +32,8 @@ export interface LastChange {
   adding: string[];
   /** Games the plan removed, kept whole so "undo" / "add it back" can restore them. */
   removed?: RemovedGame[];
+  /** Something undo can't restore happened after this change (a rename, an offer that ran). */
+  untrackedAfter?: boolean;
 }
 
 interface RemovedGame {
@@ -113,8 +115,14 @@ export function rememberChange(userId: string, change: LastChange) {
 }
 
 /** A change undo can't put back (collection moves, renames): "undo" must not reach past it. */
+/**
+ * Something undo can't put back just happened. The earlier change stays undoable by name
+ * ("undo the gta thing" after a rename), but a plain "undo that" no longer reaches past it:
+ * the player would expect it to undo the newer thing.
+ */
 export function forgetChange(userId: string) {
-  lastChanges.delete(userId);
+  const change = lastChanges.get(userId);
+  if (change) lastChanges.set(userId, { ...change, untrackedAfter: true });
 }
 
 /** Does the plan change anything undo can't restore? */
@@ -122,14 +130,28 @@ export function hasUntrackedChanges(plan: IntentPlan): boolean {
   return plan.intents.some((i) => !CHANGES.has(i.type) && !READ_ONLY.has(i.type) && i.type !== IntentType.AskQuestion && i.type !== IntentType.Help);
 }
 
+/** The last undoable change, unless something untracked came after it (corrections and plain undo). */
 export function lastChange(userId: string): LastChange | undefined {
+  const change = recentChange(userId);
+  return change && !change.untrackedAfter ? change : undefined;
+}
+
+/** Games an earlier change touched when a plain "undo" can't reach it (something untracked came after). */
+export function changeBehindUntracked(userId: string): string[] {
+  const change = recentChange(userId);
+  if (!change?.untrackedAfter) return [];
+  return [...change.games.map((g) => g.title), ...change.adding, ...(change.removed ?? []).map((r) => String(r.game.title))];
+}
+
+function recentChange(userId: string): LastChange | undefined {
   const change = lastChanges.get(userId);
   return change && Date.now() - change.at.getTime() < UNDO_WINDOW_MS ? change : undefined;
 }
 
 /** Puts back what the last change touched. Returns a description of what was undone. */
 export async function undoLastChange(userId: string, only?: string): Promise<string | undefined> {
-  const change = lastChange(userId);
+  // Naming the game reaches past a later rename; a plain "undo" doesn't.
+  const change = only ? recentChange(userId) : lastChange(userId);
   if (!change) return undefined;
   // "undo the cod one": just that game; the rest of the change stays (and stays undoable).
   const pick = (title: string) => !only || sameGame(only, title) || sameGame(title, only);

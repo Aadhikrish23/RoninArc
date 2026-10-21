@@ -205,9 +205,9 @@ export function diversifyReasons<T extends { reasons: string[]; genres: string[]
       return count < 2;
     });
     if (kept.length > 0) return { ...rec, reasons: kept };
-    const year = rec.released ? new Date(rec.released).getFullYear() : undefined;
-    const what = [rec.genres.slice(0, 2).join(", "), year && !Number.isNaN(year) ? String(year) : ""].filter(Boolean).join(", ");
-    return { ...rec, reasons: [rec.source === "library" ? "Waiting in your backlog" : what || "Something new to try"] };
+    if (rec.source === "library") return { ...rec, reasons: ["Waiting in your backlog"] };
+    const year = rec.released ? new Date(rec.released).getFullYear() : NaN;
+    return { ...rec, reasons: Number.isNaN(year) ? [] : [`Released in ${year}`] };
   });
 }
 

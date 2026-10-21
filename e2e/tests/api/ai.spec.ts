@@ -252,7 +252,7 @@ test.describe("AI chat API: everyday requests", () => {
 
     const backlog = await chat(api, "what's in my backlog?");
     expect(backlog.body.success).toBe(true);
-    expect(backlog.body.message).toBe("You have 2 games in your backlog:\n- Playing: Fallout Shelter\n- Planned: Celeste");
+    expect(backlog.body.message).toBe("You have 2 games in your backlog:\n\n**Playing** (1)\n- Fallout Shelter\n\n**Planned** (1)\n- Celeste");
 
     const counts = await chat(api, "how many games do i have and how many have i finished?");
     expect(counts.body.message).toContain("You have 3 games: 1 playing, 1 plan to play, 1 completed.");

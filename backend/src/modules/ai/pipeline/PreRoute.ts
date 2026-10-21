@@ -30,7 +30,7 @@ import {
 } from "../conversation/FollowUps";
 import { editReview, runCollectionCommand } from "../conversation/DirectActions";
 import { CORRECTION, EXPLICIT_ACTION, LOOKS_LIKE_QUESTION, RECOMMEND_ASK } from "./Patterns";
-import { forgetChange, lastChange, lastChangeTouched, undoLastChange } from "./UndoLog";
+import { changeBehindUntracked, forgetChange, lastChange, lastChangeTouched, undoLastChange } from "./UndoLog";
 
 /** "undo", "undo that", "revert that", "put it back". */
 /** "undo that", and after a removal "add it back" / "bring it back". */
@@ -80,6 +80,14 @@ export async function preRoute({ userId, requestId, message, client, session, re
     const only = namedTitles(message, owned)[0] ?? franchiseMatch(message, owned);
     const undone = await undoLastChange(userId, only);
     if (undone) return reply({ success: true, message: undone });
+    // "undo that" right after a rename: that can't be undone, but the change before it can, by name.
+    const behind = only ? [] : changeBehindUntracked(userId);
+    if (behind.length > 0) {
+      return reply({
+        success: true,
+        message: `I can't undo that last one (collection renames and deletes aren't tracked). The change before it can be: say "undo the ${behind[0]} change".`,
+      });
+    }
   }
 
   // "no, i said the witcher not dead cells": undo the change on the wrong game first.

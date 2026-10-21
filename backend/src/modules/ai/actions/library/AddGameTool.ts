@@ -50,7 +50,21 @@ export class AddGameTool extends BaseTool<AddGameInput, any> {
       const closest = ranked.slice(0, 3).map((r) => `"${r.item.name}"`).join(", ");
       return this.failure(`I couldn't find a game called "${gameName}". The closest matches were ${closest}. Try the full title.`);
     }
-    const match = ranked[0].item;
+    // "add zelda" added a 2023 fan remake called "Zelda" (4 player reviews) because its title
+    // matched exactly. When the best title match is obscure and real games in the series match
+    // too, ask which one instead of guessing.
+    const top = ranked[0];
+    const added = (r: { item: any }) => Number(r.item.added ?? 0);
+    const known = ranked.filter((r) => r !== top && r.score >= 60 && added(r) >= Math.max(500, added(top) * 20));
+    if (added(top) < 500 && known.length > 0) {
+      const options = known.slice(0, 3).map((r) => r.item.name);
+      return this.success(
+        { ambiguous: true, options },
+        `Which one do you mean? For example ${options.map((o) => `"${o}"`).join(", ")}. Say "add" with the full title and I'll add it.`,
+        { ambiguous: true },
+      );
+    }
+    const match = top.item;
 
     try {
       const game = await libraryToolService.addGame(context.userId, {

@@ -71,7 +71,7 @@ export function unsupportedReply(message: string): string | undefined {
     return `I can't ${cant.join(" or ")} yet, so I didn't change anything. Tell me if you want a game added to your backlog instead.`;
   }
   if (UNDO.test(message)) {
-    return "There's nothing I can undo right now, so nothing changed. I can undo the last status, rating, note, added game or removal from the past 30 minutes. For a collection, say something like \"take Hades out of Soulslike\".";
+    return "There's nothing I can undo right now, so nothing changed. I can undo the last status, rating, note, added game or removal from the past 30 minutes. Name the game to reach further back, like \"undo the hades change\". Collection changes can't be undone, but you can just say the opposite (\"take it out of that collection\").";
   }
   return undefined;
 }
@@ -104,7 +104,8 @@ export function namedCollection(message: string, collections: string[]): string 
 export function lastMentionedCollection(exchanges: Exchange[], collections: string[]): string | undefined {
   for (let i = exchanges.length - 1; i >= 0; i--) {
     // Any quoted name that is a collection: 'renamed the collection "Soulslike" to "Git Gud"' ends on the new name.
-    const names = [...exchanges[i].assistant.matchAll(/"([^"]+)"/g)].map((m) => m[1]);
+    // Bold counts too: "**Soulslikes** has 2 games" (the collection-contents answer) is about Soulslikes.
+    const names = [...exchanges[i].assistant.matchAll(/"([^"]+)"|\*\*([^*]+)\*\*/g)].map((m) => m[1] ?? m[2]);
     const found = names.reverse().find((n) => collections.some((c) => c.toLowerCase() === n.toLowerCase()));
     if (found) return collections.find((c) => c.toLowerCase() === found.toLowerCase());
   }

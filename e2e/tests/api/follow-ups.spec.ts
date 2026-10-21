@@ -449,3 +449,11 @@ test.describe("AI: round 20 renames, typos and follow-ups", () => {
     expect(plan.intents[0].targets[0].name).toBe("Dark Souls III");
   });
 });
+
+// Playtest round 21.
+test.describe("AI: round 21 collection references", () => {
+  test('"rename it to fromsoft pain" right after "**Soulslikes** has 2 games" renames Soulslikes @positive', () => {
+    const exchanges = [{ user: "whats in my soulslikes list", assistant: "**Soulslikes** has 2 games:\n- Sekiro\n- Elden Ring" }] as any;
+    expect(parseCollectionCommand("rename it to fromsoft pain", ["Soulslikes"], exchanges)).toEqual({ kind: "rename", name: "Soulslikes", newName: "fromsoft pain" });
+  });
+});

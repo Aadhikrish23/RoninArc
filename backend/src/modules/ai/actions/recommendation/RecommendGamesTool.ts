@@ -9,7 +9,10 @@ interface RecommendGamesInput {
 }
 
 // Two reasons, so a length or style the user asked for ("Shorter: about 10h") shows next to the taste match.
-const describe = (r: Recommendation) => `- **${r.title}**: ${r.reasons.slice(0, 2).join("; ")}`;
+const describe = (r: Recommendation) => {
+  const why = r.reasons.slice(0, 2).map((reason, i) => (i > 0 ? reason.charAt(0).toLowerCase() + reason.slice(1) : reason)).join("; ");
+  return why ? `- **${r.title}**: ${why}` : `- **${r.title}**`;
+};
 const PICKS = 3;
 /** "got 2 hrs tonight", "quick session": time-boxed, so lead with games already in progress. */
 const SESSION = /\b\d+(\.\d+)?\s*(h|hr|hrs|hour|hours|min|mins|minutes)\b|\btonight\b|\bquick (session|game)\b|\bshort session\b/i;

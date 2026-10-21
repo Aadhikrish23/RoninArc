@@ -22,7 +22,7 @@ test.describe("Recommendation reasons", () => {
       ["Critically acclaimed (Metacritic 94)"],
       ["Critically acclaimed (Metacritic 92)"],
       ["Shorter: about 8h on average"],
-      ["Platformer, Indie, 2018"],
+      ["Released in 2018"],
     ]);
   });
 

@@ -99,13 +99,14 @@ export class LibraryQuestionTool extends BaseTool<LibraryQuestionInput, any> {
       if (backlog.length === 0) {
         return this.success({ backlog }, "Your backlog is empty: nothing is set to Plan to Play, Playing or Paused.");
       }
-      // A short list per status reads better than one long sentence.
-      const parts = [
-        counts.playing ? `- Playing: ${listTitles(by("playing"))}` : "",
-        counts.paused ? `- Paused: ${listTitles(by("paused"))}` : "",
-        counts.plan ? `- Planned: ${listTitles(by("plan"))}` : "",
-      ].filter(Boolean);
-      return this.success({ backlog }, `You have ${plural(backlog.length, "game")} in your backlog:\n${parts.join("\n")}`);
+      // One short list per status: "- Planned: A, B, C, D, E, F" on one line was hard to scan.
+      const group = (label: string, titles: string[]) => {
+        if (titles.length === 0) return "";
+        const shown = titles.slice(0, 8).map((t) => `- ${t}`).join("\n");
+        return `**${label}** (${titles.length})\n${shown}${titles.length > 8 ? `\n- and ${titles.length - 8} more` : ""}`;
+      };
+      const parts = [group("Playing", by("playing")), group("Paused", by("paused")), group("Planned", by("plan"))].filter(Boolean);
+      return this.success({ backlog }, `You have ${plural(backlog.length, "game")} in your backlog:\n\n${parts.join("\n\n")}`);
     }
 
     const statusAsked = (

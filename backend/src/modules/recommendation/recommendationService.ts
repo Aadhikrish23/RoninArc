@@ -83,6 +83,10 @@ const STYLE_TAGS: [RegExp, string, string][] = [
   [/\bhorror\b/, "horror", "Horror"],
 ];
 
+/** Genres and RAWG tags of games built for short sessions (a run, a level, a match). */
+const SESSION_GENRES = /\b(platformer|arcade|puzzle|fighting|racing|card|sports|casual)\b/i;
+const SESSION_TAGS = new Set(["roguelike", "roguelite", "rogue-lite", "arcade", "short", "platformer", "puzzle", "card-game", "deckbuilding", "local-multiplayer", "pvp", "replay-value", "procedural-generation"]);
+
 /** "what should I play tonight", "only got an hour", "30 mins": a session, so in-progress games lead. */
 const SESSION = /\b(tonight|today|right now|rn|this evening|an hour|one hour|half an hour|\d+\s*(min|mins|minutes|h|hr|hrs|hours?))\b/;
 
@@ -247,7 +251,15 @@ async function getRecommendations(
       // it's in progress: three playtesters in a row got RDR2 and The Witcher 3 for "2 hours".
       const tight = /\b[1-3](?:\s*(?:-|to)\s*[1-3])?\s*(h|hr|hrs|hours?)\b|\b(an|one|half an?) hour\b|\b\d{1,2}\s*(min|mins|minutes)\b/.test(q);
       const shortEnough = backlogPool.filter((g) => (g.avgHours ?? 0) <= 25);
-      backlogPool = tight && shortEnough.length > 0 ? shortEnough : backlogPool.filter((g) => g.progressStatus === "playing" || (g.avgHours ?? 0) <= 25);
+      let pool = shortEnough;
+      if (tight && shortEnough.length > 0) {
+        // Games you can drop into for an hour or two (runs, levels, matches) beat a story you'd
+        // have to commit to: "2 hrs before bed" got GTA V and Disco Elysium, and missed Hades.
+        const tagged = await Promise.all(shortEnough.map(async (g) => ({ g, tags: g.rawgId ? await tagsFor(g.rawgId) : [] })));
+        const sessiony = tagged.filter(({ g, tags }) => SESSION_GENRES.test((g.tags ?? []).join(",")) || tags.some((t) => SESSION_TAGS.has(t))).map(({ g }) => g);
+        if (sessiony.length >= 2) pool = sessiony;
+      }
+      backlogPool = tight && pool.length > 0 ? pool : backlogPool.filter((g) => g.progressStatus === "playing" || (g.avgHours ?? 0) <= 25);
     }
     if (styles.slugs.length === 0) {
       result.backlog = rankBacklog(backlogPool, profile, { limit: options.limit, focus, length: backlogLength, like, session });
