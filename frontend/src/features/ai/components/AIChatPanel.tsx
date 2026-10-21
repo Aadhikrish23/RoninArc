@@ -82,7 +82,7 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
             RoninArc AI Assistant
           </Heading>
           <Text fontSize="xs" color={mutedText}>
-            {isTyping ? "Processing..." : `${messages.length} ${messages.length === 1 ? "message" : "messages"}`}
+            {isTyping ? "Processing..." : messages.length > 0 ? `${messages.length} ${messages.length === 1 ? "message" : "messages"}` : "Ask about your library"}
           </Text>
         </Box>
         <HStack spacing={1}>
@@ -112,7 +112,7 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
       <Box flex="1" overflowY="auto" px={{ base: 4, md: 6 }} py={5} display="flex" flexDirection="column">
         <Box w="full" flex="1">
           {messages.length === 0 ? (
-            <Flex direction="column" align="center" justify="center" h="full" textAlign="center" py={10}>
+            <Flex direction="column" align="center" justify="center" minH="full" textAlign="center" py={10}>
               <Box p={4} borderRadius="full" bg="purple.500" color="white" shadow="lg" mb={5}>
                 <Icon as={IoSparklesOutline} w={8} h={8} />
               </Box>

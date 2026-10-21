@@ -159,7 +159,7 @@ function DashboardPage() {
 
   return (
     <Box minH="100vh" bg={bg}>
-      <Box maxW="1200px" mx="auto" px={6} py={8}>
+      <Box maxW="1400px" mx="auto" px={6} py={8}>
         <Box mb={6}>
           <Heading size="lg">Dashboard</Heading>
           <Text fontSize="sm" color={mutedText} mt={1}>
@@ -312,7 +312,7 @@ function DashboardPage() {
                   </Text>
                 </Flex>
                 <Text fontSize="xs" color={mutedText} mb={2}>
-                  Your backlog is everything set to Plan to Play, Playing or Paused. {data.backlog.byStatus.completed} of {committed} finished (backlog plus completed; dropped games aren't counted).
+                  {data.backlog.byStatus.completed} of {committed} finished. Dropped games don't count.
                 </Text>
                 <Progress value={completedShare} colorScheme="green" size="sm" borderRadius="full" mb={4} aria-label="Finished out of planned, playing, paused and completed games" />
 

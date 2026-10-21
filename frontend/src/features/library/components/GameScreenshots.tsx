@@ -1,3 +1,4 @@
+import type React from "react";
 import {
   Box,
   Heading,
@@ -36,6 +37,7 @@ export default function GameScreenshots({
       </Heading>
 
       <Swiper
+        style={{ "--swiper-navigation-color": "#B794F4", "--swiper-navigation-size": "28px" } as React.CSSProperties}
         modules={[
           Navigation,
           Autoplay,
@@ -43,16 +45,17 @@ export default function GameScreenshots({
         navigation
         autoplay={{
           delay: 4000,
-          disableOnInteraction: false,
+          disableOnInteraction: true,
         }}
         spaceBetween={20}
         slidesPerView={1}
       >
         {screenshots.map(
-          (src) => (
+          (src, i) => (
             <SwiperSlide key={src}>
               <Image
                 src={src}
+                alt={`Screenshot ${i + 1}`}
                 h="500px"
                 w="100%"
                 objectFit="cover"

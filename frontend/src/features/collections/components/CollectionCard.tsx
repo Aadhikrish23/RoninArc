@@ -42,6 +42,11 @@ export default function CollectionCard({
       onClick={() =>
         navigate(`/collections/${collection._id}`)
       }
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target === e.currentTarget) navigate(`/collections/${collection._id}`);
+      }}
+      _focusVisible={{ outline: "2px solid", outlineColor: "purple.400", outlineOffset: "2px" }}
     >
       <CollectionCover games={collection.gameIds} />
 

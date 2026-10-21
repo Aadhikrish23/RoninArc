@@ -84,6 +84,12 @@ function GameListRow({
       transition="all 0.2s ease"
       cursor="pointer"
       onClick={handleRowClick}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        // Enter opens it from the keyboard, like a click; keys inside the card's own controls don't.
+        if (e.key === "Enter" && e.target === e.currentTarget) handleRowClick();
+      }}
+      _focusVisible={{ outline: "2px solid", outlineColor: "purple.400", outlineOffset: "2px" }}
       w="100%"
     >
       <HStack spacing={4} justify="space-between" align="center" wrap="wrap">

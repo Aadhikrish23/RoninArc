@@ -39,7 +39,7 @@ export default function CollectionGameCard({
         variant="outline"
         onClick={() => onRemove(game._id)}
       >
-        Remove From Collection
+        Remove from Collection
       </Button>
     </VStack>
   );

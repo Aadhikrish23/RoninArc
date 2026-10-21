@@ -6,6 +6,7 @@ import {
   Spinner,
   Tag,
   Text,
+  useColorModeValue,
   useToast,
 } from "@chakra-ui/react";
 import { ArrowBackIcon } from "@chakra-ui/icons";
@@ -48,6 +49,7 @@ import {
 
 export default function GameDetailsPage() {
   const { rawgId } = useParams();
+  const aboutText = useColorModeValue("gray.600", "gray.400");
 
   const {
     games,
@@ -278,7 +280,7 @@ export default function GameDetailsPage() {
           About
         </Heading>
 
-        <Text color="gray.500" lineHeight="1.8" whiteSpace="pre-wrap">
+        <Text color={aboutText} lineHeight="1.8" whiteSpace="pre-wrap">
           {game.description}
         </Text>
       </Box>

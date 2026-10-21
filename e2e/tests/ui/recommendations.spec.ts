@@ -51,10 +51,10 @@ test.describe("For You (recommendations) page", () => {
     expect(library.map((g: any) => g.title)).toEqual(["Celeste"]);
   });
 
-  test("'Start Playing' moves a backlog pick to Continue Playing @positive", async ({ authedPage: page, api }) => {
+  test("'Start playing' moves a backlog pick to Continue Playing @positive", async ({ authedPage: page, api }) => {
     const g = await api.addGame(byName("Celeste"));
     await open(page, "/recommendations");
-    await cardIn(page, "Play Next", "Celeste").getByRole("button", { name: "Start Playing" }).click();
+    await cardIn(page, "Play Next", "Celeste").getByRole("button", { name: "Start playing" }).click();
     await expect(page.getByText("Marked Celeste as Playing")).toBeVisible();
     await expect.poll(async () => (await json(await api.get(`/game/${g._id}`))).Data.progressStatus).toBe("playing");
   });

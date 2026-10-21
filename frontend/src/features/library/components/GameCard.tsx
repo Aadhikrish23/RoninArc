@@ -89,11 +89,17 @@ function GameCard({
         boxShadow: "xl",
       }}
       onClick={handleCardClick}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        // Enter opens it from the keyboard, like a click; keys inside the card's own controls don't.
+        if (e.key === "Enter" && e.target === e.currentTarget) handleCardClick();
+      }}
+      _focusVisible={{ outline: "2px solid", outlineColor: "purple.400", outlineOffset: "2px" }}
     >
       {/* COVER */}
       <Box position="relative">
         <Image
-          src={game.imageURL}
+          src={game.imageURL || PLACEHOLDER_IMAGE}
           alt={game.title}
           h="240px"
           w="100%"
@@ -104,6 +110,7 @@ function GameCard({
           opacity={loaded ? 1 : 0}
           transition="opacity .3s"
           onLoad={() => setLoaded(true)}
+          onError={() => setLoaded(true)}
         />
 
         <Box

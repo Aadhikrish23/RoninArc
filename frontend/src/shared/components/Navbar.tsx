@@ -82,7 +82,7 @@ function Navbar() {
 
         {/* User Profile */}
         <HStack spacing={3}>
-          <Avatar size="sm" name={displayName} />
+          <Avatar size="sm" name={displayName} bg="purple.500" color="white" />
           <Text fontSize="sm">{displayName}</Text>
 
           {/* TODO: Logout button later */}

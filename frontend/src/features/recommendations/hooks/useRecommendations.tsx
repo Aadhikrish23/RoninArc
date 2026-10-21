@@ -57,8 +57,7 @@ export function useRecommendations(options: { limit: number; q?: string }) {
               <Text fontSize="sm">We won't suggest {rec.title} again.</Text>
               <Button
                 size="sm"
-                variant="outline"
-                colorScheme="whiteAlpha"
+                colorScheme="purple"
                 onClick={() => {
                   onClose();
                   undoDismiss(rec);

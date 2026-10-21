@@ -98,7 +98,7 @@ test.describe("Collections", () => {
       const c = await api.createCollection("Roguelikes");
       await api.post(`/collection/${c._id}/games`, { gameId: g._id });
       await open(page, `/collections/${c._id}`);
-      await page.getByRole("button", { name: "Remove From Collection" }).click();
+      await page.getByRole("button", { name: "Remove from Collection" }).click();
       await expect(page.getByRole("img", { name: "Hades" })).toHaveCount(0);
       await expect.poll(async () => (await json(await api.get(`/collection/${c._id}`))).Data.gameIds).toEqual([]);
       expect((await api.get(`/game/${g._id}`)).status()).toBe(200);

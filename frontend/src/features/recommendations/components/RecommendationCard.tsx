@@ -87,21 +87,21 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
           ))}
         </Stack>
 
-        <HStack spacing={2}>
+        <HStack spacing={2} flexWrap="wrap">
           {fromLibrary && rec.status === "playing" ? (
             <Button size="sm" colorScheme="purple" variant="outline" flex="1" onClick={openDetails}>
               View game
             </Button>
           ) : fromLibrary ? (
             <Button size="sm" colorScheme="purple" flex="1" onClick={() => onStartPlaying(rec)}>
-              Start Playing
+              Start playing
             </Button>
           ) : (
             <>
-              <Button size="sm" colorScheme="purple" flex="1" onClick={() => onAddToLibrary(rec)}>
+              <Button size="sm" colorScheme="purple" flex="1" minW="fit-content" onClick={() => onAddToLibrary(rec)}>
                 Add to Library
               </Button>
-              <Button size="sm" variant="ghost" onClick={() => onDismiss(rec)}>
+              <Button size="sm" variant="ghost" flexShrink={0} onClick={() => onDismiss(rec)}>
                 Not interested
               </Button>
             </>

@@ -161,6 +161,7 @@ export default function UserGameStats({
               as={Button}
               size="sm"
               colorScheme={STATUS_COLORS[game.progressStatus || "none"]}
+              variant="outline"
               borderRadius="full"
               rightIcon={<ChevronDownIcon />}
             >
@@ -214,16 +215,12 @@ export default function UserGameStats({
                 >
                   "{review.reviewText}"
                 </Text>
-              ) : (
-                <Text fontSize="sm" color="gray.400" fontStyle="italic">
-                  No review text
-                </Text>
-              )}
+              ) : null}
               <HStack spacing={3}>
-                <Button size="xs" colorScheme="purple" variant="outline" onClick={onReview}>
+                <Button size="sm" colorScheme="purple" variant="outline" onClick={onReview}>
                   Edit Review
                 </Button>
-                <Button size="xs" colorScheme="red" variant="outline" onClick={onDeleteReview}>
+                <Button size="sm" colorScheme="red" variant="ghost" onClick={onDeleteReview}>
                   Delete Review
                 </Button>
               </HStack>
@@ -233,7 +230,7 @@ export default function UserGameStats({
               <Text fontSize="sm" color="gray.500">
                 No review yet.
               </Text>
-              <Button size="xs" colorScheme="purple" onClick={onReview} width="fit-content">
+              <Button size="sm" colorScheme="purple" onClick={onReview} width="fit-content">
                 Write Review
               </Button>
             </VStack>
@@ -354,22 +351,13 @@ export default function UserGameStats({
 
         {canLaunchGames() && <Divider my={2} />}
 
-        {/* DANGER ZONE */}
-        <Box pt={2}>
-          <Text
-            fontSize="xs"
-            fontWeight="bold"
-            color="red.500"
-            textTransform="uppercase"
-            mb={3}
-          >
-            Danger Zone
-          </Text>
+        {/* Removing asks first (confirm dialog), so it can be a quiet button. */}
+        <Box pt={2} textAlign="right">
           <Button
-            w="100%"
+            size="sm"
             leftIcon={<FiTrash2 />}
             colorScheme="red"
-            variant="outline"
+            variant="ghost"
             onClick={() => onDelete(game._id)}
           >
             Remove from Library

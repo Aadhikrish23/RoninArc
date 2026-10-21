@@ -1,10 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { SimpleGrid, VStack, HStack, IconButton, Box, Button, Heading, Text } from "@chakra-ui/react";
+import { SimpleGrid, VStack, HStack, IconButton, Box, Button, ButtonGroup, Heading, Text } from "@chakra-ui/react";
 
 import { useState } from "react";
 
-import { BsGrid3X3Gap } from "react-icons/bs";
-import { RxHamburgerMenu } from "react-icons/rx";
+import { FiGrid, FiList } from "react-icons/fi";
 
 import CollectionGameCard from "./CollectionGameCard";
 import GameListRow from "../../library/components/GameListRow";
@@ -54,19 +53,22 @@ export default function CollectionGamesSection({
   return (
     <>
       <HStack justify="flex-end" mb={6}>
-        <IconButton
-          aria-label="List View"
-          icon={<RxHamburgerMenu />}
-          colorScheme={viewMode === "list" ? "purple" : undefined}
-          onClick={() => setViewMode("list")}
-        />
-
-        <IconButton
-          aria-label="Grid View"
-          icon={<BsGrid3X3Gap />}
-          colorScheme={viewMode === "grid" ? "purple" : undefined}
-          onClick={() => setViewMode("grid")}
-        />
+        <ButtonGroup size="sm" isAttached variant="outline">
+          <IconButton
+            aria-label="Grid View"
+            aria-pressed={viewMode === "grid"}
+            icon={<FiGrid />}
+            colorScheme={viewMode === "grid" ? "purple" : undefined}
+            onClick={() => setViewMode("grid")}
+          />
+          <IconButton
+            aria-label="List View"
+            aria-pressed={viewMode === "list"}
+            icon={<FiList />}
+            colorScheme={viewMode === "list" ? "purple" : undefined}
+            onClick={() => setViewMode("list")}
+          />
+        </ButtonGroup>
       </HStack>
 
       {viewMode === "grid" ? (
