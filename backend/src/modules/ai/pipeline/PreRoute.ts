@@ -40,7 +40,8 @@ import { ModelGateway } from "./ModelGateway";
 import { confirmationResponse, type RuntimeResponse } from "./Replies";
 
 export type PreRouteOutcome =
-  | { kind: "reply"; response: RuntimeResponse }
+  /** "rest": more of the message to handle after this reply ("rename X to Y and get rid of Z"). */
+  | { kind: "reply"; response: RuntimeResponse; rest?: string }
   /** `notice` goes in front of the reply ("Sorry about that. I've undone that. ..."). */
   | { kind: "plan"; plan: IntentPlan; notice?: string; pinned?: string };
 
@@ -153,7 +154,10 @@ export async function preRoute({ userId, requestId, message, client, session, re
   if (collectionCommand) {
     forgetChange(userId);
     const result = await runCollectionCommand(userId, collectionCommand, requestContext.library.collections);
-    if (result.kind === "reply") return reply({ success: result.success, message: result.message });
+    if (result.kind === "reply") {
+      const rest = collectionCommand.kind === "rename" && result.success ? collectionCommand.rest : undefined;
+      return { kind: "reply", response: { success: result.success, message: result.message }, ...(rest ? { rest } : {}) };
+    }
     pendingConfirmations.put(userId, { run: result.run, label: result.label });
     return reply(confirmationResponse(requestId, message, result.question, "Yes, delete it"));
   }

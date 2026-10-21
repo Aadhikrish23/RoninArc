@@ -207,7 +207,8 @@ test.describe("AI: round 11 names and renames", () => {
     expect(namedTitles("started hades last night", owned)).toEqual([]);
   });
   test("'rename X to Git Gud and tell me whats in it' names it Git Gud @positive", () => {
-    expect(parseCollectionCommand("rename the soulslike list to Git Gud and tell me whats in it", ["Soulslike"], [])).toEqual({ kind: "rename", name: "Soulslike", newName: "Git Gud" });
+    // The rest ("tell me whats in it") runs after the rename as its own message.
+    expect(parseCollectionCommand("rename the soulslike list to Git Gud and tell me whats in it", ["Soulslike"], [])).toEqual({ kind: "rename", name: "Soulslike", newName: "Git Gud", rest: "tell me whats in it" });
   });
   test("'rename it to just Git Gud' finds the collection just renamed @positive", () => {
     const recent = [{ user: "x", assistant: 'I\'ve renamed the collection "Soulslike" to "Git Gud and tell me".' }];
@@ -410,5 +411,41 @@ test.describe("AI: round 19 follow-ups", () => {
     correctPlan(plan, "actually remove that last game", 'I\'ve added Elden Ring to your collection "Soulslikes". I\'ve added Dark Souls III and Hollow Knight to your collection "Soulslikes".');
     expect(plan.intents[0].type).toBe("OrganizeCollection");
     expect(plan.intents[0].targets[0].name).toBe("Hollow Knight");
+  });
+});
+
+// Playtest round 20.
+test.describe("AI: round 20 renames, typos and follow-ups", () => {
+  test('"rename soulslikes to Git Gud and get rid of cod mw2" names it "Git Gud" and keeps the rest @positive', () => {
+    expect(parseCollectionCommand("rename soulslikes to Git Gud and get rid of cod mw2 i'm never touching it again", ["Soulslikes"], [])).toEqual({
+      kind: "rename", name: "Soulslikes", newName: "Git Gud", rest: "get rid of cod mw2 i'm never touching it again",
+    });
+  });
+  test('"rename soulslikes to Git Gud" has no rest @negative', () => {
+    expect(parseCollectionCommand("rename soulslikes to Git Gud", ["Soulslikes"], [])).toEqual({ kind: "rename", name: "Soulslikes", newName: "Git Gud" });
+  });
+  test('"mark stardew as plyaing" reads as playing @positive', () => {
+    expect(normalizeSlang("mark stardew as plyaing")).toBe("mark stardew as playing");
+  });
+  test('"give witcher 3 a 10 and mark stardew as playing" is two commands @positive', () => {
+    expect(parseQuickCommands("give witcher 3 a 10 and mark stardew as playing")).toEqual([
+      { kind: "rate", game: "witcher 3", rating: 10 },
+      { kind: "status", game: "stardew", status: "playing" },
+    ]);
+  });
+  test('"throw it in the rockstar collection with rdr2 too": "it" is the game just added @positive', () => {
+    const owned = ["Grand Theft Auto: San Andreas", "Red Dead Redemption 2"];
+    expect(pinPronoun("throw it in the rockstar collection with rdr2 too", "Grand Theft Auto: San Andreas", (c) => namedTitles(c, owned)[0])).toBe(
+      "throw Grand Theft Auto: San Andreas in the rockstar collection with rdr2 too",
+    );
+  });
+  test('"rate hades 9 it was amazing": "it" after the named game stays @negative', () => {
+    const owned = ["Hades", "Stardew Valley"];
+    expect(pinPronoun("rate hades 9 it was amazing", "Stardew Valley", (c) => namedTitles(c, owned)[0])).toBe("rate hades 9 it was amazing");
+  });
+  test('"remove that last game" reads the last game added, within one sentence @positive', () => {
+    const plan: any = { intents: [{ type: "RemoveGame", targets: [{ type: "Game", name: "Dark Souls III" }], parameters: [] }] };
+    correctPlan(plan, "nah actually remove that last game", 'I\'ve added Elden Ring to your collection "Soulslikes". I\'ve added Dark Souls III to your library as Plan to Play. I\'ve added Dark Souls III to your collection "Soulslikes".');
+    expect(plan.intents[0].targets[0].name).toBe("Dark Souls III");
   });
 });

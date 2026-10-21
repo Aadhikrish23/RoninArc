@@ -138,6 +138,10 @@ export class AIRuntime {
 
         if (!intentPlan && !greetingKind && requestContext) {
           const routed = await preRoute({ userId, requestId, message: cleanRequest, client, session, requestContext, model: this.model });
+          if (routed.kind === "reply" && routed.rest) {
+            const more: RuntimeResponse = await this.chat(userId, routed.rest, `${requestId}-more`, client);
+            return finish({ ...more, message: `${routed.response.message} ${more.message}`.trim() });
+          }
           if (routed.kind === "reply") return finish(routed.response);
           notice = routed.notice;
           // With "it" pinned to a game ("put Dead Cells in there, and start sekiro"), later checks read that.

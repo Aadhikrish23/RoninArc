@@ -18,7 +18,9 @@ export function correctPlan(plan: IntentPlan, message: string, lastReply = ""): 
   if (collectionJustUsed && !/\b(library|entirely|completely|for good|altogether|uninstall\w*|refund\w*|sold|don'?t own|dont own|no longer own|got rid)\b/i.test(message)) {
     // "that last game" after 'I've added Dark Souls III and Hollow Knight to your collection' is
     // Hollow Knight, the one named last (the model picked Dark Souls III).
-    const lastAdded = [...lastReply.matchAll(/added (.+?) to your collection "/g)].pop()?.[1].split(/,\s*|\s+and\s+/).pop()?.trim();
+    // Within one sentence only: across sentences the capture once became "Dark Souls III to your
+    // library as Plan to Play. I've added Dark Souls III".
+    const lastAdded = [...lastReply.matchAll(/added ([^.!?"]+?) to your collection "/g)].pop()?.[1].split(/,\s*|\s+and\s+/).pop()?.trim();
     const meansLast = /\b(that|the) last (game|one)\b|\blast one\b/i.test(message);
     for (const intent of plan.intents) {
       if (intent.type !== IntentType.RemoveGame || !/\b(that|it|last|this)\b/i.test(message)) continue;

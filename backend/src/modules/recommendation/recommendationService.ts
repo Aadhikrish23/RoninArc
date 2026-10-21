@@ -243,7 +243,11 @@ async function getRecommendations(
     let backlogPool = backlogLength ? library.filter((g) => (g.avgHours ?? 0) >= 3) : library;
     if (shortSession) {
       // Drop only games known to be long; unknown lengths (new adds) stay, so Hades and Celeste still show.
-      backlogPool = backlogPool.filter((g) => g.progressStatus === "playing" || (g.avgHours ?? 0) <= 25);
+      // A tight time box ("1-2 hrs max", "half an hour") rules out a 50-hour open world even when
+      // it's in progress: three playtesters in a row got RDR2 and The Witcher 3 for "2 hours".
+      const tight = /\b[1-3](?:\s*(?:-|to)\s*[1-3])?\s*(h|hr|hrs|hours?)\b|\b(an|one|half an?) hour\b|\b\d{1,2}\s*(min|mins|minutes)\b/.test(q);
+      const shortEnough = backlogPool.filter((g) => (g.avgHours ?? 0) <= 25);
+      backlogPool = tight && shortEnough.length > 0 ? shortEnough : backlogPool.filter((g) => g.progressStatus === "playing" || (g.avgHours ?? 0) <= 25);
     }
     if (styles.slugs.length === 0) {
       result.backlog = rankBacklog(backlogPool, profile, { limit: options.limit, focus, length: backlogLength, like, session });

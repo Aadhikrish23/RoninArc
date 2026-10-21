@@ -79,7 +79,7 @@ export function unsupportedReply(message: string): string | undefined {
 // ---- Collection commands the planner has no tool for. ----
 export type CollectionCommand =
   | { kind: "delete"; name?: string }
-  | { kind: "rename"; name?: string; newName: string };
+  | { kind: "rename"; name?: string; newName: string; rest?: string };
 
 /** "delete that collection", "remove the whole list called Outer Wilds", "delete my soulslikes collection" (not "remove X from ..."). */
 const DELETE_COLLECTION =
@@ -126,20 +126,29 @@ export function fillCollectionThere(message: string, exchanges: Exchange[], coll
  * "Git Gud and tell me whats in it" -> "Git Gud": the new name stops at a second request;
  * "just Git Gud" -> "Git Gud".
  */
-function cleanNewName(raw: string): string {
-  return raw
-    .split(/\s+(?:and|then|also|plus)\s+(?=(?:tell|show|list|what|whats|what's|add|put|remove|delete|mark|rate)\b)|[,;]\s+/i)[0]
+const NAME_STOP = /\s+(?:and|then|also|plus)\s+(?=(?:tell|show|list|what|whats|what's|add|put|remove|delete|mark|rate|get|take|throw|give|gimme|start|pause|drop|set|make|create|move|launch|play|finish|unpause)\b)|[,;]\s+|\.\s+/i;
+
+/** "Git Gud and get rid of cod mw2" -> name "Git Gud", rest "get rid of cod mw2". */
+function splitNewName(raw: string): { name: string; rest?: string } {
+  const match = raw.match(NAME_STOP);
+  const name = (match ? raw.slice(0, match.index) : raw)
     .replace(/^(?:just|simply|only)\s+/i, "")
     .replace(/["'.!?]+$/g, "")
     .trim();
+  const rest = match ? raw.slice((match.index ?? 0) + match[0].length).trim() : "";
+  return { name, ...(rest.split(/\s+/).length >= 2 ? { rest } : {}) };
 }
+const cleanNewName = (raw: string) => splitNewName(raw).name;
 
 export function parseCollectionCommand(message: string, collections: string[], exchanges: Exchange[], pageCollection?: string): CollectionCommand | undefined {
   const rename = message.match(RENAME_COLLECTION);
   if (rename) {
     const pointsBack = !rename[1].trim() || /\b(that|this|it)\b/i.test(rename[1]);
     const from = namedCollection(rename[1], collections) ?? (pointsBack ? pageCollection ?? lastMentionedCollection(exchanges, collections) : undefined);
-    if (from || /\b(collection|list)\b/i.test(message)) return { kind: "rename", name: from, newName: cleanNewName(rename[2]) };
+    if (from || /\b(collection|list)\b/i.test(message)) {
+      const { name: newName, rest } = splitNewName(rename[2]);
+      return { kind: "rename", name: from, newName, ...(rest ? { rest } : {}) };
+    }
   }
   if (!DELETE_COLLECTION.test(message) || /\bfrom\b/i.test(message)) return undefined;
   const name =
@@ -215,9 +224,21 @@ export function collectionDirection(message: string): "add" | "remove" | undefin
   return undefined;
 }
 
-/** "throw sekiro n elden ring in too" -> "... sekiro and elden ring ..." */
+/** Common typos of the status words, so "mark stardew as plyaing" is a status change. */
+const STATUS_TYPOS: [RegExp, string][] = [
+  [/\b(plyaing|palying|playng|plaing|plying)\b/gi, "playing"],
+  [/\b(compelted|completd|complted|compleated)\b/gi, "completed"],
+  [/\b(pasued|puased|pausd)\b/gi, "paused"],
+  [/\b(droped|dorpped)\b/gi, "dropped"],
+  [/\b(finsihed|finshed|fnished)\b/gi, "finished"],
+];
+
+/** "throw sekiro n elden ring in too" -> "... sekiro and elden ring ..."; "plyaing" -> "playing". */
 export const normalizeSlang = (message: string) =>
-  message.replace(/\s+(n|&|\+)\s+/gi, " and ").replace(/\bu\b/gi, "you").replace(/\bpls\b|\bplz\b/gi, "please");
+  STATUS_TYPOS.reduce(
+    (text, [re, word]) => text.replace(re, word),
+    message.replace(/\s+(n|&|\+)\s+/gi, " and ").replace(/\bu\b/gi, "you").replace(/\bpls\b|\bplz\b/gi, "please"),
+  );
 
 /**
  * "add gta 5", "i own hades": a plain add needs no planner (the model once looped on its own
@@ -318,7 +339,12 @@ export function parseQuickCommand(message: string): QuickCommand | undefined {
   const note = m.match(/^(?:(?:add|write|leave|make)\s+(?:a\s+)?)?note\s+(?:for|on|to|about)\s+(.+?)\s*:\s*(.+)$/i);
   if (note) return { kind: "note", game: note[1].trim(), text: note[2].trim() };
 
-  const rate = m.match(/^(?:rate|give|gimme|gib)\s+(.+?)\s+(?:an?\s+)?(\d{1,2}(?:\.5)?)(?:\s*(?:\/|out of)\s*10)?(?:[\s,.:;!-]+(.+))?$/i);
+  // "give witcher 3 a 10" is a 10 for The Witcher 3, not a 3 for "witcher": an explicit "a/an N"
+  // wins, then a number at the very end ("rate witcher 3 9"), then the first number.
+  const rate =
+    m.match(/^(?:rate|give|gimme|gib)\s+(.+?)\s+(?:an?|like an?)\s+(\d{1,2}(?:\.5)?)(?:\s*(?:\/|out of)\s*10)?(?:[\s,.:;!-]+(.+))?$/i) ??
+    m.match(/^(?:rate|give|gimme|gib)\s+(.+)\s+(\d{1,2}(?:\.5)?)(?:\s*(?:\/|out of)\s*10)?()\s*$/i) ??
+    m.match(/^(?:rate|give|gimme|gib)\s+(.+?)\s+(?:an?\s+)?(\d{1,2}(?:\.5)?)(?:\s*(?:\/|out of)\s*10)?(?:[\s,.:;!-]+(.+))?$/i);
   if (rate) {
     const rating = Number(rate[2]);
     if (rating < 1 || rating > 10) return undefined;
@@ -372,7 +398,13 @@ export function saveThatAsNote(message: string, last?: Exchange): { gameText: st
  */
 export function pinPronoun(message: string, referent: string | undefined, nameIn: (text: string) => string | undefined): string {
   const clauses = message.split(/(,\s*|\s+and\s+|\s+also\s+|\s+then\s+)/i);
-  if (clauses.filter((_, i) => i % 2 === 0).length < 2) return message;
+  if (clauses.filter((_, i) => i % 2 === 0).length < 2) {
+    // One clause: "it" points back only when no game is named before it and one is named after
+    // ("throw it in the rockstar collection with rdr2 too" lost San Andreas, the game just added).
+    const at = message.search(/\b(it|that one)\b/i);
+    if (!referent || at < 0 || nameIn(message.slice(0, at)) || !nameIn(message.slice(at))) return message;
+    return message.slice(0, at) + message.slice(at).replace(/\b(it|that one)\b/i, referent);
+  }
   if (!clauses.some((c, i) => i % 2 === 0 && nameIn(c))) return message;
   // "it" is the nearest game named before it in the message ("beat the witcher, mark it done"),
   // or the conversation's game when nothing came before ("put it in there, and start sekiro").
@@ -399,7 +431,7 @@ const ACTION_START = /^(?:(?:ok|okay|and|also|so|then|now|pls|please|just)[,!.]?
  */
 export function parseQuickCommands(message: string): QuickCommand[] | undefined {
   const pieces = message
-    .split(/[.;!?]+\s+|,\s+(?=(?:and\s+)?(?:give|gimme|gib|rate|pause|drop|start|unpause|resume|mark|set|note)\b)/i)
+    .split(/[.;!?]+\s+|,\s+(?=(?:and\s+)?(?:give|gimme|gib|rate|pause|drop|start|unpause|resume|mark|set|note)\b)|\s+and\s+(?=(?:give|gimme|gib|rate|pause|drop|start|unpause|resume|mark|set)\s)/i)
     .map((p) => p.trim())
     .filter(Boolean);
   if (pieces.length < 2) return undefined;

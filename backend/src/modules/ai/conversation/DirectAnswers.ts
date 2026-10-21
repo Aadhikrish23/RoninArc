@@ -5,6 +5,7 @@ import Review from "../../review/Reviewmodel";
 import LibraryGame from "../../library/LibraryGame";
 import rawgService from "../../rawg/rawgService";
 import { rankByTitle } from "../../rawg/titleMatch";
+import dashboardOverviewService from "../../dashboard/dashboardOverviewService";
 import { franchiseMatch, namedTitles } from "./TargetGrounding";
 import { ACTION, NOTES_READ, NOTE_WRITE, namedCollection } from "./FollowUps";
 
@@ -171,6 +172,27 @@ async function describeFavourite(question: string, ctx: DirectAnswerContext): Pr
   return `Your favourite so far is ${top.gameId.title}, rated ${top.rating}/10.${runnersUp}`;
 }
 
+/** "what are my steam friends playing": nothing here can see friends; say so instead of a library summary. */
+async function describeFriends(question: string): Promise<string | undefined> {
+  if (!/\bfriends?\b[^.?!]*\b(play\w*|online|on)\b|\bwhat (are|is) my (steam |epic )?friends?\b/i.test(question)) return undefined;
+  return "I can't see your Steam or Epic friends or what they're playing.";
+}
+
+/** "how many hours have i put into games this month": from recorded play sessions, never guessed. */
+const HOURS_PLAYED = /\bhow (many|much) (hours|time)\b[^.?!]*\b(i|i've|ive|have i|did i)\b[^.?!]*\b(play\w*|put|spent|spend|logged|gam\w*)\b|\bmy (total )?(playtime|hours played)\b/i;
+async function describeHoursPlayed(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
+  if (!HOURS_PLAYED.test(question) || gameFor(question, ctx)) return undefined;
+  const overview: any = await dashboardOverviewService.getOverview(ctx.userId).catch(() => undefined);
+  const p = overview?.playtime;
+  if (!p) return undefined;
+  if (!p.totalMinutes) {
+    return "No play sessions are recorded yet. Playtime is tracked when you launch games from the RoninArc desktop app, so hours played elsewhere don't show up.";
+  }
+  const hours = (m: number) => `${Math.round((m / 60) * 10) / 10} hours`;
+  const span = /\bweek\b/i.test(question) ? `${hours(p.last7DaysMinutes)} in the last 7 days` : /\b(month|30 days)\b/i.test(question) ? `${hours(p.last30DaysMinutes)} in the last 30 days` : `${hours(p.totalMinutes)} in total`;
+  return `You've played ${span} (counting games launched from RoninArc).`;
+}
+
 /** "is silksong out yet?", "when does hades 2 come out", "i thought silksong came out last year". */
 const RELEASE_ASK = [
   /\bis\s+(.+?)\s+(?:actually\s+|even\s+|finally\s+|already\s+)?(?:out|released)\b/i,
@@ -260,7 +282,7 @@ async function describeRating(question: string, ctx: DirectAnswerContext): Promi
   return `You rated ${game.title} ${review.rating}/10${review.reviewText ? ` -- "${review.reviewText}"` : "."}`;
 }
 
-const HANDLERS = [describeRating, describeCollection, describeNotes, describePlaytime, describeRelease, describeFeature, describeAverage, describeFavourite, describePlaying, describeCounts];
+const HANDLERS = [describeRating, describeCollection, describeNotes, describeHoursPlayed, describeFriends, describePlaytime, describeRelease, describeFeature, describeAverage, describeFavourite, describePlaying, describeCounts];
 
 async function answerOne(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   for (const handler of HANDLERS) {
