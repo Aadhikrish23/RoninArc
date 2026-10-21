@@ -40,7 +40,7 @@ class PendingConfirmationStore {
 }
 
 /** "yes", "yeah do it", "ok sure", "yes please", "bet", "sounds good" -- any run of yes-words. */
-const YES_WORD = "(?:y|ya|yes|yea|yeah|yep|yup|sure|ok|okay|k|confirm|do it|go ahead|go for it|please|pls|plz|bet|sounds good|why not|absolutely|definitely|yes please|remove it|delete it|add it|mark it|thanks|ty|cool|alright|alr|fine|sure thing|of course|yessir|yes sir|lets go|let's go)";
+const YES_WORD = "(?:y|ya|ye|yeh|yah|yes|yea|yeah|yep|yup|sure|ok|okay|k|confirm|do it|go ahead|go for it|please|pls|plz|bet|sounds good|why not|absolutely|definitely|yes please|remove it|delete it|add it|mark it|thanks|ty|cool|alright|alr|fine|sure thing|of course|yessir|yes sir|lets go|let's go)";
 const YES = new RegExp(`^${YES_WORD}(?:[\\s,!.]+${YES_WORD})*[\\s.!]*$`, "i");
 const NO = /^(n|no|nope|nah|cancel|stop|don'?t|keep it|never ?mind|nvm|forget it|no,? (keep it|cancel|thanks|don'?t))[.!]*$/i;
 

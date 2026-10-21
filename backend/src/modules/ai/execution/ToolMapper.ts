@@ -42,6 +42,12 @@ export class ToolMapper {
   ): string {
     if (capabilityId === "review-game") {
       const queryText = (queryOrIntentType || "").toLowerCase();
+      // A rating is never a delete: "get rid of cod mw2 and give gta 5 an 8" rated nothing and
+      // answered "Review not found." because the message's "remove" picked delete_review.
+      const params = Array.isArray(targetsOrInput) ? [] : ((targetsOrInput as any)?.parameters ?? []);
+      if (Array.isArray(params) && params.some((p: any) => String(p?.type ?? "").toLowerCase() === "rating")) {
+        return "create_review";
+      }
       if (
         queryText.includes("delete") ||
         queryText.includes("remove") ||

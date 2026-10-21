@@ -30,15 +30,22 @@ export class AddGameTool extends BaseTool<AddGameInput, any> {
 
     // "ds3" -> "Dark Souls III": RAWG can't make that jump by itself.
     const searchTerm = expandAbbreviation(gameName) ?? gameName;
-    const results = await rawgToolService.searchGames(searchTerm, 1);
-    if (!results || results.length === 0) {
-      return this.failure(`I couldn't find "${gameName}" on RAWG.`);
-    }
+    let results = await rawgToolService.searchGames(searchTerm, 1);
 
     // Never just take RAWG's first result: pick the title that actually matches
     // what was asked for (including abbreviations like "rdr 2" or "gta 5"), and
     // if nothing does, say so instead of adding some other game.
-    const ranked = rankByTitle(searchTerm, results as typeof results[number][]);
+    let ranked = rankByTitle(searchTerm, (results ?? []) as typeof results[number][]);
+    // "add silksnog": nothing close, so try RAWG's typo-tolerant search before giving up.
+    if ((ranked[0]?.score ?? 0) < 70) {
+      const fuzzy = await rawgToolService.searchGames(searchTerm, 1, false).catch(() => []);
+      const seen = new Set((results ?? []).map((r: any) => r.id));
+      results = [...(results ?? []), ...fuzzy.filter((g: any) => !seen.has(g.id))];
+      ranked = rankByTitle(searchTerm, results as typeof results[number][]);
+    }
+    if (!results || results.length === 0) {
+      return this.failure(`I couldn't find a game called "${gameName}". Check the spelling, or try the full title.`);
+    }
     if (ranked[0].score < MIN_CONFIDENT_MATCH) {
       const closest = ranked.slice(0, 3).map((r) => `"${r.item.name}"`).join(", ");
       return this.failure(`I couldn't find a game called "${gameName}". The closest matches were ${closest}. Try the full title.`);

@@ -7,8 +7,9 @@ export class RawgToolService {
   async searchGames(
     query: string,
     page: number = 1,
+    precise = true,
   ): Promise<Awaited<ReturnType<typeof rawgService.searchGames>>> {
-    return rawgService.searchGames(query, page);
+    return rawgService.searchGames(query, page, precise);
   }
 }
 

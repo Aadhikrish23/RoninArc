@@ -388,3 +388,27 @@ test.describe("AI: round 18 refunds", () => {
     expect(plan.intents[0].type).toBe("OrganizeCollection");
   });
 });
+
+// Playtest round 19.
+test.describe("AI: round 19 follow-ups", () => {
+  test('"change this one to 8.5 actually" is a rating on the page\'s game @positive', () => {
+    expect(parseQuickCommand("change this one to 8.5 actually, the white palace knocked a point off")).toEqual({
+      kind: "rate", game: "this one", rating: 8.5, comment: "the white palace knocked a point off",
+    });
+  });
+  test('"set hades to playing" stays a status change @negative', () => {
+    expect(parseQuickCommand("set hades to playing")).toEqual({ kind: "status", game: "hades", status: "playing" });
+  });
+  test('"started elden ring... also take hollow knight out of soulslikes" is not one quick command @negative', () => {
+    expect(parseQuickCommand("started elden ring last night, finally. also take hollow knight out of soulslikes")).toBeUndefined();
+  });
+  test('"ye sure" is a yes @positive', () => {
+    expect(isConfirmReply("ye sure")).toBe(true);
+  });
+  test('"remove that last game" after adding two to a collection is the one named last @positive', () => {
+    const plan: any = { intents: [{ type: "RemoveGame", targets: [{ type: "Game", name: "Dark Souls III" }], parameters: [] }] };
+    correctPlan(plan, "actually remove that last game", 'I\'ve added Elden Ring to your collection "Soulslikes". I\'ve added Dark Souls III and Hollow Knight to your collection "Soulslikes".');
+    expect(plan.intents[0].type).toBe("OrganizeCollection");
+    expect(plan.intents[0].targets[0].name).toBe("Hollow Knight");
+  });
+});

@@ -16,11 +16,16 @@ export function correctPlan(plan: IntentPlan, message: string, lastReply = ""): 
   const collectionJustUsed = lastReply.match(/to your collection "([^"]+)"/)?.[1];
   // "remove that last game, i refunded it": a game you no longer own leaves the library.
   if (collectionJustUsed && !/\b(library|entirely|completely|for good|altogether|uninstall\w*|refund\w*|sold|don'?t own|dont own|no longer own|got rid)\b/i.test(message)) {
+    // "that last game" after 'I've added Dark Souls III and Hollow Knight to your collection' is
+    // Hollow Knight, the one named last (the model picked Dark Souls III).
+    const lastAdded = [...lastReply.matchAll(/added (.+?) to your collection "/g)].pop()?.[1].split(/,\s*|\s+and\s+/).pop()?.trim();
+    const meansLast = /\b(that|the) last (game|one)\b|\blast one\b/i.test(message);
     for (const intent of plan.intents) {
       if (intent.type !== IntentType.RemoveGame || !/\b(that|it|last|this)\b/i.test(message)) continue;
       intent.type = IntentType.OrganizeCollection;
+      const games = (intent.targets ?? []).map((t) => ({ ...t, type: IntentTargetType.Game }));
       intent.targets = [
-        ...(intent.targets ?? []).map((t) => ({ ...t, type: IntentTargetType.Game })),
+        ...(meansLast && lastAdded && games.length === 1 ? [{ ...games[0], name: lastAdded }] : games),
         { type: IntentTargetType.Collection, name: collectionJustUsed },
       ];
       intent.parameters = [{ type: IntentParameterType.Boolean, value: false } as any];

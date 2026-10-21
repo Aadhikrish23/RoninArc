@@ -293,7 +293,7 @@ const STATUS_WORDS_AS: Record<string, string> = {
 const NAME_END = /[,.!;:?]|\s+(?:im|i'm|i am|its|it's|it is|because|cuz|coz|since|lol|lmao|tho|bc|for now|rn|right now|already|finally|last night|yesterday|today|tonight|again)\b/i;
 /** A second request in the same message goes to the planner. */
 const SECOND_REQUEST =
-  /\b(and|also|plus|then)\s+(?:i'?m\s+|im\s+|i\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|starting|move|note|give|gimme|gib)\b|[.;!]\s+(?:(?:ok|and|also|so|then|now)\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|move|note|give|gimme|gib)\b/i;
+  /\b(and|also|plus|then)\s+(?:i'?m\s+|im\s+|i\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|starting|move|note|give|gimme|gib|take|get|throw|chuck|toss|stick|rename|make|create|finish|finished|unpause|resume)\b|[.;!]\s+(?:(?:ok|and|also|so|then|now)\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|move|note|give|gimme|gib|take|get|throw|rename|make|create)\b/i;
 
 const cutName = (text: string) => text.split(NAME_END)[0].trim();
 /** "ok, and ...", "so ...", "now ..." in front of a command. */
@@ -324,6 +324,15 @@ export function parseQuickCommand(message: string): QuickCommand | undefined {
     if (rating < 1 || rating > 10) return undefined;
     const comment = rate[3]?.trim();
     return { kind: "rate", game: rate[1].trim(), rating, ...(comment ? { comment } : {}) };
+  }
+
+  const changeTo = m.match(/^(?:change|set|make|bump|update|drop|lower|raise|knock)\s+(.+?)\s+(?:down\s+|up\s+)?to\s+(?:an?\s+)?(\d{1,2}(?:\.5)?)(?:\s*(?:\/|out of)\s*10)?(?:[\s,.:;!-]+(.+))?$/i);
+  if (changeTo) {
+    const rating = Number(changeTo[2]);
+    if (rating >= 1 && rating <= 10) {
+      const comment = changeTo[3]?.replace(/^(actually|tho|though)\b[\s,]*/i, "").trim();
+      return { kind: "rate", game: changeTo[1].trim(), rating, ...(comment ? { comment } : {}) };
+    }
   }
 
   const markAs = m.match(/^(?:mark|set|move|put)\s+(.+?)\s+(?:as|to)\s+(playing|paused|completed|done|finished|beaten|dropped|plan to play|planned|backlog)\b/i);
