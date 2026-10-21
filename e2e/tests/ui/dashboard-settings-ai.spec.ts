@@ -75,7 +75,7 @@ test.describe("Navigation", () => {
 test.describe("Settings", () => {
   test("toggles dark mode and keeps it after reload @positive", async ({ authedPage: page }) => {
     await open(page, "/settings");
-    await page.getByRole("button", { name: /Dark Mode|Light Mode/ }).click();
+    await page.getByRole("button", { name: /Dark mode|Light mode/ }).click();
     const theme = await page.locator("strong").first().innerText();
     await page.reload();
     await expect(page.locator("strong").first()).toHaveText(theme);
@@ -88,11 +88,11 @@ test.describe("Settings", () => {
 
   test("changes the password and signs out @positive", async ({ authedPage: page, anon, user }) => {
     await open(page, "/settings");
-    await page.getByRole("button", { name: "Change Password" }).click();
-    const d = page.getByRole("dialog", { name: "Change Password" });
+    await page.getByRole("button", { name: "Change password" }).click();
+    const d = page.getByRole("dialog", { name: "Change password" });
     await d.getByRole("textbox", { name: "Current Password" }).fill(user.password);
     await d.getByRole("textbox", { name: "New Password" }).fill("Another-Pass-77");
-    await d.getByRole("textbox", { name: "Confirm Password" }).fill("Another-Pass-77");
+    await d.getByRole("textbox", { name: "Confirm password" }).fill("Another-Pass-77");
     await d.getByRole("button", { name: "Update Password" }).click();
     await expect(page).toHaveURL(/#\/login$/);
     expect((await anon.post("/auth/login", { username: user.username, password: "Another-Pass-77" })).status()).toBe(200);
@@ -100,22 +100,22 @@ test.describe("Settings", () => {
 
   test("mismatched new passwords are refused @negative", async ({ authedPage: page }) => {
     await open(page, "/settings");
-    await page.getByRole("button", { name: "Change Password" }).click();
-    const d = page.getByRole("dialog", { name: "Change Password" });
+    await page.getByRole("button", { name: "Change password" }).click();
+    const d = page.getByRole("dialog", { name: "Change password" });
     await d.getByRole("textbox", { name: "Current Password" }).fill("whatever1");
     await d.getByRole("textbox", { name: "New Password" }).fill("Another-Pass-77");
-    await d.getByRole("textbox", { name: "Confirm Password" }).fill("Different-77");
+    await d.getByRole("textbox", { name: "Confirm password" }).fill("Different-77");
     await d.getByRole("button", { name: "Update Password" }).click();
     await expectToast(page, "Failed", "Passwords do not match");
   });
 
   test("a wrong current password shows the server error @negative", async ({ authedPage: page }) => {
     await open(page, "/settings");
-    await page.getByRole("button", { name: "Change Password" }).click();
-    const d = page.getByRole("dialog", { name: "Change Password" });
+    await page.getByRole("button", { name: "Change password" }).click();
+    const d = page.getByRole("dialog", { name: "Change password" });
     await d.getByRole("textbox", { name: "Current Password" }).fill("wrong-pass-1");
     await d.getByRole("textbox", { name: "New Password" }).fill("Another-Pass-77");
-    await d.getByRole("textbox", { name: "Confirm Password" }).fill("Another-Pass-77");
+    await d.getByRole("textbox", { name: "Confirm password" }).fill("Another-Pass-77");
     await d.getByRole("button", { name: "Update Password" }).click();
     await expectToast(page, "Failed", "Current password incorrect");
   });
@@ -129,20 +129,20 @@ test.describe("Settings", () => {
 
   test("deleting the account with the wrong password is refused @negative", async ({ authedPage: page, anon, user }) => {
     await open(page, "/settings");
-    await page.getByRole("button", { name: "Delete Account" }).click();
-    const d = page.getByRole("dialog", { name: "Delete Account" });
-    await d.getByRole("textbox", { name: "Confirm Password" }).fill("WrongPass123");
-    await d.getByRole("button", { name: "Delete Account" }).click();
+    await page.getByRole("button", { name: "Delete account" }).click();
+    const d = page.getByRole("dialog", { name: "Delete account" });
+    await d.getByRole("textbox", { name: "Confirm password" }).fill("WrongPass123");
+    await d.getByRole("button", { name: "Delete account" }).click();
     await expectToast(page, "Delete failed");
     expect((await anon.post("/auth/login", { username: user.username, password: user.password })).status()).toBe(200);
   });
 
   test("deletes the account with the right password @positive", async ({ authedPage: page, anon, user }) => {
     await open(page, "/settings");
-    await page.getByRole("button", { name: "Delete Account" }).click();
-    const d = page.getByRole("dialog", { name: "Delete Account" });
-    await d.getByRole("textbox", { name: "Confirm Password" }).fill(user.password);
-    await d.getByRole("button", { name: "Delete Account" }).click();
+    await page.getByRole("button", { name: "Delete account" }).click();
+    const d = page.getByRole("dialog", { name: "Delete account" });
+    await d.getByRole("textbox", { name: "Confirm password" }).fill(user.password);
+    await d.getByRole("button", { name: "Delete account" }).click();
     await expect(page).toHaveURL(/#\/login$/);
     expect((await anon.post("/auth/login", { username: user.username, password: user.password })).status()).toBe(401);
   });

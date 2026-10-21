@@ -104,7 +104,7 @@ export function useRecommendations(options: { limit: number; q?: string }) {
     try {
       await updateStatus(rec.gameId, "playing");
       removeLocally(rec);
-      toast({ title: `Marked ${rec.title} as Playing`, description: "It's in Continue Playing on your Library now.", status: "success", duration: 4000 });
+      toast({ title: `Marked ${rec.title} as Playing`, description: "It's in Continue playing on your Library now.", status: "success", duration: 4000 });
     } catch (err) {
       toast({ title: "Couldn't update status", description: getErrorMessage(err), status: "error" });
     }

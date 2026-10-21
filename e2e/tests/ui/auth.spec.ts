@@ -94,7 +94,7 @@ test.describe("Signup page", () => {
     if (f.username !== undefined) await page.getByRole("textbox", { name: "Username" }).fill(f.username);
     if (f.email !== undefined) await page.getByRole("textbox", { name: "Email" }).fill(f.email);
     if (f.password !== undefined) await page.getByRole("textbox", { name: "Password", exact: true }).fill(f.password);
-    if (f.confirm !== undefined) await page.getByRole("textbox", { name: "Confirm Password" }).fill(f.confirm);
+    if (f.confirm !== undefined) await page.getByRole("textbox", { name: "Confirm password" }).fill(f.confirm);
     await page.getByRole("button", { name: "Sign up" }).click();
   };
 
@@ -119,7 +119,7 @@ test.describe("Signup page", () => {
   test("mismatched passwords are rejected @negative", async ({ page }) => {
     await open(page, "/signup");
     await fillSignup(page, { username: uniqueName("ui"), password: DEFAULT_PASSWORD, confirm: "Different123" });
-    await expectToast(page, "Signup failed", "Password and Confirm Password must be the same");
+    await expectToast(page, "Signup failed", "Password and Confirm password must be the same");
     await expect(page).toHaveURL(/#\/signup$/);
   });
 
@@ -181,7 +181,7 @@ test.describe("Onboarding wizard", () => {
     await fillLogin(page, user.username, user.password);
     await page.getByRole("button", { name: "Set Up Connections" }).click();
     await expect(page).toHaveURL(/#\/settings$/);
-    await expect(page.getByRole("heading", { name: "Account Connections" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Account connections" })).toBeVisible();
   });
 
   test("cannot be dismissed with Escape @negative", async ({ page, user }) => {
@@ -231,7 +231,7 @@ test.describe("Session & route guard", () => {
     const refreshed = page.waitForResponse((r) => r.url().endsWith("/auth/refresh") && r.status() === 200);
     await open(page, "/");
     await refreshed;
-    await expect(page.getByRole("heading", { name: "Recently Added" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Recently added" })).toBeVisible();
     await expect(page.getByText("Hades").first()).toBeVisible();
     expect(await page.evaluate(() => localStorage.getItem("roninarc_token"))).not.toBe("expired.or.invalid.token");
   });

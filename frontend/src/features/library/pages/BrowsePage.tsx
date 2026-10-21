@@ -180,7 +180,7 @@ export default function BrowsePage() {
         <Flex align="center" gap={4} mb={6}>
           <IconButton
             icon={<ArrowBackIcon />}
-            aria-label="Back to Library"
+            aria-label="Back to library"
             variant="ghost"
             onClick={() => navigate("/")}
           />
@@ -205,7 +205,7 @@ export default function BrowsePage() {
               aria-label="Progress"
               bg={useColorModeValue("white", "gray.800")}
             >
-              <option value="all">All Progress</option>
+              <option value="all">All statuses</option>
               <option value="none">No Status</option>
               <option value="plan">Plan to Play</option>
               <option value="playing">Playing</option>
@@ -233,7 +233,7 @@ export default function BrowsePage() {
               aria-label="Installation"
               bg={useColorModeValue("white", "gray.800")}
             >
-              <option value="all">All Installation</option>
+              <option value="all">Installed or not</option>
               <option value="installed">Installed</option>
               <option value="uninstalled">Not Installed</option>
             </Select>

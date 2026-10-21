@@ -150,7 +150,7 @@ export default function RecommendationsPage() {
 
       <VStack align="stretch" spacing={12}>
         <Section
-          title="Play Next"
+          title="Play next"
           subtitle="Games already in your library that you haven't finished."
           items={data?.backlog ?? []}
           loading={loading && !data}

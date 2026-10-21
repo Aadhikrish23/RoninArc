@@ -72,7 +72,7 @@ export default function DeleteAccountModal({
   <SettingsModal
     isOpen={isOpen}
     onClose={onClose}
-    title="Delete Account"
+    title="Delete account"
     footer={
       <>
         <Button
@@ -87,7 +87,7 @@ export default function DeleteAccountModal({
           isLoading={loading}
           onClick={handleDelete}
         >
-          Delete Account
+          Delete account
         </Button>
       </>
     }
@@ -113,7 +113,7 @@ export default function DeleteAccountModal({
 
       <FormControl>
         <FormLabel>
-          Confirm Password
+          Confirm password
         </FormLabel>
 
         <Input

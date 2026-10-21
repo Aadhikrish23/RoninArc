@@ -43,7 +43,7 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
       shadow="lg"
     >
       <VStack spacing={0} align="stretch">
-        {/* Section 1: In Your Library */}
+        {/* Section 1: In Your library */}
         {ownedResults.length > 0 && (
           <Box px={4} py={2} bg={sectionHeaderBg}>
             <Text fontSize="xs" fontWeight="bold" color="purple.400" letterSpacing="wider">

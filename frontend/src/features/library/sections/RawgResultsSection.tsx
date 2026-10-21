@@ -292,7 +292,7 @@ export default function RawgResultsSection({
           </Box>
 
           <Button size="sm" variant="link" onClick={onBack}>
-            ← Back to Library
+            ← Back to library
           </Button>
         </Flex>
 
@@ -327,7 +327,7 @@ export default function RawgResultsSection({
         </Text>
       ) : (
         <VStack spacing={6} align="stretch">
-          {/* Section 1: In Your Library */}
+          {/* Section 1: In Your library */}
           {ownedResults.length > 0 && (
             <Box>
               <Heading size="md" mb={4}>

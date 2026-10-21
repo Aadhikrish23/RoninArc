@@ -142,7 +142,7 @@ const ReviewModal = ({
               onClick={handleDelete}
               isLoading={isDeleting}
             >
-              Delete Review
+              Delete review
             </Button>
           )}
 

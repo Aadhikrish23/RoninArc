@@ -32,6 +32,8 @@ interface GameCardProps {
 
   onStatusChange: (id: string, status: Status) => void;
   isRunning?: boolean;
+  /** An extra action at the bottom of the card ("Remove from collection" on a collection page). */
+  footer?: React.ReactNode;
 }
 
 const STATUS_COLOR = {
@@ -58,6 +60,7 @@ function GameCard({
   isHighlighted,
   onStatusChange,
   isRunning,
+  footer,
 }: GameCardProps) {
   const cardBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
@@ -216,7 +219,7 @@ function GameCard({
 
       {/* Bottom */}
       <VStack align="stretch" spacing={4} p={4}>
-        <Box minH="76px">
+        <Box minH={canLaunchGames() ? "76px" : "56px"}>
           <Text fontWeight="bold" fontSize="lg" noOfLines={2}>
             {game.title}
           </Text>
@@ -255,6 +258,7 @@ function GameCard({
                 : "Launch"}
           </Button>
         )}
+        {footer}
       </VStack>
     </Box>
   );

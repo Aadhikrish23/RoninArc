@@ -10,7 +10,7 @@ test.describe("Game details page", () => {
     await api.addGame(hades, { progressStatus: "playing" });
     await open(page, `/library/game/${hades.id}`);
     await expect(page.getByRole("heading", { name: "Hades", level: 2 })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your library" })).toBeVisible();
     await expect(page.getByText("Supergiant Games").first()).toBeVisible();
     await expect(page.getByText(hades.description)).toBeVisible();
     await expect(page.getByRole("button", { name: "Playing" })).toBeVisible();
@@ -22,13 +22,13 @@ test.describe("Game details page", () => {
     await open(page, `/library/game/${elden.id}`);
     await expect(page.getByRole("heading", { name: "Not In Library" })).toBeVisible();
     await page.getByRole("button", { name: "Add To Library" }).click();
-    await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your library" })).toBeVisible();
     expect((await json(await api.get("/game"))).Data.map((g: any) => g.title)).toEqual(["Elden Ring"]);
   });
 
   test("an unknown RAWG id does not render a game @negative", async ({ authedPage: page }) => {
     await open(page, "/library/game/987654321");
-    await expect(page.getByRole("heading", { name: "Your Library" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "Your library" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Add To Library" })).toHaveCount(0);
   });
 
@@ -54,7 +54,7 @@ test.describe("Game details page", () => {
     test("writes a review @positive", async ({ authedPage: page, api }) => {
       const g = await api.addGame(hades);
       await open(page, `/library/game/${hades.id}`);
-      await page.getByRole("button", { name: /Write Review|Add Review|Rate/ }).first().click();
+      await page.getByRole("button", { name: /Write review|Add Review|Rate/ }).first().click();
       const dialog = page.getByRole("dialog", { name: "Review Hades" });
       await dialog.getByRole("spinbutton", { name: "Rating" }).fill("8");
       await dialog.getByRole("textbox", { name: "Review" }).fill("Tight combat");
@@ -69,7 +69,7 @@ test.describe("Game details page", () => {
       const g = await api.addGame(hades);
       await api.put(`/review/${g._id}`, { rating: 6, reviewText: "Okay" });
       await open(page, `/library/game/${hades.id}`);
-      await page.getByRole("button", { name: "Edit Review" }).click();
+      await page.getByRole("button", { name: "Edit review" }).click();
       const dialog = page.getByRole("dialog", { name: "Review Hades" });
       await expect(dialog.getByRole("spinbutton", { name: "Rating" })).toHaveValue("6");
       await dialog.getByRole("spinbutton", { name: "Rating" }).fill("10");
@@ -81,8 +81,8 @@ test.describe("Game details page", () => {
       const g = await api.addGame(hades);
       await api.put(`/review/${g._id}`, { rating: 6, reviewText: "Okay" });
       await open(page, `/library/game/${hades.id}`);
-      await page.getByRole("button", { name: "Delete Review" }).click();
-      const confirm = page.getByRole("alertdialog", { name: "Delete Review?" });
+      await page.getByRole("button", { name: "Delete review" }).click();
+      const confirm = page.getByRole("alertdialog", { name: "Delete review?" });
       await expect(confirm).toContainText("This action cannot be undone.");
       await confirm.getByRole("button", { name: "Delete", exact: true }).click();
       await expect(page.getByText("6/10", { exact: true })).toHaveCount(0);
@@ -94,8 +94,8 @@ test.describe("Game details page", () => {
       const g = await api.addGame(hades);
       await api.put(`/review/${g._id}`, { rating: 6, reviewText: "Okay" });
       await open(page, `/library/game/${hades.id}`);
-      await page.getByRole("button", { name: "Delete Review" }).click();
-      await page.getByRole("alertdialog", { name: "Delete Review?" }).getByRole("button", { name: "Cancel" }).click();
+      await page.getByRole("button", { name: "Delete review" }).click();
+      await page.getByRole("alertdialog", { name: "Delete review?" }).getByRole("button", { name: "Cancel" }).click();
       await expect(page.getByText("6/10", { exact: true })).toBeVisible();
       expect((await json(await api.get(`/review/${g._id}`))).Data.rating).toBe(6);
     });
@@ -104,7 +104,7 @@ test.describe("Game details page", () => {
       const g = await api.addGame(hades);
       await api.put(`/review/${g._id}`, { rating: 6, reviewText: "Okay" });
       await open(page, `/library/game/${hades.id}`);
-      await page.getByRole("button", { name: "Edit Review" }).click();
+      await page.getByRole("button", { name: "Edit review" }).click();
       const dialog = page.getByRole("dialog", { name: "Review Hades" });
       await dialog.getByRole("spinbutton", { name: "Rating" }).fill("1");
       await dialog.getByRole("button", { name: "Cancel" }).click();
@@ -120,9 +120,9 @@ test.describe("Game details page", () => {
       // Collections are loaded by the Library page (shared context), so arrive the way a user does.
       await open(page, "/");
       await page.getByRole("paragraph").filter({ hasText: /^Hades$/ }).last().click();
-      await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
+      await expect(page.getByRole("heading", { name: "Your library" })).toBeVisible();
 
-      await page.getByRole("button", { name: "Add to Collection" }).click();
+      await page.getByRole("button", { name: "Add to collection" }).click();
       await page.getByRole("menuitem", { name: "Roguelikes" }).click();
       await expect(page.getByText("Collections (1)")).toBeVisible();
       await expect.poll(async () => (await json(await api.get(`/collection/${c._id}`))).Data.gameIds.length).toBe(1);
@@ -136,7 +136,7 @@ test.describe("Game details page", () => {
       await api.addGame(hades);
       await api.createCollection("Roguelikes");
       await open(page, `/library/game/${hades.id}`);
-      await page.getByRole("button", { name: "Add to Collection" }).click();
+      await page.getByRole("button", { name: "Add to collection" }).click();
       await expect(page.getByRole("menuitem", { name: "Roguelikes" })).toBeVisible({ timeout: 3000 });
     });
 
@@ -147,7 +147,7 @@ test.describe("Game details page", () => {
       await open(page, "/");
       await page.getByRole("paragraph").filter({ hasText: /^Hades$/ }).first().click();
       await expect(page.getByText("Collections (1)")).toBeVisible();
-      await page.getByRole("button", { name: "Add to Collection" }).click();
+      await page.getByRole("button", { name: "Add to collection" }).click();
       await expect(page.getByRole("menuitem", { name: "Already in all collections" })).toBeDisabled();
     });
   });
@@ -158,7 +158,7 @@ test.describe("Game details page", () => {
       await open(page, `/library/game/${hades.id}`);
       const box = page.getByPlaceholder("Jot down a strategy, reminder, or anything else about this game...");
       await box.fill("Dash-strike Theseus");
-      await page.getByRole("button", { name: "Add Note" }).click();
+      await page.getByRole("button", { name: "Add note" }).click();
       await expect(page.getByText("Dash-strike Theseus")).toBeVisible();
       await expect(box).toHaveValue("");
       expect((await json(await api.get(`/notes/${g._id}`))).Data).toHaveLength(1);
@@ -168,10 +168,10 @@ test.describe("Game details page", () => {
       await expect.poll(async () => (await json(await api.get(`/notes/${g._id}`))).Data).toEqual([]);
     });
 
-    test("'Add Note' is disabled for blank input @negative", async ({ authedPage: page, api }) => {
+    test("'Add note' is disabled for blank input @negative", async ({ authedPage: page, api }) => {
       await api.addGame(hades);
       await open(page, `/library/game/${hades.id}`);
-      const add = page.getByRole("button", { name: "Add Note" });
+      const add = page.getByRole("button", { name: "Add note" });
       await expect(add).toBeDisabled();
       await page.getByPlaceholder(/Jot down a strategy/).fill("     ");
       await expect(add).toBeDisabled();
@@ -187,7 +187,7 @@ test.describe("Game details page", () => {
   test("removes the game from the library @positive", async ({ authedPage: page, api }) => {
     await api.addGame(hades);
     await open(page, `/library/game/${hades.id}`);
-    await page.getByRole("button", { name: "Remove from Library" }).click();
+    await page.getByRole("button", { name: "Remove from library" }).click();
     await page.getByRole("alertdialog", { name: "Remove Hades from your library?" }).getByRole("button", { name: "Remove" }).click();
     await expectToast(page, "Game Removed", "Game has been removed from library.");
     await expect(page).toHaveURL(/#\/$/);
@@ -197,7 +197,7 @@ test.describe("Game details page", () => {
   test("asks for confirmation before removing a game @negative", async ({ authedPage: page, api }) => {
     await api.addGame(hades);
     await open(page, `/library/game/${hades.id}`);
-    await page.getByRole("button", { name: "Remove from Library" }).click();
+    await page.getByRole("button", { name: "Remove from library" }).click();
     const confirm = page.getByRole("alertdialog", { name: "Remove Hades from your library?" });
     await expect(confirm).toContainText("You can add it back later");
     // Nothing is deleted until the user confirms.
@@ -207,9 +207,9 @@ test.describe("Game details page", () => {
   test("cancelling removal keeps the game @negative", async ({ authedPage: page, api }) => {
     await api.addGame(hades);
     await open(page, `/library/game/${hades.id}`);
-    await page.getByRole("button", { name: "Remove from Library" }).click();
+    await page.getByRole("button", { name: "Remove from library" }).click();
     await page.getByRole("alertdialog", { name: "Remove Hades from your library?" }).getByRole("button", { name: "Cancel" }).click();
-    await expect(page.getByRole("heading", { name: "Your Library" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Your library" })).toBeVisible();
     expect((await json(await api.get("/game"))).Data).toHaveLength(1);
   });
 

@@ -36,7 +36,7 @@ export default function AppearanceSection() {
             as={FiMonitor}
           />
           <Text>
-            Current Theme:
+            Current theme:
             {" "}
             <strong>
               {colorMode === "light" ? "Light" : "Dark"}
@@ -53,8 +53,8 @@ export default function AppearanceSection() {
           }
         >
           {colorMode === "light"
-            ? "Dark Mode"
-            : "Light Mode"}
+            ? "Dark mode"
+            : "Light mode"}
         </Button>
       </HStack>
     </SettingsCard>

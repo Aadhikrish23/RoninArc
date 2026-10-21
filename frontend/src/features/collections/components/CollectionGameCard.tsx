@@ -32,16 +32,21 @@ export default function CollectionGameCard({
         onLaunch={onLaunch}
         onStatusChange={onStatusChange}
         isRunning={isRunning}
+        footer={
+          <Button
+            size="sm"
+            variant="ghost"
+            colorScheme="gray"
+            alignSelf="flex-start"
+            onClick={(e) => {
+              e.stopPropagation();
+              onRemove(game._id);
+            }}
+          >
+            Remove from collection
+          </Button>
+        }
       />
-
-      <Button
-        size="sm"
-        variant="ghost"
-        colorScheme="gray"
-        onClick={() => onRemove(game._id)}
-      >
-        Remove from collection
-      </Button>
     </VStack>
   );
 }

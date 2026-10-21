@@ -64,9 +64,9 @@ test.describe("Browse all games page", () => {
     await expect.poll(() => titles(page)).toEqual(["Celeste", "Elden Ring", "Hades"]);
   });
 
-  test("'Back to Library' returns home @positive", async ({ authedPage: page }) => {
+  test("'Back to library' returns home @positive", async ({ authedPage: page }) => {
     await open(page, "/library/browse");
-    await page.getByRole("button", { name: "Back to Library" }).click();
+    await page.getByRole("button", { name: "Back to library" }).click();
     await expect(page).toHaveURL(/#\/$/);
   });
 });

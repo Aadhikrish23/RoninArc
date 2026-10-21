@@ -12,7 +12,7 @@ export default function RecommendedStrip() {
   // Fetch a few spare picks so "Not interested" leaves a full row.
   const { data, dismiss, addToLibrary, startPlaying } = useRecommendations({ limit: 8 });
 
-  // New games only: your own games are already in the sections above (and on For You's "Play Next").
+  // New games only: your own games are already in the sections above (and on For You's "Play next").
   // A game added a moment ago (from search) drops out before the next refresh.
   const { games } = useLibrary();
   const owned = new Set(games.map((g) => g.rawgId).filter(Boolean));
@@ -20,9 +20,9 @@ export default function RecommendedStrip() {
   if (picks.length === 0) return null;
 
   return (
-    <Box as="section" aria-label="Recommended For You">
+    <Box as="section" aria-label="Recommended for you">
       <Flex justify="space-between" align="center" mb={1}>
-        <Heading size="md">Recommended For You</Heading>
+        <Heading size="md">Recommended for you</Heading>
         <Button size="sm" variant="ghost" colorScheme="purple" onClick={() => navigate("/recommendations")}>
           See all
         </Button>

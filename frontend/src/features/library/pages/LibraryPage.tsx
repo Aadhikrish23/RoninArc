@@ -269,9 +269,10 @@ function LibraryPage() {
                 )}
                 <Button
                   colorScheme="purple"
+                  variant="outline"
                   onClick={() => navigate("/library/browse")}
                 >
-                  View All Games
+                  View all games
                 </Button>
               </HStack>
             </Flex>
@@ -309,7 +310,7 @@ function LibraryPage() {
             ) : (
               <VStack align="stretch" spacing={8}>
                 {continuePlayingGames.length > 0 && (
-                  <HorizontalSection title="Continue Playing">
+                  <HorizontalSection title="Continue playing">
                     <GameCarousel
                       games={continuePlayingGames}
                       onLaunch={openLaunchModal}
@@ -366,7 +367,7 @@ function LibraryPage() {
                 </VStack>
 
                 {recentlyAddedGames.length > 0 && (
-                  <HorizontalSection title="Recently Added">
+                  <HorizontalSection title="Recently added">
                     <GameCarousel
                       games={recentlyAddedGames}
                       onLaunch={openLaunchModal}
@@ -380,7 +381,7 @@ function LibraryPage() {
                 <RecommendedStrip />
 
                 {completedGames.length > 0 && (
-                  <HorizontalSection title="Completed Games">
+                  <HorizontalSection title="Completed games">
                     <GameCarousel
                       games={completedGames}
                       onLaunch={openLaunchModal}

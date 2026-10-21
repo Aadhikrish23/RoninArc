@@ -82,7 +82,7 @@ export default function ChangePasswordModal({
   <SettingsModal
     isOpen={isOpen}
     onClose={onClose}
-    title="Change Password"
+    title="Change password"
     footer={
       <>
         <Button
@@ -142,7 +142,7 @@ export default function ChangePasswordModal({
 
       <FormControl>
         <FormLabel>
-          Confirm Password
+          Confirm password
         </FormLabel>
 
         <Input

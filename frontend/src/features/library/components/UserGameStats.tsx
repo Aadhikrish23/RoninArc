@@ -148,7 +148,7 @@ export default function UserGameStats({
       borderColor={borderColor}
     >
       <Heading size="md" mb={5}>
-        Your Library
+        Your library
       </Heading>
 
       <VStack align="stretch" spacing={5}>
@@ -198,7 +198,7 @@ export default function UserGameStats({
         {/* REVIEW */}
         <Box p={4} borderWidth="1px" borderRadius="lg" bg={useColorModeValue("gray.50", "gray.900")}>
           <Heading size="sm" mb={3}>
-            Your Review
+            Your review
           </Heading>
 
           {review ? (
@@ -218,10 +218,10 @@ export default function UserGameStats({
               ) : null}
               <HStack spacing={3}>
                 <Button size="sm" colorScheme="purple" variant="outline" onClick={onReview}>
-                  Edit Review
+                  Edit review
                 </Button>
                 <Button size="sm" colorScheme="red" variant="ghost" onClick={onDeleteReview}>
-                  Delete Review
+                  Delete review
                 </Button>
               </HStack>
             </VStack>
@@ -231,7 +231,7 @@ export default function UserGameStats({
                 No review yet.
               </Text>
               <Button size="sm" colorScheme="purple" onClick={onReview} width="fit-content">
-                Write Review
+                Write review
               </Button>
             </VStack>
           )}
@@ -297,7 +297,7 @@ export default function UserGameStats({
               colorScheme="purple"
               width="fit-content"
             >
-              Add to Collection
+              Add to collection
             </MenuButton>
             <MenuList>
               {collectionsToAddTo.length === 0 ? (
@@ -369,7 +369,7 @@ export default function UserGameStats({
             variant="ghost"
             onClick={() => onDelete(game._id)}
           >
-            Remove from Library
+            Remove from library
           </Button>
         </Box>
       </VStack>

@@ -363,7 +363,7 @@ export default function GameDetailsPage() {
       {game.website && (
         <Box mt={10}>
           <Heading size="md" mb={4}>
-            Official Website
+            Official website
           </Heading>
 
           <Text
@@ -401,7 +401,7 @@ export default function GameDetailsPage() {
         <AlertDialogOverlay>
           <AlertDialogContent>
             <AlertDialogHeader fontSize="lg" fontWeight="bold">
-              Delete Review?
+              Delete review?
             </AlertDialogHeader>
 
             <AlertDialogBody>This action cannot be undone.</AlertDialogBody>

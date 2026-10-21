@@ -33,7 +33,7 @@ export default function SecuritySection({
             onChangePassword
           }
         >
-          Change Password
+          Change password
         </Button>
 
         <Divider />

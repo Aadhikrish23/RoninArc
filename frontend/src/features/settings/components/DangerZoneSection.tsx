@@ -34,7 +34,7 @@ export default function DangerZoneSection({
             onDeleteAccount
           }
         >
-          Delete Account
+          Delete account
         </Button>
       </VStack>
     </SettingsCard>

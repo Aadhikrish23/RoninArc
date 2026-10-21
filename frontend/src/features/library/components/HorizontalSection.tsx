@@ -105,7 +105,7 @@ export default function HorizontalSection({ title, children }: HorizontalSection
   const arrowHoverBg = useColorModeValue("purple.600", "purple.600");
 
   return (
-    <VStack align="stretch" spacing={4} w="100%" mb={8} position="relative">
+    <VStack align="stretch" spacing={4} w="100%" position="relative">
       <Heading size="md" fontWeight="bold">
         {title}
       </Heading>

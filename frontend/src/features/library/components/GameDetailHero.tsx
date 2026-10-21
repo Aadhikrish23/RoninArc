@@ -29,14 +29,6 @@ export default function GameDetailHero({ game }: Props) {
         </Heading>
 
         <Flex gap={3}>
-          {game.rating > 0 && (
-            <Badge colorScheme="whiteAlpha" variant="solid" borderRadius="full" px={2} bg="blackAlpha.600" color="white">Players {(game.rating * 2).toFixed(1)}/10</Badge>
-          )}
-
-          {game.metacritic && (
-            <Badge colorScheme="whiteAlpha" variant="solid" borderRadius="full" px={2} bg="blackAlpha.600" color="white">Metacritic {game.metacritic}</Badge>
-          )}
-
           {game.released && (
             <Badge colorScheme="whiteAlpha" variant="solid" borderRadius="full" px={2} bg="blackAlpha.600" color="white">{new Date(game.released).getFullYear()}</Badge>
           )}

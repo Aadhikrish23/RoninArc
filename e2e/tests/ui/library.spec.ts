@@ -14,24 +14,24 @@ test.describe("Library home page", () => {
     await expect(page).toHaveURL(/#\/settings$/);
   });
 
-  test("groups games into Continue Playing, Favorites, Recently Added and Completed @positive", async ({ authedPage: page, api }) => {
+  test("groups games into Continue playing, Favorites, Recently added and Completed @positive", async ({ authedPage: page, api }) => {
     const hades = await api.addGame(byName("Hades"), { progressStatus: "playing" });
     await api.addGame(byName("Elden Ring"), { progressStatus: "completed" });
     await api.addGame(byName("Celeste"));
     await api.put(`/review/${hades._id}`, { rating: 9 });
 
     await open(page, "/");
-    await expect(section(page, "Continue Playing").getByText("Hades")).toBeVisible();
+    await expect(section(page, "Continue playing").getByText("Hades")).toBeVisible();
     await expect(section(page, "Favorites (rated 8+)").getByText("Hades")).toBeVisible();
-    await expect(section(page, "Completed Games").getByText("Elden Ring")).toBeVisible();
-    await expect(section(page, "Recently Added").getByText("Celeste")).toBeVisible();
+    await expect(section(page, "Completed games").getByText("Elden Ring")).toBeVisible();
+    await expect(section(page, "Recently added").getByText("Celeste")).toBeVisible();
   });
 
   test("sections with nothing in them are hidden @negative", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");
-    await expect(page.getByRole("heading", { name: "Recently Added" })).toBeVisible();
-    for (const title of ["Continue Playing", "Favorites (rated 8+)", "Completed Games"]) {
+    await expect(page.getByRole("heading", { name: "Recently added" })).toBeVisible();
+    for (const title of ["Continue playing", "Favorites (rated 8+)", "Completed games"]) {
       await expect(page.getByRole("heading", { name: title, exact: true })).toHaveCount(0);
     }
   });
@@ -40,24 +40,24 @@ test.describe("Library home page", () => {
     const g = await api.addGame(byName("Celeste"));
     await api.put(`/review/${g._id}`, { rating: 3 });
     await open(page, "/");
-    await expect(page.getByRole("heading", { name: "Recently Added" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Recently added" })).toBeVisible();
     await expect(page.getByRole("heading", { name: "Favorites (rated 8+)" })).toHaveCount(0);
   });
 
   test("changing status from a card's menu persists and moves the card @positive", async ({ authedPage: page, api }) => {
     const g = await api.addGame(byName("Celeste"));
     await open(page, "/");
-    await section(page, "Recently Added").getByRole("button", { name: "Plan to Play" }).click();
+    await section(page, "Recently added").getByRole("button", { name: "Plan to Play" }).click();
     await page.getByRole("menuitem", { name: "Playing" }).click();
 
-    await expect(section(page, "Continue Playing").getByText("Celeste")).toBeVisible();
+    await expect(section(page, "Continue playing").getByText("Celeste")).toBeVisible();
     await expect.poll(async () => (await json(await api.get(`/game/${g._id}`))).Data.progressStatus).toBe("playing");
   });
 
   test("clicking a card opens the game's detail page @positive", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");
-    await section(page, "Recently Added").getByRole("paragraph").filter({ hasText: /^Celeste$/ }).click();
+    await section(page, "Recently added").getByRole("paragraph").filter({ hasText: /^Celeste$/ }).click();
     await expect(page).toHaveURL(new RegExp(`#/library/game/${byName("Celeste").id}$`));
     await expect(page.getByRole("heading", { name: "Celeste", level: 2 })).toBeVisible();
   });
@@ -65,7 +65,7 @@ test.describe("Library home page", () => {
   test("in a plain browser there is nothing to launch or rescan @negative", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"), { progressStatus: "playing" });
     await open(page, "/");
-    await expect(section(page, "Continue Playing").getByText("Celeste")).toBeVisible();
+    await expect(section(page, "Continue playing").getByText("Celeste")).toBeVisible();
     await expect(page.getByRole("button", { name: /^(Launch|Running|Not Installed)$/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Rescan PC Games" })).toHaveCount(0);
     await open(page, `/library/game/${byName("Celeste").id}`);
@@ -77,7 +77,7 @@ test.describe("Library home page", () => {
     await api.addGame(byName("Celeste"));
     await emulateDesktop(page);
     await open(page, "/");
-    await section(page, "Recently Added").getByRole("button", { name: "Launch" }).click();
+    await section(page, "Recently added").getByRole("button", { name: "Launch" }).click();
     const dialog = page.getByRole("dialog", { name: "Launch Celeste" });
     await expect(dialog).toContainText("Choose the executable file for this game.");
     await expect(dialog.getByRole("button", { name: "Launch" })).toBeDisabled();
@@ -89,11 +89,11 @@ test.describe("Library home page", () => {
     const g = await api.addGame(byName("Celeste"));
     await emulateDesktop(page, { exePath: "C:\\Games\\Celeste\\Celeste.exe" });
     await open(page, "/");
-    await section(page, "Recently Added").getByRole("button", { name: "Launch" }).click();
+    await section(page, "Recently added").getByRole("button", { name: "Launch" }).click();
     const dialog = page.getByRole("dialog", { name: "Launch Celeste" });
     await dialog.getByRole("button", { name: "Edit" }).click();
     await dialog.getByRole("button", { name: "Launch" }).click();
-    await expect(section(page, "Recently Added").getByRole("button", { name: "Running" })).toBeDisabled();
+    await expect(section(page, "Recently added").getByRole("button", { name: "Running" })).toBeDisabled();
     expect(await page.evaluate(() => (window as any).__launched)).toEqual([{ gameId: g._id, path: "C:\\Games\\Celeste\\Celeste.exe" }]);
   });
 
@@ -105,10 +105,10 @@ test.describe("Library home page", () => {
     await expectToast(page, "Rescan complete", "Steam: Scanned 0, Installed 0, Removed 0. Epic: Scanned 0, Installed 0, Removed 0.");
   });
 
-  test("'View All Games' opens the browse page @positive", async ({ authedPage: page, api }) => {
+  test("'View all games' opens the browse page @positive", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");
-    await page.getByRole("button", { name: "View All Games" }).click();
+    await page.getByRole("button", { name: "View all games" }).click();
     await expect(page).toHaveURL(/#\/library\/browse$/);
     await expect(page.getByRole("heading", { name: "All Games" })).toBeVisible();
   });
@@ -159,12 +159,12 @@ test.describe("RAWG search from the library", () => {
     await expect(page.getByText("Hades").first()).toBeVisible();
   });
 
-  test("'← Back to Library' leaves the results view @positive", async ({ authedPage: page }) => {
+  test("'← Back to library' leaves the results view @positive", async ({ authedPage: page }) => {
     await open(page, "/");
     const search = page.getByPlaceholder("Search games...");
     await search.fill("Celeste");
     await search.press("Enter");
-    await page.getByRole("button", { name: "← Back to Library" }).click();
+    await page.getByRole("button", { name: "← Back to library" }).click();
     await expect(page.getByRole("heading", { name: "My Library" })).toBeVisible();
   });
 

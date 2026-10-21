@@ -71,7 +71,7 @@ export default function SettingsPage() {
           </GridItem>
 
           <GridItem colSpan={{ base: 1, md: 2 }}>
-            <ProviderSection title="Account Connections">
+            <ProviderSection title="Account connections">
               <EpicProviderCard />
               <SteamProviderCard />
               {/* <ComingSoonProviderCard providerId="gog" /> */}

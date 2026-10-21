@@ -145,7 +145,7 @@ export default function CollectionDetailsPage() {
           variant="ghost"
           onClick={() => navigate("/")}
         >
-          Back to Library
+          Back to library
         </Button>
       </HStack>
 

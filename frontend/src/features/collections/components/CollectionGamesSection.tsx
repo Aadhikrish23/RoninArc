@@ -41,7 +41,7 @@ export default function CollectionGamesSection({
           No games here yet
         </Heading>
         <Text color="gray.500" mb={5}>
-          Use "Add games" above, open any game and use "Add to Collection", or ask the AI assistant: "add Hades to this collection".
+          Use "Add games" above, open any game and use "Add to collection", or ask the AI assistant: "add Hades to this collection".
         </Text>
         <Button colorScheme="purple" onClick={() => navigate("/library/browse")}>
           Browse your library

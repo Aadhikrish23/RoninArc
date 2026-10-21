@@ -60,7 +60,7 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
         <Image src={coverImage(rec.imageURL)} alt={rec.title} h="160px" w="100%" objectFit="cover" fallbackSrc={PLACEHOLDER_IMAGE} />
         {showScore && !fromLibrary && (
           <Tooltip label={`${rec.score}% match for your taste`} hasArrow>
-            <Badge position="absolute" top={3} right={3} colorScheme="purple" variant="solid" fontSize="0.8em" px={2} py={1} borderRadius="full" boxShadow="md">
+            <Badge position="absolute" top={3} right={3} bg="purple.500" color="white" fontSize="0.8em" px={2} py={1} borderRadius="full" boxShadow="md">
               Top pick
             </Badge>
           </Tooltip>

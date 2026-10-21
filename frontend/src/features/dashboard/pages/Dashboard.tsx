@@ -282,7 +282,7 @@ function DashboardPage() {
                 )}
 
                 {data.playtime.mostPlayed.length > 0 && (
-                  <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={2}>
+                  <Text fontSize="sm" fontWeight="semibold" color={mutedText} mb={2}>
                     Most played
                   </Text>
                 )}
@@ -354,7 +354,7 @@ function DashboardPage() {
                 )}
 
                 <Flex justify="space-between" align="center" mb={2}>
-                  <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase">
+                  <Text fontSize="sm" fontWeight="semibold" color={mutedText}>
                     Planned, not started yet{data.backlog.untouchedCount > 0 ? ` (${data.backlog.untouchedCount})` : ""}
                   </Text>
                   {data.backlog.untouchedCount > data.backlog.untouched.length && (

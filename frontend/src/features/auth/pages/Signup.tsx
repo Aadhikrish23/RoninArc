@@ -70,7 +70,7 @@ function Signup() {
       }
 
       if (pass !== confirm) {
-        throw new Error("Password and Confirm Password must be the same");
+        throw new Error("Password and Confirm password must be the same");
       }
 
       // ✅ Email format check (if email is provided)
@@ -229,7 +229,7 @@ function Signup() {
               </FormControl>
 
               <FormControl>
-                <FormLabel color="gray.200">Confirm Password</FormLabel>
+                <FormLabel color="gray.200">Confirm password</FormLabel>
                 <InputGroup>
                   <Input
                     type={show ? "text" : "password"}

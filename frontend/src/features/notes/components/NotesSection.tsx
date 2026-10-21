@@ -70,7 +70,7 @@ export default function NotesSection({
             isLoading={saving}
             isDisabled={!draft.trim()}
           >
-            Add Note
+            Add note
           </Button>
         </Flex>
       </VStack>

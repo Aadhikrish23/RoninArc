@@ -12,7 +12,7 @@ test.describe("For You (recommendations) page", () => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");
     await expect(navbar(page).getByRole("button", { name: "For You" })).toHaveCount(0);
-    await section(page, "Recommended For You").getByRole("button", { name: "See all" }).click();
+    await section(page, "Recommended for you").getByRole("button", { name: "See all" }).click();
     await expect(page).toHaveURL(/#\/recommendations$/);
     await expect(page.getByRole("heading", { name: "For You", level: 2 })).toBeVisible();
   });
@@ -20,7 +20,7 @@ test.describe("For You (recommendations) page", () => {
   test("a new user sees popular discoveries and a hint to personalise @positive", async ({ authedPage: page }) => {
     await open(page, "/recommendations");
     await expect(page.getByText("Rate or finish a few games and these picks will get more personal.")).toBeVisible();
-    await expect(section(page, "Play Next")).toContainText("Nothing waiting in your backlog.");
+    await expect(section(page, "Play next")).toContainText("Nothing waiting in your backlog.");
     await expect(section(page, "Discover").getByRole("article")).not.toHaveCount(0);
   });
 
@@ -31,11 +31,12 @@ test.describe("For You (recommendations) page", () => {
 
     await open(page, "/recommendations");
     await expect(page.getByLabel("Your taste")).toContainText("You seem to love:");
-    const backlogCard = cardIn(page, "Play Next", "Stardew Valley");
+    const backlogCard = cardIn(page, "Play next", "Stardew Valley");
     // A game you own has no "% match": that badge is for discoveries.
     await expect(backlogCard).not.toContainText("% match");
-    // Stardew shares only "Indie" with Hollow Knight: too little to call it similar.
-    await expect(backlogCard).toContainText("Matches your taste for Indie");
+    // Stardew shares only "Indie" with Hollow Knight: too broad to call it similar, or "your taste".
+    await expect(backlogCard).toContainText("Waiting in your backlog");
+    await expect(backlogCard).not.toContainText("Matches your taste for Indie");
     await expect(cardIn(page, "Discover", "Celeste")).toBeVisible();
     await expect(section(page, "Discover").getByRole("article", { name: "Hollow Knight" })).toHaveCount(0);
   });
@@ -45,16 +46,16 @@ test.describe("For You (recommendations) page", () => {
     const card = cardIn(page, "Discover", "Celeste");
     await card.getByRole("button", { name: "Add to Library" }).click();
 
-    await expect(cardIn(page, "Play Next", "Celeste")).toBeVisible();
+    await expect(cardIn(page, "Play next", "Celeste")).toBeVisible();
     await expect(cardIn(page, "Discover", "Celeste")).toHaveCount(0);
     const library = (await json(await api.get("/game"))).Data;
     expect(library.map((g: any) => g.title)).toEqual(["Celeste"]);
   });
 
-  test("'Start playing' moves a backlog pick to Continue Playing @positive", async ({ authedPage: page, api }) => {
+  test("'Start playing' moves a backlog pick to Continue playing @positive", async ({ authedPage: page, api }) => {
     const g = await api.addGame(byName("Celeste"));
     await open(page, "/recommendations");
-    await cardIn(page, "Play Next", "Celeste").getByRole("button", { name: "Start playing" }).click();
+    await cardIn(page, "Play next", "Celeste").getByRole("button", { name: "Start playing" }).click();
     await expect(page.getByText("Marked Celeste as Playing")).toBeVisible();
     await expect.poll(async () => (await json(await api.get(`/game/${g._id}`))).Data.progressStatus).toBe("playing");
   });
@@ -82,8 +83,8 @@ test.describe("For You (recommendations) page", () => {
     await open(page, "/recommendations");
     await page.getByLabel("What are you in the mood for?").fill("a platformer");
     await expect(page.getByLabel("Your taste")).toContainText("Focusing on:");
-    await expect(cardIn(page, "Play Next", "Celeste")).toBeVisible();
-    await expect(cardIn(page, "Play Next", "Elden Ring")).toHaveCount(0);
+    await expect(cardIn(page, "Play next", "Celeste")).toBeVisible();
+    await expect(cardIn(page, "Play next", "Elden Ring")).toHaveCount(0);
   });
 
   test("when the game database is offline it still shows backlog picks, with a notice @negative", async ({ authedPage: page, api }) => {
@@ -97,7 +98,7 @@ test.describe("For You (recommendations) page", () => {
     });
     await open(page, "/recommendations");
     await expect(page.getByText(/Couldn't reach the game database/)).toBeVisible();
-    await expect(cardIn(page, "Play Next", "Celeste")).toBeVisible();
+    await expect(cardIn(page, "Play next", "Celeste")).toBeVisible();
     await expect(section(page, "Discover")).toContainText("No new games to suggest right now.");
   });
 
@@ -110,11 +111,11 @@ test.describe("For You (recommendations) page", () => {
   });
 });
 
-test.describe("Recommended For You strip (library home)", () => {
+test.describe("Recommended for you strip (library home)", () => {
   test("shows picks and links to the full page @positive", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");
-    const strip = section(page, "Recommended For You");
+    const strip = section(page, "Recommended for you");
     await expect(strip.getByRole("article").first()).toBeVisible();
     await strip.getByRole("button", { name: "See all" }).click();
     await expect(page).toHaveURL(/#\/recommendations$/);
@@ -130,8 +131,8 @@ test.describe("Recommended For You strip (library home)", () => {
       await route.fulfill({ response: res, json: body });
     });
     await open(page, "/");
-    // A small library doesn't repeat Celeste under Recently Added; it's under Completed Games.
-    await expect(page.getByRole("heading", { name: "Completed Games" })).toBeVisible();
-    await expect(page.getByRole("heading", { name: "Recommended For You" })).toHaveCount(0);
+    // A small library doesn't repeat Celeste under Recently added; it's under Completed games.
+    await expect(page.getByRole("heading", { name: "Completed games" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Recommended for you" })).toHaveCount(0);
   });
 });
