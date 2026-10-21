@@ -4,6 +4,7 @@ import Note from "../../notes/Notemodel";
 import Review from "../../review/Reviewmodel";
 import LibraryGame from "../../library/LibraryGame";
 import rawgService from "../../rawg/rawgService";
+import { rankByTitle } from "../../rawg/titleMatch";
 import { franchiseMatch, namedTitles } from "./TargetGrounding";
 import { ACTION, NOTES_READ, NOTE_WRITE, namedCollection } from "./FollowUps";
 
@@ -121,7 +122,8 @@ async function describePlaytime(question: string, ctx: DirectAnswerContext): Pro
   // The library copy is filled in by background enrichment; ask RAWG if it isn't there yet.
   const hours = typeof game.playtime === "number" && game.playtime > 0 ? game.playtime : game.rawgId ? (await factsOf(game.rawgId)).playtime : 0;
   // RAWG's average is unreliable below a few hours (few players logged it).
-  if (hours < 3) return `I don't have a reliable playtime for ${game.title}, sorry.`;
+  // Outer Wilds came back as "about 4 hours": below 5 the average is mostly people who bounced off.
+  if (hours < 5) return `I don't have a reliable playtime for ${game.title}, sorry.`;
   // The figure is what players log on RAWG, which often runs low for long games; say so plainly.
   return `Players log about ${hours} hours on ${game.title} on average. That's a community average, so a full run often takes longer.`;
 }
@@ -154,12 +156,47 @@ async function describeFeature(question: string, ctx: DirectAnswerContext): Prom
 
 async function describeFavourite(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   if (!FAVOURITE.test(question) || !MY_LIBRARY.test(question) || ACTION.test(question) || /\b(like|similar|recommend|suggest)\b/i.test(question)) return undefined;
-  const reviews = (await Review.find({ userId: new Types.ObjectId(ctx.userId) }).sort({ rating: -1, updatedAt: -1 }).limit(3).populate("gameId", "title").lean()) as any[];
+  const reviews = (await Review.find({ userId: new Types.ObjectId(ctx.userId) }).sort({ rating: -1, updatedAt: -1 }).populate("gameId", "title").lean()) as any[];
   const rated = reviews.filter((r) => r.gameId?.title);
   if (rated.length === 0) return "You haven't rated anything yet, so I can't tell your favourite. Try \"rate Hades 9\".";
   const [top, ...rest] = rated;
-  const runnersUp = rest.length ? ` Next up: ${rest.map((r) => `${r.gameId.title} (${r.rating}/10)`).join(", ")}.` : "";
+  // "whats my highest rated game and whats the lowest": both ends, not a top-3 that hides the low one.
+  if (/\b(lowest|worst|least favou?rite|bottom)\b/i.test(question)) {
+    const low = rated[rated.length - 1];
+    return rated.length === 1
+      ? `${top.gameId.title} is the only game you've rated (${top.rating}/10), so it's both.`
+      : `Your highest rated is ${top.gameId.title} (${top.rating}/10) and your lowest is ${low.gameId.title} (${low.rating}/10).`;
+  }
+  const runnersUp = rest.length ? ` Next up: ${rest.slice(0, 2).map((r) => `${r.gameId.title} (${r.rating}/10)`).join(", ")}.` : "";
   return `Your favourite so far is ${top.gameId.title}, rated ${top.rating}/10.${runnersUp}`;
+}
+
+/** "is silksong out yet?", "when does hades 2 come out", "i thought silksong came out last year". */
+const RELEASE_ASK = [
+  /\bis\s+(.+?)\s+(?:actually\s+|even\s+|finally\s+|already\s+)?(?:out|released)\b/i,
+  /\b(?:did|has)\s+(.+?)\s+(?:actually\s+|finally\s+|already\s+)?(?:come out|came out|release[ds]?|been released|launch(?:ed)?|drop(?:ped)?)\b/i,
+  /\bwhen (?:does|did|is|will)\s+(.+?)\s+(?:come out|coming out|release|out|launch|drop)\b/i,
+  /\brelease date (?:for|of)\s+(.+?)[?.!]*$/i,
+  /\b(?:thought|think|heard)\s+(.+?)\s+(?:came out|released|dropped|launched|was out)\b/i,
+];
+
+/**
+ * Release status from RAWG, not the answer model: it insisted Hollow Knight: Silksong "hasn't come
+ * out yet" (its training predates the release) while the app's own search lists it as 2025.
+ */
+async function describeRelease(question: string): Promise<string | undefined> {
+  const asked = RELEASE_ASK.map((re) => question.match(re)?.[1]).find(Boolean);
+  if (!asked) return undefined;
+  const title = asked.replace(/^(the game|that game|the new|new)\s+/i, "").replace(/\s+(yet|already|still)$/i, "").trim();
+  if (title.split(/\s+/).length > 7 || /^(it|that|this|he|she|they)$/i.test(title)) return undefined;
+  const results = await rawgService.searchBestMatch(title, 10).catch(() => []);
+  const best = rankByTitle(title, results as any[])[0];
+  if (!best || best.score < 60) return undefined;
+  const game = best.item as any;
+  if (!game.released) return `RAWG doesn't list a release date for ${game.name} yet, so it doesn't look like it's out.`;
+  const date = new Date(game.released);
+  const when = date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  return date.getTime() <= Date.now() ? `Yes, ${game.name} is out: it released on ${when}.` : `Not yet: ${game.name} is set for ${when}.`;
 }
 
 async function describePlaying(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
@@ -223,7 +260,7 @@ async function describeRating(question: string, ctx: DirectAnswerContext): Promi
   return `You rated ${game.title} ${review.rating}/10${review.reviewText ? ` -- "${review.reviewText}"` : "."}`;
 }
 
-const HANDLERS = [describeRating, describeCollection, describeNotes, describePlaytime, describeFeature, describeAverage, describeFavourite, describePlaying, describeCounts];
+const HANDLERS = [describeRating, describeCollection, describeNotes, describePlaytime, describeRelease, describeFeature, describeAverage, describeFavourite, describePlaying, describeCounts];
 
 async function answerOne(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   for (const handler of HANDLERS) {

@@ -101,7 +101,10 @@ const listNames = (names: string[]) =>
  * After "make a soulslike collection": offer the owned games that fit it.
  * After rating a game still on Plan to Play: offer to mark it Completed.
  */
-export async function followUpOffer(userId: string, intents: { type: string; targets?: { type: string; name: string }[] }[]): Promise<FollowUpOffer | undefined> {
+/** "been playing it nonstop", "still on it", "playing it rn": not finished. */
+const STILL_PLAYING = /(been|still|currently|keep|now) playing|playing (it )?(nonstop|non-stop|rn|right now|a lot|every day|daily|again)|still (on|in|into) it|nonstop|non-stop|addicted|cant stop|can.t stop|endless|roguelike|roguelite/i;
+
+export async function followUpOffer(userId: string, intents: { type: string; targets?: { type: string; name: string }[] }[], message = ""): Promise<FollowUpOffer | undefined> {
   const uid = new Types.ObjectId(userId);
   const types = new Set(intents.map((i) => i.type));
 
@@ -135,12 +138,16 @@ export async function followUpOffer(userId: string, intents: { type: string; tar
     const title = rated[0].targets?.find((t) => t.type === "Game" || t.type === "Library")?.name;
     const game = title ? ((await LibraryGame.findOne({ userId: uid, title }).select("_id title progressStatus").lean()) as any) : null;
     if (!game || !["plan", "none", undefined, null].includes(game.progressStatus)) return undefined;
+    // "slay the spire is goated, been playing it nonstop. 10/10": still going, so Playing, not Completed.
+    const stillPlaying = STILL_PLAYING.test(message);
+    const status = stillPlaying ? "playing" : "completed";
+    const label = stillPlaying ? "Playing" : "Completed";
     return {
-      question: `It's still on Plan to Play. Want me to mark ${game.title} as Completed?`,
+      question: `It's still on Plan to Play. Want me to mark ${game.title} as ${label}?`,
       label: `${game.title} as it is`,
       run: async () => {
-        await libraryToolService.updateStatus(userId, String(game._id), "completed");
-        return `I've marked ${game.title} as Completed.`;
+        await libraryToolService.updateStatus(userId, String(game._id), status);
+        return `I've marked ${game.title} as ${label}.`;
       },
     };
   }

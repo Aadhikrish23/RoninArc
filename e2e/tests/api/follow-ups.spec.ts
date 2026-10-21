@@ -374,3 +374,17 @@ test.describe("AI: round 17 scores in passing", () => {
     expect(statedScore("its 2 hours long")).toBeUndefined();
   });
 });
+
+// Playtest round 18.
+test.describe("AI: round 18 refunds", () => {
+  test('"remove that last game, i refunded it" after a collection add leaves the library @positive', () => {
+    const plan: any = { intents: [{ type: "RemoveGame", targets: [{ type: "Game", name: "Dark Souls III" }], parameters: [] }] };
+    correctPlan(plan, "actually remove that last game, i refunded it lol", 'I\'ve added Dark Souls III to your collection "Soulslikes".');
+    expect(plan.intents[0].type).toBe("RemoveGame");
+  });
+  test('"remove that last game" after a collection add stays a collection removal @negative', () => {
+    const plan: any = { intents: [{ type: "RemoveGame", targets: [{ type: "Game", name: "Dark Souls III" }], parameters: [] }] };
+    correctPlan(plan, "actually remove that last game", 'I\'ve added Dark Souls III to your collection "Soulslikes".');
+    expect(plan.intents[0].type).toBe("OrganizeCollection");
+  });
+});

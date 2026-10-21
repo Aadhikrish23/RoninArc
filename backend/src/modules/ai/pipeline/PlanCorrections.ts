@@ -14,7 +14,8 @@ export function correctPlan(plan: IntentPlan, message: string, lastReply = ""): 
   // "remove that last game" right after "I've added Dark Souls III to your collection "Soulslike"":
   // the conversation is about the collection, so it comes out of the collection, not the library.
   const collectionJustUsed = lastReply.match(/to your collection "([^"]+)"/)?.[1];
-  if (collectionJustUsed && !/\b(library|entirely|completely|for good|altogether|uninstall)\b/i.test(message)) {
+  // "remove that last game, i refunded it": a game you no longer own leaves the library.
+  if (collectionJustUsed && !/\b(library|entirely|completely|for good|altogether|uninstall\w*|refund\w*|sold|don'?t own|dont own|no longer own|got rid)\b/i.test(message)) {
     for (const intent of plan.intents) {
       if (intent.type !== IntentType.RemoveGame || !/\b(that|it|last|this)\b/i.test(message)) continue;
       intent.type = IntentType.OrganizeCollection;

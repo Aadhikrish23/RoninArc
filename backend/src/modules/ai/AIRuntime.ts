@@ -260,7 +260,7 @@ export class AIRuntime {
         remember(outcome);
         // "Want me to add DS3 and Elden Ring to it?" / "Want me to mark it Completed?"
         if (outcome.success && !outcome.status?.match(/CONFIRMATION|CLARIFICATION/)) {
-          const offer = await followUpOffer(userId, plan.intents as any).catch(() => undefined);
+          const offer = await followUpOffer(userId, plan.intents as any, cleanRequest).catch(() => undefined);
           if (offer) {
             pendingConfirmations.put(userId, { run: offer.run, label: offer.label, collection: offer.collection });
             return finish({ ...outcome, message: `${outcome.message} ${offer.question}` });
