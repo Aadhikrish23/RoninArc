@@ -210,7 +210,7 @@ function GameCard({
 
       {/* Bottom */}
       <VStack align="stretch" spacing={4} p={4}>
-        <Box minH="52px">
+        <Box minH="76px">
           <Text fontWeight="bold" fontSize="lg" noOfLines={2}>
             {game.title}
           </Text>

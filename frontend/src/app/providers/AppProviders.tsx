@@ -13,8 +13,13 @@ import AppErrorBoundary from "../../shared/components/AppErrorBoundary";
 // Chakra's defaults, except badges keep the case they're written in ("84% match", "In your library")
 // instead of shouting in all caps.
 const theme = extendTheme({
+  shadows: { outline: "0 0 0 3px rgba(159, 122, 234, 0.6)" },
   components: {
     Badge: { baseStyle: { textTransform: "none", letterSpacing: "normal" } },
+    Input: { defaultProps: { focusBorderColor: "purple.400" } },
+    Select: { defaultProps: { focusBorderColor: "purple.400" } },
+    Textarea: { defaultProps: { focusBorderColor: "purple.400" } },
+    NumberInput: { defaultProps: { focusBorderColor: "purple.400" } },
   },
 });
 

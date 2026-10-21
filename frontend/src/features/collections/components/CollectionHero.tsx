@@ -53,20 +53,20 @@ export default function CollectionHero({
         )}
 
         <HStack spacing={3}>
-          <Badge colorScheme="purple">{totalGames} {totalGames === 1 ? "Game" : "Games"}</Badge>
+          <Badge colorScheme="purple" borderRadius="full" px={2}>{totalGames} {totalGames === 1 ? "game" : "games"}</Badge>
 
-          {completed > 0 && <Badge colorScheme="green">{completed} Completed</Badge>}
+          {completed > 0 && <Badge colorScheme="green" borderRadius="full" px={2}>{completed} completed</Badge>}
 
-          {playing > 0 && <Badge colorScheme="purple" variant="outline">{playing} Playing</Badge>}
+          {playing > 0 && <Badge colorScheme="purple" variant="outline" borderRadius="full" px={2}>{playing} playing</Badge>}
 
-          {installed > 0 && <Badge colorScheme="gray">{installed} Installed</Badge>}
+          {installed > 0 && <Badge colorScheme="gray" borderRadius="full" px={2}>{installed} installed</Badge>}
         </HStack>
         <HStack mt={6} spacing={3}>
           <Button colorScheme="purple" variant="outline" onClick={onEdit}>
             Edit
           </Button>
 
-          <Button colorScheme="red" variant="outline" onClick={onDelete}>
+          <Button colorScheme="red" variant="ghost" onClick={onDelete}>
             Delete
           </Button>
         </HStack>

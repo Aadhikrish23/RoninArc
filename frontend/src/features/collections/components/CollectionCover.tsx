@@ -1,4 +1,5 @@
-import { Box, Grid, Image } from "@chakra-ui/react";
+import { Flex, Grid, Icon, Image, Text, useColorModeValue } from "@chakra-ui/react";
+import { FiLayers } from "react-icons/fi";
 import type { Game } from "../../library/types/library";
 
 interface Props {
@@ -7,14 +8,15 @@ interface Props {
 
 export default function CollectionCover({ games }: Props) {
   const covers = [...new Set(games.map((g) => g.imageURL).filter(Boolean))].slice(0, 4);
+  const emptyBg = useColorModeValue("gray.100", "gray.700");
+  const emptyText = useColorModeValue("gray.600", "gray.400");
 
   if (covers.length === 0) {
     return (
-      <Box
-        h="180px"
-        bg="gray.700"
-        borderTopRadius="xl"
-      />
+      <Flex h="180px" bg={emptyBg} borderTopRadius="xl" direction="column" align="center" justify="center" gap={2} color={emptyText}>
+        <Icon as={FiLayers} boxSize={7} aria-hidden />
+        <Text fontSize="sm">{games.length === 0 ? "No games yet" : "No cover art"}</Text>
+      </Flex>
     );
   }
 

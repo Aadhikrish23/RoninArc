@@ -118,7 +118,8 @@ test.describe("Library home page", () => {
       route.request().method() === "GET" ? route.fulfill({ status: 500, json: { Status: "Fail", error: "Internal Server Error" } }) : route.continue(),
     );
     await open(page, "/");
-    await expect(page.getByText("Something went wrong!")).toBeVisible();
+    await expect(page.getByRole("alert").filter({ hasText: "Couldn't load your library" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Try again" })).toBeVisible();
   });
 });
 

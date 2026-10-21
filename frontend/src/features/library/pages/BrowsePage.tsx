@@ -29,6 +29,7 @@ import { useReview } from "../../reviews/hooks/useReview";
 import { useCollection } from "../../collections/hooks/useCollections";
 import { useLaunchGame } from "../hooks/useLaunchGame";
 import { matchesTitle } from "../utils/titleSearch";
+import LoadError from "../../../shared/components/LoadError";
 
 const readPref = (key: string) => {
   try {
@@ -282,9 +283,7 @@ export default function BrowsePage() {
             <Text color="gray.500">Loading library...</Text>
           </Flex>
         ) : error ? (
-          <Text color="red.500" textAlign="center" py={10}>
-            {error}
-          </Text>
+          <LoadError title="Couldn't load your games" message={error} onRetry={fetchLibrary} />
         ) : sortedGames.length === 0 ? (
           <Text color="gray.500" textAlign="center" py={10}>
             No games found.

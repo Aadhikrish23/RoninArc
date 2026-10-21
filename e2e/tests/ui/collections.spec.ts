@@ -49,10 +49,10 @@ test.describe("Collections", () => {
       await open(page, "/");
       await page.getByRole("heading", { name: "Roguelikes" }).click();
       await expect(page).toHaveURL(new RegExp(`#/collections/${c._id}$`));
-      const header = page.locator("div").filter({ has: page.getByRole("heading", { name: "Roguelikes" }) }).filter({ hasText: "Playing" }).last();
-      // Zero counts are left out: "1 Game, 1 Playing", not "0 Completed ... 0 Installed".
-      await expect(header).toContainText(/1\s*Game\s*1\s*Playing/);
-      await expect(header).not.toContainText("0 Completed");
+      const header = page.locator("div").filter({ has: page.getByRole("heading", { name: "Roguelikes" }) }).filter({ hasText: "1 playing" }).last();
+      // Zero counts are left out: "1 game, 1 playing", not "0 completed ... 0 installed".
+      await expect(header).toContainText(/1\s*game\s*1\s*playing/);
+      await expect(header).not.toContainText("0 completed");
       await expect(page.getByRole("img", { name: "Hades" })).toBeVisible();
     });
 
@@ -98,7 +98,7 @@ test.describe("Collections", () => {
       const c = await api.createCollection("Roguelikes");
       await api.post(`/collection/${c._id}/games`, { gameId: g._id });
       await open(page, `/collections/${c._id}`);
-      await page.getByRole("button", { name: "Remove from Collection" }).click();
+      await page.getByRole("button", { name: "Remove from collection" }).click();
       await expect(page.getByRole("img", { name: "Hades" })).toHaveCount(0);
       await expect.poll(async () => (await json(await api.get(`/collection/${c._id}`))).Data.gameIds).toEqual([]);
       expect((await api.get(`/game/${g._id}`)).status()).toBe(200);

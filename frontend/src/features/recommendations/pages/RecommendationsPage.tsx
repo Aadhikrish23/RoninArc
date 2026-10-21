@@ -86,7 +86,7 @@ export default function RecommendationsPage() {
   const actions = { onAddToLibrary: addToLibrary, onDismiss: dismiss, onStartPlaying: startPlaying, showScore: !!data?.profile.personalized };
 
   return (
-    <Box maxW="1400px" mx="auto" px={6} py={8}>
+    <Box maxW="1400px" mx="auto" px={6} pt={8} pb={24}>
       <Flex justify="space-between" align={{ base: "start", md: "end" }} direction={{ base: "column", md: "row" }} gap={4} mb={6}>
         <Box>
           <Heading size="lg">For You</Heading>

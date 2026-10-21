@@ -280,7 +280,7 @@ export default function GameDetailsPage() {
           About
         </Heading>
 
-        <Text color={aboutText} lineHeight="1.8" whiteSpace="pre-wrap">
+        <Text color={aboutText} lineHeight="1.8" whiteSpace="pre-wrap" maxW="75ch">
           {game.description}
         </Text>
       </Box>

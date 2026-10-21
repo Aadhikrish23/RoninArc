@@ -35,11 +35,12 @@ export default function CollectionGameCard({
       />
 
       <Button
-        colorScheme="red"
-        variant="outline"
+        size="sm"
+        variant="ghost"
+        colorScheme="gray"
         onClick={() => onRemove(game._id)}
       >
-        Remove from Collection
+        Remove from collection
       </Button>
     </VStack>
   );

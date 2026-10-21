@@ -236,6 +236,11 @@ function DashboardPage() {
             <SimpleGrid columns={{ base: 1, lg: 2 }} spacing={6}>
               {/* Playtime */}
               <Panel title="Playtime" icon={FiClock}>
+                {data.playtime.totalMinutes === 0 ? (
+                  <Text fontSize="2xl" fontWeight="bold" lineHeight={1.2} mb={5}>
+                    No playtime yet
+                  </Text>
+                ) : (
                 <SimpleGrid columns={3} spacing={3} mb={5}>
                   {[
                     { label: "Last 7 days", value: formatMinutes(data.playtime.last7DaysMinutes) },
@@ -252,7 +257,9 @@ function DashboardPage() {
                     </Box>
                   ))}
                 </SimpleGrid>
+                )}
 
+                {data.playtime.totalMinutes > 0 && (
                 <Box mb={5} aria-label="Playtime per day, last 7 days" role="img">
                   <HStack align="flex-end" spacing={2} h="80px">
                     {data.playtime.daily.map((d) => (
@@ -271,6 +278,7 @@ function DashboardPage() {
                     ))}
                   </HStack>
                 </Box>
+                )}
 
                 <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={2}>
                   Most played
@@ -316,11 +324,11 @@ function DashboardPage() {
                 </Text>
                 <Progress value={completedShare} colorScheme="green" size="sm" borderRadius="full" mb={4} aria-label="Finished out of planned, playing, paused and completed games" />
 
-                <SimpleGrid columns={{ base: 2, sm: 3 }} spacing={2} mb={data.backlog.unsortedCount > 0 ? 2 : 5}>
+                <SimpleGrid columns={{ base: 2, sm: 3 }} spacingX={8} spacingY={2} mb={data.backlog.unsortedCount > 0 ? 2 : 5}>
                   {STATUS_ROWS.map((s) => (
                     <HStack key={s.key} spacing={2}>
                       <Box w="8px" h="8px" borderRadius="full" bg={`${s.color}.400`} flexShrink={0} />
-                      <Text fontSize="sm" flex="1">
+                      <Text fontSize="sm">
                         {s.label}
                       </Text>
                       <Text fontSize="sm" fontWeight="semibold">

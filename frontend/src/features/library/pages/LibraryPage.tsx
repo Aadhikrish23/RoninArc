@@ -35,6 +35,7 @@ import GameCarousel from "../components/GameCarousel";
 import CollectionCarousel from "../components/CollectionCarousel";
 import { useLaunchGame } from "../hooks/useLaunchGame";
 import RecommendedStrip from "../../recommendations/components/RecommendedStrip";
+import LoadError from "../../../shared/components/LoadError";
 
 function LibraryPage() {
   const {
@@ -214,7 +215,7 @@ function LibraryPage() {
   return (
     <Box minH="100vh" bg={bg}>
       {/* ---------------- MAIN CONTENT ---------------- */}
-      <Box maxW="1400px" mx="auto" px={6} py={8}>
+      <Box maxW="1400px" mx="auto" px={6} pt={8} pb={24}>
         {showSearchResults ? (
           <>
           <RawgSearch
@@ -252,7 +253,7 @@ function LibraryPage() {
               onAddGame={handleAddGame}
               onSearchSubmit={handleSearchSubmit}
             />
-            <Flex justify="space-between" align="flex-end" mb={8} mt={4}>
+            <Flex justify="space-between" align="center" mb={8} mt={4}>
               <LibraryHeader />
               <HStack spacing={3}>
                 {canLaunchGames() && (
@@ -278,13 +279,10 @@ function LibraryPage() {
             {loading ? (
               <Box w="100%" py={20} textAlign="center" color="gray.500">
                 <Spinner size="xl" thickness="4px" speed="0.6s" />
-                <Text mt={4}>Loading your dashboard...</Text>
+                <Text mt={4}>Loading your library...</Text>
               </Box>
             ) : error ? (
-              <Box w="100%" py={10} textAlign="center" color="red.400">
-                <Text fontWeight="semibold">Something went wrong!</Text>
-                <Text>{error}</Text>
-              </Box>
+              <LoadError title="Couldn't load your library" message={error} onRetry={fetchLibrary} />
             ) : games.length === 0 ? (
               <Box
                 p={10}

@@ -47,17 +47,26 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
       display="flex"
       flexDirection="column"
     >
-      <Box position="relative" cursor={rec.rawgId ? "pointer" : "default"} onClick={openDetails}>
+      <Box
+        position="relative"
+        cursor={rec.rawgId ? "pointer" : "default"}
+        onClick={openDetails}
+        tabIndex={rec.rawgId ? 0 : undefined}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") openDetails();
+        }}
+        _focusVisible={{ outline: "2px solid", outlineColor: "purple.400", outlineOffset: "2px" }}
+      >
         <Image src={rec.imageURL} alt={rec.title} h="160px" w="100%" objectFit="cover" fallbackSrc={PLACEHOLDER_IMAGE} />
         {showScore && !fromLibrary && (
           <Tooltip label="How well this fits your taste" hasArrow>
-            <Badge position="absolute" top={3} right={3} colorScheme="purple" variant="solid" fontSize="0.8em" px={2} py={1} borderRadius="md" boxShadow="md">
+            <Badge position="absolute" top={3} right={3} colorScheme="purple" variant="solid" fontSize="0.8em" px={2} py={1} borderRadius="full" boxShadow="md">
               {rec.score}% match
             </Badge>
           </Tooltip>
         )}
         {fromLibrary && (
-          <Badge position="absolute" top={3} left={3} colorScheme="green" variant="solid" fontSize="0.7em" px={2} py={1} borderRadius="md" boxShadow="md">
+          <Badge position="absolute" top={3} left={3} colorScheme="green" variant="solid" fontSize="0.7em" px={2} py={1} borderRadius="full" boxShadow="md">
             In your library
           </Badge>
         )}
