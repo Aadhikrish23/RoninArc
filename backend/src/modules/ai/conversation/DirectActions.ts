@@ -102,7 +102,7 @@ const listNames = (names: string[]) =>
  * After rating a game still on Plan to Play: offer to mark it Completed.
  */
 /** "been playing it nonstop", "still on it", "playing it rn": not finished. */
-const STILL_PLAYING = /(been|still|currently|keep|now) playing|playing (it )?(nonstop|non-stop|rn|right now|a lot|every day|daily|again)|still (on|in|into) it|nonstop|non-stop|addicted|cant stop|can.t stop|endless|roguelike|roguelite/i;
+const STILL_PLAYING = /(been|still|currently|keep|now) playing|playing (it )?(nonstop|non-stop|rn|right now|a lot|every day|daily|again)|still (on|in|into) it|nonstop|non-stop|addicted|cant stop|can.t stop|endless|roguelike|roguelite|so far|for now|halfway|half way|still going/i;
 
 export async function followUpOffer(userId: string, intents: { type: string; targets?: { type: string; name: string }[] }[], message = ""): Promise<FollowUpOffer | undefined> {
   const uid = new Types.ObjectId(userId);

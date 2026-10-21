@@ -19,6 +19,7 @@ import {
   type QuickCommand,
   parseReviewEdit,
   fillCollectionThere,
+  lastMentionedCollection,
   statedScore,
   pinPronoun,
   recommendationFollowUp,
@@ -127,6 +128,21 @@ export async function preRoute({ userId, requestId, message, client, session, re
     }
   }
 
+  // "delete that collection", "rename soulslikes to hard games" -- before answers from the data, so
+  // "rename cozy nights to chill stuff and also whats a good co-op game" does both (the answer used
+  // to win and the rename never ran).
+  const collectionCommand = parseCollectionCommand(message, requestContext.library.collections, recentExchanges.get(userId), page.collectionName);
+  if (collectionCommand) {
+    forgetChange(userId);
+    const result = await runCollectionCommand(userId, collectionCommand, requestContext.library.collections);
+    if (result.kind === "reply") {
+      const rest = collectionCommand.kind === "rename" && result.success ? collectionCommand.rest : undefined;
+      return { kind: "reply", response: { success: result.success, message: result.message }, ...(rest ? { rest } : {}) };
+    }
+    pendingConfirmations.put(userId, { run: result.run, label: result.label });
+    return reply(confirmationResponse(requestId, message, result.question, "Yes, delete it"));
+  }
+
   // "what's in cozy nights?", "read me my notes": answered from the data, never guessed.
   const answered = await answerDirectly(message, direct);
   if (answered.answer) {
@@ -157,22 +173,12 @@ export async function preRoute({ userId, requestId, message, client, session, re
   }
 
 
-  // "delete that collection", "rename soulslikes to hard games".
-  const collectionCommand = parseCollectionCommand(message, requestContext.library.collections, recentExchanges.get(userId), page.collectionName);
-  if (collectionCommand) {
-    forgetChange(userId);
-    const result = await runCollectionCommand(userId, collectionCommand, requestContext.library.collections);
-    if (result.kind === "reply") {
-      const rest = collectionCommand.kind === "rename" && result.success ? collectionCommand.rest : undefined;
-      return { kind: "reply", response: { success: result.success, message: result.message }, ...(rest ? { rest } : {}) };
-    }
-    pendingConfirmations.put(userId, { run: result.run, label: result.label });
-    return reply(confirmationResponse(requestId, message, result.question, "Yes, delete it"));
-  }
-
   // "nah, something shorter" right after picks refines that ask;
   // "any roguelikes like hades?" is a recommendation -- no need to ask the planner.
-  const followUp = recommendationFollowUp(message, recentExchanges.get(userId).slice(-1)[0]);
+  // A plain command right after picks is a command ("give the witcher 3 an 8 ... the story goes
+  // hard" read as "more story games" because it said "story").
+  const isCommand = !!parseQuickCommand(message) || /^\s*(?:give|gimme|rate|add|remove|delete|mark|set|pause|drop|start|finish|note|put|rename)\b/i.test(message);
+  const followUp = isCommand ? undefined : recommendationFollowUp(message, recentExchanges.get(userId).slice(-1)[0]);
   if (followUp || (RECOMMEND_ASK.test(message) && !EXPLICIT_ACTION.test(message))) {
     return plan(requestId, { type: IntentType.RecommendGame, targets: [], parameters: [{ type: IntentParameterType.Text, value: followUp ?? message }] });
   }
@@ -234,6 +240,7 @@ function directContext(
     owned,
     pageGame: page.gameTitle,
     pageCollection: page.collectionName,
+    recentCollection: lastMentionedCollection(recentExchanges.get(userId), collections),
     // "it" = the game the conversation is on; failing that, the last game the assistant named.
     currentGame:
       // The game the assistant just named first, then the session's, then older replies.

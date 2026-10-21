@@ -5,7 +5,7 @@ export const AI_OFFLINE_MESSAGE =
 
 /** The model answered too slowly (its service is overloaded) -- not the user's connection. */
 export const AI_SLOW_MESSAGE =
-  "The AI model is taking too long to answer right now, so I stopped waiting. Simple requests like \"pause rdr2\" or \"rate hades 9\" still work instantly -- or try again in a minute.";
+  "The AI model is taking too long to answer right now, so I stopped waiting. Simple requests like \"pause rdr2\" or \"rate hades 9\" still work instantly. Or try again in a minute.";
 
 /**
  * The LLM provider could not be reached at all (no network, refused, timed

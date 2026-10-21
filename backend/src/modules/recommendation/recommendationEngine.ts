@@ -205,9 +205,10 @@ export function diversifyReasons<T extends { reasons: string[]; genres: string[]
       return count < 2;
     });
     if (kept.length > 0) return { ...rec, reasons: kept };
-    if (rec.source === "library") return { ...rec, reasons: ["Waiting in your backlog"] };
-    const year = rec.released ? new Date(rec.released).getFullYear() : NaN;
-    return { ...rec, reasons: Number.isNaN(year) ? [] : [`Released in ${year}`] };
+    // Every reason was a repeat: keep the card's own first one. A repeated real reason beats
+    // filler ("Released in 2015" read as filler; the genre chips already say what the game is).
+    if (rec.reasons.length > 0) return { ...rec, reasons: [rec.reasons[0]] };
+    return { ...rec, reasons: [rec.source === "library" ? "Waiting in your backlog" : "Popular with players right now"] };
   });
 }
 
@@ -248,7 +249,8 @@ function tasteReason(
     used.set(best.title, (used.get(best.title) ?? 0) + 1);
     return `Similar to ${best.title}, which ${best.why}`;
   }
-  return top ? `Matches your taste for ${top}` : null;
+  // "Matches your taste for Indie" on every other card says nothing: only specific genres count.
+  return top && !BROAD_GENRES.has(norm(top)) ? `Matches your taste for ${top}` : null;
 }
 
 /** "like Hades": rank and explain by the named game. */

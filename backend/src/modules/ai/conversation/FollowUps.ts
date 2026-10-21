@@ -127,7 +127,7 @@ export function fillCollectionThere(message: string, exchanges: Exchange[], coll
  * "Git Gud and tell me whats in it" -> "Git Gud": the new name stops at a second request;
  * "just Git Gud" -> "Git Gud".
  */
-const NAME_STOP = /\s+(?:and|then|also|plus)\s+(?=(?:tell|show|list|what|whats|what's|add|put|remove|delete|mark|rate|get|take|throw|give|gimme|start|pause|drop|set|make|create|move|launch|play|finish|unpause)\b)|[,;]\s+|\.\s+/i;
+const NAME_STOP = /\s+(?:and also|and then|and|then|also|plus)\s+(?=(?:tell|show|list|what|whats|what's|add|put|remove|delete|mark|rate|get|take|throw|give|gimme|start|pause|drop|set|make|create|move|launch|play|finish|unpause)\b)|[,;]\s+|\.\s+/i;
 
 /** "Git Gud and get rid of cod mw2" -> name "Git Gud", rest "get rid of cod mw2". */
 function splitNewName(raw: string): { name: string; rest?: string } {
@@ -349,7 +349,8 @@ export function parseQuickCommand(message: string): QuickCommand | undefined {
   if (rate) {
     const rating = Number(rate[2]);
     if (rating < 1 || rating > 10) return undefined;
-    const comment = rate[3]?.trim();
+    // "give it an 8 so far, combat is kinda mid": the review is "combat is kinda mid".
+    const comment = rate[3]?.replace(/^(?:so far|for now|honestly|tbh|ngl|imo|tho|though|cuz|because|bc|since)\b[\s,:-]*/i, "").trim();
     return { kind: "rate", game: rate[1].trim(), rating, ...(comment ? { comment } : {}) };
   }
 

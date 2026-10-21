@@ -5,7 +5,7 @@ import Review from "../../review/Reviewmodel";
 import LibraryGame from "../../library/LibraryGame";
 import rawgService from "../../rawg/rawgService";
 import { rankByTitle } from "../../rawg/titleMatch";
-import { gamesInQuestion, playtimeFor } from "./GameFacts";
+import { gameFacts, gamesInQuestion, playtimeFor } from "./GameFacts";
 import dashboardOverviewService from "../../dashboard/dashboardOverviewService";
 import { franchiseMatch, namedTitles } from "./TargetGrounding";
 import { ACTION, NOTES_READ, NOTE_WRITE, namedCollection } from "./FollowUps";
@@ -49,6 +49,8 @@ export interface DirectAnswerContext {
   pageGame?: string;
   pageCollection?: string;
   currentGame?: string | null;
+  /** The collection the conversation was last about ("is elden ring in there?"). */
+  recentCollection?: string;
 }
 
 /** The library game a question is about: named, shorthand, the page, or "it". */
@@ -179,6 +181,39 @@ async function describeFavourite(question: string, ctx: DirectAnswerContext): Pr
   return `Your favourite so far is ${top.gameId.title}, rated ${top.rating}/10.${runnersUp}`;
 }
 
+/** "is elden ring in there too?" / "is hades in my soulslikes?": from the collection (the model said no while it was in there). */
+const IN_COLLECTION = /\b(?:is|are)\s+(.+?)\s+(?:already\s+|also\s+)?in\s+(there|it|that one|that collection|that list|(?:my\s+|the\s+)?.+?)(?:\s+(?:too|yet|already|now))?\s*\??\s*$/i;
+
+async function describeInCollection(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
+  const m = question.match(IN_COLLECTION);
+  if (!m || ACTION.test(question)) return undefined;
+  const pointsBack = /^(there|it|that one|that collection|that list)$/i.test(m[2].trim());
+  const name = pointsBack ? ctx.pageCollection ?? ctx.recentCollection : namedCollection(m[2], ctx.collections);
+  if (!name) return undefined;
+  const title = namedTitles(m[1], ctx.owned)[0] ?? franchiseMatch(m[1], ctx.owned);
+  if (!title) return undefined;
+  const col = (await CollectionModel.findOne({ userId: new Types.ObjectId(ctx.userId), name })
+    .populate<{ gameIds: { title: string }[] }>({ path: "gameIds", select: "title" })
+    .lean()) as any;
+  if (!col) return undefined;
+  const has = (col.gameIds ?? []).some((g: any) => g?.title === title);
+  return has ? `Yes, ${title} is in "${col.name}".` : `No, ${title} isn't in "${col.name}" yet. Say "put ${title} in ${col.name}" to add it.`;
+}
+
+/** "who made hollow knight", "who's the developer of hades": from the game database. */
+const WHO_MADE =
+  /\bwho\s+(?:made|makes|developed|develops|created|built|is (?:the )?(?:developer|dev|studio) (?:of|behind|for)|are the (?:developers|devs) (?:of|behind))\s+(.+?)(?:\s+(?:and|also)\b.*)?\s*\??\s*$|\b(?:developer|dev|studio) (?:of|behind)\s+(.+?)\s*\??\s*$/i;
+
+async function describeDeveloper(question: string): Promise<string | undefined> {
+  const m = question.match(WHO_MADE);
+  const asked = (m?.[1] ?? m?.[2])?.replace(/^(?:the game|that game)\s+/i, "").trim();
+  if (!asked || /^(it|this|that|this one|that one)$/i.test(asked)) return undefined;
+  const facts = await gameFacts(asked).catch(() => undefined);
+  if (!facts?.name || !facts.developers?.length) return undefined;
+  const year = facts.released ? ` (released ${new Date(facts.released).getFullYear()})` : "";
+  return `${facts.name} was made by ${facts.developers.slice(0, 2).join(" and ")}${year}.`;
+}
+
 /** "what are my steam friends playing": nothing here can see friends; say so instead of a library summary. */
 async function describeFriends(question: string): Promise<string | undefined> {
   if (!/\bfriends?\b[^.?!]*\b(play\w*|online|on)\b|\bwhat (are|is) my (steam |epic )?friends?\b/i.test(question)) return undefined;
@@ -289,7 +324,7 @@ async function describeRating(question: string, ctx: DirectAnswerContext): Promi
   return `You rated ${game.title} ${review.rating}/10${review.reviewText ? ` -- "${review.reviewText}"` : "."}`;
 }
 
-const HANDLERS = [describeRating, describeCollection, describeNotes, describeHoursPlayed, describeFriends, describePlaytime, describeRelease, describeFeature, describeAverage, describeFavourite, describePlaying, describeCounts];
+const HANDLERS = [describeRating, describeInCollection, describeCollection, describeNotes, describeHoursPlayed, describeFriends, describeDeveloper, describePlaytime, describeRelease, describeFeature, describeAverage, describeFavourite, describePlaying, describeCounts];
 
 async function answerOne(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   for (const handler of HANDLERS) {

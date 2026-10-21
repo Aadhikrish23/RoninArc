@@ -87,6 +87,9 @@ export async function factsForQuestion(question: string, owned: string[]): Promi
   return lines.length > 0 ? lines.join("\n") : undefined;
 }
 
+/** The database facts for one game by name ("hollow knight"), or undefined. */
+export const gameFacts = (title: string) => lookUp(title);
+
 /** "how long is outer wilds" for a game that isn't in the library: RAWG's average, when it's reliable. */
 export async function playtimeFor(title: string): Promise<{ name: string; hours: number } | undefined> {
   const f = await lookUp(title).catch(() => undefined);

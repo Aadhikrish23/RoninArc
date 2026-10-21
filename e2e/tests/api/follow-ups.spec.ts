@@ -333,7 +333,7 @@ test.describe("AI: round 16 moods, slang ratings and no-then-ask", () => {
   test('"dropped cod its mid, and gimme stardew a 8" is two commands @positive', () => {
     expect(parseQuickCommands("dropped cod its mid, and gimme stardew a 8 cuz its comfy af")).toEqual([
       { kind: "status", game: "cod", status: "dropped" },
-      { kind: "rate", game: "stardew", rating: 8, comment: "cuz its comfy af" },
+      { kind: "rate", game: "stardew", rating: 8, comment: "its comfy af" },
     ]);
   });
   test('"nah. where did i leave off in disco elysium" declines, then asks @positive', () => {

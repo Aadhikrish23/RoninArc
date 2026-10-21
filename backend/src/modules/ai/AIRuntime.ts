@@ -41,6 +41,23 @@ import { forgetChange, hasUntrackedChanges, rememberChange, snapshotBefore } fro
  *   then the model)  ->  corrections (the user's own words)  ->  grounding (real games only)
  *   ->  shaping  ->  answer or run (planning, confirmation, execution).
  */
+/**
+ * "yeah add it, and put ds3 in there too": the first part already happened. If the rest fails
+ * (the model timed out), say what was done and what wasn't, instead of an error card that hid
+ * the part that ran -- the playtester then couldn't tell Elden Ring had been added.
+ */
+function withRest(done: string, rest: string, more: RuntimeResponse): RuntimeResponse {
+  if (more.success || more.status === "CONFIRMATION_REQUIRED" || more.status === "CANCELLED") {
+    return { ...more, message: `${done} ${more.message}`.trim() };
+  }
+  const why = String(more.message || "").replace(/\s*Simple requests like[\s\S]*$/, "").trim();
+  return {
+    success: true,
+    status: "PARTIAL",
+    message: `${done} I couldn't get to the rest ("${rest}")${why ? `: ${why}` : "."} Send that part again and I'll do it.`.trim(),
+  };
+}
+
 export class AIRuntime {
   private readonly model: ModelGateway;
   private readonly runner: PlanRunner;
@@ -110,7 +127,7 @@ export class AIRuntime {
         if (pending.kind === "more") {
           // "yeah do it, and hollow knight too": did what we offered; the rest is a new message.
           const more: RuntimeResponse = await this.chat(userId, pending.rest, `${requestId}-more`, client);
-          return finish({ ...more, message: `${pending.done} ${more.message}`.trim() });
+          return finish(withRest(pending.done, pending.rest, more));
         }
         if (pending.kind === "plan") {
           intentPlan = pending.plan;
@@ -140,7 +157,7 @@ export class AIRuntime {
           const routed = await preRoute({ userId, requestId, message: cleanRequest, client, session, requestContext, model: this.model });
           if (routed.kind === "reply" && routed.rest) {
             const more: RuntimeResponse = await this.chat(userId, routed.rest, `${requestId}-more`, client);
-            return finish({ ...more, message: `${routed.response.message} ${more.message}`.trim() });
+            return finish(withRest(routed.response.message ?? "", routed.rest, more));
           }
           if (routed.kind === "reply") return finish(routed.response);
           notice = routed.notice;

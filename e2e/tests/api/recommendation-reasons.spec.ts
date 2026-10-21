@@ -11,7 +11,7 @@ test.describe("Recommendation reasons", () => {
     source: extra.source ?? "rawg",
   });
 
-  test("the same kind of reason appears on at most two cards @positive", () => {
+  test("a repeated reason gives way when a card has another one @positive", () => {
     const out = diversifyReasons([
       rec(["Critically acclaimed (Metacritic 94)"]),
       rec(["Critically acclaimed (Metacritic 92)"]),
@@ -22,7 +22,8 @@ test.describe("Recommendation reasons", () => {
       ["Critically acclaimed (Metacritic 94)"],
       ["Critically acclaimed (Metacritic 92)"],
       ["Shorter: about 8h on average"],
-      ["Released in 2018"],
+      // Nothing else to say: it keeps its own reason rather than filler.
+      ["Critically acclaimed (Metacritic 90)"],
     ]);
   });
 

@@ -9,6 +9,7 @@ import {
   buildTasteProfile,
   favouriteGenres,
   focusGenres,
+  diversifyReasons,
   rankBacklog,
   rankDiscover,
   type LengthPreference,
@@ -95,6 +96,13 @@ const tagCache = new Map<number, string[]>();
 async function tagsFor(rawgId: number): Promise<string[]> {
   if (!tagCache.has(rawgId)) tagCache.set(rawgId, await rawgService.getGameTagSlugs(rawgId));
   return tagCache.get(rawgId)!;
+}
+
+/** Owned games' RAWG facts (playtime), cached like the tags. */
+const factsCache = new Map<number, Promise<{ playtime: number }>>();
+function factsFor(rawgId: number): Promise<{ playtime: number }> {
+  if (!factsCache.has(rawgId)) factsCache.set(rawgId, rawgService.getGameFacts(rawgId).catch(() => ({ playtime: 0, tags: [] })));
+  return factsCache.get(rawgId)!;
 }
 
 /** Styles that library genres can stand in for. */
@@ -244,7 +252,18 @@ async function getRecommendations(
     // not a 60-hour open world you haven't started.
     const shortSession = session && length !== undefined && length !== "long";
     const backlogLength = shortSession ? undefined : length;
-    let backlogPool = backlogLength ? library.filter((g) => (g.avgHours ?? 0) >= 3) : library;
+    // Games added by hand often have no length yet (background enrichment): "like hades but
+    // shorter" then passed The Witcher 3, DS3 and Elden Ring as "unknown". Ask RAWG for them.
+    const owned = length
+      ? await Promise.all(library.slice(0, 40).map(async (g) => (g.avgHours || !g.rawgId ? g : { ...g, avgHours: (await factsFor(g.rawgId)).playtime || g.avgHours })))
+      : library;
+    let backlogPool = backlogLength ? owned.filter((g) => (g.avgHours ?? 0) >= 3) : owned;
+    // "like hades": backlog picks have to play like it (a roguelite), not just share "Action".
+    const likeStyle = like && styles.slugs.length === 0 ? discoverStyles.slugs.find((s) => DISTINCTIVE_STYLES.has(s)) : undefined;
+    if (likeStyle) {
+      const tagged = await Promise.all(backlogPool.map(async (g) => ({ g, tags: g.rawgId ? await tagsFor(g.rawgId) : [] })));
+      backlogPool = tagged.filter((t) => hasStyle(t.tags, likeStyle)).map((t) => t.g);
+    }
     if (shortSession) {
       // Drop only games known to be long; unknown lengths (new adds) stay, so Hades and Celeste still show.
       // A tight time box ("1-2 hrs max", "half an hour") rules out a 50-hour open world even when
@@ -320,6 +339,10 @@ async function getRecommendations(
     }
   }
 
+  // One cap across both lists: "Matches your taste for Indie" was on Play Next and twice in Discover.
+  const all = diversifyReasons([...result.backlog, ...result.discover]);
+  result.backlog = all.slice(0, result.backlog.length);
+  result.discover = all.slice(result.backlog.length);
   return result;
 }
 
