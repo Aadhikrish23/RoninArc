@@ -14,17 +14,22 @@ async function searchGames(query: string, page: number, precise = true) {
 
   try {
     const url = `${RAWG_BASE_URL}/games`;
-    const response = await axios.get(url, {
-      params: {
-        key: RAWG_API_KEY,
-        search: query,
-        page,
+    const request = () =>
+      axios.get(url, {
+        params: {
+          key: RAWG_API_KEY,
+          search: query,
+          page,
 
-        search_precise: precise,
-        // No popularity ordering: with "-added", RAWG puts GTA V first for
-        // "rdr 2" and even for "red dead redemption 2". Its default order is relevance.
-      },
-    });
+          search_precise: precise,
+          // No popularity ordering: with "-added", RAWG puts GTA V first for
+          // "rdr 2" and even for "red dead redemption 2". Its default order is relevance.
+        },
+        timeout: 10000,
+      });
+    // One retry: RAWG sometimes drops or stalls a request ("stardew" failed every time a
+    // playtester typed it, while the same search worked moments later).
+    const response = await request().catch(() => request());
 
     const results = response.data.results;
 

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, parseQuickCommands, pinPronoun, saveThatAsNote, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, parseQuickCommands, fillCollectionThere, pinPronoun, saveThatAsNote, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
 import { isConfirmReply, noAndMore, yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
 import { RECOMMEND_ASK } from "../../../backend/src/modules/ai/pipeline/Patterns";
 import { namedTitles, sameGame } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
@@ -341,5 +341,36 @@ test.describe("AI: round 16 moods, slang ratings and no-then-ask", () => {
   test('"nah keep it" is only a no @negative', () => {
     expect(noAndMore("nah keep it")).toBeUndefined();
     expect(noAndMore("no thanks!")).toBeUndefined();
+  });
+});
+
+// Playtest round 17.
+test.describe("AI: round 17 follow-ups", () => {
+  const owned = ["The Witcher 3: Wild Hunt", "Stardew Valley", "Hollow Knight"];
+  test('"started the witcher again" names the Witcher, not Stardew ("started" is not a typo of "stardew") @negative', () => {
+    expect(namedTitles("started the witcher again on death march", owned)).toEqual(["The Witcher 3: Wild Hunt"]);
+    expect(pinPronoun("started the witcher again on death march, im playing it now", "Stardew Valley", (c) => namedTitles(c, owned)[0])).toBe(
+      "started the witcher again on death march, im playing The Witcher 3: Wild Hunt now",
+    );
+  });
+  test('"ya and hollow knight too" is a yes plus more @positive', () => {
+    expect(yesAndMore("ya and hollow knight too")).toBe("hollow knight too");
+    expect(yesAndMore("yes add those, and hollow knight too")).toBe("hollow knight too");
+  });
+  test('"put ds3 in there" means the collection just talked about @positive', () => {
+    const exchanges = [{ user: "make a soulslike collection", assistant: 'I\'ve created the collection "Soulslikes". Want me to add Sekiro to it?' }] as any;
+    expect(fillCollectionThere("put ds3 in there", exchanges, ["Soulslikes"])).toBe('put ds3 in "Soulslikes"');
+    expect(fillCollectionThere("put ds3 in there", [], ["Soulslikes"])).toBe("put ds3 in there");
+  });
+});
+
+test.describe("AI: round 17 scores in passing", () => {
+  test('"finished celeste, its a 9" states a 9 @positive', () => {
+    expect(statedScore("finished celeste, its a 9")).toBe(9);
+    expect(statedScore("finished it, it's a 7.5")).toBe(7.5);
+  });
+  test('"i gave it 3 tries" and "its 2 hours long" are not scores @negative', () => {
+    expect(statedScore("i gave it 3 tries")).toBeUndefined();
+    expect(statedScore("its 2 hours long")).toBeUndefined();
   });
 });

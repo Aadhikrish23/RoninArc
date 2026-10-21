@@ -18,6 +18,8 @@ import {
   parseQuickCommands,
   type QuickCommand,
   parseReviewEdit,
+  fillCollectionThere,
+  statedScore,
   pinPronoun,
   recommendationFollowUp,
   saveThatAsNote,
@@ -85,10 +87,12 @@ export async function preRoute({ userId, requestId, message, client, session, re
     const meant = owned.find((t) => namedTitles(message, [t]).length > 0 && !lastChangeTouched(userId, t));
     if (meant) {
       const undone = await undoLastChange(userId);
-      if (!EXPLICIT_ACTION.test(message) && !/\b(done|finished|beat|completed|playing|paused|dropped|rated?)\b/i.test(message)) {
+      // Nothing to put back (the last change already ran out): just do what they meant.
+      const didUndo = !!undone && !/^There was nothing/.test(undone);
+      if (didUndo && !EXPLICIT_ACTION.test(message) && !/\b(done|finished|beat|completed|playing|paused|dropped|rated?)\b/i.test(message)) {
         return reply({ success: true, message: `Sorry about that. ${undone} What should I do for ${meant}?` });
       }
-      notice = `Sorry about that. ${undone}`;
+      if (didUndo) notice = `Sorry about that. ${undone}`;
     }
   }
 
@@ -166,7 +170,13 @@ export async function preRoute({ userId, requestId, message, client, session, re
   // command ("dropped cod") and would lose the rating.
   const quickMany = quickIntents(message, owned, direct.pageGame ?? direct.currentGame ?? undefined);
   if (quickMany) return { kind: "plan", plan: { id: requestId, requestId, intents: quickMany as any[] }, notice };
-  const quick = quickIntent(message, owned, direct.pageGame ?? direct.currentGame ?? undefined);
+  const quick = quickIntent(message, owned, direct.pageGame ?? direct.currentGame ?? undefined) as any;
+  // "finished celeste, its a 9": the score is a rating too.
+  const score = quick?.type === IntentType.SetStatus ? statedScore(message) : undefined;
+  if (quick && score !== undefined) {
+    const rate = { type: IntentType.RateGame, targets: quick.targets, parameters: [{ type: IntentParameterType.Rating, value: score }] };
+    return { kind: "plan", plan: { id: requestId, requestId, intents: [quick, rate] as any[] }, notice };
+  }
   if (quick) return { ...plan(requestId, quick), notice } as PreRouteOutcome;
 
   // "add gta 5": nothing for the planner to work out.
@@ -178,7 +188,9 @@ export async function preRoute({ userId, requestId, message, client, session, re
   try {
     // "put it in the soulslike one too, and start playing sekiro": "it" is the conversation's game.
     const referent = direct.currentGame ?? direct.pageGame ?? undefined;
-    const pinned = pinPronoun(message, referent, (clause) => namedTitles(clause, owned)[0] ?? franchiseMatch(clause, owned));
+    // "put ds3 in there": the collection we were just talking about.
+    const located = fillCollectionThere(message, recentExchanges.get(userId), requestContext.library.collections);
+    const pinned = pinPronoun(located, referent, (clause) => namedTitles(clause, owned)[0] ?? franchiseMatch(clause, owned));
     return { kind: "plan", plan: await model.planWithRetry(pinned, requestContext), notice, pinned: pinned !== message ? pinned : undefined };
   } catch (error: any) {
     // The planner couldn't produce a plan; a question still deserves an answer.

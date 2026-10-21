@@ -196,7 +196,9 @@ export function AIProvider({ children }: { children: ReactNode }) {
       const userMsgIdx = idx - 1;
       if (userMsgIdx >= 0 && prev[userMsgIdx].sender === "user") {
         userText = prev[userMsgIdx].text;
-        return prev.filter((m) => m.id !== failedMessageId);
+        // sendMessage posts the text again, so the failed copy goes too (no duplicate bubble).
+        const failedUserId = prev[userMsgIdx].id;
+        return prev.filter((m) => m.id !== failedMessageId && m.id !== failedUserId);
       }
       return prev;
     });

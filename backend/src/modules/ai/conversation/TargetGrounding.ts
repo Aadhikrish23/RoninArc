@@ -56,6 +56,14 @@ function editDistance(a: string, b: string): number {
 
 const GENERIC = new Set(["the", "of", "a", "an", "and", "game", "edition", "remastered", "definitive", "deluxe", "goty"]);
 
+/** Words players use in commands and chat; a near-miss on one of these is the word itself, not a typo'd title. */
+const EVERYDAY = new Set([
+  "started", "starting", "start", "stared", "stars", "finished", "finally", "playing", "played", "player", "paused", "pause",
+  "dropped", "completed", "complete", "removed", "remove", "rated", "rating", "review", "again", "anyway", "actually",
+  "already", "night", "tonight", "today", "after", "before", "where", "there", "their", "these", "those", "think",
+  "thing", "story", "games", "great", "still", "maybe", "about", "really", "trying", "going", "break", "collection",
+]);
+
 /** Does `text` name the game `title` (whole title, abbreviation, distinctive word, or a close typo of one)? */
 export function mentions(text: string, title: string): boolean {
   const words = tokens(text);
@@ -87,7 +95,8 @@ export function mentions(text: string, title: string): boolean {
   return words.some((w) =>
     w.length >= 4 &&
     // Typos only count on longer words: "play" is one letter from "slay" (Slay the Spire).
-    titleWords.some((tw) => tw.length >= 4 && (w === tw || (w.length >= 5 && tw.length >= 5 && w[0] === tw[0] && editDistance(w, tw) <= (tw.length >= 7 ? 2 : 1)))),
+    // Everyday words are never typos of a title: "started" is two letters from "stardew".
+    titleWords.some((tw) => tw.length >= 4 && (w === tw || (w.length >= 5 && tw.length >= 5 && !EVERYDAY.has(w) && w[0] === tw[0] && editDistance(w, tw) <= (tw.length >= 7 ? 2 : 1)))),
   );
 }
 

@@ -154,6 +154,11 @@ function LibraryPage() {
 
     setShowSearchResults(false);
   };
+
+  // Clearing the box on the results page goes back to the library, not to 'No games found matching ""'.
+  useEffect(() => {
+    if (showSearchResults && !searchText.trim()) setShowSearchResults(false);
+  }, [showSearchResults, searchText]);
   useEffect(() => {
     fetchLibrary();
     fetchCollections();

@@ -112,6 +112,17 @@ export function lastMentionedCollection(exchanges: Exchange[], collections: stri
 }
 
 /**
+ * "put ds3 in there" right after talking about Soulslikes -> 'put ds3 in "Soulslikes"': "there" is the
+ * collection the conversation was on, so the planner doesn't settle for just adding the game.
+ */
+export function fillCollectionThere(message: string, exchanges: Exchange[], collections: string[]): string {
+  const there = /\b(in|into|to)\s+(there|that one|that collection|that list|the collection)\b/i;
+  if (!there.test(message)) return message;
+  const collection = lastMentionedCollection(exchanges, collections);
+  return collection ? message.replace(there, (_, prep) => `${prep} "${collection}"`) : message;
+}
+
+/**
  * "Git Gud and tell me whats in it" -> "Git Gud": the new name stops at a second request;
  * "just Git Gud" -> "Git Gud".
  */
@@ -248,7 +259,10 @@ export function parseReviewEdit(message: string): { target: string; text: string
 
 /** "10/10 masterpiece", "a solid 8 out of 10": a score stated in passing, 1-10 (halves allowed). */
 export function statedScore(message: string): number | undefined {
-  const match = message.match(/\b(\d{1,2}(?:\.5)?)\s*(?:\/|out of)\s*10\b/i);
+  // "10/10", "9 out of 10", and "finished celeste, its a 9" / "easy 8" (not "2 hours", "100%").
+  const match =
+    message.match(/\b(\d{1,2}(?:\.5)?)\s*(?:\/|out of)\s*10\b/i) ??
+    message.match(/\b(?:it'?s|its|easy|solid|a solid|an easy|strong|gave it|i'?d give it)\s+(?:an?\s+)?(\d{1,2}(?:\.5)?)\b(?!\s*(?:%|h\b|hrs?\b|hours?\b|mins?\b|minutes?\b|th\b|st\b|nd\b|rd\b|times?\b|tries\b|try\b|attempts?\b|runs?\b|goes\b|go\b|days?\b|weeks?\b|months?\b|years?\b|deaths?\b|more\b))/i);
   if (!match) return undefined;
   const score = Number(match[1]);
   return score >= 1 && score <= 10 ? score : undefined;

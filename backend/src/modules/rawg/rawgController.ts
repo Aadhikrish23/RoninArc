@@ -47,7 +47,7 @@ const searchgame = async (req: Request, res: Response, next: NextFunction) => {
     if ((ranked[0]?.score ?? 0) < 30) ranked = [];
     // Entries without cover art are usually mods and fan uploads ("Skyrim Stuff"): real games first.
     const rawgResults = ranked
-      .map((r: any, index) => ({ item: r.item, index, score: r.score - (r.item.imageURL ? 0 : 15) }))
+      .map((r: any, index) => ({ item: r.item, index, score: (r.rank ?? r.score) - (r.item.imageURL ? 0 : 15) }))
       .sort((a, b) => b.score - a.score || a.index - b.index)
       .map((r) => r.item);
 

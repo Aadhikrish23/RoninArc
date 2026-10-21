@@ -79,11 +79,18 @@ export function titleMatchScore(query: string, title: string): number {
 }
 
 /** Results sorted by match quality; ties keep RAWG's own (relevance) order. */
-export function rankByTitle<T extends { name?: string }>(query: string, results: T[]): { item: T; score: number }[] {
+export function rankByTitle<T extends { name?: string; added?: number }>(query: string, results: T[]): { item: T; score: number; rank: number }[] {
+  // Among good matches, the game people actually own beats a tool or fan upload with a tighter
+  // title: "the witcher 3" is The Witcher 3: Wild Hunt, not "The Witcher 3 REDkit". Only the order
+  // changes; the score reported (and checked against thresholds) is the title match alone.
+  const popularity = (item: T, score: number) => (score >= 60 ? Math.min(8, Math.log10((item.added ?? 0) + 1) * 2) : 0);
   return results
-    .map((item, index) => ({ item, index, score: titleMatchScore(query, item.name || "") }))
-    .sort((a, b) => b.score - a.score || a.index - b.index)
-    .map(({ item, score }) => ({ item, score }));
+    .map((item, index) => {
+      const score = titleMatchScore(query, item.name || "");
+      return { item, index, score, rank: score + popularity(item, score) };
+    })
+    .sort((a, b) => b.rank - a.rank || a.index - b.index)
+    .map(({ item, score, rank }) => ({ item, score, rank }));
 }
 
 /** Below this, nothing in the results is really what was asked for. */

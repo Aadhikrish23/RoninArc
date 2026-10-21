@@ -118,8 +118,14 @@ export class LibraryQuestionTool extends BaseTool<LibraryQuestionInput, any> {
     ).find(([, words]) => has(...words));
     if (statusAsked && !has("how many games", "total", "everything", "stats", "summary")) {
       const [status] = statusAsked;
-      const titles = by(status);
+      let titles = by(status);
       const label = STATUS_LABEL[status].toLowerCase();
+      // "what have i beaten and what did i rate them": the ratings go with the list.
+      if (titles.length && has("rate", "rating", "score")) {
+        const reviews = await Review.find({ userId: uid }).populate("gameId", "title").lean();
+        const ratingOf = new Map(reviews.filter((r: any) => r.gameId?.title).map((r: any) => [r.gameId.title as string, r.rating as number]));
+        titles = titles.map((t) => (ratingOf.has(t) ? `${t} (${ratingOf.get(t)}/10)` : `${t} (not rated)`));
+      }
       return this.success({ status, titles }, titles.length
         ? `${plural(titles.length, "game")} ${titles.length === 1 ? "is" : "are"} ${label}: ${listTitles(titles)}.`
         : `Nothing is marked ${label} right now.`);

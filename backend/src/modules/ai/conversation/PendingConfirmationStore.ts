@@ -53,7 +53,9 @@ export default new PendingConfirmationStore();
  * "yeah do it, and hollow knight too. also put ds3 in there": a yes to the pending offer
  * plus more. Returns the rest of the message, or undefined when it isn't that shape.
  */
-const YES_THEN = /^(?:y|yes|yep|yeah|yup|sure|ok|okay|go ahead|do it)\b[\s,.!]*(?:(?:do it|please|pls|go ahead|sure)\b[\s,.!]*)*/i;
+// "ya and hollow knight too", "yes add those, and hollow knight too": the yes, plus "add those"
+// (which only repeats the yes), then the extra.
+const YES_THEN = /^(?:y|ya|yea|yeah|yes|yep|yup|ye|sure|ok|okay|bet|go ahead|do it)\b[\s,.!]*(?:(?:do it|please|pls|go ahead|sure|(?:add|put) (?:those|them|em|'em|both|all of them)(?: in)?)\b[\s,.!]*)*/i;
 export function yesAndMore(text: string): string | undefined {
   const match = text.trim().match(YES_THEN);
   if (!match || match[0].length === 0) return undefined;
