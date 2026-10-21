@@ -180,6 +180,37 @@ function qualityReason(rating?: number, metacritic?: number | null): string | nu
   return null;
 }
 
+/** Genres nearly every game has; sharing only these says little about how two games play. */
+const BROAD_GENRES = new Set(["action", "adventure", "rpg", "indie", "casual"]);
+
+/** Reasons that describe the game itself (status, length) and are fine on every card. */
+const FACT_REASON = /^(You're in the middle of it|On pause|Shorter:)/;
+
+/** "Critically acclaimed (Metacritic 93)" and "(Metacritic 91)" are the same kind of reason. */
+const reasonKind = (reason: string) => reason.replace(/\(.*?\)/g, "").replace(/\d+(\.\d+)?/g, "").replace(/, which .*$/, "").trim();
+
+/**
+ * Every card saying "Matches your taste for Action" or "Critically acclaimed" reads like a
+ * template: each kind of reason appears on at most two cards in a list. A card left with
+ * nothing says what the game is instead (genres and year), which is at least specific.
+ */
+export function diversifyReasons<T extends { reasons: string[]; genres: string[]; released?: string | null; source: string }>(recs: T[]): T[] {
+  const seen = new Map<string, number>();
+  return recs.map((rec) => {
+    const kept = rec.reasons.filter((reason) => {
+      if (FACT_REASON.test(reason)) return true;
+      const kind = reasonKind(reason);
+      const count = seen.get(kind) ?? 0;
+      seen.set(kind, count + 1);
+      return count < 2;
+    });
+    if (kept.length > 0) return { ...rec, reasons: kept };
+    const year = rec.released ? new Date(rec.released).getFullYear() : undefined;
+    const what = [rec.genres.slice(0, 2).join(", "), year && !Number.isNaN(year) ? String(year) : ""].filter(Boolean).join(", ");
+    return { ...rec, reasons: [rec.source === "library" ? "Waiting in your backlog" : what || "Something new to try"] };
+  });
+}
+
 /**
  * Explains a pick by the liked game it has most in common with, so each pick
  * gets its own reason instead of every card citing the same favourite.
@@ -204,6 +235,9 @@ function tasteReason(
     const union = new Set([...own, ...game.tags.map(norm)]).size;
     // Half the genres in common isn't "similar" (The Witcher 3 "similar to Dead Cells").
     if (shared / union < 0.6) continue;
+    // Only broad genres in common isn't "similar" either: Sekiro and Breath of the Wild came back
+    // "Similar to The Witcher 3" for sharing Action, Adventure and RPG.
+    if (!game.tags.some((t) => own.has(norm(t)) && !BROAD_GENRES.has(norm(t)))) continue;
     const score = (shared / union) * (0.6 + Math.min(game.weight, 2) * 0.2) / (1 + (used.get(game.title) ?? 0) * 0.6);
     if (score > bestScore) {
       best = game;
@@ -233,7 +267,7 @@ function likeOverlap(genres: string[], like?: LikeGame): number {
 function likeReason(genres: string[], like?: LikeGame): string | null {
   if (!like) return null;
   const own = new Set(genres.map(norm));
-  const shared = like.tags.filter((t) => own.has(norm(t)));
+  const shared = like.tags.filter((t) => own.has(norm(t)) && !BROAD_GENRES.has(norm(t)));
   return shared.length > 0 ? `Shares ${shared.slice(0, 2).join(" and ")} with ${like.title}` : null;
 }
 
@@ -272,7 +306,7 @@ export function rankBacklog(
   const focus = options.focus ?? [];
   const used = new Map<string, number>();
 
-  return library
+  const ranked = library
     .filter((g) => !options.like || norm(g.title) !== norm(options.like.title))
     .filter(
       (g) =>
@@ -311,6 +345,7 @@ export function rankBacklog(
     })
     .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
     .slice(0, options.limit);
+  return diversifyReasons(ranked);
 }
 
 /** "Grand Theft Auto V" and "Grand Theft Auto: San Andreas" are both the series "grand theft auto". */
@@ -367,7 +402,7 @@ export function rankDiscover(
   const known = options.length ? eligible.filter((c) => knownHours(c.avgHours)) : eligible;
   const pool = known.length >= options.limit ? known : eligible;
 
-  return pool
+  const ranked = pool
     .map((c) => {
       const match = tasteMatch(c.genres, profile);
       const reasons = [
@@ -392,6 +427,7 @@ export function rankDiscover(
     .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
     .filter(onePerSeries())
     .slice(0, options.limit);
+  return diversifyReasons(ranked);
 }
 
 /** One pick per series: "Darksiders" and "Darksiders Warmastered Edition" aren't two suggestions. */
