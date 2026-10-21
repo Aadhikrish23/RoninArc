@@ -182,9 +182,13 @@ export default function RawgResultsSection({
         <Text fontWeight="bold" noOfLines={1}>
           {game.name}
         </Text>
-        <RatingText color={mutedText} fontSize="sm">
-          {game.rating ? `${(game.rating * 2).toFixed(1)}/10` : "No rating"}
-        </RatingText>
+        {game.rating ? (
+          <RatingText color={mutedText} fontSize="sm">
+            {(game.rating * 2).toFixed(1)}/10
+          </RatingText>
+        ) : (
+          <Text color={mutedText} fontSize="sm">No rating yet</Text>
+        )}
         <Text color="gray.500" fontSize="sm" noOfLines={1}>
           {game.genres.join(", ")}
         </Text>
@@ -219,6 +223,11 @@ export default function RawgResultsSection({
         shadow: "md",
       }}
       onClick={() => navigate(`/library/game/${game.id}`)}
+      tabIndex={0}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" && e.target === e.currentTarget) navigate(`/library/game/${game.id}`);
+      }}
+      _focusVisible={{ outline: "2px solid", outlineColor: "purple.400", outlineOffset: "2px" }}
     >
       <Image fallbackSrc={PLACEHOLDER_IMAGE}
         src={game.imageURL || "https://placehold.co/120x80?text=No+Image"}
@@ -231,15 +240,21 @@ export default function RawgResultsSection({
         <Text fontWeight="bold" fontSize="lg">
           {game.name}
         </Text>
-        <RatingText color={mutedText} mt={1}>
-          {game.rating ? `${(game.rating * 2).toFixed(1)}/10` : "No rating"}
-        </RatingText>
+        {game.rating ? (
+          <RatingText color={mutedText} mt={1}>
+            {(game.rating * 2).toFixed(1)}/10
+          </RatingText>
+        ) : (
+          <Text color={mutedText} mt={1}>No rating yet</Text>
+        )}
         <Text color="gray.500" mt={1}>
           {game.genres.join(", ")}
         </Text>
-        <Text color="gray.500" mt={1}>
-          {game.released ? new Date(game.released).getFullYear() : "Unknown"}
-        </Text>
+        {game.released && (
+          <Text color={mutedText} mt={1}>
+            {new Date(game.released).getFullYear()}
+          </Text>
+        )}
       </Box>
       <Button
         colorScheme="purple"
@@ -316,7 +331,7 @@ export default function RawgResultsSection({
           {ownedResults.length > 0 && (
             <Box>
               <Heading size="md" mb={4}>
-                In Your Library ({ownedResults.length})
+                In your library ({ownedResults.length})
               </Heading>
               {viewMode === "list" ? (
                 <VStack spacing={4} align="stretch">
@@ -337,7 +352,7 @@ export default function RawgResultsSection({
           {discoverResults.length > 0 && (
             <Box>
               <Heading size="md" mb={4} mt={4}>
-                Discover Games ({discoverResults.length})
+                Discover games ({discoverResults.length})
               </Heading>
               {viewMode === "list" ? (
                 <VStack spacing={4} align="stretch">

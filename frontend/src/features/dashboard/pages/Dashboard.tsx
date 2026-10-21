@@ -281,9 +281,11 @@ function DashboardPage() {
                 </Box>
                 )}
 
-                <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={2}>
-                  Most played
-                </Text>
+                {data.playtime.mostPlayed.length > 0 && (
+                  <Text fontSize="xs" fontWeight="bold" color={mutedText} textTransform="uppercase" mb={2}>
+                    Most played
+                  </Text>
+                )}
                 {data.playtime.mostPlayed.length === 0 ? (
                   <Text fontSize="sm" color={mutedText}>
                     {desktop

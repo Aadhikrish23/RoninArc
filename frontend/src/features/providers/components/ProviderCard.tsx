@@ -53,6 +53,9 @@ export default function ProviderCard({
       borderColor={border}
       rounded="xl"
       p={6}
+      h="100%"
+      display="flex"
+      flexDirection="column"
       shadow="sm"
       transition="all .2s"
       _hover={{
@@ -62,6 +65,7 @@ export default function ProviderCard({
       <VStack
         spacing={5}
         align="stretch"
+        flex="1"
       >
         {/* Header */}
 
@@ -134,7 +138,7 @@ export default function ProviderCard({
 
         {children && (
           <>
-            <Divider />
+            <Divider mt="auto" />
 
             {isStateLoading ? (
               <HStack spacing={3}>

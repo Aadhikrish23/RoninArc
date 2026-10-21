@@ -24,13 +24,8 @@ import TypingIndicator from "./TypingIndicator";
 import ChatInput from "./ChatInput";
 import AISettingsModal from "./AISettingsModal";
 
-const EXAMPLE_PROMPTS = [
-  "What should I play tonight?",
-  "What's in my backlog?",
-  "Add Hades",
-  "I finished Celeste",
-  "Rate Hollow Knight 9",
-];
+/** Questions are safe to send in one click; anything that changes the library only fills the box. */
+const QUESTION_PROMPTS = ["What should I play tonight?", "What's in my backlog?"];
 
 interface AIChatPanelProps {
   onClose: () => void;
@@ -40,10 +35,17 @@ interface AIChatPanelProps {
 export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element {
   const { messages, isTyping, sendMessage, clearConversation, retry, settings, updateSettings } = useAI();
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  // "Add Hades" isn't a useful example when Hades is already in the library.
+  // Examples about the user's own games ("I finished Celeste" used to be sent for everyone, and
+  // marked Celeste Completed for players who didn't even own it).
   const { games } = useLibrary();
-  const owns = (title: string) => games.some((g) => g.title.toLowerCase() === title.toLowerCase());
-  const prompts = EXAMPLE_PROMPTS.filter((p) => !(p.startsWith("Add ") && owns(p.slice(4))));
+  const playing = games.find((g) => g.progressStatus === "playing");
+  const unrated = games.find((g) => g.progressStatus === "completed" && typeof g.rating !== "number");
+  const actionPrompts = [
+    ...(games.length === 0 ? ["Add Hades"] : []),
+    ...(playing ? [`I finished ${playing.title}`] : []),
+    ...(unrated ? [`Rate ${unrated.title} 9`] : []),
+  ];
+  const [draft, setDraft] = useState<{ text: string; key: number }>();
   const settingsModal = useDisclosure();
   // Clearing wipes the whole chat, so it takes a second click to confirm.
   const [confirmClear, setConfirmClear] = useState(false);
@@ -124,9 +126,16 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
                 take notes, organise collections, answer questions and suggest what to play.
               </Text>
               <Wrap justify="center" spacing={2} mt={5} maxW="520px">
-                {prompts.map((prompt) => (
+                {QUESTION_PROMPTS.map((prompt) => (
                   <WrapItem key={prompt}>
                     <Button size="sm" variant="outline" colorScheme="purple" borderRadius="full" onClick={() => sendMessage(prompt)}>
+                      {prompt}
+                    </Button>
+                  </WrapItem>
+                ))}
+                {actionPrompts.map((prompt) => (
+                  <WrapItem key={prompt}>
+                    <Button size="sm" variant="outline" borderRadius="full" onClick={() => setDraft({ text: prompt, key: Date.now() })}>
                       {prompt}
                     </Button>
                   </WrapItem>
@@ -154,7 +163,7 @@ export default function AIChatPanel({ onClose }: AIChatPanelProps): JSX.Element 
         </Box>
       </Box>
 
-      <ChatInput onSendMessage={sendMessage} isDisabled={isTyping} />
+      <ChatInput onSendMessage={sendMessage} isDisabled={isTyping} draft={draft} />
 
       <AISettingsModal isOpen={settingsModal.isOpen} onClose={settingsModal.onClose} settings={settings} onSave={updateSettings} />
     </Flex>

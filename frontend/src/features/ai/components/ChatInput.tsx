@@ -13,14 +13,23 @@ import { FiSend } from "react-icons/fi";
 interface ChatInputProps {
   onSendMessage: (text: string) => void;
   isDisabled: boolean;
+  /** Text to put in the box for the user to finish or send ("I finished Hades"); `key` re-applies the same text. */
+  draft?: { text: string; key: number };
 }
 
 export default function ChatInput({
   onSendMessage,
   isDisabled,
+  draft,
 }: ChatInputProps): JSX.Element {
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (!draft) return;
+    setText(draft.text);
+    inputRef.current?.focus();
+  }, [draft]);
 
   // Never disable the box: a disabled field loses focus, the modal then focuses its
   // Close button, and the next key typed closed the chat. Typing ahead is fine; sending waits.

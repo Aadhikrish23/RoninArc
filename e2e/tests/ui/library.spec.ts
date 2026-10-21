@@ -136,7 +136,7 @@ test.describe("RAWG search from the library", () => {
     const search = page.getByPlaceholder("Search games...");
     await search.fill("Hollow");
     await search.press("Enter");
-    await expect(page.getByRole("heading", { name: "Discover Games (1)" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Discover games (1)" })).toBeVisible();
 
     await page.getByRole("button", { name: "Add" }).click();
     // A toast, not a blocking dialog; the result moves to "In your library" in place.

@@ -14,7 +14,6 @@ import {
   InputRightElement,
   Button,
   Checkbox,
-  Tag,
   useToast,
 } from "@chakra-ui/react";
 import { useRef, useState } from "react";
@@ -130,15 +129,7 @@ function Signup() {
                 Welcome Ronin
               </Heading>
 
-              <Tag
-                bg="transparent"
-                color="#ff5c7a"
-                mt={5}
-                p={4}
-                alignSelf="center"
-              >
-                Forge Your Game Path
-              </Tag>
+
             </Stack>
 
             <Divider mb={6} borderColor="gray.700" />

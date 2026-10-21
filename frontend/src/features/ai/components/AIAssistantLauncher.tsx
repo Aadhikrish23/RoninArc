@@ -1,6 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import { Icon, IconButton, Modal, ModalContent, ModalOverlay, Tooltip, useDisclosure } from "@chakra-ui/react";
-import { createContext, useContext } from "react";
+import { createContext, useContext, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import type { JSX, ReactNode } from "react";
 import { IoSparklesOutline } from "react-icons/io5";
 import AIChatPanel from "./AIChatPanel";
@@ -20,6 +21,15 @@ const AIAssistantLauncherContext = createContext<AIAssistantLauncherValue | unde
  */
 export function AIAssistantLauncherProvider({ children }: { children: ReactNode }): JSX.Element {
   const { isOpen, onOpen, onClose } = useDisclosure();
+  const { pathname } = useLocation();
+  const lastPath = useRef(pathname);
+
+  // Going to another page closes the chat, so it never sits over the page you just opened.
+  // Old #/ai links open it and then redirect to the library: that hop keeps it open.
+  useEffect(() => {
+    if (lastPath.current !== pathname && lastPath.current !== "/ai") onClose();
+    lastPath.current = pathname;
+  }, [pathname, onClose]);
 
   return (
     <AIAssistantLauncherContext.Provider value={{ open: onOpen, close: onClose, isOpen }}>

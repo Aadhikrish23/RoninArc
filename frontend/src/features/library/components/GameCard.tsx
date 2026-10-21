@@ -1,6 +1,7 @@
 import { canLaunchGames } from "../../../shared/utils/runtime";
 import {
   Box,
+  HStack,
   VStack,
   Text,
   Badge,
@@ -121,7 +122,8 @@ function GameCard({
           bgGradient="linear(to-t, blackAlpha.900, transparent)"
         />
 
-        {/* Provider Badge */}
+        {/* Provider badges, side by side */}
+        <HStack position="absolute" top={3} left={3} spacing={1.5} zIndex={2}>
         {Object.keys(game.providers || {}).map((providerKey) => {
           const config = PROVIDER_CONFIGS[providerKey as ProviderId];
           if (!config) return null;
@@ -131,9 +133,6 @@ function GameCard({
           return (
             <Badge
               key={providerKey}
-              position="absolute"
-              top={3}
-              left={3}
               borderRadius="full"
               px={3}
               py={1}
@@ -149,12 +148,13 @@ function GameCard({
             >
               <Icon size={12} color="currentColor" />
 
-              <Text fontSize="10px" fontWeight="700" letterSpacing="0.4px">
-                {config.name.toUpperCase()}
+              <Text fontSize="xs" fontWeight="700">
+                {config.name}
               </Text>
             </Badge>
           );
         })}
+        </HStack>
 
         {/* Status */}
         <Menu>
