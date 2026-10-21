@@ -127,7 +127,7 @@ test.describe("RAWG search from the library", () => {
   test("typing shows discover suggestions @positive", async ({ authedPage: page }) => {
     await open(page, "/");
     await page.getByPlaceholder("Search games...").fill("Hollow");
-    await expect(page.getByText("DISCOVER GAMES")).toBeVisible();
+    await expect(page.getByText("Discover games")).toBeVisible();
     await expect(page.getByRole("img", { name: "Hollow Knight" })).toBeVisible();
   });
 

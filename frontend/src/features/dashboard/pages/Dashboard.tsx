@@ -29,6 +29,7 @@ import {
   FiCheckCircle,
   FiClock,
   FiEdit3,
+  FiFolderMinus,
   FiFolderPlus,
   FiPlay,
   FiPlusCircle,
@@ -89,9 +90,9 @@ const ACTIVITY_ICONS: Record<string, IconType> = {
   REVIEW_DELETED: FiStar,
   COLLECTION_CREATED: FiFolderPlus,
   COLLECTION_UPDATED: FiFolderPlus,
-  COLLECTION_DELETED: FiFolderPlus,
+  COLLECTION_DELETED: FiTrash2,
   GAME_ADDED_TO_COLLECTION: FiFolderPlus,
-  GAME_REMOVED_FROM_COLLECTION: FiFolderPlus,
+  GAME_REMOVED_FROM_COLLECTION: FiFolderMinus,
   GAME_LAUNCHED: FiPlay,
   NOTE_CREATED: FiEdit3,
   NOTE_DELETED: FiEdit3,
@@ -213,7 +214,7 @@ function DashboardPage() {
                       borderRadius="lg"
                       cursor="pointer"
                       _hover={{ bg: rowHover }}
-                      onClick={() => navigate(detailsPath(game))}
+                      onClick={() => navigate(detailsPath(game))} tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") navigate(detailsPath(game)); }} _focusVisible={{ outline: "2px solid", outlineColor: "purple.400", outlineOffset: "2px" }}
                     >
                       <Cover game={game} w="56px" h="72px" />
                       <Box flex="1" minW={0}>
@@ -292,7 +293,7 @@ function DashboardPage() {
                 ) : (
                   <VStack align="stretch" spacing={1}>
                     {data.playtime.mostPlayed.map(({ game, minutesPlayed }) => (
-                      <HStack key={game._id} spacing={3} p={1.5} borderRadius="md" cursor="pointer" _hover={{ bg: rowHover }} onClick={() => navigate(detailsPath(game))}>
+                      <HStack key={game._id} spacing={3} p={1.5} borderRadius="md" cursor="pointer" _hover={{ bg: rowHover }} onClick={() => navigate(detailsPath(game))} tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") navigate(detailsPath(game)); }} _focusVisible={{ outline: "2px solid", outlineColor: "purple.400", outlineOffset: "2px" }}>
                         <Cover game={game} w="32px" h="40px" />
                         <Text flex="1" fontSize="sm" noOfLines={1}>
                           {game.title}
@@ -363,7 +364,7 @@ function DashboardPage() {
                 ) : (
                   <VStack align="stretch" spacing={1}>
                     {data.backlog.untouched.map(({ game, plannedAt }) => (
-                      <HStack key={game._id} spacing={3} p={1.5} borderRadius="md" cursor="pointer" _hover={{ bg: rowHover }} onClick={() => navigate(detailsPath(game))}>
+                      <HStack key={game._id} spacing={3} p={1.5} borderRadius="md" cursor="pointer" _hover={{ bg: rowHover }} onClick={() => navigate(detailsPath(game))} tabIndex={0} onKeyDown={(e) => { if (e.key === "Enter") navigate(detailsPath(game)); }} _focusVisible={{ outline: "2px solid", outlineColor: "purple.400", outlineOffset: "2px" }}>
                         <Cover game={game} w="32px" h="40px" />
                         <Text flex="1" fontSize="sm" noOfLines={1}>
                           {game.title}

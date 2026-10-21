@@ -39,9 +39,10 @@ export function AIAssistantLauncherProvider({ children }: { children: ReactNode 
             h="56px"
             borderRadius="full"
             colorScheme="purple"
+            bg="purple.500"
+            _hover={{ bg: "purple.600", transform: "translateY(-2px)", shadow: "2xl" }}
             color="white"
             shadow="xl"
-            _hover={{ transform: "translateY(-2px)", shadow: "2xl" }}
             transition="all 0.2s"
           />
         </Tooltip>

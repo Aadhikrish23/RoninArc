@@ -35,6 +35,7 @@ export default function ProviderCard({
     "gray.200",
     "gray.700"
   );
+  const descriptionColor = useColorModeValue("gray.600", "gray.400");
 
   // Loading has highest priority — never infer connected/disconnected during loading
   const isStateLoading = connectionState === "loading" || (loading && !connectionState);
@@ -126,7 +127,7 @@ export default function ProviderCard({
             )}
           </VStack>
         ) : (
-          <Text color="gray.500">
+          <Text color={descriptionColor} fontSize="sm">
             {description || "This provider has not been connected."}
           </Text>
         )}
@@ -149,4 +150,4 @@ export default function ProviderCard({
       </VStack>
     </Box>
   );
-}
+}

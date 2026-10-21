@@ -35,12 +35,13 @@ export default function SettingsCard({
     danger ? "red.500" : "whiteAlpha.100"
   );
   const descriptionColor = useColorModeValue("gray.600", "gray.400");
+  const dangerBg = useColorModeValue("red.50", "rgba(127,29,29,0.15)");
   const iconColor = useColorModeValue(danger ? "red.500" : "purple.500", danger ? "red.300" : "purple.300");
 
   // Not clickable, so no hover lift: the controls inside are what you interact with.
   return (
     <Box
-      bg={danger ? "rgba(127,29,29,0.15)" : darkBg}
+      bg={danger ? dangerBg : darkBg}
       borderWidth="1px"
       borderColor={borderColor}
       borderRadius="2xl"

@@ -59,6 +59,8 @@ function GameCard({
 }: GameCardProps) {
   const cardBg = useColorModeValue("white", "gray.800");
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
+  // Behind the cover while it loads, so the dark gradient never sits on a white card.
+  const coverBg = useColorModeValue("gray.200", "gray.700");
   const navigate = useNavigate();
 
   const isProviderGame =
@@ -97,7 +99,7 @@ function GameCard({
       _focusVisible={{ outline: "2px solid", outlineColor: "purple.400", outlineOffset: "2px" }}
     >
       {/* COVER */}
-      <Box position="relative">
+      <Box position="relative" bg={coverBg}>
         <Image
           src={game.imageURL || PLACEHOLDER_IMAGE}
           alt={game.title}

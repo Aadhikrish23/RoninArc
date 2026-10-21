@@ -433,7 +433,7 @@ export default function GameDetailsPage() {
             </AlertDialogHeader>
 
             <AlertDialogBody>
-              Its review, notes and collection memberships will be removed too. This action cannot be undone.
+              You can add it back later, but its review, notes and collection memberships will be gone.
             </AlertDialogBody>
 
             <AlertDialogFooter>

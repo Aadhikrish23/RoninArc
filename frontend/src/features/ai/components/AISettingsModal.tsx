@@ -82,7 +82,7 @@ export default function AISettingsModal({
               <FormLabel htmlFor="ai-show-technical" mb={0}>
                 Show timing details on replies
                 <Text fontSize="sm" color="gray.500" fontWeight="normal">
-                  Adds a breakdown of how long each step took. Useful for debugging.
+                  Shows how long each reply took to put together.
                 </Text>
               </FormLabel>
               <Switch

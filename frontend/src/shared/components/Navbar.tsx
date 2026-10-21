@@ -47,7 +47,7 @@ function Navbar() {
     >
       {/* Same width and gutter as the library pages, so the logo lines up with the content. */}
       <Flex align="center" maxW="1400px" mx="auto" px={6}>
-        <Heading size="md" cursor="pointer" onClick={() => navigate("/", { state: { libraryHome: Date.now() } })}>
+        <Heading as="button" size="md" cursor="pointer" aria-label="RoninArc home" onClick={() => navigate("/", { state: { libraryHome: Date.now() } })}>
           RoninArc
         </Heading>
 

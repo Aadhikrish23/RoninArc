@@ -238,25 +238,34 @@ export default function UserGameStats({
         </Box>
 
         {/* Playtime */}
-        <HStack justify="space-between" spacing={4}>
+        {playtimeHours > 0 || lastPlayed ? (
+          <HStack justify="space-between" spacing={4}>
+            <Box>
+              <Text fontWeight="semibold" fontSize="sm">Playtime</Text>
+              <Text fontSize="md" fontWeight="bold">
+                {playtimeHours.toFixed(1)} hours
+              </Text>
+            </Box>
+            <Box textAlign="right">
+              <Text fontWeight="semibold" fontSize="sm">Last Played</Text>
+              <Text fontSize="md" fontWeight="bold">
+                {formatLastPlayed(lastPlayed)}
+              </Text>
+            </Box>
+          </HStack>
+        ) : (
           <Box>
             <Text fontWeight="semibold" fontSize="sm">Playtime</Text>
             <Text fontSize="md" fontWeight="bold">
-              {playtimeHours.toFixed(1)} hours
+              Not played yet
             </Text>
           </Box>
-          <Box textAlign="right">
-            <Text fontWeight="semibold" fontSize="sm">Last Played</Text>
-            <Text fontSize="md" fontWeight="bold">
-              {formatLastPlayed(lastPlayed)}
-            </Text>
-          </Box>
-        </HStack>
+        )}
 
         {/* COLLECTIONS */}
         <Box>
           <Text fontWeight="semibold" mb={3}>
-            Collections ({assignedCollections.length})
+            {assignedCollections.length > 0 ? `Collections (${assignedCollections.length})` : "Collections"}
           </Text>
 
           <Wrap mb={3}>

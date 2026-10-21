@@ -11,10 +11,9 @@ import {
 } from "@chakra-ui/react";
 
 import type { Game, RawgGameResult } from "../types/library";
-import { Grid, IconButton } from "@chakra-ui/react";
+import { ButtonGroup, Grid, IconButton } from "@chakra-ui/react";
 
-import { RxHamburgerMenu } from "react-icons/rx";
-import { BsGrid3X3Gap } from "react-icons/bs";
+import { FiGrid, FiList } from "react-icons/fi";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
@@ -284,20 +283,23 @@ export default function RawgResultsSection({
 
         {/* View Toggle Row */}
         {!noResults && (
-          <Flex justify="flex-end" gap={2} pl={1}>
-            <IconButton
-              aria-label="List View"
-              icon={<RxHamburgerMenu />}
-              colorScheme={viewMode === "list" ? "purple" : undefined}
-              onClick={() => setViewMode("list")}
-            />
-
-            <IconButton
-              aria-label="Grid View"
-              icon={<BsGrid3X3Gap />}
-              colorScheme={viewMode === "grid" ? "purple" : undefined}
-              onClick={() => setViewMode("grid")}
-            />
+          <Flex justify="flex-end" pl={1}>
+            <ButtonGroup size="sm" isAttached variant="outline">
+              <IconButton
+                aria-label="Grid View"
+                aria-pressed={viewMode === "grid"}
+                icon={<FiGrid />}
+                colorScheme={viewMode === "grid" ? "purple" : undefined}
+                onClick={() => setViewMode("grid")}
+              />
+              <IconButton
+                aria-label="List View"
+                aria-pressed={viewMode === "list"}
+                icon={<FiList />}
+                colorScheme={viewMode === "list" ? "purple" : undefined}
+                onClick={() => setViewMode("list")}
+              />
+            </ButtonGroup>
           </Flex>
         )}
       </Box>
@@ -313,7 +315,7 @@ export default function RawgResultsSection({
           {/* Section 1: In Your Library */}
           {ownedResults.length > 0 && (
             <Box>
-              <Heading size="md" mb={4} color="purple.300">
+              <Heading size="md" mb={4}>
                 In Your Library ({ownedResults.length})
               </Heading>
               {viewMode === "list" ? (
@@ -334,7 +336,7 @@ export default function RawgResultsSection({
           {/* Section 2: Discover Games */}
           {discoverResults.length > 0 && (
             <Box>
-              <Heading size="md" mb={4} color="purple.300" mt={4}>
+              <Heading size="md" mb={4} mt={4}>
                 Discover Games ({discoverResults.length})
               </Heading>
               {viewMode === "list" ? (

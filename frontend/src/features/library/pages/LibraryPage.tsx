@@ -319,8 +319,6 @@ function LibraryPage() {
                   </HorizontalSection>
                 )}
 
-                <RecommendedStrip />
-
                 {favoriteGames.length > 0 && (
                   <HorizontalSection title="Favorites (rated 8+)">
                     <GameCarousel
@@ -374,6 +372,9 @@ function LibraryPage() {
                     runningGames={runningGames}
                   />
                 </HorizontalSection>
+
+                {/* Your own games first; picks for you after them. */}
+                <RecommendedStrip />
 
                 {completedGames.length > 0 && (
                   <HorizontalSection title="Completed Games">

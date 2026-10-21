@@ -13,6 +13,7 @@ import {
 import type { RawgGameResult, Game } from "../types/library";
 import { useNavigate } from "react-router-dom";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
+import { FiArrowRight } from "react-icons/fi";
 
 interface Props {
   ownedResults: Game[];
@@ -28,6 +29,7 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
   const border = useColorModeValue("gray.200", "gray.700");
   const hoverBg = useColorModeValue("gray.50", "whiteAlpha.100");
   const sectionHeaderBg = useColorModeValue("gray.50", "gray.900");
+  const linkColor = useColorModeValue("purple.600", "purple.300");
   const navigate = useNavigate();
 
   return (
@@ -45,7 +47,7 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
         {ownedResults.length > 0 && (
           <Box px={4} py={2} bg={sectionHeaderBg}>
             <Text fontSize="xs" fontWeight="bold" color="purple.400" letterSpacing="wider">
-              IN YOUR LIBRARY
+              In your library
             </Text>
           </Box>
         )}
@@ -94,7 +96,7 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
             borderColor={border}
           >
             <Text fontSize="xs" fontWeight="bold" color="gray.400" letterSpacing="wider">
-              DISCOVER GAMES
+              Discover games
             </Text>
           </Box>
         )}
@@ -151,20 +153,21 @@ export default function RawgSearchDropdown({ ownedResults, discoverResults, onVi
         ))}
 
         {/* View all button */}
-        <Box
-          px={4}
-          py={4}
-          cursor="pointer"
-          onClick={onViewAll}
-          borderTopWidth="1px"
-          borderColor={border}
-          _hover={{
-            bg: hoverBg,
-          }}
-        >
-          <Text fontWeight="bold" color="purple.300">
-            View all results →
-          </Text>
+        <Box borderTopWidth="1px" borderColor={border}>
+          <Button
+            variant="ghost"
+            w="100%"
+            justifyContent="flex-start"
+            px={4}
+            py={6}
+            borderRadius={0}
+            color={linkColor}
+            rightIcon={<FiArrowRight />}
+            _hover={{ bg: hoverBg }}
+            onClick={onViewAll}
+          >
+            View all results
+          </Button>
         </Box>
       </VStack>
     </Box>

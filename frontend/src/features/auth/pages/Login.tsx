@@ -16,7 +16,7 @@ import {
   useToast,
 } from "@chakra-ui/react";
 import { ViewIcon, ViewOffIcon } from "@chakra-ui/icons";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import authApi from "../api/authApi";
 import DynamicBackground from "../../../shared/components/DynamicBackground";
@@ -44,7 +44,12 @@ function Login() {
     setSaveme(!saveme);
   }
 
+  // Enter and a click in the same moment both see loading=false; a ref stops the second request
+  // (it came back "Username is already taken" for the account the first one had just made).
+  const submitting = useRef(false);
   const handlesubmit = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
     try {
       setLoading(true);
 
@@ -78,10 +83,11 @@ function Login() {
         title: "Login failed",
         description: getErrorMessage(error),
         status: "error",
-        duration: 4000,
+        duration: 7000,
         isClosable: true,
       });
     } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };

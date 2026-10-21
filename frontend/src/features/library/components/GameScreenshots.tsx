@@ -11,6 +11,8 @@ import {
 } from "swiper/react";
 
 import {
+  A11y,
+  Keyboard,
   Navigation,
   Autoplay,
 } from "swiper/modules";
@@ -38,7 +40,10 @@ export default function GameScreenshots({
 
       <Swiper
         style={{ "--swiper-navigation-color": "#B794F4", "--swiper-navigation-size": "28px" } as React.CSSProperties}
+        keyboard={{ enabled: true }}
         modules={[
+          A11y,
+          Keyboard,
           Navigation,
           Autoplay,
         ]}

@@ -32,7 +32,7 @@ function NotFound() {
           </Heading>
 
           <Text fontSize="lg" color="gray.300">
-            Oops... this page has gone rogue.
+            Nothing here.
           </Text>
 
           <Text fontSize="sm" color="gray.500">

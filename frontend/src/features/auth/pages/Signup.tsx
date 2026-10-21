@@ -17,7 +17,7 @@ import {
   Tag,
   useToast,
 } from "@chakra-ui/react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import authApi from "../api/authApi";
 // import { deleteCurrentUser } from "../utils/auth";
@@ -52,7 +52,12 @@ function Signup() {
     return emailRegex.test(mail);
   };
 
+  // Enter and a click in the same moment both see loading=false; a ref stops the second request
+  // (it came back "Username is already taken" for the account the first one had just made).
+  const submitting = useRef(false);
   const handlesubmit = async () => {
+    if (submitting.current) return;
+    submitting.current = true;
     try {
       setLoading(true);
 
@@ -97,10 +102,11 @@ function Signup() {
     title: "Signup failed",
     description: getErrorMessage(error),
     status: "error",
-    duration: 4000,
+    duration: 7000,
     isClosable: true,
   });
 } finally {
+      submitting.current = false;
       setLoading(false);
     }
   };

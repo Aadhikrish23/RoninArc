@@ -14,7 +14,7 @@ test.describe("Game details page", () => {
     await expect(page.getByText("Supergiant Games").first()).toBeVisible();
     await expect(page.getByText(hades.description)).toBeVisible();
     await expect(page.getByRole("button", { name: "Playing" })).toBeVisible();
-    await expect(page.getByText("Never")).toBeVisible();
+    await expect(page.getByText("Not played yet")).toBeVisible();
   });
 
   test("a game not in the library can be added from its page @positive", async ({ authedPage: page, api }) => {
@@ -37,8 +37,8 @@ test.describe("Game details page", () => {
     await open(page, `/library/game/${hades.id}`);
     // Wait for the page's async loads (library, collections, play stats) to settle
     // so a late re-render can't close the menu mid-click.
-    await expect(page.getByText(/^Collections \(\d+\)$/)).toBeVisible();
-    await expect(page.getByText("0.0 hours")).toBeVisible();
+    await expect(page.getByText(/^Collections( \(\d+\))?$/)).toBeVisible();
+    await expect(page.getByText("Not played yet")).toBeVisible();
     // Chakra's menu can reposition (flip above the button) right after opening,
     // so a click can land on the item's old spot; retry the open+pick as a unit.
     const completed = page.getByRole("menuitem", { name: "Completed" });
@@ -128,7 +128,7 @@ test.describe("Game details page", () => {
       await expect.poll(async () => (await json(await api.get(`/collection/${c._id}`))).Data.gameIds.length).toBe(1);
 
       await page.getByRole("list").filter({ hasText: "Roguelikes" }).getByRole("button", { name: "close" }).click();
-      await expect(page.getByText("Collections (0)")).toBeVisible();
+      await expect(page.getByText("Collections", { exact: true })).toBeVisible();
       await expect.poll(async () => (await json(await api.get(`/collection/${c._id}`))).Data.gameIds.length).toBe(0);
     });
 
@@ -199,7 +199,7 @@ test.describe("Game details page", () => {
     await open(page, `/library/game/${hades.id}`);
     await page.getByRole("button", { name: "Remove from Library" }).click();
     const confirm = page.getByRole("alertdialog", { name: "Remove Hades from your library?" });
-    await expect(confirm).toContainText("This action cannot be undone.");
+    await expect(confirm).toContainText("You can add it back later");
     // Nothing is deleted until the user confirms.
     expect((await json(await api.get("/game"))).Data).toHaveLength(1);
   });
