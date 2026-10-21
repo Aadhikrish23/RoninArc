@@ -24,6 +24,7 @@ import { useNavigate } from "react-router-dom";
 import RecommendationCard from "../components/RecommendationCard";
 import { useRecommendations } from "../hooks/useRecommendations";
 import type { Recommendation } from "../types/recommendation";
+import { liftSharedReason } from "../utils/sharedReason";
 
 function useDebounced<T>(value: T, delayMs: number) {
   const [debounced, setDebounced] = useState(value);
@@ -82,6 +83,7 @@ export default function RecommendationsPage() {
   const [hint, setHint] = useState("");
   const q = useDebounced(hint.trim(), 400);
   const { data, loading, error, refresh, dismiss, addToLibrary, startPlaying } = useRecommendations({ limit: 6, q });
+  const discover = liftSharedReason(data?.discover ?? []);
   const muted = useColorModeValue("gray.600", "gray.400");
   const actions = { onAddToLibrary: addToLibrary, onDismiss: dismiss, onStartPlaying: startPlaying, showScore: !!data?.profile.personalized };
 
@@ -167,8 +169,8 @@ export default function RecommendationsPage() {
           )}
           <Section
             title="Discover"
-            subtitle="New games you don't own yet."
-            items={data?.discover ?? []}
+            subtitle={discover.shared ? `New games you don't own yet: ${discover.shared}.` : "New games you don't own yet."}
+            items={discover.recs}
             loading={loading && !data}
             empty="No new games to suggest right now."
             actions={actions}

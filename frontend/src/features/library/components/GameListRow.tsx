@@ -38,7 +38,7 @@ const STATUS_COLOR = {
 };
 
 const STATUS_LABEL = {
-  none: "No Status",
+  none: "No status",
   plan: "Plan to Play",
   playing: "Playing",
   paused: "Paused",
@@ -127,7 +127,7 @@ function GameListRow({
                   px={2}
                   py={0.5}
                 >
-                  {isInstalled ? "Installed" : "Not Installed"}
+                  {isInstalled ? "Installed" : "Not installed"}
                 </Badge>
               )}
 
@@ -206,7 +206,7 @@ function GameListRow({
               {isRunning
                 ? "Running"
                 : isProviderGame && !isInstalled
-                  ? "Not Installed"
+                  ? "Not installed"
                   : "Launch"}
             </Button>
           )}

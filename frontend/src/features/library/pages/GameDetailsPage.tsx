@@ -115,7 +115,7 @@ export default function GameDetailsPage() {
   };
 
   const STATUS_NAMES: Record<string, string> = {
-    none: "No Status", plan: "Plan to Play", playing: "Playing", paused: "Paused", completed: "Completed", dropped: "Dropped",
+    none: "No status", plan: "Plan to Play", playing: "Playing", paused: "Paused", completed: "Completed", dropped: "Dropped",
   };
   const handleStatusChange = async (gameId: string, status: Status) => {
     await updateStatus(gameId, status);
@@ -246,7 +246,7 @@ export default function GameDetailsPage() {
 
         {!libraryGame && (
           <Button colorScheme="purple" onClick={handleAddGame}>
-            Add to Library
+            Add to library
           </Button>
         )}
       </Flex>
@@ -278,18 +278,7 @@ export default function GameDetailsPage() {
       {/* Stats */}
       <GameStats game={game} />
 
-      {/* Description */}
-      <Box mt={10}>
-        <Heading size="md" mb={4}>
-          About
-        </Heading>
-
-        <Text color={aboutText} lineHeight="1.8" whiteSpace="pre-wrap" maxW="75ch">
-          {game.description}
-        </Text>
-      </Box>
-
-      {/* Notes */}
+      {/* Notes: yours, so they come before the store description */}
       {libraryGame && (
         <NotesSection
           notes={notes}
@@ -300,6 +289,17 @@ export default function GameDetailsPage() {
           onEdit={editNote}
         />
       )}
+
+      {/* Description */}
+      <Box mt={10}>
+        <Heading size="md" mb={4}>
+          About
+        </Heading>
+
+        <Text color={aboutText} lineHeight="1.8" whiteSpace="pre-wrap" maxW="75ch">
+          {game.description}
+        </Text>
+      </Box>
 
       {/* Genres */}
       <Box mt={10}>

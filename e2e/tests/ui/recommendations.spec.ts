@@ -41,10 +41,10 @@ test.describe("For You (recommendations) page", () => {
     await expect(section(page, "Discover").getByRole("article", { name: "Hollow Knight" })).toHaveCount(0);
   });
 
-  test("'Add to Library' moves a discovery into the backlog @positive", async ({ authedPage: page, api }) => {
+  test("'Add to library' moves a discovery into the backlog @positive", async ({ authedPage: page, api }) => {
     await open(page, "/recommendations");
     const card = cardIn(page, "Discover", "Celeste");
-    await card.getByRole("button", { name: "Add to Library" }).click();
+    await card.getByRole("button", { name: "Add to library" }).click();
 
     await expect(cardIn(page, "Play next", "Celeste")).toBeVisible();
     await expect(cardIn(page, "Discover", "Celeste")).toHaveCount(0);

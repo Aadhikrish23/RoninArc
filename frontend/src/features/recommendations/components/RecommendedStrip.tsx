@@ -2,6 +2,7 @@ import { Box, Button, Flex, Heading, SimpleGrid, Text, useColorModeValue } from 
 import { useNavigate } from "react-router-dom";
 
 import RecommendationCard from "./RecommendationCard";
+import { liftSharedReason } from "../utils/sharedReason";
 import { useRecommendations } from "../hooks/useRecommendations";
 import { useLibrary } from "../../library/hooks/useLibrary";
 
@@ -16,7 +17,8 @@ export default function RecommendedStrip() {
   // A game added a moment ago (from search) drops out before the next refresh.
   const { games } = useLibrary();
   const owned = new Set(games.map((g) => g.rawgId).filter(Boolean));
-  const picks = data ? data.discover.filter((r) => !r.rawgId || !owned.has(r.rawgId)).slice(0, 4) : [];
+  const lifted = liftSharedReason(data ? data.discover.filter((r) => !r.rawgId || !owned.has(r.rawgId)).slice(0, 4) : []);
+  const picks = lifted.recs;
   if (picks.length === 0) return null;
 
   return (
@@ -28,7 +30,11 @@ export default function RecommendedStrip() {
         </Button>
       </Flex>
       <Text fontSize="sm" color={muted} mb={4}>
-        {data?.profile.personalized ? "New games picked from what you rate, finish and play." : "Popular games to get you started. Rate or finish a few and these get personal."}
+        {lifted.shared
+          ? `New games for you: ${lifted.shared}.`
+          : data?.profile.personalized
+            ? "New games picked from what you rate, finish and play."
+            : "Popular games to get you started. Rate or finish a few and these get personal."}
       </Text>
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={5}>
         {picks.map((rec, i) => (

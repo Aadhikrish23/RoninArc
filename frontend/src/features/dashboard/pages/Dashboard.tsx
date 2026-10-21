@@ -40,7 +40,7 @@ import { getDashboardOverview } from "../api/dashboardApi";
 import type { DashboardGameSummary, DashboardOverview } from "../types/dashboard";
 import { eventBus } from "../../../shared/events/EventBus";
 import { canLaunchGames } from "../../../shared/utils/runtime";
-import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
+import { PLACEHOLDER_IMAGE, coverImage } from "../../../shared/utils/placeholderImage";
 
 const detailsPath = (g: DashboardGameSummary) => `/library/game/${g.rawgId ? String(g.rawgId) : g._id}`;
 
@@ -118,7 +118,7 @@ function Panel({ title, icon, action, children }: { title: string; icon: IconTyp
 function Cover({ game, w, h }: { game: DashboardGameSummary; w: string; h: string }) {
   const placeholder = useColorModeValue("gray.200", "gray.700");
   return game.imageURL ? (
-    <Image fallbackSrc={PLACEHOLDER_IMAGE} src={game.imageURL} alt={game.title} w={w} h={h} objectFit="cover" borderRadius="md" flexShrink={0} />
+    <Image fallbackSrc={PLACEHOLDER_IMAGE} src={coverImage(game.imageURL)} alt={game.title} w={w} h={h} objectFit="cover" borderRadius="md" flexShrink={0} />
   ) : (
     <Box w={w} h={h} bg={placeholder} borderRadius="md" flexShrink={0} />
   );

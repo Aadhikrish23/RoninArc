@@ -108,7 +108,7 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
           ) : (
             <>
               <Button size="sm" colorScheme="purple" flex="1" minW="fit-content" onClick={() => onAddToLibrary(rec)}>
-                Add to Library
+                Add to library
               </Button>
               <Button size="sm" variant="outline" flexShrink={0} onClick={() => onDismiss(rec)}>
                 Not interested

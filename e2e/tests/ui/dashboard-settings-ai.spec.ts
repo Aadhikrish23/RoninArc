@@ -24,7 +24,7 @@ test.describe("Dashboard", () => {
     await expect(backlog).toContainText("1 of 3 finished");
     await expect(backlog).toContainText("1 finished this year");
     await expect(backlog).toContainText("Hitman");
-    await expect(backlog).not.toContainText("No Status");
+    await expect(backlog).not.toContainText("No status");
 
     const activity = panel(page, "Recent activity");
     await expect(activity).toContainText("Celeste marked as Completed");
@@ -201,7 +201,7 @@ test.describe("AI assistant (quick-access modal)", () => {
     await assistant(page).getByPlaceholder("Type a message...").fill("launch fallout shelter");
     await page.keyboard.press("Enter");
     await expect(
-      assistant(page).getByText("Launching games only works in the RoninArc desktop app, so I can't start Fallout Shelter from here."),
+      assistant(page).getByText("You're using RoninArc in the browser, and launching games needs the RoninArc desktop app, so I can't start Fallout Shelter from here."),
     ).toBeVisible();
     expect((await json(await api.get("/play-session/recent"))).Data).toEqual([]);
   });

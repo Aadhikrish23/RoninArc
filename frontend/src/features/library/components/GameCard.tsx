@@ -46,7 +46,7 @@ const STATUS_COLOR = {
 };
 
 const STATUS_LABEL = {
-  none: "No Status",
+  none: "No status",
   plan: "Plan to Play",
   playing: "Playing",
   paused: "Paused",
@@ -190,7 +190,7 @@ function GameCard({
 
             <MenuList>
               <MenuItem onClick={() => onStatusChange(game._id, "none")}>
-                No Status
+                No status
               </MenuItem>
 
               <MenuItem onClick={() => onStatusChange(game._id, "plan")}>
@@ -254,7 +254,7 @@ function GameCard({
             {isRunning
               ? "Running"
               : isProviderGame && !isInstalled
-                ? "Not Installed"
+                ? "Not installed"
                 : "Launch"}
           </Button>
         )}

@@ -77,7 +77,7 @@ export default function CreateCollectionModal({
 
       <ModalContent>
         <ModalHeader>
-          Create Collection
+          Create collection
         </ModalHeader>
 
         <ModalBody>

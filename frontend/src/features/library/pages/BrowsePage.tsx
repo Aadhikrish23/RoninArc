@@ -206,7 +206,7 @@ export default function BrowsePage() {
               bg={useColorModeValue("white", "gray.800")}
             >
               <option value="all">All statuses</option>
-              <option value="none">No Status</option>
+              <option value="none">No status</option>
               <option value="plan">Plan to Play</option>
               <option value="playing">Playing</option>
               <option value="paused">Paused</option>
@@ -235,7 +235,7 @@ export default function BrowsePage() {
             >
               <option value="all">Installed or not</option>
               <option value="installed">Installed</option>
-              <option value="uninstalled">Not Installed</option>
+              <option value="uninstalled">Not installed</option>
             </Select>
             <Select
               value={sortBy}
@@ -247,8 +247,8 @@ export default function BrowsePage() {
             >
               <option value="title-asc">Title (A-Z)</option>
               <option value="title-desc">Title (Z-A)</option>
-              <option value="date-desc">Date Added (Newest)</option>
-              <option value="date-asc">Date Added (Oldest)</option>
+              <option value="date-desc">Date added (newest)</option>
+              <option value="date-asc">Date added (oldest)</option>
               <option value="rating-desc">Rating (Highest)</option>
               <option value="rating-asc">Rating (Lowest)</option>
             </Select>

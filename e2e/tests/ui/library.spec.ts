@@ -66,11 +66,11 @@ test.describe("Library home page", () => {
     await api.addGame(byName("Celeste"), { progressStatus: "playing" });
     await open(page, "/");
     await expect(section(page, "Continue playing").getByText("Celeste")).toBeVisible();
-    await expect(page.getByRole("button", { name: /^(Launch|Running|Not Installed)$/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^(Launch|Running|Not installed)$/ })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Rescan PC Games" })).toHaveCount(0);
     await open(page, `/library/game/${byName("Celeste").id}`);
     await expect(page.getByRole("heading", { name: "Celeste", level: 2 })).toBeVisible();
-    await expect(page.getByRole("button", { name: /^(Launch|Running|Not Installed)$/ })).toHaveCount(0);
+    await expect(page.getByRole("button", { name: /^(Launch|Running|Not installed)$/ })).toHaveCount(0);
   });
 
   test("desktop: Launch on a game with no executable asks for one and won't launch yet @negative", async ({ authedPage: page, api }) => {
@@ -171,7 +171,7 @@ test.describe("RAWG search from the library", () => {
   test("a blank search does nothing @negative", async ({ authedPage: page }) => {
     await open(page, "/");
     await page.getByPlaceholder("Search games...").press("Enter");
-    await expect(page.getByText("Search Results")).toHaveCount(0);
+    await expect(page.getByText("Search results")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "My Library" })).toBeVisible();
   });
 
@@ -180,7 +180,7 @@ test.describe("RAWG search from the library", () => {
     const search = page.getByPlaceholder("Search games...");
     await search.fill("qqqq no such game");
     await search.press("Enter");
-    await expect(page.getByText("Search Results")).toBeVisible();
+    await expect(page.getByText("Search results")).toBeVisible();
     await expect(page.getByRole("button", { name: "Add" })).toHaveCount(0);
   });
 });

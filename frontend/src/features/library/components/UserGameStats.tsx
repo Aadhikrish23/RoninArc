@@ -55,7 +55,7 @@ const STATUS_COLORS: Record<Status, string> = {
 };
 
 const STATUS_LABELS: Record<Status, string> = {
-  none: "No Status",
+  none: "No status",
   plan: "Plan to Play",
   playing: "Playing",
   paused: "Paused",
@@ -170,7 +170,7 @@ export default function UserGameStats({
 
             <MenuList>
               <MenuItem onClick={() => onStatusChange(game._id, "none")}>
-                No Status
+                No status
               </MenuItem>
               <MenuItem onClick={() => onStatusChange(game._id, "plan")}>
                 Plan to Play
@@ -353,7 +353,7 @@ export default function UserGameStats({
             {isRunning
               ? "Running"
               : isProviderGame && !isInstalled
-                ? "Not Installed"
+                ? "Not installed"
                 : "Launch"}
           </Button>
        )}

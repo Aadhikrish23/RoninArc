@@ -45,14 +45,14 @@ export default function GameStats({
       label: "Avg. playtime",
       value: game.playtime ? `${game.playtime}h` : "-",
     },
-  ];
+  ].filter((stat) => stat.label !== "Avg. playtime" || (game.playtime ?? 0) >= 15);
 
   return (
     <SimpleGrid
       mt={8}
       columns={{
         base: 2,
-        md: 4,
+        md: stats.length,
       }}
       spacing={5}
     >

@@ -17,7 +17,7 @@ export default function DangerZoneSection({
   return (
     <SettingsCard
       danger
-      title="Danger Zone"
+      title="Danger zone"
       icon={FiAlertTriangle}
       description="Permanent actions."
     >

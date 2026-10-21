@@ -52,7 +52,7 @@ test.describe("Browse all games page", () => {
     await open(page, "/library/browse");
     await page.getByRole("combobox").nth(2).selectOption({ label: "Installed" });
     await expect.poll(() => titles(page)).toEqual([]);
-    await page.getByRole("combobox").nth(2).selectOption({ label: "Not Installed" });
+    await page.getByRole("combobox").nth(2).selectOption({ label: "Not installed" });
     await expect.poll(() => titles(page)).toEqual(["Celeste", "Elden Ring", "Hades"]);
   });
 

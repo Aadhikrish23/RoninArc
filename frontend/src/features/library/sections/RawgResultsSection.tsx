@@ -94,7 +94,7 @@ export default function RawgResultsSection({
                 onLaunchGame(game);
               }}
             >
-              {disableLaunch ? "Not Installed" : "Launch"}
+              {disableLaunch ? "Not installed" : "Launch"}
             </Button>
           )}
         </Box>
@@ -155,7 +155,7 @@ export default function RawgResultsSection({
               onLaunchGame(game);
             }}
           >
-            {disableLaunch ? "Not Installed" : "Launch"}
+            {disableLaunch ? "Not installed" : "Launch"}
           </Button>
         )}
       </Flex>
@@ -286,7 +286,7 @@ export default function RawgResultsSection({
         <Flex justify="space-between" align="center" mb={4}>
           <Box>
             <Text fontSize="2xl" fontWeight="bold">
-              Search Results
+              Search results
             </Text>
             <Text color="gray.500">"{searchText}"</Text>
           </Box>
