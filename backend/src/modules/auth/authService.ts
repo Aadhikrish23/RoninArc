@@ -108,6 +108,17 @@ async function registerUser(name: string, password: string, email?: string) {
   });
 
   if (existingUser) {
+    // A repeat of a sign-up that just succeeded (a double click, a retry after a slow reply)
+    // signs you in. Three playtesters got "Username is already taken" for the account their
+    // first click had created. Only for a just-made account with the same password.
+    const justMade = Date.now() - new Date((existingUser as any).createdAt ?? 0).getTime() < 10 * 60 * 1000;
+    if (justMade && (await bcryptjs.compare(plainPassword, existingUser.passwordHash))) {
+      return {
+        userdata: { name: existingUser.username, email: existingUser.email, updatedAt: existingUser.updatedAt },
+        accessToken: generateAccessToken(existingUser._id, existingUser.username),
+        refreshToken: await generateRefreshToken(existingUser._id),
+      };
+    }
     throw new AppError("Username is already taken", 409);
   }
 

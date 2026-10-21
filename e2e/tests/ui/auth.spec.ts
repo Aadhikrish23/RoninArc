@@ -144,7 +144,8 @@ test.describe("Signup page", () => {
 
   test("a taken username shows the server error @negative", async ({ page, user }) => {
     await open(page, "/signup");
-    await fillSignup(page, { username: user.username, password: DEFAULT_PASSWORD, confirm: DEFAULT_PASSWORD });
+    // Someone else trying the name (a repeat of your own just-made sign-up signs you in instead).
+    await fillSignup(page, { username: user.username, password: `${DEFAULT_PASSWORD}x9`, confirm: `${DEFAULT_PASSWORD}x9` });
     await expectToast(page, "Signup failed", "Username is already taken");
   });
 

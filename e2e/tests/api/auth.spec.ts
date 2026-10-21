@@ -59,9 +59,16 @@ test.describe("Auth API", () => {
     });
 
     test("rejects a duplicate username, case-insensitively, with 409 @negative", async ({ anon, user }) => {
-      const res = await anon.post("/auth/register", { username: user.username.toUpperCase(), password: DEFAULT_PASSWORD });
+      const res = await anon.post("/auth/register", { username: user.username.toUpperCase(), password: `${DEFAULT_PASSWORD}-someone-else` });
       expect(res.status()).toBe(409);
       expect((await json(res)).error).toBe("Username is already taken");
+    });
+
+    test("repeating a sign-up that just succeeded signs you in instead of 'already taken' @positive", async ({ anon, user }) => {
+      // A double click or a retry after a slow reply sends the same sign-up twice.
+      const res = await anon.post("/auth/register", { username: user.username, password: DEFAULT_PASSWORD });
+      expect(res.status()).toBe(201);
+      expect((await json(res)).Data.accessToken).toBeTruthy();
     });
   });
 
