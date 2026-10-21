@@ -1,6 +1,5 @@
 import {
   Button,
-  Text,
   VStack,
 } from "@chakra-ui/react";
 
@@ -22,20 +21,11 @@ export default function DangerZoneSection({
       icon={FiAlertTriangle}
       description="Permanent actions."
     >
+      {/* What deleting removes is spelled out in the confirmation dialog. */}
       <VStack
         align="stretch"
         spacing={4}
       >
-        <Text
-          color="red.300"
-          fontSize="sm"
-        >
-          Deleting your account
-          will remove all games,
-          collections, reviews and
-          activity history.
-        </Text>
-
         <Button
           colorScheme="red"
           variant="solid"
