@@ -86,7 +86,7 @@ const STYLE_TAGS: [RegExp, string, string][] = [
 
 /** Genres and RAWG tags of games built for short sessions (a run, a level, a match). */
 const SESSION_GENRES = /\b(platformer|arcade|puzzle|fighting|racing|card|sports|casual)\b/i;
-const SESSION_TAGS = new Set(["roguelike", "roguelite", "rogue-lite", "arcade", "short", "platformer", "puzzle", "card-game", "deckbuilding", "local-multiplayer", "pvp", "replay-value", "procedural-generation"]);
+const SESSION_TAGS = new Set(["roguelike", "roguelite", "rogue-lite", "arcade", "short", "platformer", "puzzle", "card-game", "deckbuilding"]);
 
 /** "what should I play tonight", "only got an hour", "30 mins": a session, so in-progress games lead. */
 const SESSION = /\b(tonight|today|right now|rn|this evening|an hour|one hour|half an hour|\d+\s*(min|mins|minutes|h|hr|hrs|hours?))\b/;

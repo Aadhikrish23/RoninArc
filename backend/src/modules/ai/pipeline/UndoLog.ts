@@ -110,9 +110,21 @@ export async function snapshotBefore(userId: string, plan: IntentPlan): Promise<
   };
 }
 
+/**
+ * Earlier changes, newest first, so "undo the gta thing" still finds GTA after a note and a
+ * rating came later (the playtester was told "nothing I can undo" two messages after dropping it).
+ */
+const olderChanges = new Map<string, LastChange[]>();
+const HISTORY = 10;
+
 export function rememberChange(userId: string, change: LastChange) {
+  const previous = lastChanges.get(userId);
+  if (previous) olderChanges.set(userId, [previous, ...(olderChanges.get(userId) ?? [])].slice(0, HISTORY));
   lastChanges.set(userId, change);
 }
+
+const touches = (change: LastChange, pick: (title: string) => boolean) =>
+  change.games.some((g) => pick(g.title)) || change.adding.some((t) => pick(t)) || (change.removed ?? []).some((r) => pick(String(r.game.title)));
 
 /** A change undo can't put back (collection moves, renames): "undo" must not reach past it. */
 /**
@@ -150,19 +162,28 @@ function recentChange(userId: string): LastChange | undefined {
 
 /** Puts back what the last change touched. Returns a description of what was undone. */
 export async function undoLastChange(userId: string, only?: string): Promise<string | undefined> {
-  // Naming the game reaches past a later rename; a plain "undo" doesn't.
-  const change = only ? recentChange(userId) : lastChange(userId);
-  if (!change) return undefined;
   // "undo the cod one": just that game; the rest of the change stays (and stays undoable).
   const pick = (title: string) => !only || sameGame(only, title) || sameGame(title, only);
+  // Naming the game reaches past later changes (and a later rename) to the one that touched it;
+  // a plain "undo" is only ever the latest change.
+  const latest = only ? recentChange(userId) : lastChange(userId);
+  const older = (olderChanges.get(userId) ?? []).filter((c) => Date.now() - c.at.getTime() < UNDO_WINDOW_MS);
+  const change = only ? [latest, ...older].find((c) => c && touches(c, pick)) : latest;
+  if (!change) return undefined;
+  const isLatest = change === latest;
   const games = change.games.filter((g) => pick(g.title));
   const adding = change.adding.filter((t) => pick(t));
   const removedPicked = (change.removed ?? []).filter((r) => pick(String(r.game.title)));
   if (only && games.length === 0 && adding.length === 0 && removedPicked.length === 0) return undefined;
   const keptGames = change.games.filter((g) => !games.includes(g));
   const keptAdding = change.adding.filter((t) => !adding.includes(t));
-  if (keptGames.length > 0 || keptAdding.length > 0) lastChanges.set(userId, { ...change, games: keptGames, adding: keptAdding });
-  else lastChanges.delete(userId);
+  const rest = keptGames.length > 0 || keptAdding.length > 0 ? { ...change, games: keptGames, adding: keptAdding } : undefined;
+  if (isLatest) {
+    if (rest) lastChanges.set(userId, rest);
+    else lastChanges.delete(userId);
+  } else {
+    olderChanges.set(userId, (olderChanges.get(userId) ?? []).flatMap((c) => (c === change ? (rest ? [rest] : []) : [c])));
+  }
   const uid = new Types.ObjectId(userId);
   const done: string[] = [];
 

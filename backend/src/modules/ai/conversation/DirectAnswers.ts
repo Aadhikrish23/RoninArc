@@ -166,8 +166,22 @@ async function describeFeature(question: string, ctx: DirectAnswerContext): Prom
 
 async function describeFavourite(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   if (!FAVOURITE.test(question) || !MY_LIBRARY.test(question) || ACTION.test(question) || /\b(like|similar|recommend|suggest)\b/i.test(question)) return undefined;
-  const reviews = (await Review.find({ userId: new Types.ObjectId(ctx.userId) }).sort({ rating: -1, updatedAt: -1 }).populate("gameId", "title").lean()) as any[];
+  const reviews = (await Review.find({ userId: new Types.ObjectId(ctx.userId) }).sort({ rating: -1, updatedAt: -1 }).populate("gameId", "title tags").lean()) as any[];
   const rated = reviews.filter((r) => r.gameId?.title);
+  // "whats my fav genre based on my ratings": the genre of the games rated highest, not a game list.
+  if (/\bgenres?\b/i.test(question) && rated.length > 0) {
+    const byGenre = new Map<string, number[]>();
+    for (const r of rated) for (const g of (r.gameId.tags ?? []) as string[]) byGenre.set(g, [...(byGenre.get(g) ?? []), r.rating]);
+    // Average rating, weighted by how many games back it up (one 10/10 shouldn't beat three 9s).
+    const ranked = [...byGenre.entries()]
+      .map(([genre, ratings]) => ({ genre, avg: ratings.reduce((a, b) => a + b, 0) / ratings.length, n: ratings.length }))
+      .sort((a, b) => b.avg * Math.min(b.n, 3) - a.avg * Math.min(a.n, 3));
+    const [top, next] = ranked;
+    if (top) {
+      const games = `${top.n} ${top.n === 1 ? "game" : "games"}, ${Math.round(top.avg * 10) / 10}/10 on average`;
+      return `Going by your ratings, your favourite genre is ${top.genre} (${games})${next ? `, then ${next.genre}` : ""}.`;
+    }
+  }
   if (rated.length === 0) return "You haven't rated anything yet, so I can't tell your favourite. Try \"rate Hades 9\".";
   const [top, ...rest] = rated;
   // "whats my highest rated game and whats the lowest": both ends, not a top-3 that hides the low one.
@@ -221,7 +235,7 @@ async function describeFriends(question: string): Promise<string | undefined> {
 }
 
 /** "how many hours have i put into games this month": from recorded play sessions, never guessed. */
-const HOURS_PLAYED = /\bhow (many|much) (hours|time)\b[^.?!]*\b(i|i've|ive|have i|did i)\b[^.?!]*\b(play\w*|put|spent|spend|logged|gam\w*)\b|\bmy (total )?(playtime|hours played)\b/i;
+const HOURS_PLAYED = /\bhow (many|much) (hours|hrs|hr|time)\b[^.?!]*\b(i|i've|ive|have i|did i)\b[^.?!]*\b(play\w*|put|spent|spend|logged|gam\w*)\b|\bmy (total )?(playtime|hours played)\b/i;
 async function describeHoursPlayed(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   if (!HOURS_PLAYED.test(question) || gameFor(question, ctx)) return undefined;
   const overview: any = await dashboardOverviewService.getOverview(ctx.userId).catch(() => undefined);
@@ -356,8 +370,12 @@ export async function answerDirectly(message: string, ctx: DirectAnswerContext):
   const answers: string[] = [];
   const unanswered: string[] = [];
   if (questions.length >= 2) {
+    // "what did i think of ds3? any notes on it?": "it" is DS3, named in the earlier question,
+    // not the game the conversation was on before (it answered about GTA V too).
+    let named = ctx.currentGame;
     for (const q of questions) {
-      const answer = await answerOne(q, ctx);
+      named = namedTitles(q, ctx.owned)[0] ?? franchiseMatch(q, ctx.owned) ?? named;
+      const answer = await answerOne(q, { ...ctx, currentGame: named });
       if (answer) answers.push(answer);
       else unanswered.push(q);
     }

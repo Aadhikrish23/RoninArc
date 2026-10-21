@@ -278,7 +278,8 @@ const knownHours = (hours?: number) => (hours && hours >= 3 ? hours : undefined)
 
 function lengthReason(hours?: number): string | null {
   const h = knownHours(hours);
-  return h && h <= 15 ? `Shorter: about ${h}h on average` : null;
+  // "Shorter: about 4h on average" read as a promise; it's what players log on RAWG.
+  return h && h <= 15 ? `Shorter: players log about ${h}h` : null;
 }
 
 function fitsLength(hours: number | undefined, length?: LengthPreference): boolean {

@@ -91,7 +91,7 @@ test.describe("AI chat API (/ai/chat)", () => {
         const { body } = await chat(api, "launch fallout shelter", client);
         expect(body).toMatchObject({
           success: true,
-          message: "Launching games only works in the RoninArc desktop app, so I can't start Fallout Shelter from here.",
+          message: "You're using RoninArc in the browser, and launching games needs the RoninArc desktop app, so I can't start Fallout Shelter from here.",
         });
         expect(body.clientActions).toBeUndefined();
         expect((await json(await api.get("/play-session/recent"))).Data).toEqual([]);

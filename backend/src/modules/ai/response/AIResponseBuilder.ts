@@ -75,7 +75,7 @@ export class AIResponseBuilder {
         if ((step.output?.data as { launched?: boolean } | undefined)?.launched) {
           sentences.push(`Launching ${gameName} on your PC.`);
         } else {
-          sentences.push(`Launching games only works in the RoninArc desktop app, so I can't start ${gameName} from here.`);
+          sentences.push(`You're using RoninArc in the browser, and launching games needs the RoninArc desktop app, so I can't start ${gameName} from here.`);
         }
       } else if (step.tool === "InstallGameTool" || step.tool === "install_game") {
         sentences.push(`I've started installing ${gameName}.`);
