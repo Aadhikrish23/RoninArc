@@ -1,4 +1,5 @@
 import Constants from "expo-constants";
+import { Platform } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import type { components } from "./schema";
 
@@ -15,6 +16,16 @@ export type ChatResponse = Schemas["AIChatResponse"];
 /** RoninArc Cloud, set at build time (app.config.ts). */
 export const CLOUD_URL: string = (Constants.expoConfig?.extra as { cloudUrl?: string } | undefined)?.cloudUrl ?? "";
 
+/** The phone's encrypted store; the browser preview (no secure store there) uses localStorage. */
+const store =
+  Platform.OS === "web"
+    ? {
+        getItemAsync: async (k: string) => globalThis.localStorage?.getItem(k) ?? null,
+        setItemAsync: async (k: string, v: string) => globalThis.localStorage?.setItem(k, v),
+        deleteItemAsync: async (k: string) => globalThis.localStorage?.removeItem(k),
+      }
+    : SecureStore;
+
 const KEYS = { access: "roninarc.access", refresh: "roninarc.refresh", user: "roninarc.user" } as const;
 
 export interface Session {
@@ -25,9 +36,9 @@ export interface Session {
 
 export async function loadSession(): Promise<Session | null> {
   const [accessToken, refreshToken, user] = await Promise.all([
-    SecureStore.getItemAsync(KEYS.access),
-    SecureStore.getItemAsync(KEYS.refresh),
-    SecureStore.getItemAsync(KEYS.user),
+    store.getItemAsync(KEYS.access),
+    store.getItemAsync(KEYS.refresh),
+    store.getItemAsync(KEYS.user),
   ]);
   if (!accessToken || !refreshToken || !user) return null;
   try {
@@ -39,14 +50,14 @@ export async function loadSession(): Promise<Session | null> {
 
 export async function saveSession(s: Session) {
   await Promise.all([
-    SecureStore.setItemAsync(KEYS.access, s.accessToken),
-    SecureStore.setItemAsync(KEYS.refresh, s.refreshToken),
-    SecureStore.setItemAsync(KEYS.user, JSON.stringify(s.user)),
+    store.setItemAsync(KEYS.access, s.accessToken),
+    store.setItemAsync(KEYS.refresh, s.refreshToken),
+    store.setItemAsync(KEYS.user, JSON.stringify(s.user)),
   ]);
 }
 
 export async function clearSession() {
-  await Promise.all(Object.values(KEYS).map((k) => SecureStore.deleteItemAsync(k)));
+  await Promise.all(Object.values(KEYS).map((k) => store.deleteItemAsync(k)));
 }
 
 /** An error with the server's own words ("Invalid credentials", "Username is already taken"). */

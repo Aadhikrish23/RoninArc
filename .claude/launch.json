@@ -4,14 +4,40 @@
     {
       "name": "backend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "backend", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "backend",
+        "run",
+        "dev"
+      ],
       "port": 5000
     },
     {
       "name": "frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "cloud",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "backend/scripts/dev-cloud.cjs"
+      ],
+      "port": 5056
+    },
+    {
+      "name": "mobile-web",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "mobile/scripts/web-local.cjs"
+      ],
+      "port": 8081
     }
   ]
 }

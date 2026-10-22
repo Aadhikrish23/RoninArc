@@ -36,6 +36,7 @@ function StatusButton({ status, selected, onPress }: { status: ProgressStatus; s
   return (
     <Pressable
       accessibilityRole="radio"
+      accessibilityLabel={STATUS[status].label}
       accessibilityState={{ selected }}
       onPress={onPress}
       style={{ flexGrow: 1, minHeight: 40, paddingHorizontal: space.md, alignItems: "center", justifyContent: "center", borderRadius: radius.md, borderWidth: 1, borderColor: selected ? color : c.border, backgroundColor: selected ? `${color}22` : "transparent" }}
@@ -81,6 +82,8 @@ export default function GameScreen() {
   if (game.error || !game.data) return <ErrorNote error={game.error ?? new Error("This game isn't in your library any more.")} onRetry={() => game.refetch()} />;
   const g = game.data;
   const about = plain(g.description);
+  // The single-game endpoint has no rating; the review does.
+  const shownRating = review.data?.rating ?? g.rating;
   const year = (g as any).released ? String((g as any).released).slice(0, 4) : null;
   const inCollections = (collections.data ?? []).filter((col) => col.gameIds.some((x) => (typeof x === "string" ? x : x._id) === g._id));
 
@@ -112,10 +115,10 @@ export default function GameScreen() {
           <T tone="muted" size="sm">
             {[year, g.developer, g.tags?.slice(0, 2).join(", ")].filter(Boolean).join(" · ")}
           </T>
-          {typeof g.rating === "number" ? (
+          {typeof shownRating === "number" ? (
             <View style={{ flexDirection: "row", alignItems: "center", gap: 4, marginTop: space.xs }}>
               <Feather name="star" size={14} color={c.accent} />
-              <T weight="600">{g.rating}/10</T>
+              <T weight="600">{shownRating}/10</T>
             </View>
           ) : null}
         </View>
@@ -138,7 +141,7 @@ export default function GameScreen() {
       <Card style={{ gap: space.md }}>
         <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.xs }}>
           {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
-            <Chip key={n} label={String(n)} selected={rating === n} onPress={() => setRating(n)} />
+            <Chip key={n} label={String(n)} accessibilityLabel={`Rate ${n} out of 10`} selected={rating === n} onPress={() => setRating(n)} />
           ))}
         </View>
         <Field label="Review (optional)" value={reviewText} onChangeText={setReviewText} multiline style={{ minHeight: 80, textAlignVertical: "top", paddingTop: space.sm }} placeholder="What did you think?" />
