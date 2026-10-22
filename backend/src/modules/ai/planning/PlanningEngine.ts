@@ -9,7 +9,7 @@ import toolMapper from "../execution/ToolMapper";
 import toolMetadataRegistry from "../execution/ToolMetadataRegistry";
 import { ConversationReferences } from "../conversation/ConversationReferences";
 import { ContextCategory } from "../context/ContextCategory";
-import { NO_REFERENCE_FALLBACK_TOOLS } from "../execution/NoReferenceFallbackTools";
+import { usesReferenceFallback } from "../execution/NoReferenceFallbackTools";
 
 // The prompt instructs the LLM not to invent a placeholder name when the user
 // didn't give one, but that's a probabilistic instruction, not a guarantee --
@@ -140,7 +140,7 @@ export class PlanningEngine {
 
                 // C. Check conversation references (skipped for tools that must not
                 // silently act on a stale reference -- see NoReferenceFallbackTools)
-                if (!isSupplied && conversationReferences && !NO_REFERENCE_FALLBACK_TOOLS.has(toolName)) {
+                if (!isSupplied && conversationReferences && usesReferenceFallback(toolName)) {
                   if (paramNameLower === "gameid" && conversationReferences.currentGame) {
                     isSupplied = true;
                   } else if (paramNameLower === "collectionname" && conversationReferences.currentCollection) {

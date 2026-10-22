@@ -8,7 +8,7 @@ import Activity from "../../../../activity/ActivityModel";
 import RecommendationFeedback from "../../../../recommendation/RecommendationFeedback";
 import reviewToolService from "../services/ReviewToolService";
 import { IntentPlan } from "../../../intent/IntentPlan";
-import { IntentType } from "../../../intent/IntentType";
+import { IntentType } from "../intent/IntentType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { READ_ONLY, sameGame } from "../conversation/TargetGrounding";
 

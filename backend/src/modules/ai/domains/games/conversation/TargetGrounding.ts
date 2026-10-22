@@ -1,5 +1,5 @@
 import { IntentPlan } from "../../../intent/IntentPlan";
-import { IntentType } from "../../../intent/IntentType";
+import { IntentType } from "../intent/IntentType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { titleMatchScore } from "../../../../rawg/titleMatch";
 import { expandAbbreviation } from "../../../../rawg/gameAbbreviations";

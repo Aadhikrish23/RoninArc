@@ -1,4 +1,4 @@
-import { IntentType } from "../../../intent/IntentType";
+import { IntentType } from "../intent/IntentType";
 
 /** "wait no, I said celeste" -- the reply should own the mistake. */
 export const CORRECTION = /\b(i said|i meant|wrong (game|one)|didn'?t ask|not that one|wait,? no|that'?s wrong|no,? i)\b/i;

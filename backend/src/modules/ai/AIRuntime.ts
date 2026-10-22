@@ -13,7 +13,7 @@ import { matchGreeting, GreetingKind } from "./conversation/GreetingMatcher";
 import clarificationRuntime from "./clarification/ClarificationRuntime";
 import memoryRuntime from "./memory/MemoryRuntime";
 import { IntentPlan } from "./intent/IntentPlan";
-import { IntentType } from "./intent/IntentType";
+import { CoreIntentType } from "./intent/IntentType";
 import { IntentParameterType } from "./intent/IntentParameterType";
 import pendingConfirmations, { isCancelReply } from "./conversation/PendingConfirmationStore";
 import recentExchanges from "./conversation/RecentExchanges";
@@ -180,8 +180,8 @@ export class AIRuntime {
 
         // Conversation the model handles itself: greetings, help, questions it
         // can answer, and requests the app can't do (it writes the reply).
-        const conversational = intentPlan?.intents?.filter((i) => i.type === IntentType.AskQuestion || i.type === IntentType.Help) ?? [];
-        const actionable = intentPlan?.intents?.filter((i) => i.type !== IntentType.AskQuestion && i.type !== IntentType.Help) ?? [];
+        const conversational = intentPlan?.intents?.filter((i) => i.type === CoreIntentType.AskQuestion || i.type === CoreIntentType.Help) ?? [];
+        const actionable = intentPlan?.intents?.filter((i) => i.type !== CoreIntentType.AskQuestion && i.type !== CoreIntentType.Help) ?? [];
 
         // A real question gets a real answer from the model (a second, plain-text call);
         // refusals and "didn't catch that" keep the model's short reply.
@@ -190,7 +190,7 @@ export class AIRuntime {
           .find((v) => typeof v === "string" && v.trim().length > 0) as string | undefined;
         const wantsAnswer =
           !greetingKind &&
-          conversational.some((i) => i.type === IntentType.AskQuestion) &&
+          conversational.some((i) => i.type === CoreIntentType.AskQuestion) &&
           (!modelReply || (domain.phrases.looksLikeQuestion.test(cleanRequest) && !domain.phrases.keepModelReply.test(modelReply)));
         let generalAnswer: string | undefined = modelReply;
         if (wantsAnswer && requestContext) {
@@ -203,7 +203,7 @@ export class AIRuntime {
 
         if (greetingKind || (conversational.length > 0 && actionable.length === 0)) {
           const replyKind: GreetingKind =
-            greetingKind ?? (conversational.some((i) => i.type === IntentType.Help) ? "capabilities" : "hello");
+            greetingKind ?? (conversational.some((i) => i.type === CoreIntentType.Help) ? "capabilities" : "hello");
           const message = !greetingKind && generalAnswer ? generalAnswer.trim() : domain.phrases.greetings[replyKind];
           return finish({ success: true, message });
         }

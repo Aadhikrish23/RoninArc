@@ -2,14 +2,13 @@ import { CapabilityRegistry } from "../planning/CapabilityRegistry";
 import { ToolRegistry } from "./ToolRegistry";
 import { ToolMapper } from "../execution/ToolMapper";
 import { ToolMetadataRegistry } from "../execution/ToolMetadataRegistry";
-import { IntentType } from "../intent/IntentType";
+import { domainPack } from "../domain/activeDomain";
 import {
   INTENT_PARAM_TYPE_BY_TOOL_PARAM,
   TARGET_SUPPLIED_TOOL_PARAMS,
 } from "../planning/PlanningEngine";
 import {
-  TEXT_PARAM_KEY_BY_TOOL,
-  DEFAULT_TEXT_PARAM_KEY,
+  textParamKeyFor,
 } from "../execution/ToolParameterResolver";
 
 export interface ConsistencyReport {
@@ -34,7 +33,7 @@ export function checkRegistryConsistency(
 ): ConsistencyReport {
   const errors: string[] = [];
   const warnings: string[] = [];
-  const validIntents = new Set<string>(Object.values(IntentType));
+  const validIntents = new Set<string>(domainPack().intentTypes);
   const reachableTools = new Set<string>();
 
   for (const cap of capabilities.list()) {
@@ -72,10 +71,10 @@ export function checkRegistryConsistency(
       }
 
       if (plannerType === "text") {
-        const resolvedKey = TEXT_PARAM_KEY_BY_TOOL[meta.id] || DEFAULT_TEXT_PARAM_KEY;
+        const resolvedKey = textParamKeyFor(meta.id);
         if (resolvedKey.toLowerCase() !== key) {
           errors.push(
-            `Tool "${meta.id}" has free-text parameter "${param.name}", but ToolParameterResolver routes Text to "${resolvedKey}" for it (add it to TEXT_PARAM_KEY_BY_TOOL).`,
+            `Tool "${meta.id}" has free-text parameter "${param.name}", but ToolParameterResolver routes Text to "${resolvedKey}" for it (add it to the pack's textParamKeyByTool).`,
           );
         }
       }

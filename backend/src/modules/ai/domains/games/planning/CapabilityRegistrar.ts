@@ -1,5 +1,5 @@
 import registry from "../../../planning/CapabilityRegistry";
-import { IntentType } from "../../../intent/IntentType";
+import { IntentType } from "../intent/IntentType";
 import { ContextCategory } from "../../../context/ContextCategory";
 
 export function registerCapabilities() {

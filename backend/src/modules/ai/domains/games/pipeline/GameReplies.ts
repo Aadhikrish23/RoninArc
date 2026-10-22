@@ -1,4 +1,4 @@
-import { IntentType } from "../../../intent/IntentType";
+import { IntentType } from "../intent/IntentType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { IntentPlan } from "../../../intent/IntentPlan";
 import pendingConfirmations from "../../../conversation/PendingConfirmationStore";

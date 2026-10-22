@@ -12,6 +12,8 @@ import type { AIToolContext } from "../sdk/AIToolContext";
 import type { Capability } from "../planning/Capability";
 import type { ContextProviderRegistry } from "../context/ContextProviderRegistry";
 import type { EntityResolutionResult } from "../entity/EntityResolutionResult";
+import type { ToolCapability } from "../execution/ToolCapability";
+import type { ExecutionStep } from "../execution/ExecutionStep";
 
 /**
  * Everything the assistant knows about one app's world. The core (providers, conversation
@@ -29,6 +31,10 @@ export interface DomainPack {
   // ---- Wiring (called once, from the composition root) ----
   /** The tools the planner can call. */
   createToolRegistry(): ToolRegistry;
+  /** Every intent type the model may return (the core adds none of its own beyond AskQuestion/Help). */
+  readonly intentTypes: readonly string[];
+  /** Tool metadata, capability-to-tool mapping and how each tool's input is built. */
+  readonly tools: DomainTools;
   /** Which capabilities exist and which intents reach them. */
   registerCapabilities(): CapabilityRegistry;
   /** Context providers (the user's library, reviews, ...) the planner may read. */
@@ -93,6 +99,22 @@ export interface DomainPack {
 
   // ---- Words ----
   phrases: DomainPhrases;
+}
+
+export interface DomainTools {
+  metadata: ToolCapability[];
+  /** Capability id -> its one tool. */
+  capabilityTools: Record<string, string>;
+  /** Capabilities whose tool is picked per request by chooseTool, with every tool they can pick. */
+  multiToolCapabilities: Record<string, string[]>;
+  chooseTool?(capabilityId: string, targetsOrInput?: any[] | Record<string, unknown>, query?: string): string | undefined;
+  /** The concrete input for a step's tool, or undefined to pass targets and parameters through. */
+  buildInput(step: ExecutionStep): Record<string, unknown> | undefined;
+  /** Which input key a free-text parameter becomes, per tool. */
+  textParamKeyByTool: Record<string, string>;
+  defaultTextParamKey: string;
+  /** Tools that must never fill a missing target from an earlier conversation reference. */
+  noReferenceFallbackTools: string[];
 }
 
 export interface DomainPhrases {

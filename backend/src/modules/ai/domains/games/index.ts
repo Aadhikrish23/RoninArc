@@ -1,5 +1,6 @@
 import type { DomainPack } from "../../domain/DomainPack";
-import { IntentType } from "../../intent/IntentType";
+import { IntentType } from "./intent/IntentType";
+import { gameTools } from "./execution/GameTools";
 import { createToolRegistry } from "./registry/ToolRegistrar";
 import { registerCapabilities } from "./planning/CapabilityRegistrar";
 import { LibraryContextProvider } from "./context/LibraryContextProvider";
@@ -28,6 +29,8 @@ const ownedTitles = (context?: { library?: { games: { title: string }[] } }) => 
 /** RoninArc's world: a game library, its statuses, reviews, notes, collections and launchers. */
 export const gamesPack: DomainPack = {
   id: "games",
+  intentTypes: Object.values(IntentType),
+  tools: gameTools,
 
   createToolRegistry,
   registerCapabilities,

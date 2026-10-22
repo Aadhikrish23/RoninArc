@@ -2,17 +2,14 @@ import { ExecutionContext } from "./ExecutionContext";
 import { ExecutionPlan } from "./ExecutionPlan";
 import toolMetadataRegistry from "./ToolMetadataRegistry";
 import conversationStore from "../conversation/ConversationStore";
-import { NO_REFERENCE_FALLBACK_TOOLS } from "./NoReferenceFallbackTools";
+import { usesReferenceFallback } from "./NoReferenceFallbackTools";
+import { domainPack } from "../domain/activeDomain";
 
-// "Text" is shared by multiple tools' free-text parameters -- which concrete key
-// it becomes depends on which tool the step is for. Tools not listed get reviewText.
-export const TEXT_PARAM_KEY_BY_TOOL: Record<string, string> = {
-  search_library: "searchValue",
-  add_note: "content",
-  recommend_games: "query",
-  library_question: "question",
-};
-export const DEFAULT_TEXT_PARAM_KEY = "reviewText";
+/** "Text" is shared by several tools' free-text parameters; the pack says which key it becomes per tool. */
+export function textParamKeyFor(toolName: string): string {
+  const { textParamKeyByTool, defaultTextParamKey } = domainPack().tools;
+  return textParamKeyByTool[toolName] || defaultTextParamKey;
+}
 
 export class ToolParameterResolver {
   /**
@@ -37,7 +34,7 @@ export class ToolParameterResolver {
             const pType = String(p.type).toLowerCase();
             let key = pType;
             if (pType === "text") {
-              key = TEXT_PARAM_KEY_BY_TOOL[step.toolName] || DEFAULT_TEXT_PARAM_KEY;
+              key = textParamKeyFor(step.toolName);
             }
             parameters[key] = p.value;
           }
@@ -100,7 +97,7 @@ export class ToolParameterResolver {
         // If still not resolved, check session references
         if (
           (parameters[param.name] === undefined || parameters[param.name] === null || parameters[param.name] === "") &&
-          !NO_REFERENCE_FALLBACK_TOOLS.has(step.toolName)
+          usesReferenceFallback(step.toolName)
         ) {
           if (session && session.references) {
             if (param.name === "gameId" && session.references.currentGame) {

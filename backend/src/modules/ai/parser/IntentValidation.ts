@@ -1,5 +1,6 @@
 import { LLMIntentResponse, LLMIntent, LLMIntentTarget, LLMIntentParameter } from "../providers/contracts/LLMIntentResponse";
 import { IntentType } from "../intent/IntentType";
+import { domainPack } from "../domain/activeDomain";
 import { IntentTargetType } from "../intent/IntentTargetType";
 import { IntentParameterType } from "../intent/IntentParameterType";
 
@@ -27,7 +28,7 @@ export function validateLLMIntentResponse(parsed: unknown): LLMIntentResponse {
 
   const validatedIntents: LLMIntent[] = [];
 
-  const allowedIntents = Object.values(IntentType);
+  const allowedIntents: string[] = [...domainPack().intentTypes];
   const allowedTargets = Object.values(IntentTargetType);
   const allowedParameters = Object.values(IntentParameterType);
 

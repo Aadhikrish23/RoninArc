@@ -1,29 +1,10 @@
-export enum IntentType {
-  CompleteGame = "CompleteGame",
-  /** Any progress status change (plan, playing, paused, completed, dropped, none). */
-  SetStatus = "SetStatus",
-  /** A question about the user's own library ("what's in my backlog?", "how many have I finished?"). */
-  LibraryQuestion = "LibraryQuestion",
-  StartGame = "StartGame",
-  PauseGame = "PauseGame",
-  DropGame = "DropGame",
-  LaunchGame = "LaunchGame",
-  RateGame = "RateGame",
-  ReviewGame = "ReviewGame",
-  DeleteReview = "DeleteReview",
-  AddGame = "AddGame",
-  RemoveGame = "RemoveGame",
-  SearchLibrary = "SearchLibrary",
-  AddNote = "AddNote",
-  FindGame = "FindGame",
-  RecommendGame = "RecommendGame",
-  CompareGames = "CompareGames",
-  OrganizeLibrary = "OrganizeLibrary",
-  CreateCollection = "CreateCollection",
-  OrganizeCollection = "OrganizeCollection",
-  SyncLibrary = "SyncLibrary",
-  ConnectAccount = "ConnectAccount",
-  DisconnectAccount = "DisconnectAccount",
-  AskQuestion = "AskQuestion",
-  Help = "Help",
-}
+/**
+ * Intent types are strings the domain pack defines (domains/games/intent/IntentType for RoninArc).
+ * The core handles only these two itself: a question to answer and a request for help.
+ */
+export type IntentType = string;
+
+export const CoreIntentType = {
+  AskQuestion: "AskQuestion",
+  Help: "Help",
+} as const;

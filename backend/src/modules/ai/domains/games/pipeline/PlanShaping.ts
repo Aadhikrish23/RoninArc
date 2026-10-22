@@ -1,5 +1,5 @@
 import { IntentPlan } from "../../../intent/IntentPlan";
-import { IntentType } from "../../../intent/IntentType";
+import { IntentType } from "../intent/IntentType";
 import { IntentParameterType } from "../../../intent/IntentParameterType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { mentions } from "../conversation/TargetGrounding";
