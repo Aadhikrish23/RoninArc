@@ -5,7 +5,7 @@ import { IntentTargetType } from "../../../intent/IntentTargetType";
 import type { AIClientCapabilities } from "../../../sdk/AIToolContext";
 import type { AIRequestContext } from "../../../conversation/AIRequestContext";
 import type { ConversationSession } from "../../../conversation/ConversationSession";
-import { loadLibrarySnapshot } from "../../../context/LibrarySnapshot";
+import { loadLibrarySnapshot } from "../context/loadLibrarySnapshot";
 import recentExchanges from "../../../conversation/RecentExchanges";
 import pendingConfirmations from "../../../conversation/PendingConfirmationStore";
 import { franchiseMatch, lastNamedTitle, namedTitles } from "../conversation/TargetGrounding";

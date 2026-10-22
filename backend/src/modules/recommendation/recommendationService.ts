@@ -14,7 +14,7 @@ import {
   rankDiscover,
   type LengthPreference,
 } from "./recommendationEngine";
-import { mentions } from "../ai/conversation/TargetGrounding";
+import { mentions } from "../ai/domains/games/conversation/TargetGrounding";
 import { expandAbbreviation } from "../rawg/gameAbbreviations";
 import { rankByTitle } from "../rawg/titleMatch";
 

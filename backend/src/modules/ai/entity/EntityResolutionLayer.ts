@@ -4,10 +4,9 @@ import { ResolvedIntent } from "./ResolvedIntent";
 import { ResolvedTarget } from "./ResolvedTarget";
 import { ClarificationRequest } from "./ClarificationRequest";
 import { ClarificationType } from "./ClarificationType";
-import entityResolver from "../domains/games/entity/EntityResolver";
 import { EntityResolutionStatus } from "./EntityResolutionStatus";
 import { IntentTargetType } from "../intent/IntentTargetType";
-import { LibraryGame } from "../domains/games/entity/LibraryGame";
+import { domainPack } from "../domain/activeDomain";
 import { IntentTarget } from "../intent/IntentTarget";
 import aiTraceLogger from "../debug/AITraceLogger";
 
@@ -51,9 +50,9 @@ export class EntityResolutionLayer {
       for (const target of intent.targets) {
         if (target.type === IntentTargetType.Game) {
           const { isBulk, cleanQuery } = getBulkQueryInfo(target.name);
-          const resolutionResult = await entityResolver.resolveGame(userId, cleanQuery, { isBulk });
+          const resolutionResult = await domainPack().resolveEntity(userId, cleanQuery, { isBulk });
 
-          const resolvedTarget: ResolvedTarget<LibraryGame> = {
+          const resolvedTarget: ResolvedTarget = {
             originalTarget: target,
             resolution: resolutionResult,
           };

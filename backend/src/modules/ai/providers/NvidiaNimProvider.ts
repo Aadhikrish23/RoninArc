@@ -2,8 +2,7 @@ import { AIProvider } from "./AIProvider";
 import { AIRequestContext } from "../conversation/AIRequestContext";
 import { Capability } from "../planning/Capability";
 import { IntentPlan } from "../intent/IntentPlan";
-import promptBuilder from "../domains/games/prompts/PromptBuilder";
-import { buildAnswerPrompt } from "../domains/games/prompts/AnswerPromptBuilder";
+import { domainPack } from "../domain/activeDomain";
 import nvidiaNimClient from "../clients/NvidiaNimClient";
 import intentParser from "../parser/IntentParser";
 import intentNormalizer from "../intent/IntentNormalizer";
@@ -21,11 +20,7 @@ export class NvidiaNimProvider implements AIProvider {
     const toolContext = context.toolContext;
 
     try {
-      const prompt = promptBuilder.build(request, toolContext, capabilities, {
-        library: context.library,
-        recentExchanges: context.recentExchanges,
-        page: context.page,
-      });
+      const prompt = domainPack().prompts.plan(request, toolContext, capabilities, context);
       if (trace) {
         trace.log("Provider", "Prompt Generated", {
           model: AIConfig.nvidiaModel,
@@ -70,7 +65,7 @@ export class NvidiaNimProvider implements AIProvider {
   }
 
   async answer(question: string, context: AIRequestContext): Promise<string> {
-    const prompt = buildAnswerPrompt(question, context.library, context.recentExchanges, context.gameFacts);
+    const prompt = domainPack().prompts.answer(question, context);
     const raw = await nvidiaNimClient.generate(prompt);
     return raw.replace(/^\s*(answer:)?\s*/i, "").trim();
   }

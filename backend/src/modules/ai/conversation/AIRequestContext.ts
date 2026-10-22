@@ -15,7 +15,7 @@ export interface AIRequestContext {
   /** The game or collection page the user has open. */
   page?: { gameTitle?: string; collectionName?: string };
   /** Facts from the game database about the games a question names (answer mode only). */
-  gameFacts?: string;
+  facts?: string;
 }
 
 

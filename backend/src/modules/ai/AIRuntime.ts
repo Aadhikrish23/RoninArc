@@ -9,7 +9,7 @@ import { RuntimeProfiler } from "./debug/RuntimeProfiler";
 import { AIRuntimeError } from "./runtime/errors/AIRuntimeError";
 
 import conversationRuntime from "./conversation/ConversationRuntime";
-import { matchGreeting, GREETING_REPLIES, GreetingKind } from "./conversation/GreetingMatcher";
+import { matchGreeting, GreetingKind } from "./conversation/GreetingMatcher";
 import clarificationRuntime from "./clarification/ClarificationRuntime";
 import memoryRuntime from "./memory/MemoryRuntime";
 import { IntentPlan } from "./intent/IntentPlan";
@@ -18,27 +18,18 @@ import { IntentParameterType } from "./intent/IntentParameterType";
 import pendingConfirmations, { isCancelReply } from "./conversation/PendingConfirmationStore";
 import recentExchanges from "./conversation/RecentExchanges";
 import conversationManager from "./conversation/ConversationManager";
-import { normalizeSlang, resolveOrdinals, withPageGame } from "./domains/games/conversation/FollowUps";
-import { lastNamedTitle } from "./domains/games/conversation/TargetGrounding";
-import { followUpOffer } from "./domains/games/conversation/DirectActions";
-
-import { CORRECTION, KEEP_MODEL_REPLY, LOOKS_LIKE_QUESTION, NOT_SURE_WHAT_TO_CHANGE, NOT_SURE_WHICH_GAME } from "./domains/games/pipeline/Patterns";
-import { rememberOfferedAdd, tidyReply, type RuntimeResponse } from "./pipeline/Replies";
+import { type RuntimeResponse } from "./pipeline/Replies";
 import { ModelGateway } from "./pipeline/ModelGateway";
 import { handlePending } from "./pipeline/PendingStage";
-import { preRoute } from "./domains/games/pipeline/PreRoute";
-import { correctPlan } from "./domains/games/pipeline/PlanCorrections";
-import { dropUnstatedStatusChanges, ensureCollectionAdds } from "./domains/games/pipeline/StatusEvidence";
-import { groundPlan, type GroundingResult } from "./domains/games/pipeline/PlanGrounding";
-import { normalizeStatusIntents, shapePlan } from "./domains/games/pipeline/PlanShaping";
 import { PlanRunner } from "./pipeline/PlanRunner";
-import { forgetChange, hasUntrackedChanges, rememberChange, snapshotBefore } from "./domains/games/pipeline/UndoLog";
+import { domainPack } from "./domain/activeDomain";
+import type { GroundingResult } from "./domain/DomainPack";
 
 /**
  * One chat message, start to finish. The stages live in ./pipeline:
  *
  *   pending yes/no  ->  clarification resume  ->  pre-route (data answers, plain commands,
- *   then the model)  ->  corrections (the user's own words)  ->  grounding (real games only)
+ *   then the model)  ->  corrections (the user's own words)  ->  grounding (real items only)
  *   ->  shaping  ->  answer or run (planning, confirmation, execution).
  */
 /**
@@ -77,9 +68,8 @@ export class AIRuntime {
     const profiler = new RuntimeProfiler();
     profiler.startOverall();
 
-    const typed = request ? normalizeSlang(request.trim().replace(/\s+/g, " ")) : "";
-    // "add the second one" right after a list of picks names that pick.
-    const cleanRequest = resolveOrdinals(typed, recentExchanges.get(userId).slice(-1)[0]);
+    const domain = domainPack();
+    const cleanRequest = request ? domain.normalizeMessage(request.trim().replace(/\s+/g, " "), recentExchanges.get(userId).slice(-1)[0]) : "";
 
     return aiTraceLogger.run(requestId, async () => {
       const trace = aiTraceLogger.current();
@@ -92,9 +82,8 @@ export class AIRuntime {
 
       const finish = (response: RuntimeResponse) => {
         profiler.stopOverall();
-        const final = { ...response, message: tidyReply(response.message), metrics: profiler.getMetrics() };
+        const final = { ...response, message: domain.finishReply(userId, requestId, response.message), metrics: profiler.getMetrics() };
         recentExchanges.add(userId, cleanRequest, final.message || "");
-        rememberOfferedAdd(userId, requestId, final.message);
         if (trace) {
           const status = final.status || (final.success ? "SUCCESS" : "FAILED");
           trace.updateStats({ status });
@@ -154,7 +143,7 @@ export class AIRuntime {
         const greetingKind = intentPlan ? null : matchGreeting(cleanRequest);
 
         if (!intentPlan && !greetingKind && requestContext) {
-          const routed = await preRoute({ userId, requestId, message: cleanRequest, client, session, requestContext, model: this.model });
+          const routed = await domain.preRoute({ userId, requestId, message: cleanRequest, client, session, requestContext, model: this.model });
           if (routed.kind === "reply" && routed.rest) {
             const more: RuntimeResponse = await this.chat(userId, routed.rest, `${requestId}-more`, client);
             return finish(withRest(routed.response.message ?? "", routed.rest, more));
@@ -165,35 +154,29 @@ export class AIRuntime {
           planText = routed.pinned ?? cleanRequest;
           intentPlan = conversationRuntime.resolveReferences(routed.plan, session);
           fromModel = true;
-          unrequested = correctPlan(intentPlan, planText, recentExchanges.get(userId).slice(-1)[0]?.assistant ?? "").unrequested;
-          // No status change without a word for it next to that game; "put A and B in soulslike" adds them.
-          const ownedTitles = requestContext.library?.games.map((g) => g.title) ?? [];
-          unrequested += dropUnstatedStatusChanges(intentPlan, planText, ownedTitles);
-          ensureCollectionAdds(intentPlan, planText, ownedTitles, requestContext.library?.collections ?? []);
+          unrequested = domain.correctPlan(intentPlan, {
+            message: planText,
+            lastReply: recentExchanges.get(userId).slice(-1)[0]?.assistant ?? "",
+            requestContext,
+          });
         }
 
-        if (intentPlan) normalizeStatusIntents(intentPlan);
+        if (intentPlan) domain.normalizePlan(intentPlan);
 
-        // Only act on games the user named or clearly referred to.
+        // Only act on things the user named or clearly referred to.
         let grounding: GroundingResult = { ungrounded: 0, skippedMissing: [], keptReviews: [] };
         if (intentPlan && fromModel) {
-          grounding = await groundPlan(intentPlan, {
+          grounding = await domain.groundPlan(intentPlan, {
             userId,
             message: planText,
-            owned: requestContext?.library?.games.map((g) => g.title) ?? [],
+            requestContext: requestContext ?? undefined,
             lastExchange: recentExchanges.get(userId).slice(-1)[0],
-            // "it" = the game the assistant just talked about, before an older session reference
-            // ("take it out of the soulslike collection" right after "I kept Dark Souls III").
-            currentGame:
-              lastNamedTitle(recentExchanges.get(userId).slice(-1)[0]?.assistant ?? "", requestContext?.library?.games.map((g) => g.title) ?? []) ??
-              session.references.currentGame?.displayName ??
-              null,
-            pageGame: requestContext?.page?.gameTitle ?? null,
+            session,
           });
         }
         const { ungrounded, skippedMissing, keptReviews } = grounding;
 
-        if (intentPlan) shapePlan(intentPlan, cleanRequest, fromModel);
+        if (intentPlan) domain.shapePlan(intentPlan, cleanRequest, fromModel);
 
         // Conversation the model handles itself: greetings, help, questions it
         // can answer, and requests the app can't do (it writes the reply).
@@ -208,11 +191,11 @@ export class AIRuntime {
         const wantsAnswer =
           !greetingKind &&
           conversational.some((i) => i.type === IntentType.AskQuestion) &&
-          (!modelReply || (LOOKS_LIKE_QUESTION.test(cleanRequest) && !KEEP_MODEL_REPLY.test(modelReply)));
+          (!modelReply || (domain.phrases.looksLikeQuestion.test(cleanRequest) && !domain.phrases.keepModelReply.test(modelReply)));
         let generalAnswer: string | undefined = modelReply;
         if (wantsAnswer && requestContext) {
           try {
-            generalAnswer = (await this.model.answerSafely(withPageGame(cleanRequest, requestContext.page?.gameTitle), requestContext)) || modelReply;
+            generalAnswer = (await this.model.answerSafely(domain.withPageContext(cleanRequest, requestContext.page?.gameTitle), requestContext)) || modelReply;
           } catch {
             generalAnswer = modelReply;
           }
@@ -221,19 +204,17 @@ export class AIRuntime {
         if (greetingKind || (conversational.length > 0 && actionable.length === 0)) {
           const replyKind: GreetingKind =
             greetingKind ?? (conversational.some((i) => i.type === IntentType.Help) ? "capabilities" : "hello");
-          const message = !greetingKind && generalAnswer ? generalAnswer.trim() : GREETING_REPLIES[replyKind];
+          const message = !greetingKind && generalAnswer ? generalAnswer.trim() : domain.phrases.greetings[replyKind];
           return finish({ success: true, message });
         }
 
-        const missingNote = skippedMissing.length
-          ? `${skippedMissing.map((n) => `"${n}"`).join(" and ")} ${skippedMissing.length === 1 ? "isn't" : "aren't"} in your library, so I skipped that. Say "add ${skippedMissing[0]}" first if you want it.`
-          : "";
+        const missingNote = skippedMissing.length ? domain.phrases.missing(skippedMissing) : "";
         // Everything planned was something the message didn't ask for: change nothing.
         if (actionable.length === 0 && unrequested > 0 && ungrounded === 0 && skippedMissing.length === 0) {
-          return finish({ success: true, status: "CLARIFICATION_REQUIRED", message: NOT_SURE_WHAT_TO_CHANGE });
+          return finish({ success: true, status: "CLARIFICATION_REQUIRED", message: domain.phrases.notSureWhatToChange });
         }
         if (actionable.length === 0 && (ungrounded > 0 || skippedMissing.length > 0)) {
-          return finish({ success: true, status: "CLARIFICATION_REQUIRED", message: missingNote || NOT_SURE_WHICH_GAME });
+          return finish({ success: true, status: "CLARIFICATION_REQUIRED", message: missingNote || domain.phrases.notSureWhich });
         }
 
         const plan: IntentPlan = { ...intentPlan!, intents: actionable };
@@ -241,30 +222,30 @@ export class AIRuntime {
           let message = response.message;
           if (missingNote) message += ` ${missingNote}`;
           if (ungrounded > 0 && response.success) {
-            message += " I wasn't sure which game you meant for part of that, so I left it. Tell me the name and I'll do it.";
+            message += ` ${domain.phrases.ungrounded}`;
           }
           if (response.success && keptReviews.length > 0) {
-            message += " I kept the review you'd already written; say \"change my review to ...\" if you want to replace it.";
+            message += ` ${domain.phrases.keptReview}`;
           }
           if (notice) message = `${notice} ${message}`;
-          else if (response.success && CORRECTION.test(cleanRequest)) message = `Sorry about that. ${message}`;
+          else if (response.success && domain.phrases.correction.test(cleanRequest)) message = `Sorry about that. ${message}`;
           // "pause rdr2. also is elden ring hard?" -- answer the question part too.
           if (generalAnswer) message = `${message} ${generalAnswer.trim()}`;
           return { ...response, message };
         };
         const run = (p: IntentPlan) => this.runner.run(p, session, cleanRequest, toolContext, memoryContext, profiler, confirmed);
         // What this plan is about to change, so "undo" / "no, I meant X" can put it back.
-        const before = await snapshotBefore(userId, plan).catch(() => undefined);
+        const before = await domain.undo.snapshotBefore(userId, plan).catch(() => undefined);
         const remember = (response: RuntimeResponse) => {
           if (!response.success || response.status?.match(/CONFIRMATION|CLARIFICATION/)) return;
-          if (hasUntrackedChanges(plan)) forgetChange(userId);
-          else if (before) rememberChange(userId, before);
+          if (domain.undo.hasUntrackedChanges(plan)) domain.undo.forget(userId);
+          else if (before) domain.undo.remember(userId, before);
         };
 
-        // "add celeste and mark it completed": the game has to exist before the
-        // second step can find it, so additions run as their own first phase.
-        const additions = plan.intents.filter((i) => i.type === IntentType.AddGame);
-        const rest = plan.intents.filter((i) => i.type !== IntentType.AddGame);
+        // Some steps must finish before the rest can find what they made ("add celeste and
+        // mark it completed"), so they run as their own first phase.
+        const additions = plan.intents.filter((i) => domain.runsFirst(i.type));
+        const rest = plan.intents.filter((i) => !domain.runsFirst(i.type));
         if (additions.length > 0 && rest.length > 0) {
           const first = await run({ ...plan, intents: additions });
           if (!first.success) return finish(first);
@@ -281,7 +262,7 @@ export class AIRuntime {
         remember(outcome);
         // "Want me to add DS3 and Elden Ring to it?" / "Want me to mark it Completed?"
         if (outcome.success && !outcome.status?.match(/CONFIRMATION|CLARIFICATION/)) {
-          const offer = await followUpOffer(userId, plan.intents as any, cleanRequest).catch(() => undefined);
+          const offer = await domain.followUpOffer(userId, plan, cleanRequest).catch(() => undefined);
           if (offer) {
             pendingConfirmations.put(userId, { run: offer.run, label: offer.label, collection: offer.collection });
             return finish({ ...outcome, message: `${outcome.message} ${offer.question}` });

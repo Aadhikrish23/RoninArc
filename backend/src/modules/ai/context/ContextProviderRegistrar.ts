@@ -1,13 +1,7 @@
 import registry from "./ContextProviderRegistry";
-
-import { LibraryContextProvider } from "../domains/games/context/LibraryContextProvider";
-import { ReviewContextProvider } from "../domains/games/context/ReviewContextProvider";
-import { CollectionContextProvider } from "../domains/games/context/CollectionContextProvider";
+import { domainPack } from "../domain/activeDomain";
 
 export function registerContextProviders() {
-  registry.register(new LibraryContextProvider());
-  registry.register(new ReviewContextProvider());
-  registry.register(new CollectionContextProvider());
-
+  domainPack().registerContextProviders(registry);
   return registry;
 }

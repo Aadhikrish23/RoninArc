@@ -29,11 +29,4 @@ export function matchGreeting(request: string): GreetingKind | null {
   return null;
 }
 
-export const GREETING_REPLIES: Record<GreetingKind, string> = {
-  hello: "Hello! I am your RoninArc AI assistant. How can I help you today?",
-  thanks: "You're welcome! Let me know if there's anything else I can do for you.",
-  howAreYou:
-    "I'm doing great, thank you! Ready to help you manage your library, launch games, rate or review them, or manage your collections. What's on your mind?",
-  capabilities:
-    "I can help you manage your gaming library. You can ask me to: launch a game (e.g. 'Launch Fallout Shelter'), complete a game, rate or review games, manage collections (create, add/remove games), or connect provider accounts like Epic Games. What would you like to do?",
-};
+

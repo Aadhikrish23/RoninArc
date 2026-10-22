@@ -5,8 +5,8 @@ import { ActionExecutor } from "./executor/ActionExecutor";
 import { AIProvider } from "./providers/AIProvider";
 import { OllamaProvider } from "./providers/OllamaProvider";
 import { NvidiaNimProvider } from "./providers/NvidiaNimProvider";
-import { createToolRegistry } from "./domains/games/registry/ToolRegistrar";
-import { registerCapabilities } from "./domains/games/planning/CapabilityRegistrar";
+import { setDomainPack } from "./domain/activeDomain";
+import gamesPack from "./domains/games";
 import { checkRegistryConsistency, reportRegistryConsistency } from "./registry/RegistryConsistencyCheck";
 import toolMapper from "./execution/ToolMapper";
 import toolMetadataRegistry from "./execution/ToolMetadataRegistry";
@@ -15,9 +15,11 @@ import crypto from "crypto";
 import AIConfig from "./config/AIConfig";
 import { AI_OFFLINE_MESSAGE, AI_SLOW_MESSAGE } from "./runtime/errors/AIProviderUnavailableError";
 
-const toolRegistry = createToolRegistry();
+// The composition root: the one place that picks this app's domain. Everything else asks domainPack().
+setDomainPack(gamesPack);
+const toolRegistry = gamesPack.createToolRegistry();
 const contextRegistry = registerContextProviders();
-const capabilityRegistry = registerCapabilities();
+const capabilityRegistry = gamesPack.registerCapabilities();
 
 reportRegistryConsistency(
   checkRegistryConsistency(capabilityRegistry, toolRegistry, toolMapper, toolMetadataRegistry),
