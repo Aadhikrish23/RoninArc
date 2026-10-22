@@ -16,13 +16,25 @@ const path = require("node:path");
 const FIRST_CHECK_MS = 15_000;
 const CHECK_EVERY_MS = 4 * 60 * 60 * 1000;
 
-function loadReleaseConfig(dir) {
+function readRelease(dir) {
   try {
-    const config = JSON.parse(fs.readFileSync(path.join(dir, "release.json"), "utf8"));
-    return typeof config.updateUrl === "string" && /^https?:\/\//.test(config.updateUrl) ? { updateUrl: config.updateUrl } : undefined;
+    return JSON.parse(fs.readFileSync(path.join(dir, "release.json"), "utf8"));
   } catch {
-    return undefined;
+    return {};
   }
+}
+
+const isUrl = (v) => typeof v === "string" && /^https?:\/\//.test(v);
+
+function loadReleaseConfig(dir) {
+  const config = readRelease(dir);
+  return isUrl(config.updateUrl) ? { updateUrl: config.updateUrl } : undefined;
+}
+
+/** RoninArc Cloud's address (release.json "cloudUrl"): where this PC's library syncs. */
+function loadCloudUrl(dir) {
+  const config = readRelease(dir);
+  return isUrl(config.cloudUrl) ? config.cloudUrl.replace(/\/+$/, "") : undefined;
 }
 
 /**
@@ -82,4 +94,4 @@ function setupUpdates({ app, dir, log = () => {}, askToRestart, updaterImpl }) {
   return { status: async () => state, check, install };
 }
 
-module.exports = { setupUpdates, loadReleaseConfig };
+module.exports = { setupUpdates, loadReleaseConfig, loadCloudUrl };

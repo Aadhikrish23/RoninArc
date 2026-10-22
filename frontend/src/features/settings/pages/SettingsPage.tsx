@@ -21,6 +21,7 @@ import AppearanceSection from "../components/AppearanceSection";
 import SecuritySection from "../components/SecuritySection";
 import DangerZoneSection from "../components/DangerZoneSection";
 import SupportSection from "../components/SupportSection";
+import CloudSyncSection from "../components/CloudSyncSection";
 
 import ProviderSection from "../../providers/components/ProviderSection";
 import EpicProviderCard from "../../providers/epic/components/EpicProviderCard";
@@ -69,6 +70,10 @@ export default function SettingsPage() {
 
           <GridItem>
             <AppearanceSection />
+          </GridItem>
+
+          <GridItem colSpan={{ base: 1, md: 2 }}>
+            <CloudSyncSection />
           </GridItem>
 
           <GridItem colSpan={{ base: 1, md: 2 }}>

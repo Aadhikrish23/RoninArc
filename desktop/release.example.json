@@ -1,3 +1,4 @@
 {
-  "updateUrl": "https://<where release files are hosted>/"
+  "updateUrl": "https://<where release files are hosted>/",
+  "cloudUrl": "https://<your RoninArc Cloud server, e.g. roninarc.onrender.com>"
 }

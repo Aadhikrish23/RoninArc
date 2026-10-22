@@ -24,6 +24,7 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 // import { deleteCurrentUser } from "../utils/auth";
 import { useAuth } from "../context/AuthContext";
 import { getErrorMessage } from "../../../shared/utils/error";
+import ForgotPasswordModal from "../components/ForgotPasswordModal";
 
 function Login() {
   const [show, setShow] = useState<boolean>(false);
@@ -31,6 +32,7 @@ function Login() {
   const [password, setPassword] = useState<string>("");
   const [saveme, setSaveme] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
 
   const navigate = useNavigate();
   const toast = useToast();
@@ -180,7 +182,9 @@ function Login() {
                 >
                   Remember me
                 </Checkbox>
-                {/* Forgot password hidden for now */}
+                <Link as="button" type="button" color="purple.300" _hover={{ color: "purple.200" }} onClick={() => setForgotOpen(true)}>
+                  Forgot password?
+                </Link>
               </Flex>
 
               {/* Login button */}
@@ -197,6 +201,10 @@ function Login() {
               </Button>
             </Stack>
 
+            <Text mt={4} fontSize="xs" color="gray.400" textAlign="center">
+              Using RoninArc on your phone? Sign in here with the same account and your library comes along.
+            </Text>
+
             {/* Footer: Sign up link */}
             <Text mt={6} fontSize="sm" color="gray.400" textAlign="center">
               Don&apos;t have an account?{" "}
@@ -212,6 +220,7 @@ function Login() {
           </Box>
         </Flex>
       </DynamicBackground>
+      <ForgotPasswordModal isOpen={forgotOpen} onClose={() => setForgotOpen(false)} />
     </div>
   );
 }

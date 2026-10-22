@@ -8,7 +8,7 @@ const { scanEpicGames } = require("./services/epicScanner");
 const { scanSteamGames } = require("./services/steamScanner");
 const keygate = require("./services/keygate");
 const diagnostics = require("./services/diagnostics");
-const { setupUpdates } = require("./services/updates");
+const { setupUpdates, loadCloudUrl } = require("./services/updates");
 
 const DEV_SERVER_URL = "http://localhost:5173";
 const isDev = !app.isPackaged;
@@ -412,6 +412,9 @@ app.whenReady().then(async () => {
       debugLog("app.whenReady: embedded mongo ready, starting backend...");
       // Never blocks startup: offline, the library still works and enrollment is retried next launch.
       const onlineEnv = await keygateBackendEnv();
+      // RoninArc Cloud: this PC's library can sync with the phone app (Settings -> RoninArc Cloud).
+      const cloudUrl = loadCloudUrl(__dirname);
+      if (cloudUrl) onlineEnv.CLOUD_API_URL = cloudUrl;
       await startBackend(onlineEnv);
       debugLog("app.whenReady: backend ready");
     } catch (err) {

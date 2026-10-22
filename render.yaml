@@ -1,0 +1,58 @@
+# RoninArc Cloud on Render (Blueprint). In Render: New -> Blueprint -> pick this repo.
+# Secrets marked `sync: false` are asked for once in the dashboard; see docs/cloud/DEPLOY.md.
+services:
+  - type: web
+    name: roninarc-cloud
+    runtime: node
+    rootDir: backend
+    # Singapore is the closest Render region to India.
+    region: singapore
+    # Free sleeps after ~15 idle minutes (first request then takes ~1 min, and chats in progress
+    # are forgotten). "starter" stays on; switch when friends use it.
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: node dist/server.js
+    healthCheckPath: /health
+    envVars:
+      - key: CLOUD_MODE
+        value: "true"
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      # MongoDB Atlas connection string (Database -> Connect -> Drivers), with the database name, e.g.
+      # mongodb+srv://user:pass@cluster0.xxxxx.mongodb.net/roninarc?retryWrites=true&w=majority
+      - key: MONGO_URI
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      # Forgot password: a Resend API key, and a sender on a domain verified in Resend.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: MAIL_FROM
+        sync: false
+      # Game data, the AI and Steam go through keygate with the cloud's own token
+      # (npm run token -- create roninarc cloud-server nvidia=1500 rawg=650 steam=2000).
+      - key: RAWG_BASE_URL
+        sync: false
+      - key: RAWG_API_KEY
+        sync: false
+      - key: AI_PROVIDER
+        value: nvidia
+      - key: NVIDIA_BASE_URL
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: NVIDIA_MODEL
+        value: nvidia/nemotron-3.5-lightning-30b-a3b
+      - key: NVIDIA_FALLBACK_MODELS
+        value: nvidia/nemotron-3-super-120b-a12b,openai/gpt-oss-20b
+      - key: STEAM_API_BASE
+        sync: false
+      - key: STEAM_API_KEY
+        sync: false
+      # Each person's AI messages per day (everyone shares the server's keygate allowance).
+      - key: AI_DAILY_LIMIT_PER_USER
+        value: "150"
+      - key: LOG_LEVEL
+        value: info

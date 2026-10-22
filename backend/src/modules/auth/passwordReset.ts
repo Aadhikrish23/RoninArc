@@ -14,8 +14,8 @@ const LINK_MINUTES = 30;
 const hash = (token: string) => crypto.createHash("sha256").update(token).digest("hex");
 const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 
-/** Where reset links point: this cloud's own public address. */
-const publicUrl = () => (process.env.PUBLIC_URL || "").replace(/\/+$/, "");
+/** Where reset links point: this cloud's own public address (Render sets RENDER_EXTERNAL_URL). */
+const publicUrl = () => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/+$/, "");
 
 /**
  * "Forgot password": emails a reset link to the account with this email or username. Always
