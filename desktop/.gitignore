@@ -11,3 +11,7 @@ mongodb-bin/
 # copy from the project's very first commit until this was added; never
 # commit a build artifact here again.
 frontend/
+
+# Build-time keygate settings (proxy URL + enrollment key). Copy keygate.example.json;
+# packaged into the installer, never committed.
+keygate.json

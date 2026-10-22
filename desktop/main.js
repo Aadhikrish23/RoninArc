@@ -6,6 +6,7 @@ const { spawn, exec } = require("node:child_process");
 const activeGames = new Map();
 const { scanEpicGames } = require("./services/epicScanner");
 const { scanSteamGames } = require("./services/steamScanner");
+const keygate = require("./services/keygate");
 
 const DEV_SERVER_URL = "http://localhost:5173";
 const isDev = !app.isPackaged;
@@ -121,7 +122,19 @@ function getOrCreateJwtSecret() {
   return secret;
 }
 
-function startBackend() {
+/** Online features (search, AI, Steam) go through keygate with this install's own token. */
+async function keygateBackendEnv() {
+  const config = keygate.loadBuildConfig(__dirname);
+  if (!config) {
+    debugLog("keygate: no keygate.json in this build; search, AI and Steam sync stay off");
+    return {};
+  }
+  const token = await keygate.ensureToken(app.getPath("userData"), config, { log: debugLog });
+  if (!token) debugLog("keygate: no token this launch; search, AI and Steam sync stay off until the next launch");
+  return keygate.backendEnv(config, token);
+}
+
+function startBackend(extraEnv = {}) {
   return new Promise((resolve, reject) => {
     const backendEntry = resourcePath("backend", "dist", "server.js");
     debugLog("startBackend: backendEntry=", backendEntry, "exists=", fs.existsSync(backendEntry), "execPath=", process.execPath);
@@ -132,6 +145,7 @@ function startBackend() {
     backendProcess = spawn(process.execPath, [backendEntry], {
       env: {
         ...process.env,
+        ...extraEnv,
         ELECTRON_RUN_AS_NODE: "1",
         ELECTRON_EMBEDDED: "1",
         MONGO_URI: `mongodb://127.0.0.1:${EMBEDDED_MONGO_PORT}/RoninArc`,
@@ -357,7 +371,9 @@ app.whenReady().then(async () => {
       debugLog("app.whenReady: starting embedded mongo...");
       await startEmbeddedMongo();
       debugLog("app.whenReady: embedded mongo ready, starting backend...");
-      await startBackend();
+      // Never blocks startup: offline, the library still works and enrollment is retried next launch.
+      const onlineEnv = await keygateBackendEnv();
+      await startBackend(onlineEnv);
       debugLog("app.whenReady: backend ready");
     } catch (err) {
       debugLog("app.whenReady: FAILED", err.message || String(err));

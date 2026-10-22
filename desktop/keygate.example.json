@@ -1,0 +1,5 @@
+{
+  "url": "https://keygate.<your-subdomain>.workers.dev",
+  "project": "roninarc",
+  "enrollKey": "<the RONINARC_ENROLL_KEY secret set on keygate>"
+}

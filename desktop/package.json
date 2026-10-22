@@ -28,13 +28,26 @@
       "preload.js",
       "services/**/*",
       "frontend/**/*",
-      "package.json"
+      "package.json",
+      "keygate.json"
     ],
     "extraResources": [
-      { "from": "mongodb-bin", "to": "mongodb-bin" },
-      { "from": "../backend/dist", "to": "backend/dist" },
-      { "from": "../backend/node_modules", "to": "backend/node_modules" },
-      { "from": "../backend/package.json", "to": "backend/package.json" }
+      {
+        "from": "mongodb-bin",
+        "to": "mongodb-bin"
+      },
+      {
+        "from": "../backend/dist",
+        "to": "backend/dist"
+      },
+      {
+        "from": "../backend/node_modules",
+        "to": "backend/node_modules"
+      },
+      {
+        "from": "../backend/package.json",
+        "to": "backend/package.json"
+      }
     ],
     "win": {
       "target": "nsis",
