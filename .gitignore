@@ -12,3 +12,6 @@ merge/
 
 # Runtime logs (JSON lines + AI traces)
 backend/logs/
+
+# Built by scripts/export-ai-module.cjs
+/handoff
