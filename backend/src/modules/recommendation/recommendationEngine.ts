@@ -184,7 +184,7 @@ function qualityReason(rating?: number, metacritic?: number | null): string | nu
 const BROAD_GENRES = new Set(["action", "adventure", "rpg", "indie", "casual"]);
 
 /** Reasons that describe the game itself (status, length) and are fine on every card. */
-const FACT_REASON = /^(You're in the middle of it|On pause|Shorter:)/;
+const FACT_REASON = /^(You're in the middle of it|On pause|Shorter|Short:|Long:)/;
 
 /** "Critically acclaimed (Metacritic 93)" and "(Metacritic 91)" are the same kind of reason. */
 const reasonKind = (reason: string) => reason.replace(/\(.*?\)/g, "").replace(/\d+(\.\d+)?/g, "").replace(/, which .*$/, "").trim();
@@ -273,17 +273,28 @@ function likeReason(genres: string[], like?: LikeGame): string | null {
   return shared.length > 0 ? `Shares ${shared.slice(0, 2).join(" and ")} with ${like.title}` : null;
 }
 
-/** RAWG's average playtime is unreliable below a few hours (few players logged it), so treat it as unknown. */
-const knownHours = (hours?: number) => (hours && hours >= 3 ? hours : undefined);
+/**
+ * Games with no ending (farming, sandbox, survival, MMOs...) log a low RAWG average because
+ * most players dip in: Stardew Valley "about 13h", Terraria "15h". Their length is unknown.
+ */
+const OPEN_ENDED = /\b(sandbox|simulation|farming|life sim|survival|crafting|building|mmo|massively multiplayer|open world survival|city builder|management)\b/i;
 
-function lengthReason(hours?: number): string | null {
-  const h = knownHours(hours);
-  // "Shorter: about 4h on average" read as a promise; it's what players log on RAWG.
-  return h && h <= 15 ? `Shorter: players log about ${h}h` : null;
+/** RAWG's average playtime is unreliable below a few hours (few players logged it), so treat it as unknown. */
+const knownHours = (hours?: number, tags: string[] = []) =>
+  hours && hours >= 3 && !tags.some((t) => OPEN_ENDED.test(t)) ? hours : undefined;
+
+/** "Shorter than Hades: ..." when there's something to compare with; otherwise just "Short: ...". */
+function lengthReason(hours: number | undefined, tags: string[], length?: LengthPreference, like?: LikeGame): string | null {
+  const h = knownHours(hours, tags);
+  if (!h || !length) return null;
+  // It's what players log on RAWG, not a promise ("about 4h on average" read as one).
+  if (length === "long") return h >= 25 ? `Long: players log about ${h}h` : null;
+  if (h > 15) return null;
+  return like ? `Shorter than ${like.title}: players log about ${h}h` : `Short: players log about ${h}h`;
 }
 
-function fitsLength(hours: number | undefined, length?: LengthPreference): boolean {
-  const h = knownHours(hours);
+function fitsLength(hours: number | undefined, length?: LengthPreference, tags: string[] = []): boolean {
+  const h = knownHours(hours, tags);
   if (!length || !h) return true;
   if (typeof length === "object") return h <= length.maxHours;
   return length === "short" ? h <= 20 : h >= 25;
@@ -317,7 +328,7 @@ export function rankBacklog(
         // A rated game is a verdict -- unless you're still playing it.
         (g.progressStatus === "playing" || g.rating === null || g.rating === undefined) &&
         overlapsFocus(g.tags || [], focus) &&
-        fitsLength(g.avgHours, options.length),
+        fitsLength(g.avgHours, options.length, g.tags || []),
     )
     .map((game) => {
       const match = tasteMatch(game.tags || [], profile);
@@ -329,7 +340,7 @@ export function rankBacklog(
         game.progressStatus === "playing" ? "You're in the middle of it" : null,
         game.progressStatus === "paused" ? "On pause, whenever you want to go back" : null,
         likeReason(game.tags || [], options.like) ?? tasteReason(game.tags || [], match.top, profile, game.title, used),
-        options.length ? lengthReason(game.avgHours) : null,
+        lengthReason(game.avgHours, game.tags || [], options.length, options.like),
         qualityReason(game.rawgRating, game.metacritic),
       ].filter((r): r is string => !!r);
       if (reasons.length === 0) reasons.push("Waiting in your backlog");
@@ -398,11 +409,11 @@ export function rankDiscover(
       !ownedTitles.has(norm(c.name)) &&
       !options.dismissed.has(c.id) &&
       overlapsFocus(c.genres, focus) &&
-      fitsLength(c.avgHours, options.length)
+      fitsLength(c.avgHours, options.length, c.genres)
     );
   });
   // With a length limit, games whose length is known to fit come first; unknown lengths only fill gaps.
-  const known = options.length ? eligible.filter((c) => knownHours(c.avgHours)) : eligible;
+  const known = options.length ? eligible.filter((c) => knownHours(c.avgHours, c.genres)) : eligible;
   const pool = known.length >= options.limit ? known : eligible;
 
   const ranked = pool
@@ -410,7 +421,7 @@ export function rankDiscover(
       const match = tasteMatch(c.genres, profile);
       const reasons = [
         likeReason(c.genres, options.like) ?? tasteReason(c.genres, match.top, profile, c.name, used),
-        options.length ? lengthReason(c.avgHours) : null,
+        lengthReason(c.avgHours, c.genres, options.length, options.like),
         options.tagLabelFor ? options.tagLabelFor(c) ?? null : options.tagLabel ?? null,
         qualityReason(c.rating, c.metacritic),
       ].filter((r): r is string => !!r);

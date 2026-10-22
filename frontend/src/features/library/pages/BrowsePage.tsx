@@ -185,6 +185,13 @@ export default function BrowsePage() {
             onClick={() => navigate("/")}
           />
           <Heading size="lg">All Games</Heading>
+          {!loading && games.length > 0 && (
+            <Text color="gray.500" fontSize="sm" aria-live="polite">
+              {sortedGames.length === games.length
+                ? `${games.length} ${games.length === 1 ? "game" : "games"}`
+                : `${sortedGames.length} of ${games.length} games`}
+            </Text>
+          )}
         </Flex>
 
         {/* Filters Toolbar */}

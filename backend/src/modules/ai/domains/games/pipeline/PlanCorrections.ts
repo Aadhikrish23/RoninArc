@@ -3,7 +3,7 @@ import { IntentType } from "../intent/IntentType";
 import { IntentParameterType } from "../../../intent/IntentParameterType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { READ_ONLY } from "../conversation/TargetGrounding";
-import { asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, statedScore, wasAskedFor } from "../conversation/FollowUps";
+import { asksToReadNotes, collectionDirection, collectionDirectionFor, isQuestionOnly, meansDroppedStatus, statedScore, wasAskedFor } from "../conversation/FollowUps";
 
 /**
  * The plan, corrected by what the user actually said: the model's reading of a message
@@ -68,10 +68,12 @@ export function correctPlan(plan: IntentPlan, message: string, lastReply = ""): 
   }
 
   // "put ds3 in there" adds; "take it out of soulslikes" removes -- whatever the model flagged.
-  const direction = collectionDirection(message);
-  if (direction) {
-    for (const intent of plan.intents) {
-      if (intent.type !== IntentType.OrganizeCollection) continue;
+  for (const intent of plan.intents) {
+    if (intent.type !== IntentType.OrganizeCollection) continue;
+    const game = intent.targets?.find((t) => t.type === IntentTargetType.Game)?.name;
+    // The game's own clause decides first ("silksong goes in X, not stardew. take stardew out").
+    const direction = (game && collectionDirectionFor(message, game)) || collectionDirection(message);
+    if (direction) {
       const others = (intent.parameters ?? []).filter((p: any) => String(p.type).toLowerCase() !== "boolean");
       intent.parameters = [...others, { type: IntentParameterType.Boolean, value: direction === "add" } as any];
     }

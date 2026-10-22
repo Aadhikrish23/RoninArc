@@ -189,8 +189,12 @@ function LibraryPage() {
     // results quietly so the added game moves to "In your library".
     await performSearch({ silent: true });
   };
+  // Paused games are ones to go back to, so they follow the ones being played.
   const continuePlayingGames = useMemo(() => {
-    return games.filter((g) => g.progressStatus === "playing");
+    return [
+      ...games.filter((g) => g.progressStatus === "playing"),
+      ...games.filter((g) => g.progressStatus === "paused"),
+    ];
   }, [games]);
 
   // Ratings are out of 10.
@@ -200,16 +204,20 @@ function LibraryPage() {
     );
   }, [games]);
 
+  const isFavorite = (g: (typeof games)[number]) => typeof g.rating === "number" && g.rating >= 8;
+
+  // The same game in four rows made the page long and repetitive: a row leaves out games
+  // already shown in the rows above it.
   const recentlyAddedGames = useMemo(() => {
     const newest = [...games].sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-    // In a small library every game is "recent", so this row repeated the rows above it card for
-    // card. Leave out games already shown there; big libraries keep the plain newest-first list.
-    if (games.length > 8) return newest.slice(0, 20);
-    return newest.filter((g) => g.progressStatus !== "playing" && g.progressStatus !== "completed" && !(typeof g.rating === "number" && g.rating >= 8));
+    const fresh = newest.filter((g) => !["playing", "paused", "completed"].includes(g.progressStatus ?? "") && !isFavorite(g));
+    // A big library with nearly everything shown above still gets a newest-first row.
+    if (games.length > 8 && fresh.length < 4) return newest.slice(0, 20);
+    return fresh.slice(0, 20);
   }, [games]);
 
   const completedGames = useMemo(() => {
-    return games.filter((g) => g.progressStatus === "completed");
+    return games.filter((g) => g.progressStatus === "completed" && !isFavorite(g));
   }, [games]);
 
   return (

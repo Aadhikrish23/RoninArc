@@ -4,6 +4,7 @@ import { IntentParameterType } from "../../../intent/IntentParameterType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { namedTitles } from "../conversation/TargetGrounding";
 import { namedCollection } from "../conversation/FollowUps";
+import { titleMatchScore } from "../../../../rawg/titleMatch";
 
 /**
  * Words that have to be in the user's message for each status. "ok put elden ring and hollow
@@ -45,6 +46,8 @@ export function dropUnstatedStatusChanges(plan: IntentPlan, message: string, own
   return before - plan.intents.length;
 }
 
+// "no i meant silksong goes in soulslikes": a correction saying where a game belongs.
+const GOES_IN = /^(.+?)\s+(?:goes|go|belongs?|should (?:be|go))\s+(?:in|into)\s+(?:my\s+|the\s+)?(.+?)\s*$/i;
 const PUT_IN = /\b(?:put|add|throw|chuck|toss|stick|move)\s+(.+?)\s+(?:in|into|to)\s+(?:my\s+|the\s+)?(.+?)\s*$/i;
 
 /**
@@ -53,12 +56,19 @@ const PUT_IN = /\b(?:put|add|throw|chuck|toss|stick|move)\s+(.+?)\s+(?:in|into|t
  */
 export function ensureCollectionAdds(plan: IntentPlan, message: string, owned: string[], collections: string[]) {
   for (const clause of clausesOf(message.replace(/\s+and\s+(?=[^,]*\b(?:in|into)\b)/gi, " & "))) {
-    const match = clause.match(PUT_IN);
+    const match = clause.match(PUT_IN) ?? clause.match(GOES_IN);
     if (!match) continue;
     const collection = namedCollection(match[2], collections);
     if (!collection) continue;
+    // Names the plan already acts on ("add hades 2 and put it in X": "hades 2" is the new
+    // Hades II, not the owned Hades that "hades" also matches).
+    const planned = plan.intents
+      .filter((i) => i.type === IntentType.AddGame || i.type === IntentType.OrganizeCollection)
+      .flatMap((i) => (i.targets ?? []).filter((t) => t.type !== IntentTargetType.Collection).map((t) => t.name));
     const games = match[1]
       .split(/\s*&\s*|\s*,\s*/)
+      .map((g) => g.replace(/^(?:add|put|throw|chuck|toss|stick|move)\s+/i, "").trim())
+      .filter((g) => !planned.some((name) => titleMatchScore(g, name) >= 90))
       .map((g) => namedTitles(g, owned)[0])
       .filter((g): g is string => !!g);
     for (const game of games) {

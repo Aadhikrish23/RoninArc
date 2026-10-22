@@ -6,6 +6,37 @@ import { mentions } from "../conversation/TargetGrounding";
 import { titleMatchScore } from "../../../../rawg/titleMatch";
 import { EXPLICIT_ACTION, PER_GAME_INTENTS, RECOMMEND_ASK, RECORDED_DATA, STATUS_INTENTS } from "./Patterns";
 
+/** "rate it 8.5 and add a note to it: blood and wine dlc still unplayed" -> the note's text. */
+const NOTE_TEXT = /\b(?:add|leave|write|save|make|take|jot(?:\s+down)?)\s+(?:a\s+|an\s+|this\s+|another\s+)?note\b[^:]*?:\s*(.+?)\s*$/i;
+
+/**
+ * "rate witcher 3 8.5 and add a note to it: ..." -- the model put the note in the rating's
+ * comment and dropped the note, so the note text became the review. It's a note.
+ */
+function splitNoteFromReview(plan: IntentPlan, message: string) {
+  const note = message.match(NOTE_TEXT)?.[1];
+  if (!note) return;
+  const key = (v: string) => v.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const noteKey = key(note);
+  const isNote = (v: unknown) => typeof v === "string" && !!key(v) && (noteKey.includes(key(v)) || key(v).includes(noteKey));
+  const hasNote = plan.intents.some((i) => i.type === IntentType.AddNote);
+  const notes: any[] = [];
+  plan.intents = plan.intents.filter((intent) => {
+    if (intent.type !== IntentType.RateGame && intent.type !== IntentType.ReviewGame) return true;
+    const params = intent.parameters ?? [];
+    const text = params.find((p) => p.type === IntentParameterType.Text);
+    if (!text || !isNote(text.value)) return true;
+    if (!hasNote) {
+      const games = (intent.targets ?? []).filter((t) => t.type === IntentTargetType.Game);
+      notes.push({ type: IntentType.AddNote, targets: games, parameters: [{ type: IntentParameterType.Text, value: note }] });
+    }
+    intent.parameters = params.filter((p) => p !== text);
+    // A text-only review that was really the note has nothing left to save.
+    return intent.parameters.some((p) => p.type === IntentParameterType.Rating);
+  });
+  plan.intents.push(...notes);
+}
+
 /** StartGame / PauseGame / DropGame become SetStatus with the matching status. */
 export function normalizeStatusIntents(plan: IntentPlan) {
   for (const intent of plan.intents ?? []) {
@@ -38,6 +69,8 @@ export function shapePlan(plan: IntentPlan, message: string, fromModel: boolean)
     const name = i.targets?.[0]?.name ?? "";
     return !(/^plan/.test(status) && added.some((a) => titleMatchScore(a, name) >= 90 || mentions(a, name)));
   });
+
+  if (fromModel) splitNoteFromReview(plan, message);
 
   // Recommendations read the user's own words too: the model's hint sometimes drops
   // "roguelike" or "under 20 hours", and those drive the filters.

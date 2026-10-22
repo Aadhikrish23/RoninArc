@@ -27,6 +27,25 @@ test.describe("Library home page", () => {
     await expect(section(page, "Recently added").getByText("Celeste")).toBeVisible();
   });
 
+  test("paused games are in Continue playing, after the ones being played @positive", async ({ authedPage: page, api }) => {
+    await api.addGame(byName("Celeste"), { progressStatus: "paused" });
+    await api.addGame(byName("Hades"), { progressStatus: "playing" });
+    await open(page, "/");
+    const row = section(page, "Continue playing");
+    await expect(row.getByText("Celeste")).toBeVisible();
+    await expect(row.getByText("Hades")).toBeVisible();
+  });
+
+  test("a favourite that's completed isn't shown again under Completed games @negative", async ({ authedPage: page, api }) => {
+    const elden = await api.addGame(byName("Elden Ring"), { progressStatus: "completed" });
+    await api.addGame(byName("Celeste"), { progressStatus: "completed" });
+    await api.put(`/review/${elden._id}`, { rating: 9 });
+    await open(page, "/");
+    await expect(section(page, "Favorites (rated 8+)").getByText("Elden Ring")).toBeVisible();
+    await expect(section(page, "Completed games").getByText("Celeste")).toBeVisible();
+    await expect(section(page, "Completed games").getByText("Elden Ring")).toHaveCount(0);
+  });
+
   test("sections with nothing in them are hidden @negative", async ({ authedPage: page, api }) => {
     await api.addGame(byName("Celeste"));
     await open(page, "/");

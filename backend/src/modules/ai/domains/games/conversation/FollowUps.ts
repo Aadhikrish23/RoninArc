@@ -217,6 +217,27 @@ export function withPageGame(message: string, pageGame?: string | null): string 
 const COLLECTION_ADD = /\b(put|add|throw|chuck|toss|stick|include|in there|into)\b/i;
 // "i want dark souls 3 out of soulslike" has no verb, but "out of" says it all.
 const COLLECTION_REMOVE = /\b(remove|take|pull|delete|kick|drop)\b[^.?!]*\b(out|from|off)\b|\b(remove|take out|pull out)\b|\bout of\b/i;
+/** The parts of the message that name this game ("Hollow Knight: Silksong" is named by "silksong"). */
+function clausesNaming(message: string, title: string): string[] {
+  const words = title.toLowerCase().split(/[^a-z0-9]+/).filter((w) => w.length >= 4 && !/^(game|edition)$/.test(w));
+  if (words.length === 0) return [];
+  return message
+    .toLowerCase()
+    .split(/[.;!?]+|,|\s+but\s+|\s+and\s+(?=(?:take|remove|put|add|move|throw|pull|kick)\b)/)
+    .filter((clause) => words.some((w) => new RegExp(`\\b${w}\\b`).test(clause)));
+}
+
+/**
+ * "silksong goes in soulslikes, not stardew. take stardew out of there": each game is added or
+ * removed by what its own part of the message says, not by the whole message's words.
+ * Undefined when no part names it.
+ */
+export function collectionDirectionFor(message: string, title: string): "add" | "remove" | undefined {
+  const own = clausesNaming(message, title);
+  if (own.length === 0) return undefined;
+  return own.some((c) => COLLECTION_REMOVE.test(c) || /^\s*(?:but\s+)?not\b/.test(c)) ? "remove" : "add";
+}
+
 export function collectionDirection(message: string): "add" | "remove" | undefined {
   const add = COLLECTION_ADD.test(message);
   const remove = COLLECTION_REMOVE.test(message);

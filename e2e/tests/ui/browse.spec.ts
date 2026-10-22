@@ -18,6 +18,13 @@ test.describe("Browse all games page", () => {
     await expect.poll(() => titles(page)).toEqual(["Celeste", "Elden Ring", "Hades"]);
   });
 
+  test("shows how many games are listed, and how many a filter leaves @positive", async ({ authedPage: page }) => {
+    await open(page, "/library/browse");
+    await expect(page.getByText("3 games", { exact: true })).toBeVisible();
+    await page.getByRole("combobox").first().selectOption({ label: "Completed" });
+    await expect(page.getByText("1 of 3 games", { exact: true })).toBeVisible();
+  });
+
   test("sorts Z-A @positive", async ({ authedPage: page }) => {
     await open(page, "/library/browse");
     await page.getByRole("combobox").nth(3).selectOption({ label: "Title (Z-A)" });

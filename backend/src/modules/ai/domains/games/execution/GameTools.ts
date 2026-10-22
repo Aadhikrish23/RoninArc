@@ -1,6 +1,7 @@
 import type { ToolCapability } from "../../../execution/ToolCapability";
 import type { ExecutionStep } from "../../../execution/ExecutionStep";
 import type { DomainTools } from "../../../domain/DomainPack";
+import { collectionDirectionFor } from "../conversation/FollowUps";
 
 /** The model says "Paused", "on hold", "plan to play", "beaten"...; the library stores six values. */
 export function normalizeStatus(raw: string): string {
@@ -283,6 +284,11 @@ function chooseTool(capabilityId: string, targetsOrInput?: any[] | Record<string
 
     if (hasGame) {
       const queryText = (queryOrIntentType || "").toLowerCase();
+      // "silksong goes in soulslikes, not stardew. take stardew out of there": each game is
+      // added or removed by what its own part of the message says, not the whole message.
+      const game = targets.find((t) => t.type === "Game" || t.type?.toLowerCase() === "game");
+      const own = collectionDirectionFor(queryText, String(game?.name ?? ""));
+      if (own) return own === "remove" ? "remove_from_collection" : "add_to_collection";
       if (
         queryText.includes("remove") ||
         queryText.includes("delete") ||

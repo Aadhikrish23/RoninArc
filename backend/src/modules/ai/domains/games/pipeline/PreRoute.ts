@@ -208,7 +208,8 @@ export async function preRoute({ userId, requestId, message, client, session, re
     const referent = direct.currentGame ?? direct.pageGame ?? undefined;
     // "put ds3 in there": the collection we were just talking about.
     const located = fillCollectionThere(message, recentExchanges.get(userId), requestContext.library.collections);
-    const pinned = pinPronoun(located, referent, (clause) => namedTitles(clause, owned)[0] ?? franchiseMatch(clause, owned));
+    // A clause that adds a game names that game, even though it isn't owned yet.
+    const pinned = pinPronoun(located, referent, (clause) => simpleAddTitle(clause) ?? namedTitles(clause, owned)[0] ?? franchiseMatch(clause, owned));
     return { kind: "plan", plan: await model.planWithRetry(pinned, requestContext), notice, pinned: pinned !== message ? pinned : undefined };
   } catch (error: any) {
     // The planner couldn't produce a plan; a question still deserves an answer.
