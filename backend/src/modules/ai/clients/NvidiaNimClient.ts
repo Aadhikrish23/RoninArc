@@ -27,8 +27,8 @@ export class NvidiaNimClient {
    * Sends prompt to NVIDIA NIM's OpenAI-compatible chat completions endpoint
    * and returns the raw text output (mirrors OllamaClient.generate's contract).
    */
-  async generate(prompt: string): Promise<string> {
-    const deadline = Date.now() + this.timeout;
+  async generate(prompt: string, totalTimeoutMs: number = this.timeout): Promise<string> {
+    const deadline = Date.now() + totalTimeoutMs;
     const healthy = this.models.filter((m) => (this.unhealthyUntil.get(m) ?? 0) <= Date.now());
     // Everything recently failed: try them all again rather than give up.
     const order = healthy.length > 0 ? healthy : this.models;

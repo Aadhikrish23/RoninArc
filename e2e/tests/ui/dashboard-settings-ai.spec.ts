@@ -81,6 +81,33 @@ test.describe("Settings", () => {
     await expect(page.locator("strong").first()).toHaveText(theme);
   });
 
+  test("in the browser, About and support points to the desktop app @negative", async ({ authedPage: page }) => {
+    await open(page, "/settings");
+    await expect(page.getByText("Updates and problem reports are in the RoninArc desktop app.")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Create problem report" })).toHaveCount(0);
+  });
+
+  test("in the desktop app, it shows the version, a ready update and makes a problem report @positive", async ({ authedPage: page }) => {
+    await page.addInitScript(() => {
+      const w = window as any;
+      w.__calls = [];
+      w.electronAPI = {
+        getAppInfo: async () => ({ version: "1.0.0", packaged: true }),
+        getUpdateStatus: async () => ({ state: "ready", current: "1.0.0", version: "1.0.1" }),
+        checkForUpdates: async () => ({ state: "ready", current: "1.0.0", version: "1.0.1" }),
+        installUpdate: async () => (w.__calls.push("install"), true),
+        createProblemReport: async () => (w.__calls.push("report"), { ok: true, path: "C:\\Users\\x\\Desktop\\RoninArc-report.zip" }),
+      };
+    });
+    await open(page, "/settings");
+    await expect(page.getByText("RoninArc 1.0.0", { exact: true })).toBeVisible();
+    await expect(page.getByText("RoninArc 1.0.1 is ready. It installs when you restart.")).toBeVisible();
+    await page.getByRole("button", { name: "Create problem report" }).click();
+    await expectToast(page, "Problem report saved to your Desktop");
+    await page.getByRole("button", { name: "Restart to update" }).click();
+    await expect.poll(() => page.evaluate(() => (window as any).__calls)).toEqual(["report", "install"]);
+  });
+
   test("both providers show as disconnected for a new user @positive", async ({ authedPage: page }) => {
     await open(page, "/settings");
     await expect(page.getByText("Disconnected")).toHaveCount(2);

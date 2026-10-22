@@ -54,14 +54,14 @@ The AI has a daily limit per PC. If you hit it, it tells you, and it resets at 5
 
 Tell me what you did, what happened, and what you expected. A screenshot helps a lot.
 
-If the app won't start or crashes, send me these two from **`%APPDATA%\RoninArc`**: paste that into the File Explorer address bar.
-- `startup.log`
-- the newest file in the `logs` folder
+For anything that went wrong, open **Settings → About and support → Create problem report**. It saves a zip to your Desktop with RoninArc's recent logs; send me that file. Passwords, tokens and keys are removed from it automatically. It does include your recent AI messages and game names, so skim it first if you'd like.
+
+If RoninArc won't start at all, send me `startup.log` from **`%APPDATA%\RoninArc`** instead: paste that into the File Explorer address bar.
 
 Everything is useful: bugs, things that felt slow, ugly or confusing, features you wished it had. Just use it the way you normally would for a week.
 
 ## Known rough edges
 
 - The Windows "protected your PC" warning on install (see above).
-- No automatic updates yet. When there's a new version, I'll send you a new installer; installing it keeps your data.
+- **Updates are automatic.** RoninArc checks for a new version shortly after it starts and every few hours, downloads it in the background, then asks whether to restart now or update the next time you close it. Your library is kept. You can also check yourself in **Settings → About and support**.
 - Playtime is only tracked for games you launch through RoninArc.

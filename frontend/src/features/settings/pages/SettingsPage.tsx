@@ -20,6 +20,7 @@ import AccountSection from "../components/AccountSection";
 import AppearanceSection from "../components/AppearanceSection";
 import SecuritySection from "../components/SecuritySection";
 import DangerZoneSection from "../components/DangerZoneSection";
+import SupportSection from "../components/SupportSection";
 
 import ProviderSection from "../../providers/components/ProviderSection";
 import EpicProviderCard from "../../providers/epic/components/EpicProviderCard";
@@ -87,6 +88,10 @@ export default function SettingsPage() {
 
           <GridItem>
             <DangerZoneSection onDeleteAccount={deleteModal.onOpen} />
+          </GridItem>
+
+          <GridItem colSpan={{ base: 1, md: 2 }}>
+            <SupportSection />
           </GridItem>
         </Grid>
       </Box>

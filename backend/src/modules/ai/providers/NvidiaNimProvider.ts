@@ -66,7 +66,7 @@ export class NvidiaNimProvider implements AIProvider {
 
   async answer(question: string, context: AIRequestContext): Promise<string> {
     const prompt = domainPack().prompts.answer(question, context);
-    const raw = await nvidiaNimClient.generate(prompt);
+    const raw = await nvidiaNimClient.generate(prompt, AIConfig.nvidiaAnswerTimeout);
     return raw.replace(/^\s*(answer:)?\s*/i, "").trim();
   }
 }

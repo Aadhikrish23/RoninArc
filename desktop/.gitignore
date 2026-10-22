@@ -15,3 +15,6 @@ frontend/
 # Build-time keygate settings (proxy URL + enrollment key). Copy keygate.example.json;
 # packaged into the installer, never committed.
 keygate.json
+# Build-time update address (where latest.yml + the installer are uploaded). See services/updates.js.
+release.json
+dist-update/

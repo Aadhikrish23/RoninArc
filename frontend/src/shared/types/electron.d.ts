@@ -10,6 +10,14 @@ interface EpicGame {
   appName: string;
 }
 
+interface UpdateStatus {
+  state: "disabled" | "idle" | "checking" | "up-to-date" | "downloading" | "ready" | "error";
+  current: string;
+  version?: string;
+  percent?: number;
+  message?: string;
+}
+
 declare global {
   interface Window {
     electronAPI?: {
@@ -53,6 +61,14 @@ declare global {
        *   - "ERROR:<message>" → an error occurred during the flow
        */
       steamLogin: (loginUrl: string) => Promise<string | null>;
+
+      getAppInfo?: () => Promise<{ version: string; packaged: boolean }>;
+      getUpdateStatus?: () => Promise<UpdateStatus>;
+      checkForUpdates?: () => Promise<UpdateStatus>;
+      /** Restarts into a downloaded update; false if none is ready. */
+      installUpdate?: () => Promise<boolean>;
+      /** Zips the logs (secrets removed) onto the Desktop and shows the file. */
+      createProblemReport?: () => Promise<{ ok: boolean; path?: string; message?: string }>;
     };
   }
 }

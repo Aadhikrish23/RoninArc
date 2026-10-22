@@ -50,4 +50,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   steamLogin: async (loginUrl) => {
     return await ipcRenderer.invoke("steam:login", loginUrl);
   },
+
+  /** { version, packaged } */
+  getAppInfo: () => ipcRenderer.invoke("app:info"),
+  /** { state: "disabled" | "idle" | "checking" | "up-to-date" | "downloading" | "ready" | "error", current, version?, percent?, message? } */
+  getUpdateStatus: () => ipcRenderer.invoke("updates:status"),
+  checkForUpdates: () => ipcRenderer.invoke("updates:check"),
+  /** Restarts into a downloaded update. */
+  installUpdate: () => ipcRenderer.invoke("updates:install"),
+  /** Zips the logs (secrets removed) onto the Desktop and shows it. { ok, path?, message? } */
+  createProblemReport: () => ipcRenderer.invoke("diagnostics:create"),
 });

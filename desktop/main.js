@@ -1,5 +1,5 @@
 // desktop/main.js
-const { app, BrowserWindow, ipcMain, dialog } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { spawn, exec } = require("node:child_process");
@@ -7,6 +7,8 @@ const activeGames = new Map();
 const { scanEpicGames } = require("./services/epicScanner");
 const { scanSteamGames } = require("./services/steamScanner");
 const keygate = require("./services/keygate");
+const diagnostics = require("./services/diagnostics");
+const { setupUpdates } = require("./services/updates");
 
 const DEV_SERVER_URL = "http://localhost:5173";
 const isDev = !app.isPackaged;
@@ -232,6 +234,43 @@ function createMainWindow() {
   }
 }
 
+// ── Settings: version, updates, problem reports ──────────────────────────
+let updates = null;
+
+ipcMain.handle("app:info", async () => ({ version: app.getVersion(), packaged: app.isPackaged }));
+ipcMain.handle("updates:status", async () => (updates ? updates.status() : { state: "disabled", current: app.getVersion() }));
+ipcMain.handle("updates:check", async () => (updates ? updates.check() : { state: "disabled", current: app.getVersion() }));
+ipcMain.handle("updates:install", async () => (updates ? updates.install() : false));
+
+ipcMain.handle("diagnostics:create", async () => {
+  try {
+    const savedToken = (() => {
+      try {
+        return JSON.parse(fs.readFileSync(path.join(app.getPath("userData"), keygate.TOKEN_FILE), "utf8"));
+      } catch {
+        return undefined;
+      }
+    })();
+    const zipPath = await diagnostics.createReport({
+      userDataDir: app.getPath("userData"),
+      outputDir: app.getPath("desktop"),
+      info: {
+        appVersion: app.getVersion(),
+        electron: process.versions.electron,
+        packaged: app.isPackaged,
+        // The token's public id identifies this install in keygate; the token itself never goes in.
+        keygate: { configured: !!keygate.loadBuildConfig(__dirname), tokenId: savedToken?.id ?? null, enrolledAt: savedToken?.enrolledAt ?? null },
+        updates: updates ? await updates.status() : { state: "disabled" },
+      },
+    });
+    shell.showItemInFolder(zipPath);
+    return { ok: true, path: zipPath };
+  } catch (err) {
+    debugLog("diagnostics: failed", err && err.message ? err.message : String(err));
+    return { ok: false, message: "Couldn't create the report. Please send startup.log from %APPDATA%\\RoninArc instead." };
+  }
+});
+
 ipcMain.handle("select-exe-path", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     title: "Select game executable",
@@ -388,6 +427,25 @@ app.whenReady().then(async () => {
   }
 
   createMainWindow();
+
+  updates = setupUpdates({
+    app,
+    dir: __dirname,
+    log: debugLog,
+    askToRestart: async (version) => {
+      const win = BrowserWindow.getAllWindows()[0];
+      const { response } = await dialog.showMessageBox(win, {
+        type: "info",
+        buttons: ["Restart now", "Later"],
+        defaultId: 0,
+        cancelId: 1,
+        title: "Update ready",
+        message: `RoninArc ${version} is ready to install.`,
+        detail: "Restart now to update, or it will update the next time you close RoninArc. Your library is kept either way.",
+      });
+      return response === 0;
+    },
+  });
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {

@@ -42,9 +42,15 @@ export const AIConfig = {
   nvidiaApiKey: process.env.NVIDIA_API_KEY as string,
   nvidiaModel: process.env.NVIDIA_MODEL as string,
   nvidiaBaseUrl: process.env.NVIDIA_BASE_URL || "https://integrate.api.nvidia.com/v1",
+  // 30s: the packaged app has no .env, and a 60s default once left a tester waiting a full minute.
   nvidiaTimeout: process.env.NVIDIA_TIMEOUT
     ? parseInt(process.env.NVIDIA_TIMEOUT, 10)
-    : 60000,
+    : 30000,
+  /**
+   * The plain-text answer call. There's already a short reply from the planner to fall back on,
+   * so it isn't worth a long wait.
+   */
+  nvidiaAnswerTimeout: process.env.NVIDIA_ANSWER_TIMEOUT ? parseInt(process.env.NVIDIA_ANSWER_TIMEOUT, 10) : 20000,
   /** Tried in order when the main model is slow or failing (same key and endpoint). */
   nvidiaFallbackModels: (process.env.NVIDIA_FALLBACK_MODELS ?? "nvidia/nemotron-3-super-120b-a12b,openai/gpt-oss-20b")
     .split(",")
