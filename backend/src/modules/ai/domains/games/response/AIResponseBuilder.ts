@@ -43,7 +43,7 @@ export class AIResponseBuilder {
 
     const getGameName = (step: any): string => {
       // The tool's own result names the game exactly ("Celeste", not "celeste" or an id).
-      const outputTitle = step.output?.data?.title;
+      const outputTitle = step.output?.data?.title ?? step.output?.metadata?.gameTitle;
       if (typeof outputTitle === "string" && outputTitle) return outputTitle;
       const targets = (step.input?.targets as any[]) || [];
       const gameTarget = targets.find((t) => t.type === "Game" || t.type?.toLowerCase() === "game");

@@ -2,11 +2,18 @@ import { BaseTool } from "../../../../sdk/BaseTool";
 import { AIToolContext } from "../../../../sdk/AIToolContext";
 import { AIToolResult } from "../../../../sdk/AIToolResult";
 import collectionToolService from "../../services/CollectionToolService";
+import GameLibrary from "../../../../../library/LibraryGame";
 import Collection from "../../../../../collection/CollectionModel";
 
 interface RemoveFromCollectionInput {
   collectionName: string;
   gameId: string;
+}
+
+/** The game's real title, for the reply ("Hades II", not the "hades 2" the user typed). */
+async function titleOf(userId: string, gameId: string): Promise<string | undefined> {
+  const game = await GameLibrary.findOne({ _id: gameId, userId }).select("title").lean().catch(() => null);
+  return (game as { title?: string } | null)?.title;
 }
 
 export class RemoveFromCollectionTool extends BaseTool<
@@ -51,6 +58,7 @@ export class RemoveFromCollectionTool extends BaseTool<
 
     return this.success(resultCollection, wasIn ? "Game removed from collection successfully." : "Game wasn't in the collection.", {
       notInCollection: !wasIn,
+      gameTitle: await titleOf(context.userId, input.gameId),
     });
   }
 }

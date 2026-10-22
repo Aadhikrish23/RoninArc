@@ -87,6 +87,11 @@ export class AIController {
         res.status(503).json({ success: false, offline: true, message: slow ? AI_SLOW_MESSAGE : AI_OFFLINE_MESSAGE });
         return;
       }
+      // A daily limit (or a revoked install) is a reply, not a crash.
+      if (error && (error.code === "AI_QUOTA" || error.cause?.code === "AI_QUOTA")) {
+        res.status(200).json({ success: false, status: "LIMITED", message: error.code === "AI_QUOTA" ? error.message : error.cause.message });
+        return;
+      }
       if (error && error.code === "PROVIDER_VALIDATION_ERROR") {
         // error.message here is a raw parser diagnostic (e.g. "Unterminated string in
         // JSON at position 41") -- meaningful in the trace log, not to an end user.

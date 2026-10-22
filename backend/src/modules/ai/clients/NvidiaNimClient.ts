@@ -1,6 +1,6 @@
 import axios from "axios";
 import AIConfig from "../config/AIConfig";
-import { AIProviderUnavailableError, isUnreachable } from "../runtime/errors/AIProviderUnavailableError";
+import { AIProviderUnavailableError, AIQuotaError, AI_DAILY_LIMIT_MESSAGE, AI_SHARED_LIMIT_MESSAGE, AI_NOT_ENABLED_MESSAGE, isUnreachable } from "../runtime/errors/AIProviderUnavailableError";
 
 /** How long a model that just timed out or failed is skipped. */
 const UNHEALTHY_FOR_MS = 5 * 60 * 1000;
@@ -47,7 +47,7 @@ export class NvidiaNimClient {
       } catch (error) {
         lastError = error;
         // A bad key or rate limit applies to every model; don't hammer the others.
-        if (error instanceof Error && /401|429/.test(error.message)) throw error;
+        if (error instanceof AIQuotaError || (error instanceof Error && /401|429/.test(error.message))) throw error;
         this.unhealthyUntil.set(order[i], Date.now() + UNHEALTHY_FOR_MS);
         if (process.env.NODE_ENV !== "production") {
           console.log(`[NvidiaNimClient] ${order[i]} failed (${error instanceof Error ? error.message : error}); trying the next model.`);
@@ -115,6 +115,11 @@ export class NvidiaNimClient {
         }
         if (error.response) {
           const status = error.response.status;
+          // keygate's own refusals (packaged app): say what happened, plainly.
+          const gateCode = (error.response.data as { error?: { code?: string } } | undefined)?.error?.code;
+          if (gateCode === "daily_limit") throw new AIQuotaError(AI_DAILY_LIMIT_MESSAGE, error);
+          if (gateCode === "project_daily_limit") throw new AIQuotaError(AI_SHARED_LIMIT_MESSAGE, error);
+          if (gateCode === "bad_token" || gateCode === "no_token") throw new AIQuotaError(AI_NOT_ENABLED_MESSAGE, error);
           if (status === 401) {
             throw new Error("NVIDIA NIM rejected the request (401 Unauthorized). Check that NVIDIA_API_KEY is set and valid.");
           }
