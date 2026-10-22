@@ -5,6 +5,7 @@ import { engagementPaths, engagementSchemas } from "./engagement";
 import { providerPaths, providerSchemas } from "./providers";
 import { aiPaths, aiSchemas } from "./ai";
 import { systemPaths, systemSchemas } from "./system";
+import { syncPaths, syncSchemas } from "./sync";
 
 const description = `
 REST API behind the RoninArc game launcher: accounts, the game library, RAWG metadata, reviews, notes,
@@ -46,6 +47,7 @@ export const openApiDocument = {
     { name: "Providers", description: "Steam and Epic Games integrations." },
     { name: "Cloud backup", description: "Mirror to / restore from a cloud database." },
     { name: "System", description: "Health, logs and this document." },
+    { name: "Sync", description: "RoninArc Cloud: a PC's link to the cloud, and the changes devices exchange." },
   ],
   components: {
     securitySchemes: {
@@ -59,6 +61,7 @@ export const openApiDocument = {
       ...providerSchemas,
       ...aiSchemas,
       ...systemSchemas,
+      ...syncSchemas,
     },
   },
   paths: {
@@ -68,6 +71,7 @@ export const openApiDocument = {
     ...engagementPaths,
     ...aiPaths,
     ...providerPaths,
+    ...syncPaths(),
   },
 };
 

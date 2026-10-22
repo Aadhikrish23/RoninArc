@@ -1,4 +1,5 @@
 import mongoose, { Document, Types } from "mongoose";
+import { tombstonePlugin } from "../sync/tombstonePlugin";
 export interface ICollection extends Document {
   userId: Types.ObjectId;
   name: string;
@@ -49,5 +50,8 @@ collectionSchema.index(
     unique: true,
   },
 );
+
+// Deletions are recorded so sync can pass them on (modules/sync).
+collectionSchema.plugin(tombstonePlugin, { coll: "collections" });
 
 export default mongoose.model("Collection", collectionSchema);

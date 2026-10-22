@@ -1,5 +1,6 @@
 // backend/src/models/Review.ts
 import mongoose from "mongoose";
+import { tombstonePlugin } from "../sync/tombstonePlugin";
 export interface ReviewDocument extends Document {
   userId: mongoose.Types.ObjectId;
 
@@ -54,5 +55,8 @@ reviewSchema.index(
     unique: true,
   },
 );
+
+// Deletions are recorded so sync can pass them on (modules/sync).
+reviewSchema.plugin(tombstonePlugin, { coll: "reviews" });
 
 export default mongoose.model("Review", reviewSchema);

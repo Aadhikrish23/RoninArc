@@ -4,6 +4,7 @@ interface UserDocument extends mongoose.Document {
   username: string;
   email?: string;
   passwordHash: string;
+  tokensValidAfter?: Date;
 
   providers?: {
     epic?: {
@@ -44,6 +45,10 @@ const userSchema = new mongoose.Schema<UserDocument>(
     passwordHash: {
       type: String,
       required: true,
+    },
+    /** Cloud: tokens issued before this (a password change or reset) no longer work. */
+    tokensValidAfter: {
+      type: Date,
     },
     providers: {
       epic: {

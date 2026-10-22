@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tombstonePlugin } from "../sync/tombstonePlugin";
 
 export interface IProviderOwnership {
   providerGameId: string;
@@ -190,6 +191,9 @@ const gameLibraryschema = new mongoose.Schema<IGameLibrary>(
 gameLibraryschema.virtual("imageURL").get(function (this: IGameLibrary) {
   return this.artwork?.sources?.[this.artwork?.selectedSource] || "";
 });
+
+// Deletions are recorded so sync can pass them on (modules/sync).
+gameLibraryschema.plugin(tombstonePlugin, { coll: "games" });
 
 const gameLibrarymodel = mongoose.model<IGameLibrary>(
   "GameLibrary",

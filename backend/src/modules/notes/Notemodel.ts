@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tombstonePlugin } from "../sync/tombstonePlugin";
 
 export interface NoteDocument extends mongoose.Document {
   userId: mongoose.Types.ObjectId;
@@ -39,5 +40,8 @@ const noteSchema = new mongoose.Schema<NoteDocument>(
 );
 
 noteSchema.index({ userId: 1, gameId: 1 });
+
+// Deletions are recorded so sync can pass them on (modules/sync).
+noteSchema.plugin(tombstonePlugin, { coll: "notes" });
 
 export default mongoose.model<NoteDocument>("Note", noteSchema);

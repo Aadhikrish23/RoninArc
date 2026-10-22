@@ -2,6 +2,8 @@ import "./instrument";
 import app from "./app";
 import mongoose from "mongoose";
 import backupService from "./modules/backup/backupService";
+import { startSyncScheduler } from "./modules/sync/localSync";
+import { isCloud } from "./shared/runtimeMode";
 import { logger, LOG_DIR, appLogFile } from "./shared/logging/logger";
 import { flushErrorReporting, reportError, sentryEnabled } from "./shared/logging/errorReporter";
 
@@ -32,7 +34,8 @@ const connectDB = async () => {
 };
 
 function startAutoBackup() {
-  if (!process.env.Atlas_URL) {
+  // In the cloud, Atlas is the database itself; the mirror is for PCs.
+  if (!process.env.Atlas_URL || isCloud()) {
     return;
   }
 
@@ -69,6 +72,8 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 const startserver = async () => {
   await connectDB();
   startAutoBackup();
+  // A PC linked to RoninArc Cloud syncs every minute (and soon after each change).
+  startSyncScheduler();
   app.listen(PORT, () => {
     log.info({ port: Number(PORT), logDir: LOG_DIR, sentry: sentryEnabled() }, `Server is up and running on port:${PORT}`);
   });

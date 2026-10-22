@@ -32,8 +32,8 @@ export const aiSchemas: Record<string, Schema> = {
       message: { type: "string", description: "Text to show the user." },
       status: {
         type: "string",
-        enum: ["SUCCESS", "PARTIAL_SUCCESS", "FAILED", "CLARIFICATION_REQUIRED", "CONFIRMATION_REQUIRED", "CANCELLED"],
-        description: "CONFIRMATION_REQUIRED: the assistant asks before removing games; reply \"yes\" to go ahead or \"no\" to keep them. CANCELLED: the user said no.",
+        enum: ["SUCCESS", "PARTIAL_SUCCESS", "PARTIAL", "FAILED", "CLARIFICATION_REQUIRED", "CONFIRMATION_REQUIRED", "CANCELLED", "LIMITED"],
+        description: "CONFIRMATION_REQUIRED: the assistant asks before removing games; reply \"yes\" to go ahead or \"no\" to keep them. CANCELLED: the user said no. PARTIAL: part of a two-part message ran and the rest timed out. LIMITED: the daily AI allowance is used up (resets at midnight UTC).",
       },
       clarificationRequest: {
         type: "object",

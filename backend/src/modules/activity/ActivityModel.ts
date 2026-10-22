@@ -1,4 +1,5 @@
 import mongoose, { Document, Types } from "mongoose";
+import { tombstonePlugin } from "../sync/tombstonePlugin";
 
 export interface IActivity extends Document {
   userId: Types.ObjectId;
@@ -70,5 +71,8 @@ const activitySchema = new mongoose.Schema<IActivity>(
     timestamps: true,
   },
 );
+
+// Deletions are recorded so sync can pass them on (modules/sync).
+activitySchema.plugin(tombstonePlugin, { coll: "activities" });
 
 export default mongoose.model<IActivity>("Activity", activitySchema);

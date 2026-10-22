@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { tombstonePlugin } from "../sync/tombstonePlugin";
 
 // A RAWG game the user said "Not interested" to, so discovery stops suggesting it.
 const recommendationFeedbackSchema = new mongoose.Schema(
@@ -11,5 +12,8 @@ const recommendationFeedbackSchema = new mongoose.Schema(
 );
 
 recommendationFeedbackSchema.index({ userId: 1, rawgId: 1 }, { unique: true });
+
+// Deletions are recorded so sync can pass them on (modules/sync).
+recommendationFeedbackSchema.plugin(tombstonePlugin, { coll: "feedback" });
 
 export default mongoose.model("RecommendationFeedback", recommendationFeedbackSchema);

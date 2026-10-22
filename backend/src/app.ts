@@ -22,8 +22,17 @@ import { aiRoutes } from "./modules/ai";
 import clientLogsRouter from "./modules/logs/clientLogs";
 import { requestLogger } from "./shared/logging/requestLogger";
 import { reportError } from "./shared/logging/errorReporter";
+import syncRouter from "./modules/sync/syncRoutes";
+import passwordRouter from "./modules/auth/passwordRoutes";
+import authMiddleware from "./modules/auth/authMiddleware";
+import { cloudAiQuota } from "./modules/sync/aiQuota";
+import { syncSoon } from "./modules/sync/localSync";
+import { isCloud } from "./shared/runtimeMode";
+import { rateLimit } from "./shared/rateLimit";
 dotenv.config();
 const app = express();
+// The cloud runs behind its host's proxy (Render): the client's address is in X-Forwarded-For.
+if (isCloud()) app.set("trust proxy", 1);
 app.use(requestLogger);
 app.use(
   helmet({
@@ -45,8 +54,22 @@ app.use(
   }),
 );
 
-// Mounted before the global JSON parser so it can use its own, larger body limit.
+// Mounted before the global JSON parser so they can use their own, larger body limits.
 app.use("/logs", clientLogsRouter);
+app.use("/sync", syncRouter);
+
+// On a PC linked to the cloud: a change here goes up a few seconds later.
+if (!isCloud()) {
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.method !== "GET" && req.method !== "HEAD" && req.method !== "OPTIONS") {
+      res.on("finish", () => {
+        const id = (req as any).user?.id;
+        if (id && res.statusCode < 400) syncSoon(String(id));
+      });
+    }
+    next();
+  });
+}
 
 app.use(express.json());
 
@@ -65,6 +88,14 @@ app.use(
 app.get("/health", (req: Request, res: Response) => {
   return res.json({ Status: "ok", message: "RoninArc was healthy " });
 });
+if (isCloud()) {
+  // Guessing passwords and mass sign-ups, per network.
+  app.post("/auth/login", rateLimit({ windowMs: 15 * 60_000, max: 30, message: "Too many sign-in attempts. Try again in a few minutes." }));
+  app.post("/auth/register", rateLimit({ windowMs: 60 * 60_000, max: 10, message: "Too many sign-ups from this network. Try again later." }));
+  // Each person's own daily AI allowance (everyone shares the server's keys).
+  app.post("/ai/chat", authMiddleware, cloudAiQuota);
+}
+app.use("/auth", passwordRouter);
 app.use("/auth", authRouter);
 app.use("/game", library_router);
 app.use("/rawg", rawgRouter);

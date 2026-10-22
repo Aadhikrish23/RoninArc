@@ -3,11 +3,14 @@ import jwt from "jsonwebtoken";
 import AppError from "../../shared/errors/AppError";
 import { moduleLogger } from "../../shared/logging/logger";
 import { attachUserToRequestContext } from "../../shared/logging/requestLogger";
+import { isCloud } from "../../shared/runtimeMode";
+import { tokensValidAfter } from "./tokenCutoff";
 
 const log = moduleLogger("auth");
 interface JwtPayload {
   id: string;
   name: string;
+  iat?: number;
 }
 
 const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
@@ -40,7 +43,11 @@ const authMiddleware = (req: Request, res: Response, next: NextFunction) => {
 
     req.user = { id, name };
     attachUserToRequestContext(id);
-    next();
+    if (!isCloud()) return next();
+    // Cloud: tokens from before a password change or reset no longer work.
+    tokensValidAfter(id)
+      .then((cutoff) => (cutoff && (payload.iat ?? 0) * 1000 < cutoff ? next(new AppError("Invalid or expired token", 401)) : next()))
+      .catch(next);
   } catch (error) {
     log.debug({ reason: error instanceof Error ? error.name : "unknown" }, "JWT verification failed");
     return next(new AppError("Invalid or expired token", 401));

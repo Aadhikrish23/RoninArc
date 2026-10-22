@@ -1,3 +1,4 @@
+import { tombstonePlugin } from "../sync/tombstonePlugin";
     import mongoose, { Document, Types } from "mongoose";
 
     export interface IPlaySession extends Document {
@@ -61,5 +62,8 @@
     userId: 1,
     startedAt: -1,
     });
+
+    // Deletions are recorded so sync can pass them on (modules/sync).
+    playSessionSchema.plugin(tombstonePlugin, { coll: "playSessions" });
 
     export default mongoose.model<IPlaySession>("PlaySession", playSessionSchema);
