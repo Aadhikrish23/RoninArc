@@ -1,7 +1,8 @@
 import axios from "axios";
 import AppError from "../../../shared/errors/AppError";
 
-const STEAM_API_BASE = "https://api.steampowered.com";
+// Overridable so the packaged app can go through the keygate proxy instead of holding a Steam key.
+const STEAM_API_BASE = (process.env.STEAM_API_BASE || "https://api.steampowered.com").replace(/\/+$/, "");
 
 export interface SteamOwnedGame {
   appid: number;
