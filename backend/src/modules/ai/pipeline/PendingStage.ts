@@ -1,7 +1,7 @@
 import { IntentPlan } from "../intent/IntentPlan";
 import pendingConfirmations, { isCancelReply, isConfirmReply, isLooseCancel, noAndMore, yesAndMore } from "../conversation/PendingConfirmationStore";
 import type { RuntimeResponse } from "./Replies";
-import { forgetChange } from "./UndoLog";
+import { forgetChange } from "../domains/games/pipeline/UndoLog";
 
 /** What the reply to a pending yes/no question turned out to be. */
 export type PendingOutcome =

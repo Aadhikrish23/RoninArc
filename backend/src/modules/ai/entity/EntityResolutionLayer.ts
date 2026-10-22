@@ -4,10 +4,10 @@ import { ResolvedIntent } from "./ResolvedIntent";
 import { ResolvedTarget } from "./ResolvedTarget";
 import { ClarificationRequest } from "./ClarificationRequest";
 import { ClarificationType } from "./ClarificationType";
-import entityResolver from "./EntityResolver";
+import entityResolver from "../domains/games/entity/EntityResolver";
 import { EntityResolutionStatus } from "./EntityResolutionStatus";
 import { IntentTargetType } from "../intent/IntentTargetType";
-import { LibraryGame } from "./LibraryGame";
+import { LibraryGame } from "../domains/games/entity/LibraryGame";
 import { IntentTarget } from "../intent/IntentTarget";
 import aiTraceLogger from "../debug/AITraceLogger";
 

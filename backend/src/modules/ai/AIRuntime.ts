@@ -18,21 +18,21 @@ import { IntentParameterType } from "./intent/IntentParameterType";
 import pendingConfirmations, { isCancelReply } from "./conversation/PendingConfirmationStore";
 import recentExchanges from "./conversation/RecentExchanges";
 import conversationManager from "./conversation/ConversationManager";
-import { normalizeSlang, resolveOrdinals, withPageGame } from "./conversation/FollowUps";
-import { lastNamedTitle } from "./conversation/TargetGrounding";
-import { followUpOffer } from "./conversation/DirectActions";
+import { normalizeSlang, resolveOrdinals, withPageGame } from "./domains/games/conversation/FollowUps";
+import { lastNamedTitle } from "./domains/games/conversation/TargetGrounding";
+import { followUpOffer } from "./domains/games/conversation/DirectActions";
 
-import { CORRECTION, KEEP_MODEL_REPLY, LOOKS_LIKE_QUESTION, NOT_SURE_WHAT_TO_CHANGE, NOT_SURE_WHICH_GAME } from "./pipeline/Patterns";
+import { CORRECTION, KEEP_MODEL_REPLY, LOOKS_LIKE_QUESTION, NOT_SURE_WHAT_TO_CHANGE, NOT_SURE_WHICH_GAME } from "./domains/games/pipeline/Patterns";
 import { rememberOfferedAdd, tidyReply, type RuntimeResponse } from "./pipeline/Replies";
 import { ModelGateway } from "./pipeline/ModelGateway";
 import { handlePending } from "./pipeline/PendingStage";
-import { preRoute } from "./pipeline/PreRoute";
-import { correctPlan } from "./pipeline/PlanCorrections";
-import { dropUnstatedStatusChanges, ensureCollectionAdds } from "./pipeline/StatusEvidence";
-import { groundPlan, type GroundingResult } from "./pipeline/PlanGrounding";
-import { normalizeStatusIntents, shapePlan } from "./pipeline/PlanShaping";
+import { preRoute } from "./domains/games/pipeline/PreRoute";
+import { correctPlan } from "./domains/games/pipeline/PlanCorrections";
+import { dropUnstatedStatusChanges, ensureCollectionAdds } from "./domains/games/pipeline/StatusEvidence";
+import { groundPlan, type GroundingResult } from "./domains/games/pipeline/PlanGrounding";
+import { normalizeStatusIntents, shapePlan } from "./domains/games/pipeline/PlanShaping";
 import { PlanRunner } from "./pipeline/PlanRunner";
-import { forgetChange, hasUntrackedChanges, rememberChange, snapshotBefore } from "./pipeline/UndoLog";
+import { forgetChange, hasUntrackedChanges, rememberChange, snapshotBefore } from "./domains/games/pipeline/UndoLog";
 
 /**
  * One chat message, start to finish. The stages live in ./pipeline:

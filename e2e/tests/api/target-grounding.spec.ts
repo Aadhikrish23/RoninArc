@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { dropUngroundedIntents, franchiseMatch, lastNamedTitle, mentions, namedTitles } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
+import { dropUngroundedIntents, franchiseMatch, lastNamedTitle, mentions, namedTitles } from "../../../backend/src/modules/ai/domains/games/conversation/TargetGrounding";
 
 // The AI only changes a game the user actually named (or referred to). These
 // cases come from the gamer playtests: gibberish and two-part messages made the

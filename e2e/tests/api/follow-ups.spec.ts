@@ -1,10 +1,10 @@
 import { test, expect } from "@playwright/test";
-import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, parseQuickCommands, fillCollectionThere, pinPronoun, saveThatAsNote, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/conversation/FollowUps";
+import { asksForOpinion, asksToReadNotes, collectionDirection, isQuestionOnly, meansDroppedStatus, normalizeSlang, parseCollectionCommand, parseQuickCommand, parseQuickCommands, fillCollectionThere, pinPronoun, saveThatAsNote, recommendationFollowUp, resolveOrdinals, simpleAddTitle, statedScore, unsupportedReply, wasAskedFor, withPageGame } from "../../../backend/src/modules/ai/domains/games/conversation/FollowUps";
 import { isConfirmReply, noAndMore, yesAndMore } from "../../../backend/src/modules/ai/conversation/PendingConfirmationStore";
-import { RECOMMEND_ASK } from "../../../backend/src/modules/ai/pipeline/Patterns";
-import { namedTitles, sameGame } from "../../../backend/src/modules/ai/conversation/TargetGrounding";
-import { dropUnstatedStatusChanges, ensureCollectionAdds } from "../../../backend/src/modules/ai/pipeline/StatusEvidence";
-import { correctPlan } from "../../../backend/src/modules/ai/pipeline/PlanCorrections";
+import { RECOMMEND_ASK } from "../../../backend/src/modules/ai/domains/games/pipeline/Patterns";
+import { namedTitles, sameGame } from "../../../backend/src/modules/ai/domains/games/conversation/TargetGrounding";
+import { dropUnstatedStatusChanges, ensureCollectionAdds } from "../../../backend/src/modules/ai/domains/games/pipeline/StatusEvidence";
+import { correctPlan } from "../../../backend/src/modules/ai/domains/games/pipeline/PlanCorrections";
 import { matchesTitle } from "../../../frontend/src/features/library/utils/titleSearch";
 
 // Playtest round 5: follow-ups the assistant got wrong.

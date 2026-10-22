@@ -1,9 +1,9 @@
 import { AIProvider } from "../providers/AIProvider";
 import { CapabilityRegistry } from "../planning/CapabilityRegistry";
 import { IntentPlan } from "../intent/IntentPlan";
-import { CLAIMS_ACTION } from "./Patterns";
+import { CLAIMS_ACTION } from "../domains/games/pipeline/Patterns";
 import { expandAbbreviation } from "../../rawg/gameAbbreviations";
-import { factsForQuestion } from "../conversation/GameFacts";
+import { factsForQuestion } from "../domains/games/conversation/GameFacts";
 
 /**
  * "is elden ring harder than ds3?" -> "... than ds3 (Dark Souls III)?": the answer model read

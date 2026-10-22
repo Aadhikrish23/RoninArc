@@ -1,7 +1,7 @@
 import { IntentType } from "../intent/IntentType";
 import { IntentTargetType } from "../intent/IntentTargetType";
 import pendingConfirmations from "../conversation/PendingConfirmationStore";
-import { OFFER_ADD } from "./Patterns";
+import { OFFER_ADD } from "../domains/games/pipeline/Patterns";
 
 /** What the runtime returns to the controller. */
 export type RuntimeResponse = Record<string, any> & { success: boolean; message: string; status?: string };

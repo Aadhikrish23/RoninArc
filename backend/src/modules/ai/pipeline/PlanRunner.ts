@@ -3,7 +3,7 @@ import { AIToolRegistry } from "../sdk/AIToolRegistry";
 import { ContextBuilder } from "../context/ContextBuilder";
 import type { AIToolContext } from "../sdk/AIToolContext";
 import { RuntimeProfiler } from "../debug/RuntimeProfiler";
-import aiResponseBuilder from "../response/AIResponseBuilder";
+import aiResponseBuilder from "../domains/games/response/AIResponseBuilder";
 import conversationRuntime from "../conversation/ConversationRuntime";
 import clarificationRuntime from "../clarification/ClarificationRuntime";
 import { PlanningRuntime } from "../planning/PlanningRuntime";
@@ -13,9 +13,9 @@ import { IntentPlan } from "../intent/IntentPlan";
 import { IntentType } from "../intent/IntentType";
 import { ConversationSession } from "../conversation/ConversationSession";
 import pendingConfirmations from "../conversation/PendingConfirmationStore";
-import { writtenFor } from "../conversation/DirectActions";
+import { writtenFor } from "../domains/games/conversation/DirectActions";
 import { confirmationResponse, type RuntimeResponse } from "./Replies";
-import { NOT_SURE_WHAT_TO_CHANGE } from "./Patterns";
+import { NOT_SURE_WHAT_TO_CHANGE } from "../domains/games/pipeline/Patterns";
 
 /** Planning, clarification, confirmation and execution for one intent plan. */
 export class PlanRunner {
