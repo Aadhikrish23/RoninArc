@@ -5,5 +5,7 @@ import react from "@vitejs/plugin-react";
 export default defineConfig({
   plugins: [react()],
   base: "./",
-  server: { port: 5180 },
+  // host: true listens on every network interface, so other devices can open it by this PC's IP.
+  server: { port: 5180, host: true },
+  preview: { port: 5180, host: true },
 });
