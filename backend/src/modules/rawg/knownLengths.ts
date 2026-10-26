@@ -6,6 +6,8 @@
  */
 const MAIN_STORY_HOURS: Record<string, number> = {
   "hollow knight": 27,
+  "red dead redemption 2": 50,
+  "the witcher 3 wild hunt": 52,
   hades: 22,
   "outer wilds": 17,
   cuphead: 11,

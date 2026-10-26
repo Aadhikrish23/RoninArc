@@ -180,6 +180,20 @@ function recentChange(userId: string): LastChange | undefined {
   return change && Date.now() - change.at.getTime() < UNDO_WINDOW_MS ? change : undefined;
 }
 
+/** Did this change actually alter the picked game (added, removed, or its status, rating or notes now differ)? */
+async function changedGame(userId: string, change: LastChange, pick: (title: string) => boolean): Promise<boolean> {
+  if (change.adding.some(pick) || (change.removed ?? []).some((r) => pick(String(r.game.title)))) return true;
+  const uid = new Types.ObjectId(userId);
+  for (const before of change.games.filter((g) => pick(g.title))) {
+    const game = (await LibraryGame.findOne({ _id: before.gameId, userId: uid }).select("progressStatus").lean()) as any;
+    if (game && (game.progressStatus || "none") !== before.status) return true;
+    const review = (await Review.findOne({ userId: uid, gameId: before.gameId }).lean()) as any;
+    if (!!review !== !!before.review || (review && before.review && review.rating !== before.review.rating)) return true;
+    if (await Note.exists({ userId: uid, gameId: before.gameId, createdAt: { $gte: change.at } })) return true;
+  }
+  return false;
+}
+
 /** Puts back what the last change touched. Returns a description of what was undone. */
 export async function undoLastChange(userId: string, only?: string): Promise<string | undefined> {
   // "undo the cod one": just that game; the rest of the change stays (and stays undoable).
@@ -188,7 +202,20 @@ export async function undoLastChange(userId: string, only?: string): Promise<str
   // a plain "undo" is only ever the latest change.
   const latest = only ? recentChange(userId) : lastChange(userId);
   const older = (olderChanges.get(userId) ?? []).filter((c) => Date.now() - c.at.getTime() < UNDO_WINDOW_MS);
-  const change = only ? [latest, ...older].find((c) => c && touches(c, pick)) : latest;
+  let change = latest;
+  if (only) {
+    // "undo the minecraft change" after Minecraft was also put in a collection: that later change
+    // didn't alter Minecraft itself, so keep looking back for the one that did.
+    const candidates = [latest, ...older].filter((c): c is LastChange => !!c && touches(c, pick));
+    change = undefined;
+    for (const c of candidates) {
+      if (await changedGame(userId, c, pick)) {
+        change = c;
+        break;
+      }
+    }
+    change ??= candidates[0];
+  }
   if (!change) return undefined;
   const isLatest = change === latest;
   const games = change.games.filter((g) => pick(g.title));

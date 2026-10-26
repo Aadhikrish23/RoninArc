@@ -191,7 +191,9 @@ async function describeFavourite(question: string, ctx: DirectAnswerContext): Pr
       ? `${top.gameId.title} is the only game you've rated (${top.rating}/10), so it's both.`
       : `Your highest rated is ${top.gameId.title} (${top.rating}/10) and your lowest is ${low.gameId.title} (${low.rating}/10).`;
   }
-  const runnersUp = rest.length ? ` Next up: ${rest.slice(0, 2).map((r) => `${r.gameId.title} (${r.rating}/10)`).join(", ")}.` : "";
+  // A 5/10 isn't a runner-up favourite.
+  const liked = rest.filter((r) => r.rating >= 7);
+  const runnersUp = liked.length ? ` Next up: ${liked.slice(0, 2).map((r) => `${r.gameId.title} (${r.rating}/10)`).join(", ")}.` : "";
   return `Your favourite so far is ${top.gameId.title}, rated ${top.rating}/10.${runnersUp}`;
 }
 
@@ -285,7 +287,8 @@ async function describePlaying(question: string, ctx: DirectAnswerContext): Prom
   if (!/\bwhat am i (playing|on)\b/i.test(question) && PLAYING_NAMES_GAME.test(question)) return undefined;
   const playing = (await LibraryGame.find({ userId: new Types.ObjectId(ctx.userId), progressStatus: "playing" }).select("title").lean()) as any[];
   if (playing.length === 0) return "Nothing is marked Playing right now.";
-  return `You're playing ${playing.map((g) => g.title).join(", ")}.`;
+  const titles = playing.map((g) => g.title as string);
+  return `You're playing ${titles.length > 1 ? `${titles.slice(0, -1).join(", ")} and ${titles[titles.length - 1]}` : titles[0]}.`;
 }
 
 const COUNT_STATUSES: [RegExp, string, string][] = [
