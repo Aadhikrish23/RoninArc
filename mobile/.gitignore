@@ -44,3 +44,6 @@ example
 
 # Downloaded API spec (npm run api:types)
 .openapi.json
+
+# Release signing key + its passwords: back these up, never commit them
+/keystore

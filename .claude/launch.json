@@ -38,6 +38,17 @@
         "mobile/scripts/web-local.cjs"
       ],
       "port": 8081
+    },
+    {
+      "name": "landing",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "landing",
+        "run",
+        "dev"
+      ],
+      "port": 5180
     }
   ]
 }

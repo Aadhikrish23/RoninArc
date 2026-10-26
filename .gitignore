@@ -15,3 +15,4 @@ backend/logs/
 
 # Built by scripts/export-ai-module.cjs
 /handoff
+.impeccable/
