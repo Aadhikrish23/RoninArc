@@ -18,6 +18,8 @@ const tokenize = (text: string): string[] =>
     .normalize("NFKD")
     .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
+    // "Baldur's Gate III" is "baldurs gate 3" (so "bg3" is its initials), not "baldur s gate 3".
+    .replace(/['’]/g, "")
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9]+/g, " ")
     .trim()

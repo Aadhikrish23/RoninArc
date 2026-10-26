@@ -20,6 +20,11 @@ const EVIDENCE: Record<string, RegExp> = {
   none: /\b(no status|clear( the)? status|reset( the)? status|unmark\w*)\b/i,
 };
 
+/** "bg3", "hades too", "the witcher 3 as well": a clause naming a game and nothing it does. */
+const isBareGame = (clause: string) =>
+  clause.trim().split(/\s+/).length <= 6 &&
+  !/\b(add|remove|delete|rate|rated|review|note|put|move|pause|drop|finish|beat|complete|start|play|launch|plan)\w*\b/i.test(clause);
+
 const clausesOf = (message: string) => message.split(/[,;.!?]+\s*|\s+(?:and|also|plus|then|but)\s+/i).filter((c) => c.trim());
 
 /**
@@ -41,7 +46,12 @@ export function dropUnstatedStatusChanges(plan: IntentPlan, message: string, own
     // "how long is disco elysium? ..., unpause it": the status word can sit in a clause that names
     // no game and points back with "it".
     const pointsBack = clauses.some((c) => evidence.test(c) && namedTitles(c, owned).length === 0);
-    return own.some((c) => evidence.test(c)) || pointsBack;
+    // "im playing elden ring and bg3": a clause that's just a game shares the status word before it.
+    const sharesPrevious = own.some((c) => {
+      const i = clauses.indexOf(c);
+      return i > 0 && isBareGame(c) && evidence.test(clauses[i - 1]);
+    });
+    return own.some((c) => evidence.test(c)) || pointsBack || sharesPrevious;
   });
   return before - plan.intents.length;
 }
