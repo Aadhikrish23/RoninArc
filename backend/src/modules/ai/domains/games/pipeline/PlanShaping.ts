@@ -4,7 +4,7 @@ import { IntentParameterType } from "../../../intent/IntentParameterType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { mentions } from "../conversation/TargetGrounding";
 import { titleMatchScore } from "../../../../rawg/titleMatch";
-import { EXPLICIT_ACTION, PER_GAME_INTENTS, RECOMMEND_ASK, RECORDED_DATA, STATUS_INTENTS } from "./Patterns";
+import { EXPLICIT_ACTION, GAME_ADVICE, PER_GAME_INTENTS, RECOMMEND_ASK, RECORDED_DATA, STATUS_INTENTS } from "./Patterns";
 
 /** "rate it 8.5 and add a note to it: blood and wine dlc still unplayed" -> the note's text. */
 const NOTE_TEXT = /\b(?:add|leave|write|save|make|take|jot(?:\s+down)?)\s+(?:a\s+|an\s+|this\s+|another\s+)?note\b[^:]*?:\s*(.+?)\s*$/i;
@@ -96,8 +96,16 @@ export function shapePlan(plan: IntentPlan, message: string, fromModel: boolean)
 
   // "is silksong worth it?" sometimes comes back as a library question; it's a
   // general one unless it asks about the user's own records.
+  // "can i beat malenia at level 2?" is advice wanted from answer mode, whatever the model
+  // made of it: a library question (it reads "beat") or its own "I can't check that".
   if (fromModel) {
+    const advice = GAME_ADVICE.test(message);
     for (const intent of plan.intents) {
+      if (advice && (intent.type === IntentType.LibraryQuestion || intent.type === IntentType.AskQuestion)) {
+        intent.type = IntentType.AskQuestion;
+        intent.parameters = [];
+        continue;
+      }
       if (intent.type !== IntentType.LibraryQuestion) continue;
       const text = String(intent.parameters?.find((p) => p.type === IntentParameterType.Text)?.value ?? message);
       if (!RECORDED_DATA.test(text)) {

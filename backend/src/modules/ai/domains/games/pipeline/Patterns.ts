@@ -8,6 +8,13 @@ export const AUTO_ADD_FOR = new Set<string>([IntentType.SetStatus, IntentType.Co
 
 /** Questions about what the user has recorded; anything else is a general gaming question. */
 export const RECORDED_DATA = /\b(rate|rated|rating|ratings|score|status|finish|finished|complete|completed|beat|beaten|playing|paused|dropped|planned|plan to play|backlog|how many|own|owned|have i|in my (library|list)|added|note|notes|collection|collections|top rated|favou?rites?)\b/i;
+/**
+ * Asking for advice about playing a game ("can i beat malenia at level 2?", "how do i beat ornstein",
+ * "tips for the final boss"): always a general question for answer mode, even though "beat" also
+ * reads as recorded data and the model sometimes answers it with "I can't check that".
+ */
+export const GAME_ADVICE =
+  /\b(?:can|could|should|would)\s+(?:i|you|someone|a\s+\w+)\s+(?:even\s+|still\s+|actually\s+)?(?:beat|defeat|kill|solo|cheese|finish|complete|clear)\b|\bhow\s+(?:do|can|should|would|to)\s+(?:i\s+|you\s+)?(?:beat|defeat|kill|solo|cheese|get past|deal with)\b|\b(?:tips?|advice|strategy|build)\s+(?:for|against|to beat)\b|\bat\s+(?:level|lvl|rl|sl)\s*\d+/i;
 export const LOOKS_LIKE_QUESTION = /\?\s*$|^(what|whats|what's|how|is|are|should|which|why|does|do|can|could|would|who|when|where|any)\b/i;
 /** The model's own short replies that are better than a fresh answer: refusals, "didn't catch that". */
 export const KEEP_MODEL_REPLY = /\b(can'?t|cannot|didn'?t catch|not sure what|rephrase)\b/i;
