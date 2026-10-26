@@ -16,3 +16,6 @@ backend/logs/
 # Built by scripts/export-ai-module.cjs
 /handoff
 .impeccable/
+
+# Release files staged for GitHub Releases (installer, APK)
+/release

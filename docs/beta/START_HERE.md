@@ -6,7 +6,7 @@ It's an early version. Things will break; that's what you're helping find.
 
 ## Install
 
-1. Run **`RoninArc Setup 1.0.0.exe`**.
+1. Run **`RoninArc-Setup.exe`**.
 2. Windows will probably show **"Windows protected your PC"**. That's because the app isn't signed with a paid certificate yet, not because anything is wrong. Click **More info**, then **Run anyway**.
 3. Pick an install folder (the default is fine) and finish.
 
