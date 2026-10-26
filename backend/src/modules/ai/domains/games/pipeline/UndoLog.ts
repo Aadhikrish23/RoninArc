@@ -15,7 +15,7 @@ import { READ_ONLY, sameGame } from "../conversation/TargetGrounding";
 /**
  * The assistant's last change, so "undo" and "no, I said the witcher" can put things back.
  * Covers what a chat message changes on a game: status, rating/review, notes added, and
- * games added. Collection moves aren't recorded.
+ * games added, and what's in each collection (adds, removals, new collections).
  */
 
 interface GameBefore {
@@ -32,8 +32,16 @@ export interface LastChange {
   adding: string[];
   /** Games the plan removed, kept whole so "undo" / "add it back" can restore them. */
   removed?: RemovedGame[];
+  /** Every collection as it was, when the change moved games between collections or made one. */
+  collections?: CollectionBefore[];
   /** Something undo can't restore happened after this change (a rename, an offer that ran). */
   untrackedAfter?: boolean;
+}
+
+interface CollectionBefore {
+  id: string;
+  name: string;
+  gameIds: string[];
 }
 
 interface RemovedGame {
@@ -46,7 +54,9 @@ interface RemovedGame {
 const CHANGES = new Set<string>([
   IntentType.SetStatus, IntentType.CompleteGame, IntentType.RateGame, IntentType.ReviewGame,
   IntentType.DeleteReview, IntentType.AddNote, IntentType.AddGame, IntentType.RemoveGame,
+  IntentType.OrganizeCollection, IntentType.CreateCollection,
 ]);
+const COLLECTION_CHANGES = new Set<string>([IntentType.OrganizeCollection, IntentType.CreateCollection]);
 /** How long "undo" reaches back. */
 const UNDO_WINDOW_MS = 30 * 60 * 1000;
 
@@ -94,10 +104,20 @@ export async function snapshotBefore(userId: string, plan: IntentPlan): Promise<
     });
   }
 
+  // Collections are few and small: keep them all, so undo can put each back exactly.
+  const collections = intents.some((i) => COLLECTION_CHANGES.has(i.type))
+    ? ((await CollectionModel.find({ userId: uid }).select("_id name gameIds").lean()) as any[]).map((c) => ({
+        id: String(c._id),
+        name: c.name as string,
+        gameIds: (c.gameIds ?? []).map(String),
+      }))
+    : undefined;
+
   return {
     at: new Date(),
     adding,
     removed,
+    collections,
     games: games.map((g) => {
       const review = reviews.find((r) => String(r.gameId) === String(g._id));
       return {
@@ -174,10 +194,14 @@ export async function undoLastChange(userId: string, only?: string): Promise<str
   const games = change.games.filter((g) => pick(g.title));
   const adding = change.adding.filter((t) => pick(t));
   const removedPicked = (change.removed ?? []).filter((r) => pick(String(r.game.title)));
+  // Collections go back on a plain "undo" only; "undo the hades one" is about that game.
+  const collectionsBefore = only ? undefined : change.collections;
   if (only && games.length === 0 && adding.length === 0 && removedPicked.length === 0) return undefined;
   const keptGames = change.games.filter((g) => !games.includes(g));
   const keptAdding = change.adding.filter((t) => !adding.includes(t));
-  const rest = keptGames.length > 0 || keptAdding.length > 0 ? { ...change, games: keptGames, adding: keptAdding } : undefined;
+  const rest = keptGames.length > 0 || keptAdding.length > 0
+    ? { ...change, games: keptGames, adding: keptAdding, collections: collectionsBefore ? undefined : change.collections }
+    : undefined;
   if (isLatest) {
     if (rest) lastChanges.set(userId, rest);
     else lastChanges.delete(userId);
@@ -237,6 +261,28 @@ export async function undoLastChange(userId: string, only?: string): Promise<str
       await CollectionModel.updateMany({ _id: { $in: gone.collectionIds }, userId: uid }, { $addToSet: { gameIds: back._id } });
     }
     done.push(`${back.title}: back in your library${gone.review || gone.notes.length ? " with its review and notes" : ""}`);
+  }
+
+  if (collectionsBefore) {
+    const now = (await CollectionModel.find({ userId: uid }).select("_id name gameIds createdAt").lean()) as any[];
+    for (const c of now) {
+      const before = collectionsBefore.find((b) => b.id === String(c._id));
+      if (!before) {
+        // Made by the undone change.
+        if (c.createdAt >= change.at) {
+          await CollectionModel.deleteOne({ _id: c._id, userId: uid });
+          done.push(`The "${c.name}" collection is gone again`);
+        }
+        continue;
+      }
+      const ids = (c.gameIds ?? []).map(String);
+      const same = ids.length === before.gameIds.length && ids.every((id: string) => before.gameIds.includes(id));
+      if (same) continue;
+      // Games deleted from the library since then can't go back into a collection.
+      const stillOwned = ((await LibraryGame.find({ userId: uid, _id: { $in: before.gameIds } }).select("_id").lean()) as any[]).map((g) => g._id);
+      await CollectionModel.updateOne({ _id: c._id, userId: uid }, { $set: { gameIds: stillOwned } });
+      done.push(`"${c.name}" collection back to how it was`);
+    }
   }
 
   return done.length > 0 ? `I've undone that. ${done.join(". ")}.` : "There was nothing left to undo.";

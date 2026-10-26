@@ -1,6 +1,7 @@
 import axios from "axios";
 import AppError from "../../shared/errors/AppError";
 import dotenv from "dotenv";
+import { playtimeFor } from "./knownLengths";
 dotenv.config();
 
 const RAWG_BASE_URL = process.env.RAWG_BASE_URL;
@@ -119,7 +120,7 @@ async function discoverByGenres(genreSlugs: string[], pageSize = 40, tagSlugs: s
       released: g.released,
       genres: g.genres?.map((x: any) => x.name) || [],
       metacritic: g.metacritic,
-      avgHours: typeof g.playtime === "number" ? g.playtime : undefined,
+      avgHours: playtimeFor(g.name, typeof g.playtime === "number" ? g.playtime : undefined),
       tags: (g.tags ?? []).map((t: any) => String(t.slug)),
     }));
   } catch (err) {
@@ -185,7 +186,7 @@ async function getGameDetails(rawgId: string | number) {
 
       metacritic: g.metacritic,
 
-      playtime: g.playtime,
+      playtime: playtimeFor(g.name, g.playtime),
 
       genres: g.genres?.map((x: any) => x.name) || [],
 
@@ -218,7 +219,7 @@ async function getGameFacts(rawgId: string | number): Promise<GameFacts> {
     const res = await axios.get(`${RAWG_BASE_URL}/games/${rawgId}`, { params: { key: RAWG_API_KEY }, timeout: 8000 });
     return {
       tags: (res.data?.tags ?? []).map((t: any) => String(t.slug)),
-      playtime: typeof res.data?.playtime === "number" ? res.data.playtime : 0,
+      playtime: playtimeFor(res.data?.name, typeof res.data?.playtime === "number" ? res.data.playtime : 0) ?? 0,
       name: res.data?.name,
       released: res.data?.released ?? null,
       genres: (res.data?.genres ?? []).map((g: any) => String(g.name)),

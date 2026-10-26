@@ -14,6 +14,9 @@ const FILLER = new Set(["the", "of", "a", "an", "and"]);
 
 const tokenize = (text: string): string[] =>
   text
+    // "Ragnarök", "Pokémon": accents fold to the plain letter people type, instead of splitting the word.
+    .normalize("NFKD")
+    .replace(/[̀-ͯ]/g, "")
     .toLowerCase()
     .replace(/&/g, " and ")
     .replace(/[^a-z0-9]+/g, " ")

@@ -55,9 +55,24 @@ const REMINDER = /\b(remind|reminder|reminders|alarm|notify|notification|alert m
 const UNDO = /\b(undo|revert|take (that|it) back|reverse that)\b/i;
 const BUY = /\b(buy|purchase|order|pre-?order|gift)\b/i;
 const WHOLE_LIBRARY =
-  /\b(nuke|wipe|clear|delete|remove|reset|empty)\b[^.?!]*\b(whole|entire|all( of)?( my)?|everything in)\s+(my\s+)?(library|games)\b|\b(start|starting) (fresh|over|from scratch)\b/i;
+  /\b(nuke|wipe|clear|delete|remove|reset|empty)\b[^.?!]*\b(whole|entire|all( of)?( my)?|everything in|every( single)?|each)\s+(my\s+)?(library|games?)\b|\b(start|starting) (fresh|over|from scratch)\b/i;
+
+/** Steam and Epic connect through their own sign-in pages, which only the Providers settings can open. */
+const ACCOUNT_ACTION = /\b(connect|link|hook up|log ?in(?: to)?|sign ?in(?: to)?|disconnect|unlink|log ?out(?: of)?|sign ?out(?: of)?)\b[^.?!]*\b(steam|epic(?: games)?)\b/i;
+const STEAM_SYNC = /\b(sync|resync|re-sync|import|refresh)\b[^.?!]*\bsteam\b/i;
+const providerName = (word: string) => (/steam/i.test(word) ? "Steam" : "Epic Games");
 
 export function unsupportedReply(message: string): string | undefined {
+  // "connect my steam account": chat can't open Steam's sign-in page (it used to fail with an Epic error).
+  const account = message.match(ACCOUNT_ACTION);
+  if (account) {
+    const provider = providerName(account[2]);
+    const verb = /^(dis|un|log ?out|sign ?out)/i.test(account[1]) ? "Disconnecting" : "Connecting";
+    return `${verb} ${provider} happens in RoninArc on your PC: open Settings → Providers and choose ${provider}. I can't do that from chat, so nothing changed.`;
+  }
+  if (STEAM_SYNC.test(message)) {
+    return "Steam syncs from RoninArc on your PC: open Settings → Providers and press Resync on Steam. I can't start it from chat.";
+  }
   // "remind me friday ... and also buy silksong": answer every part it can't do, not just the first.
   // (A plain "buy X" goes to the model, whose reply offers to add X instead.)
   const cant: string[] = [];
@@ -305,7 +320,8 @@ export function statedScore(message: string): number | undefined {
   // "10/10", "9 out of 10", and "finished celeste, its a 9" / "easy 8" (not "2 hours", "100%").
   const match =
     message.match(/\b(\d{1,2}(?:\.5)?)\s*(?:\/|out of)\s*10\b/i) ??
-    message.match(/\b(?:it'?s|its|easy|solid|a solid|an easy|strong|gave it|i'?d give it)\s+(?:an?\s+)?(\d{1,2}(?:\.5)?)\b(?!\s*(?:%|h\b|hrs?\b|hours?\b|mins?\b|minutes?\b|th\b|st\b|nd\b|rd\b|times?\b|tries\b|try\b|attempts?\b|runs?\b|goes\b|go\b|days?\b|weeks?\b|months?\b|years?\b|deaths?\b|more\b))/i);
+    // "mark portal 2 completed with a 10", "rate it a 9", "give it an 8"
+    message.match(/\b(?:it'?s|its|easy|solid|a solid|an easy|strong|gave it|give it|i'?d give it|rated?(?: it)?|(?:with|score of)(?=\s+an?\s))\s+(?:an?\s+)?(\d{1,2}(?:\.5)?)\b(?!\s*(?:%|h\b|hrs?\b|hours?\b|mins?\b|minutes?\b|th\b|st\b|nd\b|rd\b|times?\b|tries\b|try\b|attempts?\b|runs?\b|goes\b|go\b|days?\b|weeks?\b|months?\b|years?\b|deaths?\b|more\b|friends?\b|players?\b|people\b|of\b|others\b|buddies\b))/i);
   if (!match) return undefined;
   const score = Number(match[1]);
   return score >= 1 && score <= 10 ? score : undefined;

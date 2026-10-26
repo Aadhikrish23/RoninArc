@@ -202,6 +202,16 @@ export function dropUngroundedIntents(plan: IntentPlan, ctx: GroundingContext): 
     return ok;
   });
 
+  // Rewriting targets to "it" can leave the same action twice ("remove X and X?"): keep one.
+  const seen = new Set<string>();
+  plan.intents = plan.intents.filter((intent) => {
+    if (READ_ONLY.has(intent.type)) return true;
+    const key = `${intent.type}|${(intent.targets ?? []).map((t) => `${t.type}:${(t.name ?? "").toLowerCase()}`).join(",")}|${JSON.stringify(intent.parameters ?? [])}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+
   return dropped;
 }
 

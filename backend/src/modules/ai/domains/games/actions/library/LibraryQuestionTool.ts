@@ -5,6 +5,7 @@ import { AIToolResult } from "../../../../sdk/AIToolResult";
 import LibraryGame from "../../../../../library/LibraryGame";
 import Review from "../../../../../review/Reviewmodel";
 import Note from "../../../../../notes/Notemodel";
+import CollectionModel from "../../../../../collection/CollectionModel";
 import { namedTitles } from "../../conversation/TargetGrounding";
 
 interface LibraryQuestionInput {
@@ -80,6 +81,17 @@ export class LibraryQuestionTool extends BaseTool<LibraryQuestionInput, any> {
     const counts = Object.fromEntries(Object.keys(STATUS_LABEL).map((s) => [s, by(s).length]));
 
     const has = (...words: string[]) => words.some((w) => new RegExp(`\\b${w}`).test(q));
+
+    // "how many collections do i have": the collections, not the game summary.
+    if (has("collections?")) {
+      const collections = (await CollectionModel.find({ userId: uid }).sort({ createdAt: 1 }).select("name gameIds").lean()) as any[];
+      if (collections.length === 0) {
+        return this.success({ collections: [] }, "You don't have any collections yet. Try \"make a collection called cozy games\".");
+      }
+      const lines = collections.map((c) => `- ${c.name} (${plural((c.gameIds ?? []).length, "game")})`).join("\n");
+      return this.success({ collections: collections.map((c) => c.name) },
+        `You have ${plural(collections.length, "collection")}:\n${lines}`);
+    }
 
     if (has("top", "best", "favou?rite", "highest", "rated", "rating")) {
       const reviews = await Review.find({ userId: uid }).sort({ rating: -1 }).limit(5).populate("gameId", "title").lean();

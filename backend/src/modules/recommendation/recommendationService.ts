@@ -17,6 +17,7 @@ import {
 import { mentions } from "../ai/domains/games/conversation/TargetGrounding";
 import { expandAbbreviation } from "../rawg/gameAbbreviations";
 import { rankByTitle } from "../rawg/titleMatch";
+import { playtimeFor } from "../rawg/knownLengths";
 
 export type RecommendationType = "all" | "backlog" | "discover";
 
@@ -167,7 +168,8 @@ async function loadSignals(userId: string): Promise<LibrarySignalGame[]> {
     rawgRating: g.rawgRating,
     metacritic: g.metacritic,
     imageURL: g.imageURL || g.artwork?.sources?.[g.artwork?.selectedSource] || undefined,
-    avgHours: typeof g.playtime === "number" ? g.playtime : undefined,
+    // Stored playtimes came from RAWG before the known-length fixes; correct them here too.
+    avgHours: playtimeFor(g.title, typeof g.playtime === "number" ? g.playtime : undefined),
   }));
 }
 
@@ -175,7 +177,7 @@ async function loadSignals(userId: string): Promise<LibrarySignalGame[]> {
 const LIKE_NAME = /\b(?:like|similar to|games? like)\s+([a-z0-9][a-z0-9 :'&.-]{1,40}?)(?=\s+(?:but|and|that|which|with|for|except|only|though|tho)\b|[,.?!]|$)/i;
 
 /** The game named after "like", looked up on RAWG when it isn't in the library. */
-async function likeGameOutsideLibrary(query?: string): Promise<{ title: string; rawgId: number; genres: string[] } | undefined> {
+async function likeGameOutsideLibrary(query?: string): Promise<{ title: string; rawgId: number; genres: string[]; avgHours?: number } | undefined> {
   const name = query?.match(LIKE_NAME)?.[1]?.trim();
   if (!name || /^(this|that|it|these|those|them|me|my|something|anything)$/i.test(name)) return undefined;
   try {
@@ -183,7 +185,7 @@ async function likeGameOutsideLibrary(query?: string): Promise<{ title: string; 
     const [best] = rankByTitle(term, await rawgService.searchGames(term, 1));
     if (!best || best.score < 80) return undefined;
     const game = best.item as any;
-    return { title: game.name, rawgId: game.id, genres: game.genres ?? [] };
+    return { title: game.name, rawgId: game.id, genres: game.genres ?? [], avgHours: game.avgHours };
   } catch {
     return undefined; // a hint, not a requirement
   }
@@ -197,7 +199,7 @@ async function getRecommendations(
   const profile = buildTasteProfile(library);
   const libraryTags = Array.from(new Set(library.flatMap((g) => g.tags)));
   const focus = focusGenres(options.query, library, Array.from(new Set([...KNOWN_GENRES, ...libraryTags])));
-  const length = lengthPreference(options.query);
+  let length = lengthPreference(options.query);
   const styles = styleTags(options.query);
   // "like Hades": the library game the hint names, to rank and explain by.
   const likeGame = options.query
@@ -210,6 +212,13 @@ async function getRecommendations(
   const likeTitle = likeGame?.title ?? outside?.title;
   const likeRawgId = likeGame?.rawgId ?? outside?.rawgId;
   const like = likeGame ? { title: likeGame.title, tags: likeGame.tags } : outside ? { title: outside.title, tags: outside.genres } : undefined;
+  // "like Celeste but shorter": shorter than Celeste itself, not just "a short game" (Hollow Knight
+  // passed as short once and came back as "shorter than Celeste").
+  const likeHours = like ? playtimeFor(like.title, likeGame?.avgHours ?? outside?.avgHours) : undefined;
+  // The AI passes its own summary ("short games like celeste"), so any "short" with a named game counts.
+  if (length === "short" && likeHours && likeHours >= 3) {
+    length = { maxHours: Math.max(3, Math.min(20, likeHours - 1)) };
+  }
   // "like Hades" also means "plays like Hades": borrow its play style (roguelike) from RAWG.
   let discoverStyles = styles;
   if (styles.slugs.length === 0 && likeRawgId) {

@@ -277,8 +277,12 @@ async function describeRelease(question: string): Promise<string | undefined> {
   return date.getTime() <= Date.now() ? `Yes, ${game.name} is out: it released on ${when}.` : `Not yet: ${game.name} is set for ${when}.`;
 }
 
+/** "im currently playing elden ring" names a game after "playing": that's news, not a question. */
+const PLAYING_NAMES_GAME = /\bplaying\s+(?!(?:rn|right now|now|at the moment|currently|atm|these days|lately)\b)[a-z0-9]/i;
+
 async function describePlaying(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   if (!PLAYING_NOW.test(question)) return undefined;
+  if (!/\bwhat am i (playing|on)\b/i.test(question) && PLAYING_NAMES_GAME.test(question)) return undefined;
   const playing = (await LibraryGame.find({ userId: new Types.ObjectId(ctx.userId), progressStatus: "playing" }).select("title").lean()) as any[];
   if (playing.length === 0) return "Nothing is marked Playing right now.";
   return `You're playing ${playing.map((g) => g.title).join(", ")}.`;
@@ -302,7 +306,9 @@ async function describeCounts(question: string, ctx: DirectAnswerContext): Promi
   const asked = COUNT_STATUSES.filter(([re]) => re.test(question));
   const plural = (n: number) => `${n} ${n === 1 ? "game" : "games"}`;
   // "how many games do i have (and how many have i finished)": the whole breakdown covers it.
-  if (/\bhow many games\b|\b(total|in total|altogether|overall)\b/i.test(question)) {
+  // "how many games have i finished" asks for one number, not the breakdown.
+  const wantsTotal = /\b(do i (have|own)|in my library|total|in total|altogether|overall)\b/i.test(question);
+  if ((/\bhow many games\b/i.test(question) && (asked.length === 0 || wantsTotal)) || /\b(total|in total|altogether|overall)\b/i.test(question)) {
     const breakdown = (
       [["playing", "playing"], ["paused", "paused"], ["plan", "plan to play"], ["completed", "completed"], ["dropped", "dropped"], ["none", "no status"]] as const
     )
@@ -314,6 +320,17 @@ async function describeCounts(question: string, ctx: DirectAnswerContext): Promi
   if (asked.length === 0) return undefined;
   const parts = asked.map(([, status, label]) => `${plural(count(status))} ${label}`);
   return `You have ${parts.join(", ")}, out of ${plural(games.length)} in your library.`;
+}
+
+/** "what's my completion rate": finished out of the games you still mean to play, like the dashboard. */
+async function describeCompletion(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
+  if (!/\b(completion|finish(ed)?|beat|clear) (rate|percent(age)?|%|ratio)\b|\bwhat (percent|percentage) of\b/i.test(question)) return undefined;
+  const games = (await LibraryGame.find({ userId: new Types.ObjectId(ctx.userId) }).select("progressStatus").lean()) as any[];
+  const counted = games.filter((g) => g.progressStatus !== "dropped");
+  if (counted.length === 0) return "There's nothing to measure yet: add a few games and finish one.";
+  const done = counted.filter((g) => g.progressStatus === "completed").length;
+  const pct = Math.round((done / counted.length) * 100);
+  return `You've finished ${done} of ${counted.length} ${counted.length === 1 ? "game" : "games"} (${pct}%). Dropped games don't count.`;
 }
 
 async function describeAverage(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
@@ -338,7 +355,7 @@ async function describeRating(question: string, ctx: DirectAnswerContext): Promi
   return `You rated ${game.title} ${review.rating}/10${review.reviewText ? ` -- "${review.reviewText}"` : "."}`;
 }
 
-const HANDLERS = [describeRating, describeInCollection, describeCollection, describeNotes, describeHoursPlayed, describeFriends, describeDeveloper, describePlaytime, describeRelease, describeFeature, describeAverage, describeFavourite, describePlaying, describeCounts];
+const HANDLERS = [describeRating, describeInCollection, describeCollection, describeNotes, describeHoursPlayed, describeFriends, describeDeveloper, describePlaytime, describeRelease, describeFeature, describeAverage, describeFavourite, describePlaying, describeCompletion, describeCounts];
 
 async function answerOne(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   for (const handler of HANDLERS) {

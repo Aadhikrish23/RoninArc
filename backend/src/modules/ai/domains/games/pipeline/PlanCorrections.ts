@@ -45,9 +45,21 @@ export function correctPlan(plan: IntentPlan, message: string, lastReply = ""): 
   const score = statedScore(message);
   const ratesAlready = plan.intents.some((i) => i.type === IntentType.RateGame || i.type === IntentType.ReviewGame);
   if (score !== undefined && !ratesAlready) {
-    const target = plan.intents
+    const games = plan.intents
       .flatMap((i) => i.targets ?? [])
-      .find((t) => t.type === IntentTargetType.Game || t.type === IntentTargetType.Library);
+      .filter((t) => t.type === IntentTargetType.Game || t.type === IntentTargetType.Library);
+    // "add portal 2 and doom, mark portal 2 completed with a 10, start doom": the score goes with
+    // the game named last before it, not just the first game in the plan.
+    const lower = message.toLowerCase();
+    const scoreAt = lower.search(/\d{1,2}(?:\.5)?\s*(?:\/|out of)\s*10\b|\b(?:with|rated?|give it|gave it|its|it'?s)\s+(?:an?\s+)?\d/);
+    const before = (name: string) => {
+      const words = name.toLowerCase().replace(/[^a-z0-9 ]+/g, " ").trim();
+      return scoreAt < 0 ? -1 : lower.replace(/[^a-z0-9 ]+/g, " ").slice(0, scoreAt).lastIndexOf(words);
+    };
+    const target = games.reduce<(typeof games)[number] | undefined>(
+      (best, t) => (t.name && before(t.name) > (best?.name ? before(best.name) : -1) ? t : best),
+      undefined,
+    ) ?? games[0];
     if (target?.name) {
       plan.intents.push({
         type: IntentType.RateGame,
