@@ -49,6 +49,14 @@
         "dev"
       ],
       "port": 5180
+    },
+    {
+      "name": "mobile-phone",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "mobile/scripts/phone.cjs"
+      ],
+      "port": 8082
     }
   ]
 }

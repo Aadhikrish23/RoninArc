@@ -1,4 +1,4 @@
-import { forwardRef, type ReactNode } from "react";
+import { forwardRef, type ComponentRef, type ReactNode } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -13,7 +13,7 @@ import {
   type ViewStyle,
 } from "react-native";
 import { Image } from "expo-image";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 import { font, radius, space, STATUS, useColors, useStatusColor, type ProgressStatus } from "./theme";
 
@@ -102,7 +102,7 @@ export function Button({
   );
 }
 
-export const Field = forwardRef<TextInput, TextInputProps & { label: string; hint?: string }>(function Field({ label, hint, style, ...rest }, ref) {
+export const Field = forwardRef<ComponentRef<typeof TextInput>, TextInputProps & { label: string; hint?: string }>(function Field({ label, hint, style, ...rest }, ref) {
   const c = useColors();
   return (
     <View style={{ gap: space.xs }}>
@@ -132,6 +132,39 @@ export function StatusPill({ status }: { status: string }) {
     <View style={{ flexDirection: "row", alignItems: "center", gap: 6, borderRadius: radius.pill, borderWidth: 1, borderColor: color, paddingHorizontal: 8, paddingVertical: 2, alignSelf: "flex-start" }}>
       <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: color }} />
       <Text style={{ color, fontSize: font.xs, fontWeight: "600" }}>{label}</Text>
+    </View>
+  );
+}
+
+/** The desktop card's status badge: white on dark glass, ringed in the status colour, over the cover. */
+export function StatusBadge({ status }: { status: string }) {
+  const s = STATUS[status as ProgressStatus];
+  if (!s) return null;
+  return (
+    <View style={{ borderRadius: radius.pill, borderWidth: 1, borderColor: s.ring, backgroundColor: "rgba(0,0,0,0.64)", paddingHorizontal: 8, paddingVertical: 3 }}>
+      <Text style={{ color: "#FFFFFF", fontSize: 11, fontWeight: "700" }}>{s.label}</Text>
+    </View>
+  );
+}
+
+/** "★ 9/10", as under a rated card on the desktop. */
+export function RatingLine({ rating }: { rating: number }) {
+  const c = useColors();
+  return (
+    <View accessible accessibilityLabel={`Your rating: ${rating} out of 10`} style={{ flexDirection: "row", alignItems: "center", gap: 4 }}>
+      <FontAwesome name="star" size={12} color="#D69E2E" />
+      <Text style={{ color: c.text, fontSize: font.xs, fontWeight: "600" }}>{rating}/10</Text>
+    </View>
+  );
+}
+
+/** A small label: genre tags on recommendations, "2 games" on a collection (tone "accent"). */
+export function Tag({ label, tone = "neutral" }: { label: string; tone?: "neutral" | "accent" }) {
+  const c = useColors();
+  const accent = tone === "accent";
+  return (
+    <View style={{ borderRadius: accent ? radius.pill : 4, backgroundColor: accent ? c.accentSoft : c.cardAlt, paddingHorizontal: 6, paddingVertical: 2, alignSelf: "flex-start" }}>
+      <Text style={{ color: accent ? c.accent : c.text, fontSize: 11, fontWeight: "600" }}>{label}</Text>
     </View>
   );
 }

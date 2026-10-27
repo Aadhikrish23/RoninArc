@@ -44,17 +44,28 @@ export function useColors(): Colors {
 }
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
-export const radius = { sm: 6, md: 10, lg: 14, pill: 999 } as const;
+// Chakra radii as the desktop uses them: md (buttons, inputs) 6, lg 8, xl (cards) 12.
+export const radius = { sm: 6, md: 8, lg: 12, pill: 999 } as const;
+
+/** Chakra's "sm" shadow, which every desktop card carries. */
+export const cardShadow = {
+  shadowColor: "#000",
+  shadowOpacity: 0.06,
+  shadowRadius: 3,
+  shadowOffset: { width: 0, height: 1 },
+  elevation: 1,
+} as const;
 export const font = { xs: 12, sm: 14, md: 16, lg: 18, xl: 22, xxl: 28 } as const;
 
 export type ProgressStatus = "plan" | "playing" | "paused" | "completed" | "dropped";
 
-export const STATUS: Record<ProgressStatus, { label: string; light: string; dark: string }> = {
-  plan: { label: "Plan to Play", light: "#B7791F", dark: "#F6E05E" },
-  playing: { label: "Playing", light: "#6B46C1", dark: "#B794F4" },
-  paused: { label: "Paused", light: "#C05621", dark: "#F6AD55" },
-  completed: { label: "Completed", light: "#2F855A", dark: "#68D391" },
-  dropped: { label: "Dropped", light: "#C53030", dark: "#FC8181" },
+// `ring` is the desktop card badge's border: the status colour at Chakra's .300 step.
+export const STATUS: Record<ProgressStatus, { label: string; light: string; dark: string; ring: string }> = {
+  plan: { label: "Plan to Play", light: "#B7791F", dark: "#F6E05E", ring: "#F6E05E" },
+  playing: { label: "Playing", light: "#6B46C1", dark: "#B794F4", ring: "#B794F4" },
+  paused: { label: "Paused", light: "#C05621", dark: "#F6AD55", ring: "#F6AD55" },
+  completed: { label: "Completed", light: "#2F855A", dark: "#68D391", ring: "#68D391" },
+  dropped: { label: "Dropped", light: "#C53030", dark: "#FC8181", ring: "#FC8181" },
 };
 
 export const STATUS_ORDER: ProgressStatus[] = ["playing", "paused", "plan", "completed", "dropped"];

@@ -1,5 +1,5 @@
-import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Platform, View, type TextInput } from "react-native";
+import { useRef, useState, type ComponentRef } from "react";
+import { KeyboardAvoidingView, Platform, View, TextInput } from "react-native";
 import { Link } from "expo-router";
 import { useAuth } from "@/auth/AuthProvider";
 import { Button, Card, Field, Heading, Screen, T } from "@/ui/components";
@@ -11,7 +11,7 @@ export default function SignIn() {
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const passwordRef = useRef<TextInput>(null);
+  const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const submit = async () => {
     if (!username.trim() || !password) return setError("Enter your username and password.");

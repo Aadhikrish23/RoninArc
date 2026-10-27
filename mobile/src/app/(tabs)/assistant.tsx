@@ -133,7 +133,7 @@ export default function Assistant() {
                   Thinking…
                 </T>
               </View>
-            ) : null
+            ) : undefined
           }
         />
 
