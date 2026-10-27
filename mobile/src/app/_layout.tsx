@@ -8,8 +8,10 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "@/auth/AuthProvider";
 import { queryClient } from "@/data/queryClient";
 import { useColors } from "@/ui/theme";
+import { applyOrientationPolicy } from "@/ui/orientation";
 
 SplashScreen.preventAutoHideAsync();
+
 
 function Routes() {
   const { ready, user } = useAuth();
@@ -17,6 +19,7 @@ function Routes() {
   useEffect(() => {
     if (ready) SplashScreen.hideAsync();
   }, [ready]);
+  useEffect(applyOrientationPolicy, []);
   if (!ready) return null;
 
   return (
@@ -24,6 +27,7 @@ function Routes() {
       <Stack.Protected guard={!!user}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="game/[id]" options={{ title: "" }} />
+        <Stack.Screen name="assistant" options={{ headerShown: false, presentation: "modal", animation: "slide_from_bottom" }} />
         <Stack.Screen name="games" options={{ headerShown: false }} />
         <Stack.Screen name="add" options={{ title: "Add a game", presentation: "modal" }} />
         <Stack.Screen name="collection/[id]" options={{ headerShown: false }} />

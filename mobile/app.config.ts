@@ -11,6 +11,8 @@ const config: ExpoConfig = {
   name: "RoninArc",
   slug: "roninarc",
   version: "1.0.0",
+  // Portrait in the config (Expo Go fell over with "default"); tablets unlock rotation at runtime
+  // (src/ui/orientation.ts).
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: "roninarc",
@@ -34,6 +36,8 @@ const config: ExpoConfig = {
     ["expo-splash-screen", { backgroundColor: "#1C1C1C", image: "./assets/images/splash-icon.png", imageWidth: 200 }],
     // Plain http is only allowed for a local test cloud; a real one is https.
     ["expo-build-properties", { android: { usesCleartextTraffic: cloudUrl.startsWith("http://") } }],
+    // Keeps the native build under Windows' 260-character path limit (see the plugin).
+    "./plugins/withShortCxxDir",
   ],
   experiments: { typedRoutes: true, reactCompiler: true },
   extra: { cloudUrl },

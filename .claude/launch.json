@@ -57,6 +57,14 @@
         "mobile/scripts/phone.cjs"
       ],
       "port": 8082
+    },
+    {
+      "name": "mobile-emulator",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "mobile/scripts/emulator.cjs"
+      ],
+      "port": 8083
     }
   ]
 }

@@ -1,7 +1,7 @@
 import { Pressable, View, useWindowDimensions } from "react-native";
 import { router } from "expo-router";
 import type { Game } from "@/api/client";
-import { Cover, RatingLine, StatusBadge, T } from "./components";
+import { Cover, MAX_CONTENT, RatingLine, StatusBadge, T } from "./components";
 import { cardShadow, radius, space, useColors } from "./theme";
 
 export const TILE_WIDTH = 164;
@@ -11,10 +11,12 @@ const COVER_HEIGHT = 140;
  * A game on the library home, built like the desktop's GameCard: a bordered card with the
  * cover on top and the status badge on it, then the title, genres and rating.
  */
-/** Two cards a row, like the desktop's All Games grid. */
+/** A grid of cards like the desktop's All Games: two a row on a phone, more on a tablet. */
 export function GameGrid({ games }: { games: Game[] }) {
   const { width } = useWindowDimensions();
-  const tile = Math.floor((Math.min(width, 720) - space.lg * 2 - space.md) / 2);
+  const inner = Math.min(width, MAX_CONTENT) - space.lg * 2;
+  const columns = Math.max(2, Math.floor((inner + space.md) / (TILE_WIDTH + space.md)));
+  const tile = Math.floor((inner - space.md * (columns - 1)) / columns);
   return (
     <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>
       {games.map((g) => (

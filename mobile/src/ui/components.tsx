@@ -18,9 +18,14 @@ import { Feather, FontAwesome } from "@expo/vector-icons";
 import { SafeAreaView, type Edge } from "react-native-safe-area-context";
 import { cardShadow, font, radius, space, STATUS, useColors, useStatusColor, type ProgressStatus } from "./theme";
 
+/** The widest a page's content gets (tablets, landscape). */
+export const MAX_CONTENT = 1100;
+
 export function Screen({ children, scroll = true, edges = ["top"], padded = true, refreshControl }: { children: ReactNode; scroll?: boolean; edges?: Edge[]; padded?: boolean; refreshControl?: any }) {
   const c = useColors();
-  const inner = padded ? { padding: space.lg, paddingBottom: space.xxl } : undefined;
+  // On a tablet the page is centred at a readable width instead of stretching edge to edge.
+  // The bottom room lets the last row scroll clear of the floating assistant button.
+  const inner = padded ? { padding: space.lg, paddingBottom: 104, width: "100%" as const, maxWidth: MAX_CONTENT, alignSelf: "center" as const } : undefined;
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={edges}>
       {scroll ? (

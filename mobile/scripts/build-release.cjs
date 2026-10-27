@@ -9,6 +9,7 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const path = require("node:path");
 
+// (Windows' 260-character path limit is handled by plugins/withShortCxxDir.js.)
 const root = path.join(__dirname, "..");
 const cloudUrl = process.argv[2] || process.env.RONINARC_CLOUD_URL || "https://roninarc-cloud.onrender.com";
 const signing = JSON.parse(fs.readFileSync(path.join(root, "keystore", "release.json"), "utf8"));

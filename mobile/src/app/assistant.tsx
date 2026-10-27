@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { ActivityIndicator, FlatList, KeyboardAvoidingView, Platform, Pressable, Text, TextInput, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather, Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import type { ChatResponse } from "@/api/client";
 import { resetChat, sendChat, useGames, useInvalidateLibrary } from "@/data/hooks";
 import { Button, T } from "@/ui/components";
@@ -61,11 +62,17 @@ function Rich({ text, color }: { text: string; color: string }) {
   );
 }
 
+// The conversation outlives the screen: closing the assistant and opening it again (from any tab)
+// picks up where you were, like the desktop's chat panel. Cleared by "Clear" or restarting the app.
+let kept: Message[] = [];
+
 export default function Assistant() {
   const c = useColors();
   const games = useGames();
   const invalidate = useInvalidateLibrary();
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessagesState] = useState<Message[]>(kept);
+  const setMessages = (next: Message[] | ((m: Message[]) => Message[])) =>
+    setMessagesState((m) => (kept = typeof next === "function" ? next(m) : next));
   const [text, setText] = useState("");
   const [sending, setSending] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -109,7 +116,7 @@ export default function Assistant() {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: c.bg }} edges={["top", "bottom"]}>
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : "height"}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: space.md, paddingHorizontal: space.lg, paddingVertical: space.md, borderBottomWidth: 1, borderBottomColor: c.border, backgroundColor: c.card }}>
           <Ionicons name="sparkles-outline" size={22} color={c.accent} />
@@ -129,6 +136,16 @@ export default function Assistant() {
               </T>
             </Pressable>
           ) : null}
+          {/* Opened from the floating button over any screen, like the desktop's chat panel. */}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityLabel="Close the assistant"
+            onPress={() => (router.canGoBack() ? router.back() : router.replace("/"))}
+            hitSlop={10}
+            style={{ marginLeft: space.sm }}
+          >
+            <Feather name="x" size={22} color={c.text} />
+          </Pressable>
         </View>
 
         <FlatList
