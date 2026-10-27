@@ -230,7 +230,10 @@ export class AIRuntime {
           if (notice) message = `${notice} ${message}`;
           else if (response.success && domain.phrases.correction.test(cleanRequest)) message = `Sorry about that. ${message}`;
           // "pause rdr2. also is elden ring hard?" -- answer the question part too.
-          if (generalAnswer) message = `${message} ${generalAnswer.trim()}`;
+          if (generalAnswer) {
+            const answer = domain.phrases.actionTalk ? generalAnswer.replace(domain.phrases.actionTalk, "").replace(/\s{2,}/g, " ").trim() : generalAnswer.trim();
+            if (answer) message = `${message} ${answer}`;
+          }
           return { ...response, message };
         };
         const run = (p: IntentPlan) => this.runner.run(p, session, cleanRequest, toolContext, memoryContext, profiler, confirmed);

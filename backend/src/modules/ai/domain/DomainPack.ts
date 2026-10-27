@@ -125,6 +125,12 @@ export interface DomainPhrases {
   looksLikeQuestion: RegExp;
   /** An answer-mode reply claiming it changed something (it can't have). */
   claimsAction: RegExp;
+  /**
+   * Sentences of an answer about doing things ("I can create that collection for you", "I can't
+   * add games"), dropped when the same reply already did the actions: the answer model doesn't
+   * see them and contradicted them.
+   */
+  actionTalk?: RegExp;
   notSureWhatToChange: string;
   notSureWhich: string;
   /** Named items the user doesn't have. */

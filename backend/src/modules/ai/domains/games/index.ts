@@ -107,6 +107,7 @@ export const gamesPack: DomainPack = {
     keepModelReply: KEEP_MODEL_REPLY,
     looksLikeQuestion: LOOKS_LIKE_QUESTION,
     claimsAction: CLAIMS_ACTION,
+    actionTalk: /\bI(?: can(?:'?t|not)?| could|'ll| will| would)\b[^.!?]*\b(add|adding|create|make|put|move|mark|rate|organi[sz]e|collection|library)\b[^.!?]*[.!?]?/gi,
     notSureWhatToChange: NOT_SURE_WHAT_TO_CHANGE,
     notSureWhich: NOT_SURE_WHICH_GAME,
     missing: (names) =>

@@ -47,7 +47,19 @@ function typoDistance(a: string, b: string): number {
   return d[a.length][b.length];
 }
 
+/**
+ * "dark souls 1" / "dark souls i": the first game of a series usually has no number in its title
+ * ("Dark Souls: Remastered"), so a trailing 1 counts as optional when the title has no number.
+ */
 export function titleMatchScore(query: string, title: string): number {
+  const score = scoreTitle(query, title);
+  const q = tokenize(query);
+  const firstOfSeries = q.length > 1 && (q[q.length - 1] === "1" || q[q.length - 1] === "i");
+  if (!firstOfSeries || tokenize(title).some((t) => /^\d+$/.test(t))) return score;
+  return Math.max(score, scoreTitle(q.slice(0, -1).join(" "), title));
+}
+
+function scoreTitle(query: string, title: string): number {
   const q = tokenize(query);
   const t = tokenize(title);
   if (q.length === 0 || t.length === 0) return 0;

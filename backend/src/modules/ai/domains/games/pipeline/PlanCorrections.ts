@@ -3,6 +3,7 @@ import { IntentType } from "../intent/IntentType";
 import { IntentParameterType } from "../../../intent/IntentParameterType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { READ_ONLY } from "../conversation/TargetGrounding";
+import { titleMatchScore } from "../../../../rawg/titleMatch";
 import { asksToReadNotes, collectionDirection, collectionDirectionFor, isQuestionOnly, meansDroppedStatus, statedScore, wasAskedFor } from "../conversation/FollowUps";
 
 /**
@@ -130,5 +131,99 @@ export function correctPlan(plan: IntentPlan, message: string, lastReply = ""): 
     );
   }
 
+  recoverFinishedGames(plan, message);
+  answerTheQuestionToo(plan, message);
+
   return { unrequested };
+}
+
+const FINISHED = /\b(?:i\s+(?:even\s+|just\s+|already\s+|finally\s+)?)?(?:beat|finished|completed|cleared|platinum(?:ed)?)\s+(.+)$/i;
+const COMMENT = /^(its|it's|it was|it is|was|is|so|but|both|really|honestly|which|that was|loved|amazing|great|awesome|fun|mid|meh)\b|\d+\s*(\/|out of)\s*10/i;
+const NOT_A_GAME =/^(it|them|that|this|those|these|the game|the games|all|everything|both|one|ones|game|games)$/i;
+
+/** "i even beat elden ring and dark souls 1": the games named after "beat"/"finished" in a statement. */
+export function finishedGamesIn(message: string): string[] {
+  const names: string[] = [];
+  for (const sentence of message.split(/(?:\.\.\.|[.?!;\n])+/)) {
+    const match = sentence.match(FINISHED);
+    if (!match) continue;
+    // "have i beaten X?", "the ones i completed", "what did i finish": not news about a game.
+    const before = sentence.slice(0, match.index ?? 0);
+    if (/\b(the ones|the games|what|which|have|did|if|should|could|would|will|when|once|after)\s*$/i.test(before) || /\b(have|did)\s+i\b/i.test(sentence)) continue;
+    for (const part of match[1].split(/\s*(?:,|&|\band\b|\balso\b)\s*/i)) {
+      // "beat hades, its a 10/10 honestly": what comes after the games is commentary, not more games.
+      if (COMMENT.test(part)) break;
+      const name = part.replace(/\b(too|as well|already|last (?:week|night|month|year)|yesterday|today|recently)\b/gi, "").replace(/[^\w\s:'&-]+$/g, "").trim();
+      if (name.length >= 2 && !NOT_A_GAME.test(name)) names.push(name);
+    }
+  }
+  return names;
+}
+
+/**
+ * "I like souls games, i even beat elden ring and dark souls 1... should I play ds2 and ds3? make a
+ * collection and put the ones i completed": the model planned the new games and the collection but
+ * dropped the two the user finished. Plan them as Completed (an unowned game is added first), and
+ * when the message asks for "the ones I completed" in a collection, put them in it.
+ */
+function recoverFinishedGames(plan: IntentPlan, message: string) {
+  const finished = finishedGamesIn(message);
+  if (finished.length === 0) return;
+  const completes = (name: string) =>
+    plan.intents.some(
+      (i) =>
+        (i.type === IntentType.CompleteGame || (i.type === IntentType.SetStatus && i.parameters?.some((p) => p.value === "completed"))) &&
+        (i.targets ?? []).some((t) => sameName(t.name, name)),
+    );
+  // Use the model's own spelling of a game it already plans ("Dark Souls I"), so the add-then-mark
+  // step sees one game, not two.
+  const planned = plan.intents.flatMap((i) => i.targets ?? []).filter((t) => t.type !== IntentTargetType.Collection);
+  const spelled = (name: string) => planned.find((t) => sameName(t.name, name))?.name ?? name;
+  for (const name of finished) {
+    if (completes(name)) continue;
+    plan.intents.push({
+      type: IntentType.SetStatus,
+      targets: [{ type: IntentTargetType.Game, name: spelled(name) }],
+      parameters: [{ type: IntentParameterType.Status, value: "completed" }],
+    } as any);
+  }
+  if (!/\b(the ones|the games|ones|games)\s+(?:i(?:'ve| have)?\s+)?(completed|finished|beat|beaten|cleared)\b/i.test(message)) return;
+  const collection = plan.intents
+    .filter((i) => i.type === IntentType.CreateCollection || i.type === IntentType.OrganizeCollection)
+    .flatMap((i) => i.targets ?? [])
+    .find((t) => t.type === IntentTargetType.Collection)?.name;
+  if (!collection) return;
+  for (const name of finished) {
+    const already = plan.intents.some(
+      (i) => i.type === IntentType.OrganizeCollection && (i.targets ?? []).some((t) => t.type !== IntentTargetType.Collection && sameName(t.name, name)),
+    );
+    if (already) continue;
+    plan.intents.push({
+      type: IntentType.OrganizeCollection,
+      targets: [
+        { type: IntentTargetType.Collection, name: collection },
+        { type: IntentTargetType.Game, name },
+      ],
+      parameters: [],
+    } as any);
+  }
+}
+
+// "dark souls 1" and the model's "Dark Souls" are one game, so nothing gets planned twice.
+// "Dark Souls I" (the model) and "dark souls 1" (the message) too.
+const baseName = (s: string) => s.toLowerCase().replace(/[^a-z0-9 ]/g, "").trim().replace(/\s+(1|i)$/, "").replace(/\s+/g, "");
+const sameName = (a?: string, b?: string) => !!a && !!b && (baseName(a) === baseName(b) || titleMatchScore(a, b) >= 90 || titleMatchScore(b, a) >= 90);
+
+/**
+ * "...So should I consider playing ds2 and ds3? If so add them": the message asks something as well
+ * as asking for changes. When the model planned only the changes, add a question for answer mode,
+ * so the reply answers it instead of ignoring it.
+ */
+function answerTheQuestionToo(plan: IntentPlan, message: string) {
+  if (plan.intents.some((i) => i.type === IntentType.AskQuestion || i.type === IntentType.LibraryQuestion)) return;
+  const asks = message
+    .split(/(?<=[.?!])\s+|\.\.\.\s*/)
+    .some((s) => /\?\s*$/.test(s.trim()) && /\b(should|would|is|are|do|does|can|could|which|what|how|worth|better|harder|easier)\b/i.test(s));
+  if (!asks) return;
+  plan.intents.push({ type: IntentType.AskQuestion, targets: [], parameters: [] } as any);
 }

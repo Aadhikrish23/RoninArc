@@ -2,7 +2,7 @@ import { IntentPlan } from "../../../intent/IntentPlan";
 import { IntentType } from "../intent/IntentType";
 import { IntentParameterType } from "../../../intent/IntentParameterType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
-import { namedTitles } from "../conversation/TargetGrounding";
+import { mentions, namedTitles } from "../conversation/TargetGrounding";
 import { namedCollection } from "../conversation/FollowUps";
 import { titleMatchScore } from "../../../../rawg/titleMatch";
 
@@ -19,6 +19,9 @@ const EVIDENCE: Record<string, RegExp> = {
   dropped: /\b(drop\w*|quit\w*|gave up|giving up|abandon\w*|uninstall\w*|over it)\b/i,
   none: /\b(no status|clear( the)? status|reset( the)? status|unmark\w*)\b/i,
 };
+
+/** A clause asking about a game rather than saying what happened to it. */
+const ASKS = /\b(should|could|would|can|do|does|did|will|shall)\s+(i|we|you)\b|\bconsider(ing)?\b|\bworth\b|\bthinking (of|about)\b/i;
 
 /** "bg3", "hades too", "the witcher 3 as well": a clause naming a game and nothing it does. */
 const isBareGame = (clause: string) =>
@@ -40,18 +43,25 @@ export function dropUnstatedStatusChanges(plan: IntentPlan, message: string, own
     const status = String(intent.parameters?.find((p) => p.type === IntentParameterType.Status)?.value ?? "").toLowerCase();
     const evidence = EVIDENCE[status];
     if (!evidence) return true;
+    // "should I consider playing ds2 and ds3?" asks; it doesn't say they're being played.
+    const states = (c: string) => evidence.test(c) && !ASKS.test(c);
     const title = intent.targets?.find((t) => t.type === IntentTargetType.Game || t.type === IntentTargetType.Library)?.name ?? "";
-    const own = clauses.filter((c) => title && namedTitles(c, [title, ...owned.filter((t) => t !== title)])[0] === title);
+    // A clause names the game by its title or a short form ("ds2" is Dark Souls II, a game the plan is
+    // only now adding): without the short form, "should I play ds2 ... the ones i completed" let the
+    // model mark Dark Souls II Completed on the strength of a word in another clause.
+    const own = clauses.filter((c) => title && (namedTitles(c, [title, ...owned.filter((t) => t !== title)])[0] === title || mentions(c, title)));
     if (own.length === 0) return evidence.test(message);
     // "how long is disco elysium? ..., unpause it": the status word can sit in a clause that names
     // no game and points back with "it".
-    const pointsBack = clauses.some((c) => evidence.test(c) && namedTitles(c, owned).length === 0);
+    // Only a clause that actually points back ("unpause it"): "put the ones i completed" names no
+    // game either, and once let the model mark Dark Souls II and III Completed.
+    const pointsBack = clauses.some((c) => evidence.test(c) && /\b(it|this|that|them|this one|that one)\b/i.test(c) && namedTitles(c, owned).length === 0);
     // "im playing elden ring and bg3": a clause that's just a game shares the status word before it.
     const sharesPrevious = own.some((c) => {
       const i = clauses.indexOf(c);
-      return i > 0 && isBareGame(c) && evidence.test(clauses[i - 1]);
+      return i > 0 && isBareGame(c) && states(clauses[i - 1]);
     });
-    return own.some((c) => evidence.test(c)) || pointsBack || sharesPrevious;
+    return own.some(states) || pointsBack || sharesPrevious;
   });
   return before - plan.intents.length;
 }
