@@ -1,6 +1,9 @@
 import { useState } from "react";
+import { Pressable, View } from "react-native";
+import { router } from "expo-router";
 import { useAuth } from "@/auth/AuthProvider";
-import { Button, Card, Field, Screen, T } from "@/ui/components";
+import { Button, Field, T } from "@/ui/components";
+import { AuthShell } from "@/ui/AuthShell";
 import { space } from "@/ui/theme";
 
 export default function SignUp() {
@@ -27,21 +30,33 @@ export default function SignUp() {
   };
 
   return (
-    <Screen edges={["bottom"]}>
-      <Card style={{ gap: space.lg }}>
-        <Field label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username-new" />
-        <Field label="Email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" hint="Only for resetting a forgotten password." />
-        <Field label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" hint="At least 6 characters." />
-        {error ? (
-          <T tone="danger" size="sm" accessibilityLiveRegion="polite">
-            {error}
+    <AuthShell
+      title="Welcome, Ronin"
+      footer={
+        <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: space.xs }}>
+          <T size="sm" style={{ color: "#A0AEC0" }}>
+            Already have an account?
           </T>
-        ) : null}
-        <Button title="Create account" onPress={submit} loading={busy} />
-        <T tone="faint" size="xs">
-          Already use RoninArc on your PC? Sign in there with this account under Settings, RoninArc Cloud, and your library syncs.
+          <Pressable accessibilityRole="link" accessibilityLabel="Log in" onPress={() => (router.canGoBack() ? router.back() : router.replace("/sign-in"))} hitSlop={8}>
+            <T size="sm" weight="600" style={{ color: "#B794F4" }}>
+              Log in
+            </T>
+          </Pressable>
+        </View>
+      }
+    >
+      <Field label="Username" placeholder="Enter your username" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username-new" />
+      <Field label="Email" placeholder="Enter your email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" hint="Only for resetting a forgotten password." />
+      <Field label="Password" placeholder="Enter your password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" hint="At least 6 characters." />
+      {error ? (
+        <T tone="danger" size="sm" accessibilityLiveRegion="polite">
+          {error}
         </T>
-      </Card>
-    </Screen>
+      ) : null}
+      <Button title="Create account" onPress={submit} loading={busy} variant="brand" />
+      <T size="xs" style={{ color: "#A0AEC0", textAlign: "center" }}>
+        Already use RoninArc on your PC? Sign in there with this account under Settings → RoninArc Cloud, and your library syncs.
+      </T>
+    </AuthShell>
   );
 }

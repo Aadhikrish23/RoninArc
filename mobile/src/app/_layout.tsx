@@ -24,14 +24,14 @@ function Routes() {
       <Stack.Protected guard={!!user}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="game/[id]" options={{ title: "" }} />
-        <Stack.Screen name="games" options={{ title: "All games" }} />
+        <Stack.Screen name="games" options={{ headerShown: false }} />
         <Stack.Screen name="add" options={{ title: "Add a game", presentation: "modal" }} />
-        <Stack.Screen name="collection/[id]" options={{ title: "" }} />
+        <Stack.Screen name="collection/[id]" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={!user}>
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
-        <Stack.Screen name="sign-up" options={{ title: "Create account" }} />
-        <Stack.Screen name="forgot-password" options={{ title: "Reset password" }} />
+        <Stack.Screen name="sign-up" options={{ headerShown: false }} />
+        <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );

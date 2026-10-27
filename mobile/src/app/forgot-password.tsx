@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { router } from "expo-router";
 import { api } from "@/api/client";
-import { Button, Card, Field, Screen, T } from "@/ui/components";
-import { space } from "@/ui/theme";
+import { Button, Field, T } from "@/ui/components";
+import { AuthShell } from "@/ui/AuthShell";
 
 export default function ForgotPassword() {
   const [identifier, setIdentifier] = useState("");
@@ -24,29 +24,28 @@ export default function ForgotPassword() {
   };
 
   return (
-    <Screen edges={["bottom"]}>
-      <Card style={{ gap: space.lg }}>
+    <AuthShell title="Reset your password">
         {sent ? (
           <>
             <T accessibilityLiveRegion="polite">{sent}</T>
             <T tone="muted" size="sm">
               Open the link on any device, set a new password, then sign in with it here.
             </T>
-            <Button title="Back to sign in" onPress={() => router.back()} />
+            <Button title="Back to sign in" onPress={() => router.back()} variant="brand" />
           </>
         ) : (
           <>
-            <T tone="muted">We'll email you a link to set a new password.</T>
+            <T tone="muted">{"We'll email you a link to set a new password."}</T>
             <Field label="Email or username" value={identifier} onChangeText={setIdentifier} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" returnKeyType="send" onSubmitEditing={submit} />
             {error ? (
               <T tone="danger" size="sm">
                 {error}
               </T>
             ) : null}
-            <Button title="Email me a link" onPress={submit} loading={busy} disabled={!identifier.trim()} />
+            <Button title="Email me a link" onPress={submit} loading={busy} disabled={!identifier.trim()} variant="brand" />
+            <Button title="Back to sign in" variant="ghost" onPress={() => router.back()} />
           </>
         )}
-      </Card>
-    </Screen>
+    </AuthShell>
   );
 }

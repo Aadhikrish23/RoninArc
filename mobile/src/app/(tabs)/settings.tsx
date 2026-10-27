@@ -3,7 +3,7 @@ import { Alert, Linking, View } from "react-native";
 import Constants from "expo-constants";
 import { api, CLOUD_URL } from "@/api/client";
 import { useAuth } from "@/auth/AuthProvider";
-import { Button, Card, Field, Heading, Screen, SectionTitle, T } from "@/ui/components";
+import { Button, Field, PageHeader, Panel, Screen, T, Tag } from "@/ui/components";
 import { space } from "@/ui/theme";
 
 export default function Settings() {
@@ -53,50 +53,46 @@ export default function Settings() {
 
   return (
     <Screen>
-      <Heading>Settings</Heading>
+      <PageHeader title="Settings" subtitle="Your RoninArc Cloud account and how it syncs with your PC." />
 
-      <SectionTitle title="Account" />
-      <Card style={{ gap: space.md }}>
-        <View style={{ gap: 2 }}>
-          <T weight="600">{user?.name}</T>
+      <Panel icon="user" title="Account" subtitle="Your RoninArc profile.">
+        <View style={{ gap: space.xs }}>
+          <Tag tone="accent" label={user?.name ?? ""} />
           {user?.email ? (
             <T tone="muted" size="sm">
               {user.email}
             </T>
           ) : null}
         </View>
-        <Button title="Sign out" variant="outline" loading={busy === "out"} onPress={() => (setBusy("out"), signOut().finally(() => setBusy(null)))} />
-      </Card>
+        <Button title="Log out" variant="outline" loading={busy === "out"} onPress={() => (setBusy("out"), signOut().finally(() => setBusy(null)))} />
+      </Panel>
 
-      <SectionTitle title="Change password" />
-      <Card style={{ gap: space.md }}>
+      <Panel icon="monitor" title="Your PC" subtitle="Use the same library on your computer.">
+        <T size="sm" tone="muted">
+          {"Open RoninArc on your PC, go to Settings → RoninArc Cloud, and choose \"I already have one\". It keeps working offline on the PC and syncs when it's online."}
+        </T>
+      </Panel>
+
+      <Panel icon="lock" title="Security" subtitle="Change your password. It signs you out everywhere.">
         <Field label="Current password" value={current} onChangeText={setCurrent} secureTextEntry autoComplete="current-password" />
-        <Field label="New password" value={next} onChangeText={setNext} secureTextEntry autoComplete="new-password" hint="At least 6 characters. Signs you out everywhere." />
+        <Field label="New password" value={next} onChangeText={setNext} secureTextEntry autoComplete="new-password" hint="At least 6 characters." />
         {message ? (
           <T tone={message.ok ? "success" : "danger"} size="sm">
             {message.text}
           </T>
         ) : null}
         <Button title="Change password" variant="outline" disabled={!current || next.length < 6} loading={busy === "password"} onPress={changePassword} />
-      </Card>
+      </Panel>
 
-      <SectionTitle title="Your PC" />
-      <Card style={{ gap: space.sm }}>
-        <T size="sm" tone="muted">
-          To use this library on your PC, open RoninArc there, go to Settings, RoninArc Cloud, and choose "I already have one". It keeps working offline on the PC and syncs when it's online.
-        </T>
-      </Card>
-
-      <SectionTitle title="Delete account" />
-      <Card style={{ gap: space.md }}>
+      <Panel icon="alert-triangle" title="Danger zone" subtitle="Permanent actions." tone="danger">
         <Field label="Password" value={deletePassword} onChangeText={setDeletePassword} secureTextEntry autoComplete="current-password" hint="Deletes your account and library everywhere." />
         {deleteError ? (
           <T tone="danger" size="sm">
             {deleteError}
           </T>
         ) : null}
-        <Button title="Delete account" variant="danger" disabled={!deletePassword} loading={busy === "delete"} onPress={deleteAccount} />
-      </Card>
+        <Button title="Delete account" variant="dangerSolid" disabled={!deletePassword} loading={busy === "delete"} onPress={deleteAccount} style={{ alignSelf: "flex-start" }} />
+      </Panel>
 
       <T size="xs" tone="faint" style={{ marginTop: space.xl, textAlign: "center" }} onLongPress={() => Linking.openURL(`${CLOUD_URL}/health`)}>
         RoninArc {Constants.expoConfig?.version ?? ""}

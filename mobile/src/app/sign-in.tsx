@@ -1,8 +1,9 @@
 import { useRef, useState, type ComponentRef } from "react";
-import { KeyboardAvoidingView, Platform, View, TextInput } from "react-native";
-import { Link } from "expo-router";
+import { Pressable, View, TextInput } from "react-native";
+import { router } from "expo-router";
 import { useAuth } from "@/auth/AuthProvider";
-import { Button, Card, Field, Heading, Screen, T } from "@/ui/components";
+import { Button, Field, T } from "@/ui/components";
+import { AuthShell } from "@/ui/AuthShell";
 import { space } from "@/ui/theme";
 
 export default function SignIn() {
@@ -27,34 +28,37 @@ export default function SignIn() {
   };
 
   return (
-    <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-      <Screen edges={["top", "bottom"]}>
-        <View style={{ gap: space.xs, marginTop: space.xxl, marginBottom: space.xl }}>
-          <Heading size="xxl">RoninArc</Heading>
-          <T tone="muted">Your game library, on your phone. Sign in with the account you use on your PC.</T>
-        </View>
-        <Card style={{ gap: space.lg }}>
-          <Field label="Username" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" textContentType="username" returnKeyType="next" onSubmitEditing={() => passwordRef.current?.focus()} />
-          <Field ref={passwordRef} label="Password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" returnKeyType="go" onSubmitEditing={submit} />
-          {error ? (
-            <T tone="danger" size="sm" accessibilityLiveRegion="polite">
-              {error}
-            </T>
-          ) : null}
-          <Button title="Sign in" onPress={submit} loading={busy} />
-          <Link href="/forgot-password" asChild>
-            <Button title="Forgot password?" variant="ghost" />
-          </Link>
-        </Card>
-        <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: space.xs, marginTop: space.xl }}>
-          <T tone="muted" size="sm">
-            New to RoninArc?
+    <AuthShell
+      title="Welcome back, Ronin"
+      footer={
+        <View style={{ flexDirection: "row", justifyContent: "center", alignItems: "center", gap: space.xs }}>
+          <T size="sm" style={{ color: "#A0AEC0" }}>
+            {"Don't have an account?"}
           </T>
-          <Link href="/sign-up" asChild>
-            <Button title="Create an account" variant="ghost" style={{ paddingHorizontal: space.sm }} />
-          </Link>
+          <Pressable accessibilityRole="link" accessibilityLabel="Sign up" onPress={() => router.push("/sign-up")} hitSlop={8}>
+            <T size="sm" weight="600" style={{ color: "#B794F4" }}>
+              Sign up
+            </T>
+          </Pressable>
         </View>
-      </Screen>
-    </KeyboardAvoidingView>
+      }
+    >
+      <Field label="Username" placeholder="Enter your username" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" textContentType="username" returnKeyType="next" onSubmitEditing={() => passwordRef.current?.focus()} />
+      <Field ref={passwordRef} label="Password" placeholder="Enter your password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" returnKeyType="go" onSubmitEditing={submit} />
+      <Pressable accessibilityRole="link" accessibilityLabel="Forgot password?" onPress={() => router.push("/forgot-password")} hitSlop={8} style={{ alignSelf: "flex-end", marginTop: -space.sm }}>
+        <T size="sm" style={{ color: "#B794F4" }}>
+          Forgot password?
+        </T>
+      </Pressable>
+      {error ? (
+        <T tone="danger" size="sm" accessibilityLiveRegion="polite">
+          {error}
+        </T>
+      ) : null}
+      <Button title="Log in" onPress={submit} loading={busy} variant="brand" />
+      <T size="xs" style={{ color: "#A0AEC0", textAlign: "center" }}>
+        Use the same account as RoninArc on your PC and your library comes along.
+      </T>
+    </AuthShell>
   );
 }

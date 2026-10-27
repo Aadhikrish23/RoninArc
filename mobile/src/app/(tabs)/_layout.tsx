@@ -7,15 +7,17 @@ import { radius, useColors } from "@/ui/theme";
 function TabIcon({ name, color, focused }: { name: keyof typeof Feather.glyphMap; color: ColorValue; focused: boolean }) {
   const c = useColors();
   return (
-    <View style={{ paddingHorizontal: 16, paddingVertical: 4, borderRadius: radius.md, backgroundColor: focused ? c.accent : "transparent" }}>
-      <Feather name={name} size={20} color={focused ? c.onAccent : (color as string)} />
+    <View style={{ paddingHorizontal: 16, paddingVertical: 4, borderRadius: radius.md, backgroundColor: focused ? c.accentFill : "transparent" }}>
+      <Feather name={name} size={20} color={focused ? c.onAccentFill : (color as string)} />
     </View>
   );
 }
 
-const icon =
-  (name: keyof typeof Feather.glyphMap) =>
-  ({ color, focused }: { color: ColorValue; focused: boolean }) => <TabIcon name={name} color={color} focused={focused} />;
+function icon(name: keyof typeof Feather.glyphMap) {
+  const Icon = ({ color, focused }: { color: ColorValue; focused: boolean }) => <TabIcon name={name} color={color} focused={focused} />;
+  Icon.displayName = `TabIcon(${name})`;
+  return Icon;
+}
 
 export default function TabsLayout() {
   const c = useColors();

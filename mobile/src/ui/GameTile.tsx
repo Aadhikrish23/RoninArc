@@ -1,4 +1,4 @@
-import { Pressable, View } from "react-native";
+import { Pressable, View, useWindowDimensions } from "react-native";
 import { router } from "expo-router";
 import type { Game } from "@/api/client";
 import { Cover, RatingLine, StatusBadge, T } from "./components";
@@ -11,7 +11,20 @@ const COVER_HEIGHT = 140;
  * A game on the library home, built like the desktop's GameCard: a bordered card with the
  * cover on top and the status badge on it, then the title, genres and rating.
  */
-export function GameTile({ game }: { game: Game }) {
+/** Two cards a row, like the desktop's All Games grid. */
+export function GameGrid({ games }: { games: Game[] }) {
+  const { width } = useWindowDimensions();
+  const tile = Math.floor((Math.min(width, 720) - space.lg * 2 - space.md) / 2);
+  return (
+    <View style={{ flexDirection: "row", flexWrap: "wrap", gap: space.md }}>
+      {games.map((g) => (
+        <GameTile key={g._id} game={g} width={tile} />
+      ))}
+    </View>
+  );
+}
+
+export function GameTile({ game, width = TILE_WIDTH }: { game: Game; width?: number }) {
   const c = useColors();
   const genres = (game.tags ?? []).slice(0, 3).join(", ");
   return (
@@ -20,7 +33,7 @@ export function GameTile({ game }: { game: Game }) {
       accessibilityLabel={`${game.title}, ${game.progressStatus}`}
       onPress={() => router.push({ pathname: "/game/[id]", params: { id: game._id } })}
       style={({ pressed }) => ({
-        width: TILE_WIDTH,
+        width,
         borderRadius: radius.lg,
         borderWidth: 1,
         borderColor: pressed ? c.accent : c.border,
@@ -31,7 +44,7 @@ export function GameTile({ game }: { game: Game }) {
       })}
     >
       <View>
-        <Cover uri={game.imageURL} title={game.title} width={TILE_WIDTH} height={COVER_HEIGHT} rounded={0} />
+        <Cover uri={game.imageURL} title={game.title} width={width} height={Math.round((COVER_HEIGHT / TILE_WIDTH) * width)} rounded={0} />
         <View style={{ position: "absolute", top: space.sm, right: space.sm }}>
           <StatusBadge status={game.progressStatus} />
         </View>

@@ -1,4 +1,14 @@
+import { createContext, useContext } from "react";
 import { useColorScheme } from "react-native";
+
+/** Pins a part of the screen to one scheme: sign-in is always dark, like the desktop's login. */
+const SchemeOverride = createContext<"light" | "dark" | null>(null);
+export const ForceScheme = SchemeOverride.Provider;
+
+function useScheme() {
+  const system = useColorScheme();
+  return useContext(SchemeOverride) ?? system;
+}
 
 /**
  * The desktop app's palette (Chakra's gray and purple scales), so the phone looks like the same
@@ -16,6 +26,11 @@ const palette = {
     accent: "#6B46C1", // purple.600
     accentSoft: "#E9D8FD", // purple.100
     onAccent: "#FFFFFF",
+    // Chakra's solid purple button and the active nav pill: purple.500 in light mode.
+    accentFill: "#805AD5",
+    onAccentFill: "#FFFFFF",
+    dangerSoft: "#FFF5F5", // red.50, the desktop's Danger zone panel
+    progress: "#38A169", // green.500, the desktop's backlog bar
     danger: "#C53030",
     success: "#2F855A",
     warning: "#B7791F",
@@ -31,6 +46,11 @@ const palette = {
     accent: "#9F7AEA", // purple.400
     accentSoft: "#322659", // purple.900
     onAccent: "#FFFFFF",
+    // Dark mode Chakra: purple.200 buttons with dark text.
+    accentFill: "#D6BCFA",
+    onAccentFill: "#1A202C",
+    dangerSoft: "#2D1B1F",
+    progress: "#68D391",
     danger: "#FC8181",
     success: "#68D391",
     warning: "#F6AD55",
@@ -40,7 +60,7 @@ const palette = {
 export type Colors = { [K in keyof (typeof palette)["dark"]]: string };
 
 export function useColors(): Colors {
-  return useColorScheme() === "light" ? palette.light : palette.dark;
+  return useScheme() === "light" ? palette.light : palette.dark;
 }
 
 export const space = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32 } as const;
@@ -71,7 +91,7 @@ export const STATUS: Record<ProgressStatus, { label: string; light: string; dark
 export const STATUS_ORDER: ProgressStatus[] = ["playing", "paused", "plan", "completed", "dropped"];
 
 export function useStatusColor(status: string): string {
-  const scheme = useColorScheme();
+  const scheme = useScheme();
   const s = STATUS[status as ProgressStatus] ?? STATUS.plan;
   return scheme === "light" ? s.light : s.dark;
 }

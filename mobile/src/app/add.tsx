@@ -3,7 +3,7 @@ import { FlatList, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
 import type { RawgResult } from "@/api/client";
 import { useAddGame, useRawgSearch } from "@/data/hooks";
-import { Button, Cover, Empty, Field, Loading, Row, T } from "@/ui/components";
+import { Button, Card, Cover, Empty, Field, Loading, T } from "@/ui/components";
 import { space, useColors } from "@/ui/theme";
 
 function useDebounced<T>(value: T, ms: number) {
@@ -25,8 +25,9 @@ export default function AddGame() {
   const [error, setError] = useState<string | null>(null);
   const c = useColors();
 
-  const results: (RawgResult & { owned?: boolean })[] = [
-    ...(search.data?.owned ?? []).map((r) => ({ ...r, owned: true })),
+  // Owned matches come back as library games ("title", "_id"), not RAWG results ("name", "id").
+  const results: (RawgResult & { ownedId?: string })[] = [
+    ...(search.data?.owned ?? []).map((g: any) => ({ id: g.rawgId ?? g._id, name: g.title, imageURL: g.imageURL, genres: g.tags ?? [], released: g.released ?? null, ownedId: g._id })),
     ...(search.data?.discover ?? []),
   ];
 
@@ -43,7 +44,7 @@ export default function AddGame() {
   return (
     <View style={{ flex: 1, backgroundColor: c.bg }}>
       <View style={{ padding: space.lg, gap: space.sm }}>
-        <Field label="Game" placeholder="e.g. hollow knight, rdr 2, ds3" value={text} onChangeText={setText} autoFocus autoCorrect={false} returnKeyType="search" />
+        <Field label="Search games" hideLabel placeholder="Search games… e.g. hollow knight, rdr 2, ds3" value={text} onChangeText={setText} autoFocus autoCorrect={false} returnKeyType="search" />
         {error ? (
           <T tone="danger" size="sm">
             {error}
@@ -63,27 +64,27 @@ export default function AddGame() {
           data={results}
           keyExtractor={(r) => String(r.id)}
           contentContainerStyle={{ paddingHorizontal: space.lg, paddingBottom: space.xxl }}
-          ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: c.border, marginVertical: space.sm }} />}
+          ItemSeparatorComponent={() => <View style={{ height: space.sm }} />}
           keyboardShouldPersistTaps="handled"
           renderItem={({ item }) => {
-            const inLibrary = item.owned || added[item.id];
+            const openId = item.ownedId ?? added[item.id];
             return (
-              <Row accessibilityLabel={item.name} disabled>
-                <Cover uri={item.imageURL ?? undefined} title={item.name} width={48} height={64} />
+              <Card accessibilityLabel={item.name} style={{ flexDirection: "row", alignItems: "center", gap: space.md, padding: space.sm, paddingRight: space.md }}>
+                <Cover uri={item.imageURL ?? undefined} title={item.name} width={48} height={64} rounded={6} />
                 <View style={{ flex: 1, gap: 2 }}>
-                  <T weight="600" numberOfLines={2}>
+                  <T weight="700" numberOfLines={2}>
                     {item.name}
                   </T>
                   <T size="xs" tone="muted" numberOfLines={1}>
                     {[item.released?.slice(0, 4), item.genres?.slice(0, 2).join(", ")].filter(Boolean).join(" · ")}
                   </T>
                 </View>
-                {inLibrary ? (
-                  <Button title={added[item.id] ? "Open" : "In library"} variant="outline" onPress={() => (added[item.id] ? router.replace({ pathname: "/game/[id]", params: { id: added[item.id] } }) : undefined)} disabled={!added[item.id]} />
+                {openId ? (
+                  <Button title="Open" size="sm" variant="accent" accessibilityLabel={`Open ${item.name}, in your library`} onPress={() => router.replace({ pathname: "/game/[id]", params: { id: openId } })} />
                 ) : (
-                  <Button title="Add" icon="plus" onPress={() => onAdd(item)} loading={add.isPending && add.variables?.id === item.id} accessibilityLabel={`Add ${item.name}`} />
+                  <Button title="Add" size="sm" icon="plus" onPress={() => onAdd(item)} loading={add.isPending && add.variables?.id === item.id} accessibilityLabel={`Add ${item.name}`} />
                 )}
-              </Row>
+              </Card>
             );
           }}
         />
