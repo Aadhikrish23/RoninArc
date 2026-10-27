@@ -4,7 +4,7 @@
 // over Wi-Fi (a "Public" network). Your code changes still reload on the phone instantly.
 const { spawn } = require("node:child_process");
 const path = require("node:path");
-const child = spawn("npx", ["expo", "start", "--tunnel", "--port", "8082"], {
+const child = spawn("npx", ["expo", "start", "--tunnel", "ngrok", "--port", "8082"], {
   cwd: path.join(__dirname, ".."),
   stdio: "inherit",
   shell: true,
