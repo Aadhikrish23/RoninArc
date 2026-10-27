@@ -193,6 +193,16 @@ function recoverFinishedGames(plan: IntentPlan, message: string) {
     .flatMap((i) => i.targets ?? [])
     .find((t) => t.type === IntentTargetType.Collection)?.name;
   if (!collection) return;
+  // "put the ones I completed" in it: the model also put in DS2 and DS3, which the user only asked
+  // about. Unless the message asks for suggestions in there too, only finished games go in.
+  if (!/\b(ones?|games?)\s+(you|u)\s+(suggest|recommend)/i.test(message)) {
+    plan.intents = plan.intents.filter(
+      (i) =>
+        i.type !== IntentType.OrganizeCollection ||
+        !(i.targets ?? []).some((t) => t.type === IntentTargetType.Collection && t.name === collection) ||
+        (i.targets ?? []).filter((t) => t.type !== IntentTargetType.Collection).every((t) => finished.some((f) => sameName(t.name, f))),
+    );
+  }
   for (const name of finished) {
     const already = plan.intents.some(
       (i) => i.type === IntentType.OrganizeCollection && (i.targets ?? []).some((t) => t.type !== IntentTargetType.Collection && sameName(t.name, name)),
