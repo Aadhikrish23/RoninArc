@@ -55,6 +55,7 @@ const syncLibrary = async (userId: string) => {
             productId: game.productId,
             catalogItemId: game.catalogItemId,
             namespace: game.namespace,
+            appName: game.appName,
             title: game.sandboxName,
             owned: true,
             provider: "epic",

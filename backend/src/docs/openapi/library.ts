@@ -25,6 +25,9 @@ const providerLink: Schema = {
     executable: { type: "string" },
     launcher: { type: "string" },
     manifestId: { type: ["string", "number"] },
+    namespace: { type: "string" },
+    appName: { type: "string" },
+    productSlug: { type: "string" },
     syncedAt: dateTime,
   },
 };

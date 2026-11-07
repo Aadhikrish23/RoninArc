@@ -33,6 +33,7 @@ RoninArc runs on Windows only for now.
   - "undo that"
   - "is elden ring harder than ds3?"
 - **Launch** a game straight from RoninArc (for games installed on this PC).
+- **Install** a Steam or Epic game you own but don't have on this PC: its card has a button that opens the install page in Steam or Epic. Once it's installed, use **Rescan PC Games** to launch it from RoninArc.
 
 ## What needs internet
 

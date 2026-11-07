@@ -25,6 +25,9 @@ declare global {
 
       launchGame: (gameId: string, exePath: string) => Promise<boolean>;
 
+      /** Opens a game's install page in Steam or Epic; false if that didn't work. */
+      openInstallPage?: (uri: string) => Promise<boolean>;
+
       scanEpicGames: () => Promise<EpicGame[]>;
 
       onGameExited?: (callback: (gameId: string) => void) => () => void;

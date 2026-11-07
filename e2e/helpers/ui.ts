@@ -42,16 +42,21 @@ export const assistant = (page: Page) => page.getByRole("dialog", { name: "AI As
  * `window.electronAPI` that records launches instead of starting processes.
  * Launch, Running and Rescan controls only exist in the desktop shell.
  */
-export async function emulateDesktop(page: Page, opts: { exePath?: string | null } = {}) {
+export async function emulateDesktop(page: Page, opts: { exePath?: string | null; installOpens?: boolean } = {}) {
   const exePath = opts.exePath === undefined ? "C:\\Games\\Game.exe" : opts.exePath;
-  await page.addInitScript((picked) => {
+  await page.addInitScript(([picked, installOpens]) => {
     const w = window as any;
     w.__launched = [];
+    w.__installLinks = [];
     w.electronAPI = {
       selectExePath: async () => picked,
       launchGame: async (gameId: string, path: string) => {
         w.__launched.push({ gameId, path });
         return true;
+      },
+      openInstallPage: async (uri: string) => {
+        w.__installLinks.push(uri);
+        return installOpens;
       },
       scanEpicGames: async () => [],
       scanSteamGames: async () => [],
@@ -62,5 +67,5 @@ export async function emulateDesktop(page: Page, opts: { exePath?: string | null
       epicLogin: async () => null,
       steamLogin: async () => null,
     };
-  }, exePath);
+  }, [exePath, opts.installOpens ?? true] as const);
 }

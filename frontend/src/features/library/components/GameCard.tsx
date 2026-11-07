@@ -23,6 +23,8 @@ import { memo, useState } from "react";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 import RatingText from "../../../shared/components/RatingText";
 import { coverImage } from "../../../shared/utils/placeholderImage";
+import { getInstallTarget } from "../utils/launch";
+import InstallGameButton from "./InstallGameButton";
 
 interface GameCardProps {
   game: Game;
@@ -74,6 +76,7 @@ function GameCard({
   const isInstalled =
     isProviderGame &&
     Object.values(game.providers || {}).some((p) => p.installed === true);
+  const installTarget = getInstallTarget(game);
 
   const handleCardClick = () => {
     const detailId = game.rawgId ? String(game.rawgId) : game._id;
@@ -235,7 +238,9 @@ function GameCard({
           )}
         </Box>
 
-        {canLaunchGames() && (
+        {canLaunchGames() && (installTarget ? (
+          <InstallGameButton target={installTarget} />
+        ) : (
           <Button
             colorScheme={
               isRunning
@@ -257,7 +262,7 @@ function GameCard({
                 ? "Not installed"
                 : "Launch"}
           </Button>
-        )}
+        ))}
         {footer}
       </VStack>
     </Box>

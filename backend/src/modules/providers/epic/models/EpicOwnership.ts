@@ -4,6 +4,8 @@ export interface EpicOwnershipDocument extends mongoose.Document {
 
   catalogItemId?: string;
   namespace?: string;
+  /** Epic's internal app id. Its launcher needs this for a direct install link. */
+  appName?: string;
 
   title?: string;
   description?: string;
@@ -38,6 +40,7 @@ const epicOwnershipSchema = new mongoose.Schema<EpicOwnershipDocument>(
       index: true,
     },
     namespace: String,
+    appName: String,
 
     title: String,
 

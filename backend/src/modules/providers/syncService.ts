@@ -17,6 +17,10 @@ export interface SyncGameInput {
   manifestId?: string;
   executable?: string;
   launcher?: string;
+  /** Epic only: what its launcher needs to open a game's install page. */
+  namespace?: string;
+  appName?: string;
+  productSlug?: string;
 }
 
 export interface SyncProviderGamesParams {
@@ -150,7 +154,15 @@ export async function syncProviderGames({
     const existingManifestId =
       matchedGame?.providers?.[provider]?.manifestId ?? "";
 
+    const existingProvider = matchedGame?.providers?.[provider];
+    const namespace = game.namespace || existingProvider?.namespace;
+    const appName = game.appName || existingProvider?.appName;
+    const productSlug = game.productSlug || existingProvider?.productSlug;
+
     const providerOwnershipInfo = {
+      ...(namespace ? { namespace } : {}),
+      ...(appName ? { appName } : {}),
+      ...(productSlug ? { productSlug } : {}),
       providerGameId: game.providerGameId,
       providerTitle: game.title,
       owned: true,
@@ -369,6 +381,9 @@ export async function syncEpicGames(userId: string, localGames: any[] = []) {
       manifestId: local?.epicId || undefined,
       executable: local?.executable || undefined,
       launcher: "epic",
+      namespace: g.namespace || undefined,
+      appName: g.appName || undefined,
+      productSlug: g.productSlug || undefined,
     };
   });
   console.log("Games Input:", gamesInput.length);

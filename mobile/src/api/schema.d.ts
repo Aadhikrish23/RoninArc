@@ -5374,6 +5374,9 @@ export interface components {
                     executable?: string;
                     launcher?: string;
                     manifestId?: string | number;
+                    namespace?: string;
+                    appName?: string;
+                    productSlug?: string;
                     /**
                      * Format: date-time
                      * @example 2026-10-09T14:03:12.000Z

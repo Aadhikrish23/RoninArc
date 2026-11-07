@@ -18,6 +18,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 import RatingText from "../../../shared/components/RatingText";
+import { getInstallTarget } from "../utils/launch";
+import InstallGameButton from "../components/InstallGameButton";
 import { useColorModeValue } from "@chakra-ui/react";
 
 interface Props {
@@ -56,6 +58,7 @@ export default function RawgResultsSection({
     const isOwned = game.providers && Object.keys(game.providers).length > 0;
     const isInstalled = isOwned && Object.values(game.providers || {}).some((p: any) => p.installed === true);
     const disableLaunch = isOwned && !isInstalled;
+    const installTarget = getInstallTarget(game);
 
     return (
       <Box
@@ -83,7 +86,9 @@ export default function RawgResultsSection({
           <Text color="gray.500" fontSize="sm" noOfLines={1}>
             {game.tags.join(", ")}
           </Text>
-          {canLaunchGames() && (
+          {canLaunchGames() && (installTarget ? (
+            <InstallGameButton target={installTarget} mt={3} w="100%" />
+          ) : (
             <Button
               mt={3}
               w="100%"
@@ -96,7 +101,7 @@ export default function RawgResultsSection({
             >
               {disableLaunch ? "Not installed" : "Launch"}
             </Button>
-          )}
+          ))}
         </Box>
       </Box>
     );
@@ -106,6 +111,7 @@ export default function RawgResultsSection({
     const isOwned = game.providers && Object.keys(game.providers).length > 0;
     const isInstalled = isOwned && Object.values(game.providers || {}).some((p: any) => p.installed === true);
     const disableLaunch = isOwned && !isInstalled;
+    const installTarget = getInstallTarget(game);
 
     return (
       <Flex
@@ -146,7 +152,9 @@ export default function RawgResultsSection({
             </Text>
           )}
         </Box>
-        {canLaunchGames() && (
+        {canLaunchGames() && (installTarget ? (
+          <InstallGameButton target={installTarget} />
+        ) : (
           <Button
             colorScheme={disableLaunch ? "gray" : "purple"}
             isDisabled={disableLaunch}
@@ -157,7 +165,7 @@ export default function RawgResultsSection({
           >
             {disableLaunch ? "Not installed" : "Launch"}
           </Button>
-        )}
+        ))}
       </Flex>
     );
   };

@@ -10,6 +10,10 @@ export interface IProviderOwnership {
   installPath?: string;
   manifestId?: string;
   executable?: string;
+  /** Epic only: what its launcher needs to open a game's install page. */
+  namespace?: string;
+  appName?: string;
+  productSlug?: string;
   syncedAt: Date;
 }
 

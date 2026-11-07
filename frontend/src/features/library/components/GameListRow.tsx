@@ -20,6 +20,8 @@ import type { ProviderId } from "../../providers/types/provider";
 import { memo } from "react";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 import RatingText from "../../../shared/components/RatingText";
+import { getInstallTarget } from "../utils/launch";
+import InstallGameButton from "./InstallGameButton";
 
 interface GameListRowProps {
   game: Game;
@@ -62,6 +64,7 @@ function GameListRow({
   const isInstalled =
     isProviderGame &&
     Object.values(game.providers || {}).some((p) => p.installed === true);
+  const installTarget = getInstallTarget(game);
 
   const handleRowClick = () => {
     const detailId = game.rawgId ? String(game.rawgId) : game._id;
@@ -187,7 +190,9 @@ function GameListRow({
           </Select>
 
           {/* Launch button */}
-          {canLaunchGames() && (
+          {canLaunchGames() && (installTarget ? (
+            <InstallGameButton target={installTarget} size="sm" fontSize="xs" borderRadius="md" />
+          ) : (
             <Button
               colorScheme={
                 isRunning
@@ -209,7 +214,7 @@ function GameListRow({
                   ? "Not installed"
                   : "Launch"}
             </Button>
-          )}
+          ))}
         </HStack>
       </HStack>
     </Box>

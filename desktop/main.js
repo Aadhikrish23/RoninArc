@@ -350,6 +350,83 @@ function getNewProcesses(before, after) {
 
   return after.filter((process) => !beforeSet.has(process));
 }
+// Only the exact link shapes the library builds: openExternal will run whatever it's given.
+const INSTALL_LINKS = [
+  /^steam:\/\/install\/\d+$/,
+  /^com\.epicgames\.launcher:\/\/apps\/[\w%.~-]+\?action=install$/,
+  /^com\.epicgames\.launcher:\/\/store\/p\/[\w%.~/-]+$/,
+  /^com\.epicgames\.launcher:\/\/library$/,
+];
+
+const EPIC_PROCESS = "epicgameslauncher.exe";
+const EPIC_SIGN_IN_WAIT_SECONDS = 60;
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function getEpicLauncherPath() {
+  return new Promise((resolve) => {
+    exec('reg query "HKCR\\com.epicgames.launcher\\shell\\open\\command" /ve', (error, stdout) => {
+      resolve(error ? null : stdout.match(/"([^"]+EpicGamesLauncher\.exe)"/i)?.[1] ?? null);
+    });
+  });
+}
+
+// A link sent before Epic has signed in is dropped. A log from before this start doesn't count;
+// if the line never comes (say, signed out), Epic gets the link anyway and we've lost nothing.
+async function waitForEpicSignIn(startedAt) {
+  const log = path.join(process.env.LOCALAPPDATA || "", "EpicGamesLauncher", "Saved", "Logs", "EpicGamesLauncher.log");
+  for (let waited = 0; waited < EPIC_SIGN_IN_WAIT_SECONDS; waited++) {
+    await sleep(1000);
+    try {
+      const { mtimeMs } = await fs.promises.stat(log);
+      if (mtimeMs > startedAt && (await fs.promises.readFile(log, "latin1")).includes("OnSignIn")) {
+        await sleep(2000);
+        return;
+      }
+    } catch {
+      // No log yet.
+    }
+  }
+}
+
+// Epic links do nothing while its launcher is closed, so start it and send the link once it's ready.
+// False if it was already running, or can't be started here.
+async function openEpicLinkOnceStarted(uri) {
+  if ((await getProcessList()).includes(EPIC_PROCESS)) return false;
+  const exe = await getEpicLauncherPath();
+  if (!exe) return false;
+
+  const startedAt = Date.now();
+  const launcher = spawn(exe, [], { detached: true, stdio: "ignore" });
+  launcher.on("error", (err) => console.warn("[open-install-page] Epic didn't start:", err.message));
+  launcher.unref();
+
+  waitForEpicSignIn(startedAt)
+    .then(() => shell.openExternal(uri))
+    .catch((err) => console.warn("[open-install-page] Failed:", uri, err.message));
+  return true;
+}
+
+// Separate from launch-game, which starts tracking a play session.
+ipcMain.handle("open-install-page", async (_event, uri) => {
+  if (typeof uri !== "string" || !INSTALL_LINKS.some((link) => link.test(uri))) {
+    console.warn("[open-install-page] Refused:", uri);
+    return false;
+  }
+  // With no launcher to handle the link, Windows asks "which app?" and openExternal still succeeds.
+  if (!app.getApplicationNameForProtocol(uri)) {
+    console.warn("[open-install-page] No app handles:", uri);
+    return false;
+  }
+  try {
+    if (uri.startsWith("com.epicgames.launcher://") && (await openEpicLinkOnceStarted(uri))) return true;
+    await shell.openExternal(uri);
+    return true;
+  } catch (err) {
+    console.warn("[open-install-page] Failed:", uri, err.message);
+    return false;
+  }
+});
+
 ipcMain.handle("launch-game", async (event, gameId, exePath) => {
   try {
     console.log("[launch-game] Requested exePath:", exePath);

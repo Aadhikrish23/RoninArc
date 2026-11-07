@@ -1,4 +1,6 @@
 import type { Game } from "../types/library";
+import { PROVIDER_CONFIGS } from "../../providers/constants/providers";
+import type { ProviderId } from "../../providers/types/provider";
 
 /**
  * Launch resolution result.
@@ -73,4 +75,56 @@ export function getProviderLauncherUri(
     default:
       return null;
   }
+}
+
+/**
+ * A link into the launcher that owns the game, where it can be installed.
+ * Epic needs namespace + catalog id + app name for its install page; games not
+ * resynced since those were added fall back to the store page, then the library.
+ */
+export function getProviderInstallUri(
+  providerKey: string,
+  providerData: NonNullable<Game["providers"]>[string]
+): string | null {
+  switch (providerKey) {
+    case "steam": {
+      const appId = providerData.providerGameId;
+      return appId && /^\d+$/.test(appId) ? `steam://install/${appId}` : null;
+    }
+    case "epic": {
+      const { namespace, providerGameId, appName, productSlug } = providerData;
+      if (namespace && providerGameId && appName) {
+        const id = [namespace, providerGameId, appName].map(encodeURIComponent).join("%3A");
+        return `com.epicgames.launcher://apps/${id}?action=install`;
+      }
+      if (productSlug) {
+        const slug = productSlug.replace(/\/home$/, "").split("/").map(encodeURIComponent).join("/");
+        return `com.epicgames.launcher://store/p/${slug}`;
+      }
+      return "com.epicgames.launcher://library";
+    }
+    default:
+      return null;
+  }
+}
+
+export interface InstallTarget {
+  /** Launcher name, as shown on the button. */
+  name: string;
+  uri: string;
+}
+
+/**
+ * Where to install a game we know you own but don't have on this PC.
+ * Null when it's already installed, or isn't from a launcher we can link to.
+ */
+export function getInstallTarget(game: Game): InstallTarget | null {
+  const providers = Object.entries(game.providers || {});
+  if (providers.some(([, data]) => data.installed === true)) return null;
+
+  for (const [key, data] of providers) {
+    const uri = getProviderInstallUri(key, data);
+    if (uri) return { name: PROVIDER_CONFIGS[key as ProviderId]?.name ?? key, uri };
+  }
+  return null;
 }

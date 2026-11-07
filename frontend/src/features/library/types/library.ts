@@ -33,6 +33,9 @@ export interface Game {
     installPath?: string;
     manifestId?: string;
     executable?: string;
+    namespace?: string;
+    appName?: string;
+    productSlug?: string;
     syncedAt: string;
   }>;
 
