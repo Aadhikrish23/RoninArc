@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { dropUngroundedIntents, franchiseMatch, lastNamedTitle, mentions, namedTitles } from "../../../backend/src/modules/ai/domains/games/conversation/TargetGrounding";
+import { closestTitle, dropUngroundedIntents, franchiseMatch, fullyNamedTitles, lastNamedTitle, mentions, namedTitles } from "../../../backend/src/modules/ai/domains/games/conversation/TargetGrounding";
 
 // The AI only changes a game the user actually named (or referred to). These
 // cases come from the gamer playtests: gibberish and two-part messages made the
@@ -20,6 +20,10 @@ const cases: [string, string, boolean][] = [
   ["started hades last night", "Hades", true],
   ["started hades last night", "Hades II", false],
   ["yeet cod off my list, i dont even own that anymore", "Call of Duty: Modern Warfare II", true],
+  // Near-misses on a real 273-game library: the wrong game would be the one that gets changed.
+  ["mark elden ring completed", "The Elder Scrolls Online", false],
+  ["like hades but shorter", "Fallout Shelter", false],
+  ["im playing stardw valley", "Stardew Valley", true],
 ];
 
 test.describe("AI target grounding", () => {
@@ -28,6 +32,34 @@ test.describe("AI target grounding", () => {
       expect(mentions(text, title)).toBe(expected);
     });
   }
+});
+
+test.describe("Naming a game on a big library", () => {
+  const owned = ["Dead Cells", "The Walking Dead No Man's Land", "Deadtime Defenders", "Fallout Shelter", "The Elder Scrolls Online", "Garden Story", "Cozy Grove", "Home - A Unique Horror Adventure", "Keylocker | Turn Based Cyberpunk Action", "Empyrion - Galactic Survival", "The Witcher 3: Wild Hunt - Remastered", "Hades II", "Grand Theft Auto V"];
+
+  for (const [name, expected] of [
+    ["dead cells", "Dead Cells"],
+    ["hades", undefined],
+    ["hades 2", "Hades II"],
+    ["elden ring", undefined],
+    ["the witcher", "The Witcher 3: Wild Hunt - Remastered"],
+    ["gta 5", "Grand Theft Auto V"],
+  ] as const) {
+    test(`"like ${name}" is ${expected ?? "no owned game"} @${expected ? "positive" : "negative"}`, () => {
+      expect(closestTitle(name, owned)).toBe(expected);
+    });
+  }
+
+  for (const hint of ["story rich", "cozy games", "horror", "turn based", "open world survival", "something short"]) {
+    test(`"${hint}" is a style, not a game @negative`, () => {
+      expect(fullyNamedTitles(hint, owned)).toEqual([]);
+    });
+  }
+
+  test("a whole title in a sentence still counts, as does an abbreviation @positive", () => {
+    expect(fullyNamedTitles("more games with dead cells vibes", owned)).toEqual(["Dead Cells"]);
+    expect(fullyNamedTitles("anything close to gta 5", owned)).toEqual(["Grand Theft Auto V"]);
+  });
 });
 
 test.describe("AI target grounding: questions", () => {

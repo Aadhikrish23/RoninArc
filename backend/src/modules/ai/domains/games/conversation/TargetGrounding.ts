@@ -91,13 +91,59 @@ export function mentions(text: string, title: string): boolean {
   }
   if (!hasNumbers) return false;
 
+  // One mistyped word can't stand in for a long title: "elden" is one letter from "elder", but
+  // "mark elden ring completed" isn't about The Elder Scrolls Online.
+  const typosCount = titleWords.length <= 2;
   // A distinctive word of the title, typed exactly or with a small typo.
   return words.some((w) =>
     w.length >= 4 &&
     // Typos only count on longer words: "play" is one letter from "slay" (Slay the Spire).
     // Everyday words are never typos of a title: "started" is two letters from "stardew".
-    titleWords.some((tw) => tw.length >= 4 && (w === tw || (w.length >= 5 && tw.length >= 5 && !EVERYDAY.has(w) && w[0] === tw[0] && editDistance(w, tw) <= (tw.length >= 7 ? 2 : 1)))),
+    // Two typos need a long word: "shorter" is two letters from "shelter" (Fallout Shelter).
+    titleWords.some((tw) => tw.length >= 4 && (w === tw || (typosCount && w.length >= 5 && tw.length >= 5 && !EVERYDAY.has(w) && w[0] === tw[0] && editDistance(w, tw) <= (tw.length >= 8 ? 2 : 1)))),
   );
+}
+
+/** "the witcher" is The Witcher 3: Wild Hunt when that's the only Witcher owned ("Series N: Subtitle" titles only). */
+function onlySeriesTitle(said: Set<string>, owned: string[]): string | undefined {
+  const hits = owned.filter((title) => {
+    if (!/:/.test(title)) return false;
+    const series = tokens(title.split(":")[0]).filter((w) => !GENERIC.has(w) && !/^\d+$/.test(w));
+    return series.length > 0 && series.every((w) => said.has(w)) && series.some((w) => w.length >= 5);
+  });
+  return hits.length === 1 ? hits[0] : undefined;
+}
+
+/**
+ * The owned title closest to a name someone gave ("like dead cells"), or nothing when none is close.
+ * Unlike `mentions`, the whole name has to fit: "elden ring" isn't The Elder Scrolls Online, and
+ * "dead cells" isn't The Walking Dead.
+ */
+export function closestTitle(name: string, owned: string[]): string | undefined {
+  const term = expandAbbreviation(name) ?? name;
+  const said = new Set(tokens(term));
+  const best = owned
+    .filter((title) => sequelNumbers(title).every((n) => said.has(n)))
+    .map((title) => ({ title, score: titleMatchScore(term, title) }))
+    .filter((match) => match.score >= 70)
+    .sort((a, b) => b.score - a.score)[0];
+  return best?.title ?? onlySeriesTitle(said, owned);
+}
+
+/**
+ * Library titles a sentence says in full, longest first, for when a stray word shouldn't count:
+ * "story rich" doesn't name Garden Story, and "cozy games" doesn't name Cozy Grove.
+ */
+export function fullyNamedTitles(text: string, owned: string[]): string[] {
+  const words = tokens(text);
+  const said = new Set(words);
+  const abbreviated = words.flatMap((_, i) => [1, 2, 3].map((size) => expandAbbreviation(words.slice(i, i + size).join(" "))).filter((e): e is string => !!e));
+  return owned
+    .filter((title) => {
+      const distinctive = tokens(title).filter((w) => !GENERIC.has(w));
+      return (distinctive.length > 0 && distinctive.every((w) => said.has(w))) || abbreviated.some((e) => titleMatchScore(e, title) >= 90);
+    })
+    .sort((a, b) => b.length - a.length);
 }
 
 /**
@@ -114,14 +160,9 @@ export function namedTitles(text: string, owned: string[]): string[] {
   const pool = exact.length > 0 ? exact : named;
   if (pool.length > 0) return [...pool].sort((a, b) => b.length - a.length);
 
-  // "the witcher" is The Witcher 3: Wild Hunt when that's the only Witcher owned. Only for
-  // "Series N: Subtitle" titles -- a plain sequel ("Hades II") still needs its number.
-  const bySeries = owned.filter((title) => {
-    if (!/:/.test(title)) return false;
-    const series = tokens(title.split(":")[0]).filter((w) => !GENERIC.has(w) && !/^\d+$/.test(w));
-    return series.length > 0 && series.every((w) => said.has(w)) && series.some((w) => w.length >= 5);
-  });
-  return bySeries.length === 1 ? bySeries : [];
+  // A plain sequel ("Hades II") still needs its number.
+  const series = onlySeriesTitle(said, owned);
+  return series ? [series] : [];
 }
 
 const FRANCHISE_FILLER =new Set(["the", "of", "a", "an", "and"]);

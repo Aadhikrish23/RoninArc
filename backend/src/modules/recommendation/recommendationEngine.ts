@@ -358,6 +358,8 @@ export function rankBacklog(
       };
     })
     .sort((a, b) => b.score - a.score || a.title.localeCompare(b.title))
+    // The same game imported twice (two store entries) is still one suggestion.
+    .filter((rec, index, all) => all.findIndex((other) => norm(other.title) === norm(rec.title)) === index)
     .slice(0, options.limit);
   return diversifyReasons(ranked);
 }

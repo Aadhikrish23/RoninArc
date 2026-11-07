@@ -14,7 +14,7 @@ import {
   rankDiscover,
   type LengthPreference,
 } from "./recommendationEngine";
-import { mentions } from "../ai/domains/games/conversation/TargetGrounding";
+import { closestTitle, fullyNamedTitles } from "../ai/domains/games/conversation/TargetGrounding";
 import { expandAbbreviation } from "../rawg/gameAbbreviations";
 import { rankByTitle } from "../rawg/titleMatch";
 import { playtimeFor } from "../rawg/knownLengths";
@@ -176,10 +176,27 @@ async function loadSignals(userId: string): Promise<LibrarySignalGame[]> {
 /** "something like hades but shorter" -> "hades": the game a hint compares to. */
 const LIKE_NAME = /\b(?:like|similar to|games? like)\s+([a-z0-9][a-z0-9 :'&.-]{1,40}?)(?=\s+(?:but|and|that|which|with|for|except|only|though|tho)\b|[,.?!]|$)/i;
 
+/** The game a hint compares to, unless it's a stand-in word ("like this"). */
+function likeName(query?: string): string | undefined {
+  const name = query?.match(LIKE_NAME)?.[1]?.trim();
+  return !name || /^(this|that|it|these|those|them|me|my|something|anything)$/i.test(name) ? undefined : name;
+}
+
+/**
+ * The library game a hint is about. On a big library a loose match lands on the wrong game ("like
+ * hades but shorter" was Fallout Shelter, "story rich" was Garden Story), so the name has to fit.
+ */
+function namedLibraryGame(query: string, library: LibrarySignalGame[]): LibrarySignalGame | undefined {
+  const titles = library.map((g) => g.title);
+  const name = likeName(query);
+  const title = (name && closestTitle(name, titles)) ?? fullyNamedTitles(query, titles)[0];
+  return title ? library.find((g) => g.title === title) : undefined;
+}
+
 /** The game named after "like", looked up on RAWG when it isn't in the library. */
 async function likeGameOutsideLibrary(query?: string): Promise<{ title: string; rawgId: number; genres: string[]; avgHours?: number } | undefined> {
-  const name = query?.match(LIKE_NAME)?.[1]?.trim();
-  if (!name || /^(this|that|it|these|those|them|me|my|something|anything)$/i.test(name)) return undefined;
+  const name = likeName(query);
+  if (!name) return undefined;
   try {
     const term = expandAbbreviation(name) ?? name;
     const [best] = rankByTitle(term, await rawgService.searchGames(term, 1));
@@ -202,11 +219,7 @@ async function getRecommendations(
   let length = lengthPreference(options.query);
   const styles = styleTags(options.query);
   // "like Hades": the library game the hint names, to rank and explain by.
-  const likeGame = options.query
-    ? library
-        .filter((g) => mentions(options.query!, g.title))
-        .sort((a, b) => b.title.length - a.title.length)[0]
-    : undefined;
+  const likeGame = options.query ? namedLibraryGame(options.query, library) : undefined;
   // "like Hades" when Hades isn't in the library: look it up, so its genres and style still count.
   const outside = likeGame ? undefined : await likeGameOutsideLibrary(options.query);
   const likeTitle = likeGame?.title ?? outside?.title;

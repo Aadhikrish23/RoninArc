@@ -133,6 +133,25 @@ test.describe("Recommendations API (/recommendations)", () => {
       expect(body.Data.discover.every((r: any) => r.genres.some((g: string) => ["Action", "RPG"].includes(g)))).toBe(true);
     });
 
+    test("a loose word match isn't taken for the game asked about @negative", async ({ api }) => {
+      await api.addGame(byName("Hades"), { rawgId: 7001, title: "Fallout Shelter", tags: ["Simulation"] });
+      await api.addGame(byName("Celeste"), { rawgId: 7002, title: "Garden Story", tags: ["Simulation"] });
+      await api.addGame(byName("Stardew Valley"), { rawgId: 7003, title: "Cozy Grove", tags: ["Simulation"] });
+
+      for (const q of ["like hades but shorter", "story rich", "cozy games"]) {
+        const { body } = await get(api, { type: "backlog", q });
+        const reasons = body.Data.backlog.flatMap((r: any) => r.reasons).join(" ");
+        expect(reasons, q).not.toMatch(/(Shares|Shorter than) .*(Fallout Shelter|Garden Story|Cozy Grove)/);
+      }
+    });
+
+    test("the same game imported twice is suggested once @negative", async ({ api }) => {
+      await api.addGame(byName("Celeste"), { rawgId: 7101 });
+      await api.addGame(byName("Celeste"), { rawgId: 7102 });
+      const { body } = await get(api, { type: "backlog" });
+      expect(titles(body.Data.backlog)).toEqual(["Celeste"]);
+    });
+
     test("a genre name focuses on that genre @positive", async ({ api }) => {
       await api.addGame(byName("Celeste"));
       await api.addGame(byName("Elden Ring"));
