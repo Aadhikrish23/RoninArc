@@ -5,7 +5,7 @@ import Review from "../../../../review/Reviewmodel";
 import Note from "../../../../notes/Notemodel";
 import CollectionModel from "../../../../collection/CollectionModel";
 import Activity from "../../../../activity/ActivityModel";
-import RecommendationFeedback from "../../../../recommendation/RecommendationFeedback";
+import { clearNotInterested } from "../../../../recommendation/RecommendationFeedback";
 import reviewToolService from "../services/ReviewToolService";
 import { IntentPlan } from "../../../intent/IntentPlan";
 import { IntentType } from "../intent/IntentType";
@@ -264,12 +264,12 @@ export async function undoLastChange(userId: string, only?: string): Promise<str
   }
 
   for (const title of adding) {
-    const added = (await LibraryGame.find({ userId: uid, createdAt: { $gte: change.at } }).select("_id title rawgId").lean()) as any[];
+    const added = (await LibraryGame.find({ userId: uid, createdAt: { $gte: change.at } }).select("_id title rawgId igdbId").lean()) as any[];
     const game = added.find((g) => sameGame(title, g.title) || sameGame(g.title, title));
     if (!game) continue;
     await libraryServices.deleteGame(userId, String(game._id));
     // Undoing an add isn't "not interested".
-    if (typeof game.rawgId === "number") await RecommendationFeedback.deleteOne({ userId: uid, rawgId: game.rawgId });
+    await clearNotInterested(uid, { rawgId: game.rawgId, igdbId: game.igdbId });
     done.push(`${game.title}: removed from your library again`);
   }
 
@@ -281,7 +281,7 @@ export async function undoLastChange(userId: string, only?: string): Promise<str
     // The removal didn't stick, so the activity feed shouldn't say it happened.
     await Activity.deleteMany({ userId: uid, type: "GAME_REMOVED", message: `Removed ${back.title} from library`, createdAt: { $gte: change.at } });
     // Removing marked it "not interested"; it's back, so that goes.
-    if (typeof back.rawgId === "number") await RecommendationFeedback.deleteOne({ userId: uid, rawgId: back.rawgId });
+    await clearNotInterested(uid, { rawgId: back.rawgId, igdbId: back.igdbId });
     if (gone.review) await reviewToolService.upsertReview(userId, String(back._id), gone.review.rating, gone.review.reviewText);
     for (const content of gone.notes) await Note.create({ userId: uid, gameId: back._id, content });
     if (gone.collectionIds.length) {

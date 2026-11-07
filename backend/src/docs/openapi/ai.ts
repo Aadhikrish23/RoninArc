@@ -217,20 +217,34 @@ export const aiPaths = {
     post: {
       tags: ["Recommendations"],
       summary: "Mark a game as not interesting",
-      description: "Stops a RAWG game from being suggested. Idempotent.",
+      description: "Stops a game from being suggested. Needs its RAWG id, its IGDB id, or both. Idempotent.",
       security: bearerAuth,
       requestBody: jsonBody(
         {
           type: "object",
-          required: ["rawgId"],
-          properties: { rawgId: { type: "integer", minimum: 1 }, title: { type: "string" } },
+          anyOf: [{ required: ["rawgId"] }, { required: ["igdbId"] }],
+          properties: { rawgId: { type: "integer", minimum: 1 }, igdbId: { type: "integer", minimum: 1 }, title: { type: "string" } },
         },
         { rawgId: 28, title: "Celeste" },
       ),
       responses: {
         200: okMessage("Dismissed.", "Recommendation dismissed"),
-        400: appError("Missing/invalid rawgId or title.", "A valid rawgId is required", "title must be text"),
+        400: appError("Missing/invalid id or title.", "A valid rawgId or igdbId is required", "title must be text"),
         401: responses.unauthorized,
+      },
+    },
+  },
+  "/recommendations/dismiss/igdb/{igdbId}": {
+    delete: {
+      tags: ["Recommendations"],
+      summary: "Undo a dismissal, by IGDB id",
+      security: bearerAuth,
+      parameters: [pathParam("igdbId", "IGDB game id.", { type: "string", pattern: "^\\d+$" })],
+      responses: {
+        200: okMessage("Restored.", "Recommendation restored"),
+        400: appError("Invalid igdbId.", "A valid igdbId is required"),
+        401: responses.unauthorized,
+        404: appError("It wasn't dismissed.", "That game wasn't dismissed"),
       },
     },
   },

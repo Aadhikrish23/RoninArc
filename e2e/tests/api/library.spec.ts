@@ -41,8 +41,10 @@ test.describe("Library API (/game)", () => {
     });
 
     for (const [label, payload, error] of [
-      ["missing rawgId", { title: "X", tags: [] }, "Valid rawgId is required"],
-      ["string rawgId", { rawgId: "123", title: "X", tags: [] }, "Valid rawgId is required"],
+      ["no game id", { title: "X", tags: [] }, "Valid rawgId or igdbId is required"],
+      ["string rawgId", { rawgId: "123", title: "X", tags: [] }, "Valid rawgId or igdbId is required"],
+      ["string igdbId", { igdbId: "123", title: "X", tags: [] }, "Valid rawgId or igdbId is required"],
+      ["a good rawgId with a bad igdbId", { rawgId: 1, igdbId: "123", title: "X", tags: [] }, "Valid rawgId or igdbId is required"],
       ["missing title", { rawgId: 1, tags: [] }, "Title is required"],
       ["blank title", { rawgId: 1, title: "   ", tags: [] }, "Title is required"],
       ["non-array tags", { rawgId: 1, title: "X", tags: "rpg" }, "Invalid Tags"],

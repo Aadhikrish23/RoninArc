@@ -32,6 +32,8 @@ export interface IGameArtwork {
 export interface IGameLibrary extends mongoose.Document {
   userId: mongoose.Types.ObjectId;
   rawgId?: number | null;
+  /** Never stored in rawgId: the same number means different games on RAWG and IGDB. */
+  igdbId?: number | null;
   title: string;
   description: string;
   tags: string[];
@@ -73,6 +75,11 @@ const gameLibraryschema = new mongoose.Schema<IGameLibrary>(
       required: [true, "Game title is mandatory"],
     },
     rawgId: {
+      type: Number,
+      required: false,
+      default: null,
+    },
+    igdbId: {
       type: Number,
       required: false,
       default: null,

@@ -41,6 +41,7 @@ export const librarySchemas: Record<string, Schema> = {
       _id: objectId,
       userId: objectId,
       rawgId: { type: ["integer", "null"], description: "RAWG id. `null` for store imports (e.g. Steam) until metadata is matched.", example: 274755 },
+      igdbId: { type: ["integer", "null"], description: "IGDB id, when known. Not interchangeable with rawgId: the same number is a different game on each." },
       title: { type: "string", example: "Hades" },
       description: { type: "string" },
       tags: { type: "array", items: { type: "string" }, description: "Genres (from RAWG) and user tags.", example: ["Action", "RPG"] },
@@ -93,9 +94,11 @@ export const librarySchemas: Record<string, Schema> = {
   },
   AddGameRequest: {
     type: "object",
-    required: ["rawgId", "title", "tags"],
+    required: ["title", "tags"],
+    anyOf: [{ required: ["rawgId"] }, { required: ["igdbId"] }],
     properties: {
       rawgId: { type: "integer", description: "RAWG id. A user can own each RAWG id once." },
+      igdbId: { type: "integer", description: "IGDB id. A user can own each IGDB id once." },
       title: { type: "string", minLength: 1 },
       tags: { type: "array", items: { type: "string" } },
       description: { type: "string" },
@@ -331,7 +334,7 @@ export const libraryPaths = {
         201: ok("Game added. A GAME_ADDED activity is recorded.", ref("LibraryGame")),
         400: appError(
           "Validation failed, or the game is already in the library.",
-          "Valid rawgId is required",
+          "Valid rawgId or igdbId is required",
           "Title is required",
           "Invalid Tags",
           "Invalid status",

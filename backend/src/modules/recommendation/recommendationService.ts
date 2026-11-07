@@ -2,7 +2,7 @@ import { Types } from "mongoose";
 import libraryServices from "../library/libraryServices";
 import PlaySession from "../playSession/PlaySessionModel";
 import rawgService from "../rawg/rawgService";
-import RecommendationFeedback from "./RecommendationFeedback";
+import RecommendationFeedback, { clearNotInterested, markNotInterested, type GameDbIds } from "./RecommendationFeedback";
 import {
   LibrarySignalGame,
   Recommendation,
@@ -368,17 +368,8 @@ async function getRecommendations(
   return result;
 }
 
-async function dismiss(userId: string, rawgId: number, title = "") {
-  await RecommendationFeedback.updateOne(
-    { userId, rawgId },
-    { $setOnInsert: { userId, rawgId }, $set: { title } },
-    { upsert: true },
-  );
-}
+const dismiss = (userId: string, ids: GameDbIds, title = "") => markNotInterested(userId, ids, title);
 
-async function undoDismiss(userId: string, rawgId: number) {
-  const res = await RecommendationFeedback.deleteOne({ userId, rawgId });
-  return res.deletedCount > 0;
-}
+const undoDismiss = (userId: string, ids: GameDbIds) => clearNotInterested(userId, ids);
 
 export default { getRecommendations, dismiss, undoDismiss };

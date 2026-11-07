@@ -7,7 +7,7 @@ import usermodel from "../auth/models/User";
 import RefreshToken from "../auth/models/RefreshToken";
 import EpicOwnership from "../providers/epic/models/EpicOwnership";
 import { SyncLink, Tombstone } from "./syncModels";
-import { CLOUD_META, SYNCED, changedAt, forWire, syncedByName, type SyncedCollection } from "./syncCollections";
+import { CLOUD_META, SYNCED, changedAt, forWire, naturalFilters, syncedByName, type SyncedCollection } from "./syncCollections";
 
 const { EJSON } = mongoose.mongo.BSON;
 const log = moduleLogger("sync");
@@ -75,10 +75,8 @@ const tokensFrom = (data: any) => ({
 const isDirty = (doc: any) => !doc?._syncedUpdatedAt || +new Date(doc._syncedUpdatedAt) !== +new Date(doc.updatedAt);
 
 function naturalFilter(coll: SyncedCollection, doc: any) {
-  if (!coll.naturalKey || !coll.naturalKey.every((k) => doc[k] !== undefined && doc[k] !== null)) return undefined;
-  const f: any = { userId: doc.userId, _id: { $ne: doc._id } };
-  for (const k of coll.naturalKey) f[k] = doc[k];
-  return f;
+  const $or = naturalFilters(coll, doc);
+  return $or.length > 0 ? { userId: doc.userId, _id: { $ne: doc._id }, $or } : undefined;
 }
 
 /** Points everything here that referenced `from` at `to` (an id merged away in the cloud). */

@@ -221,6 +221,22 @@ test.describe("Recommendations API (/recommendations)", () => {
       expect(titles((await get(api, { type: "discover", limit: 20 })).body.Data.discover)).toContain("Celeste");
     });
 
+    test("games known only by their IGDB id can be dismissed and restored, several of them @positive", async ({ api }) => {
+      for (const igdbId of [901, 902]) {
+        expect((await api.post("/recommendations/dismiss", { igdbId, title: `Game ${igdbId}` })).status()).toBe(200);
+      }
+      expect((await api.post("/recommendations/dismiss", { igdbId: 901 })).status()).toBe(200);
+      expect((await api.delete("/recommendations/dismiss/igdb/901")).status()).toBe(200);
+      expect((await api.delete("/recommendations/dismiss/igdb/901")).status()).toBe(404);
+      expect((await api.delete("/recommendations/dismiss/igdb/902")).status()).toBe(200);
+    });
+
+    test("a RAWG and an IGDB id with the same number are different games @negative", async ({ api }) => {
+      expect((await api.post("/recommendations/dismiss", { rawgId: 903 })).status()).toBe(200);
+      expect((await api.delete("/recommendations/dismiss/igdb/903")).status()).toBe(404);
+      expect((await api.delete("/recommendations/dismiss/903")).status()).toBe(200);
+    });
+
     test("dismissals are per user @negative", async ({ api, request }) => {
       await api.post("/recommendations/dismiss", { rawgId: byName("Celeste").id });
       const other = new Api(request, API_URL, (await registerUser(request, API_URL)).accessToken);

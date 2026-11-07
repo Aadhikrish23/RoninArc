@@ -12,11 +12,11 @@ export interface SyncedCollection {
   name: string;
   model: mongoose.Model<any>;
   /**
-   * Fields that identify "the same thing" across devices, besides userId. Two devices adding the
-   * same game offline make two ids for one game; the cloud merges them and tells the device
-   * which id won.
+   * Fields that identify "the same thing" across devices, besides userId; any one of them matching
+   * is enough, first listed first. Two devices adding the same game offline make two ids for one
+   * game; the cloud merges them and tells the device which id won.
    */
-  naturalKey?: string[];
+  naturalKeys?: string[];
   /** Fields that belong to one PC and never sync (a game's .exe path differs per PC). */
   localOnly?: string[];
   /** Fields pointing at another synced collection's ids, rewritten when an id is merged away. */
@@ -35,18 +35,25 @@ const unionIds = (a: unknown[] = [], b: unknown[] = []) => {
   });
 };
 
+/** The same game found by one id may only know the other: the merged version keeps both. */
+const keepGameDbIds = (winner: any, loser: any) => ({
+  ...winner,
+  ...(winner.igdbId == null && loser.igdbId != null ? { igdbId: loser.igdbId } : {}),
+  ...(winner.rawgId == null && loser.rawgId != null ? { rawgId: loser.rawgId } : {}),
+});
+
 /** In dependency order: games before what points at them, so merges are known first. */
 export const SYNCED: SyncedCollection[] = [
-  { name: "games", model: gameLibrarymodel, naturalKey: ["rawgId"], localOnly: ["exePath"] },
+  { name: "games", model: gameLibrarymodel, naturalKeys: ["igdbId", "rawgId"], localOnly: ["exePath"], merge: keepGameDbIds },
   {
     name: "collections",
     model: Collection,
-    naturalKey: ["name"],
+    naturalKeys: ["name"],
     refs: [{ coll: "games", field: "gameIds", array: true }],
     // "Soulslikes" made on the phone and on the PC: one collection with both lists.
     merge: (winner, loser) => ({ ...winner, gameIds: unionIds(winner.gameIds, loser.gameIds) }),
   },
-  { name: "reviews", model: Review, naturalKey: ["gameId"], refs: [{ coll: "games", field: "gameId" }] },
+  { name: "reviews", model: Review, naturalKeys: ["gameId"], refs: [{ coll: "games", field: "gameId" }] },
   { name: "notes", model: Note, refs: [{ coll: "games", field: "gameId" }] },
   { name: "playSessions", model: PlaySession, refs: [{ coll: "games", field: "gameId" }] },
   {
@@ -57,10 +64,14 @@ export const SYNCED: SyncedCollection[] = [
       { coll: "collections", field: "collectionId" },
     ],
   },
-  { name: "feedback", model: RecommendationFeedback, naturalKey: ["rawgId"] },
+  { name: "feedback", model: RecommendationFeedback, naturalKeys: ["igdbId", "rawgId"], merge: keepGameDbIds },
 ];
 
 export const syncedByName = new Map(SYNCED.map((c) => [c.name, c]));
+
+/** One filter per natural key this document has, in the order to try them. */
+export const naturalFilters = (coll: SyncedCollection, doc: any): Record<string, unknown>[] =>
+  (coll.naturalKeys ?? []).filter((k) => doc[k] !== undefined && doc[k] !== null).map((k) => ({ [k]: doc[k] }));
 
 /** Bookkeeping fields: the cloud's (when it applied a pushed change) and the device's (last synced version). */
 export const CLOUD_META = ["_changedAt", "_appliedAt"] as const;

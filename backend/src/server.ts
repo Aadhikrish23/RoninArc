@@ -3,6 +3,7 @@ import app from "./app";
 import mongoose from "mongoose";
 import backupService from "./modules/backup/backupService";
 import { startSyncScheduler } from "./modules/sync/localSync";
+import { syncFeedbackIndexes } from "./modules/recommendation/RecommendationFeedback";
 import { isCloud } from "./shared/runtimeMode";
 import { logger, LOG_DIR, appLogFile } from "./shared/logging/logger";
 import { flushErrorReporting, reportError, sentryEnabled } from "./shared/logging/errorReporter";
@@ -31,6 +32,8 @@ const connectDB = async () => {
     reportError(error, { phase: "mongo-connect" });
     await shutdown(1);
   }
+  // Not a reason to stop the app: until this works, only dismissing a second IGDB-only game fails.
+  await syncFeedbackIndexes().catch((error) => reportError(error, { phase: "feedback-indexes" }));
 };
 
 function startAutoBackup() {

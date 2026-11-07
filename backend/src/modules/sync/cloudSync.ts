@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 import AppError from "../../shared/errors/AppError";
 import usermodel from "../auth/models/User";
 import { Tombstone } from "./syncModels";
-import { CLOUD_META, LOCAL_META, SYNCED, changedAt, forWire, syncedByName, type SyncedCollection } from "./syncCollections";
+import { CLOUD_META, LOCAL_META, SYNCED, changedAt, forWire, naturalFilters, syncedByName, type SyncedCollection } from "./syncCollections";
 
 const { EJSON } = mongoose.mongo.BSON;
 
@@ -73,10 +73,11 @@ export async function applyPush(userIdRaw: string, body: PushBody): Promise<Push
       let existing: any = await raw.findOne({ _id: doc._id });
       if (existing && String(existing.userId) !== String(userId)) continue; // someone else's id: ignore
       let mergedFrom: any = null;
-      if (!existing && coll.naturalKey && coll.naturalKey.every((k) => doc[k] !== undefined && doc[k] !== null)) {
-        const key: any = { userId };
-        for (const k of coll.naturalKey) key[k] = doc[k];
-        existing = await raw.findOne(key);
+      if (!existing) {
+        for (const filter of naturalFilters(coll, doc)) {
+          existing = await raw.findOne({ userId, ...filter });
+          if (existing) break;
+        }
         if (existing) {
           mergedFrom = doc._id;
           remap.set(`${coll.name}:${sentId}`, String(existing._id));

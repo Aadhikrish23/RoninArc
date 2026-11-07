@@ -10,7 +10,7 @@ const STATUS_LABELS: Record<string, string> = {
   dropped: "Dropped",
 };
 import gameLibrarymodel from "./LibraryGame";
-import RecommendationFeedback from "../recommendation/RecommendationFeedback";
+import { markNotInterested } from "../recommendation/RecommendationFeedback";
 import AppError from "../../shared/errors/AppError";
 import Review from "../review/Reviewmodel";
 import Note from "../notes/Notemodel";
@@ -22,6 +22,7 @@ async function addGameToLibrary(
   userId: string,
   payload: Partial<{
       rawgId: number;
+      igdbId: number;
     title: string;
     description?: string;
     tags?: string[];
@@ -32,11 +33,11 @@ async function addGameToLibrary(
 ) {
   const title = payload.title?.trim();
 
-  const dedupe =
-  await gameLibrarymodel.findOne({
-    userId,
-    rawgId: payload.rawgId,
-  });
+  const sameGame = [
+    ...(typeof payload.igdbId === "number" ? [{ igdbId: payload.igdbId }] : []),
+    ...(typeof payload.rawgId === "number" ? [{ rawgId: payload.rawgId }] : []),
+  ];
+  const dedupe = sameGame.length > 0 ? await gameLibrarymodel.findOne({ userId, $or: sameGame }) : null;
 
   if (dedupe) {
     throw new AppError(
@@ -54,6 +55,7 @@ async function addGameToLibrary(
     await gameLibrarymodel.create({
       userId: userId,
       rawgId: payload.rawgId,
+      igdbId: payload.igdbId,
       title: payload.title,
       description: payload.description,
       tags: payload.tags,
@@ -115,6 +117,7 @@ async function getGameById(userId: string, gameid: string) {
 
   const needsEnrichment =
     !data.rawgId &&
+    !data.igdbId &&
     metadataState !== "pending" &&
     metadataState !== "enriching" &&
     metadataState !== "complete";
@@ -243,13 +246,7 @@ async function deleteGame(
   });
 
   // Removing a game says "not for me": don't recommend it straight back.
-  if (typeof data.rawgId === "number") {
-    await RecommendationFeedback.updateOne(
-      { userId, rawgId: data.rawgId },
-      { $setOnInsert: { userId, rawgId: data.rawgId }, $set: { title: data.title } },
-      { upsert: true },
-    ).catch(() => undefined);
-  }
+  await markNotInterested(userId, { rawgId: data.rawgId, igdbId: data.igdbId }, data.title).catch(() => undefined);
 
   await activityService.createActivity(
     userId,
