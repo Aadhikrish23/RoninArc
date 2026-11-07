@@ -11,8 +11,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     return await ipcRenderer.invoke("launch-game", gameId, exePath);
   },
 
-  /** Opens a game's install page in Steam or Epic; false if that didn't work. */
-  openInstallPage: (uri) => ipcRenderer.invoke("open-install-page", uri),
+  /** Opens a game's page in Steam or Epic; false if that didn't work. */
+  openGamePage: (game) => ipcRenderer.invoke("open-game-page", game),
 
   onGameExited: (callback) => {
     const listener = (_event, gameId) => callback(gameId);

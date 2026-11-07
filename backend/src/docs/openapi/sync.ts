@@ -30,12 +30,12 @@ export const syncSchemas: Record<string, Schema> = {
   },
   SyncLinkRequest: {
     type: "object",
-    required: ["mode", "username", "password"],
+    required: ["mode"],
     properties: {
       mode: { enum: ["create", "signin"], description: "`create`: a new cloud account from this PC's library. `signin`: an existing cloud account (this PC's library merges into it)." },
-      username: { type: "string", example: "ronin" },
-      email: { type: "string", description: "Required to create a cloud account (password resets go there).", example: "ronin@example.com" },
-      password: { type: "string", format: "password", example: "Sup3rSecret!" },
+      username: { type: "string", description: "Required to sign in. To create, defaults to this PC's account.", example: "ronin" },
+      email: { type: "string", description: "To create, defaults to this PC's account (password resets go there).", example: "ronin@example.com" },
+      password: { type: "string", format: "password", description: "Required to sign in. To create, leave it out to keep this PC's password.", example: "Sup3rSecret!" },
     },
   },
   SyncPushRequest: {
@@ -142,9 +142,19 @@ const cloudPaths = {
     post: {
       tags,
       summary: "Create a cloud account for a PC's library",
-      description: "Like `POST /auth/register`, but keeps the PC account's id so its library syncs without renumbering.",
+      description: "Like `POST /auth/register`, but keeps the PC account's id so its library syncs without renumbering. Send `passwordHash` instead of `password` to keep the PC account's password.",
       requestBody: jsonBody(
-        { allOf: [ref("RegisterRequest"), { type: "object", properties: { userId: { type: "string", description: "The PC account's id." } } }] },
+        {
+          type: "object",
+          required: ["username", "email"],
+          properties: {
+            username: { type: "string" },
+            email: { type: "string" },
+            password: { type: "string", format: "password" },
+            passwordHash: { type: "string", description: "The PC account's bcrypt hash (cost 10 to 12). Needs `userId`." },
+            userId: { type: "string", description: "The PC account's id." },
+          },
+        },
         { username: "ronin", password: "Sup3rSecret!", email: "ronin@example.com", userId: "6a8f00c2b1d3e4f5a6b7c8d9" },
       ),
       responses: {
@@ -202,7 +212,7 @@ const localPaths = {
       summary: "Start syncing with RoninArc Cloud",
       description: "Creates a cloud account from this PC's library, or signs in to an existing one and merges this library into it, then syncs.",
       security: bearerAuth,
-      requestBody: jsonBody(ref("SyncLinkRequest"), { mode: "create", username: "ronin", email: "ronin@example.com", password: "Sup3rSecret!" }),
+      requestBody: jsonBody(ref("SyncLinkRequest"), { mode: "create" }),
       responses: { 200: statusResponse("Linked and synced."), ...cloudLinkError },
     },
   },

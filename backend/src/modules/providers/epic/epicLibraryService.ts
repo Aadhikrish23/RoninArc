@@ -2,6 +2,8 @@ import epicApiService from "./epicApiService";
 import EpicOwnership from "./models/EpicOwnership";
 import epicAuthService from "./epicAuthService";
 
+const METADATA_REQUESTS_AT_ONCE = 6;
+
 const syncLibrary = async (userId: string) => {
   // Drop legacy index if it exists to allow duplicate productIds (base game + DLC)
   try {
@@ -93,10 +95,10 @@ const syncMetadata = async (userId: string) => {
 
   let updated = 0;
 
-  for (const game of games) {
+  const fetchMetadata = async (game: (typeof games)[number]) => {
     try {
       if (!game.namespace || !game.catalogItemId) {
-        continue;
+        return;
       }
 
       const metadata = await epicApiService.getCatalogItem(
@@ -108,7 +110,7 @@ const syncMetadata = async (userId: string) => {
       const item = metadata[game.catalogItemId];
 
       if (!item) {
-        continue;
+        return;
       }
 
       const heroImage = item.keyImages?.find(
@@ -139,7 +141,17 @@ const syncMetadata = async (userId: string) => {
     } catch (error) {
       console.log("[METADATA FAILED]", game.catalogItemId);
     }
-  }
+  };
+
+  // One at a time, a 265-game library took over a minute.
+  const queue = [...games];
+  await Promise.all(
+    Array.from({ length: METADATA_REQUESTS_AT_ONCE }, async () => {
+      for (let game = queue.shift(); game; game = queue.shift()) {
+        await fetchMetadata(game);
+      }
+    }),
+  );
 
   return {
     updated,

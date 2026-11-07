@@ -16,6 +16,7 @@ const PUSH_BATCH = 1000;
 const SYNC_EVERY_MS = 60_000;
 const AFTER_CHANGE_MS = 4_000;
 const HTTP_TIMEOUT_MS = 20_000;
+const CLOUD_WAKE_TIMEOUT_MS = 90_000;
 
 /* ------------------------------------------------------------------ */
 /* Talking to the cloud                                                 */
@@ -321,22 +322,27 @@ async function moveLocalAccount(from: mongoose.Types.ObjectId, to: mongoose.Type
 
 /**
  * Link this PC's account.
- *  - "create": a new cloud account with this account's id; everything here goes up.
+ *  - "create": a new cloud account with this account's id; everything here goes up. Whatever
+ *    isn't given comes from this PC's account, so its password works on the phone too.
  *  - "signin": an existing cloud account; this PC's data moves to it and merges.
  * Returns `moved` when the account id changed (the app must sign in again with new tokens).
  */
-export async function link(userIdRaw: string, input: { mode: "create" | "signin"; username: string; email?: string; password: string }) {
+export async function link(userIdRaw: string, input: { mode: "create" | "signin"; username?: string; email?: string; password?: string }) {
   if (isCloud()) throw new AppError("Not available in the cloud.", 400);
   const userId = new mongoose.Types.ObjectId(userIdRaw);
   if (await SyncLink.exists({ userId, needsSignIn: false })) throw new AppError("This account already syncs with RoninArc Cloud.", 409);
-  const username = String(input.username ?? "").trim().toLowerCase();
+  const account: any = await usermodel.collection.findOne({ _id: userId });
+  const username = String(input.username?.trim() || account?.username || "").toLowerCase();
   const password = String(input.password ?? "");
 
   let cloudId: mongoose.Types.ObjectId;
   let tokens: { accessToken: string; refreshToken: string };
   try {
     if (input.mode === "create") {
-      const { data } = await http().post("/sync/register", { username, email: input.email, password, userId: String(userId) });
+      const secret = password ? { password } : { passwordHash: account?.passwordHash };
+      const email = input.email?.trim() || account?.email;
+      // Long: a cloud that's been idle can take this long to wake up.
+      const { data } = await http(CLOUD_WAKE_TIMEOUT_MS).post("/sync/register", { username, email, ...secret, userId: String(userId) });
       tokens = tokensFrom(data);
       // Never trust that the account is ours: pushing into another would mix two libraries.
       const me = await http().get("/auth/me", { headers: { Authorization: `Bearer ${tokens.accessToken}` } });

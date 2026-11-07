@@ -18,8 +18,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 import RatingText from "../../../shared/components/RatingText";
-import { getInstallTarget } from "../utils/launch";
-import InstallGameButton from "../components/InstallGameButton";
+import { getGamePage } from "../utils/launch";
+import GamePageButton from "../components/GamePageButton";
 import { useColorModeValue } from "@chakra-ui/react";
 
 interface Props {
@@ -58,7 +58,7 @@ export default function RawgResultsSection({
     const isOwned = game.providers && Object.keys(game.providers).length > 0;
     const isInstalled = isOwned && Object.values(game.providers || {}).some((p: any) => p.installed === true);
     const disableLaunch = isOwned && !isInstalled;
-    const installTarget = getInstallTarget(game);
+    const gamePage = getGamePage(game);
 
     return (
       <Box
@@ -86,8 +86,8 @@ export default function RawgResultsSection({
           <Text color="gray.500" fontSize="sm" noOfLines={1}>
             {game.tags.join(", ")}
           </Text>
-          {canLaunchGames() && (installTarget ? (
-            <InstallGameButton target={installTarget} mt={3} w="100%" />
+          {canLaunchGames() && (gamePage ? (
+            <GamePageButton page={gamePage} mt={3} w="100%" />
           ) : (
             <Button
               mt={3}
@@ -111,7 +111,7 @@ export default function RawgResultsSection({
     const isOwned = game.providers && Object.keys(game.providers).length > 0;
     const isInstalled = isOwned && Object.values(game.providers || {}).some((p: any) => p.installed === true);
     const disableLaunch = isOwned && !isInstalled;
-    const installTarget = getInstallTarget(game);
+    const gamePage = getGamePage(game);
 
     return (
       <Flex
@@ -152,8 +152,8 @@ export default function RawgResultsSection({
             </Text>
           )}
         </Box>
-        {canLaunchGames() && (installTarget ? (
-          <InstallGameButton target={installTarget} />
+        {canLaunchGames() && (gamePage ? (
+          <GamePageButton page={gamePage} />
         ) : (
           <Button
             colorScheme={disableLaunch ? "gray" : "purple"}

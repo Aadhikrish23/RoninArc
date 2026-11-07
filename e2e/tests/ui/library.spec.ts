@@ -92,7 +92,7 @@ test.describe("Library home page", () => {
     await expect(page.getByRole("button", { name: /^(Launch|Running|Not installed)$/ })).toHaveCount(0);
   });
 
-  test.describe("installing a game you own but don't have on this PC", () => {
+  test.describe("a game you own but don't have on this PC", () => {
     const seedUninstalledSteamGame = async (api: any) => {
       const scan = { appId: 1145360, name: "Hades", installPath: "C:/Steam/common/Hades" };
       await api.post("/provider/installations/refresh", { installations: { steam: [scan] } });
@@ -112,16 +112,16 @@ test.describe("Library home page", () => {
       });
     };
 
-    const installLinkFromCard = async (page: any, name: string) => {
+    const gamePagesFromCard = async (page: any, name: string) => {
       await open(page, "/library/browse");
       await page.getByRole("button", { name }).click();
-      return page.evaluate(() => (window as any).__installLinks);
+      return page.evaluate(() => (window as any).__gamePages);
     };
 
-    test("Install on Steam opens Steam's install page and stays on this page @positive", async ({ authedPage: page, api }) => {
+    test("Open in Steam goes to the game's page there and stays on this page @positive", async ({ authedPage: page, api }) => {
       await seedUninstalledSteamGame(api);
       await emulateDesktop(page);
-      expect(await installLinkFromCard(page, "Install on Steam")).toEqual(["steam://install/1145360"]);
+      expect(await gamePagesFromCard(page, "Open in Steam")).toEqual([{ provider: "steam", gameId: "1145360" }]);
       await expectToast(page, "Opening Steam", "Once it's installed, use Rescan PC Games to launch it from here.");
       await expect(page).toHaveURL(/#\/library\/browse$/);
       expect(await page.evaluate(() => (window as any).__launched)).toEqual([]);
@@ -132,8 +132,8 @@ test.describe("Library home page", () => {
       await emulateDesktop(page);
       await open(page, "/library/browse");
       await page.getByText("Hades", { exact: true }).click();
-      await page.getByRole("button", { name: "Install on Steam" }).click();
-      expect(await page.evaluate(() => (window as any).__installLinks)).toEqual(["steam://install/1145360"]);
+      await page.getByRole("button", { name: "Open in Steam" }).click();
+      expect(await page.evaluate(() => (window as any).__gamePages)).toEqual([{ provider: "steam", gameId: "1145360" }]);
     });
 
     test("list view offers it too @positive", async ({ authedPage: page, api }) => {
@@ -141,15 +141,15 @@ test.describe("Library home page", () => {
       await emulateDesktop(page);
       await open(page, "/library/browse");
       await page.getByRole("button", { name: "List View" }).click();
-      await page.getByRole("button", { name: "Install on Steam" }).click();
-      expect(await page.evaluate(() => (window as any).__installLinks)).toEqual(["steam://install/1145360"]);
+      await page.getByRole("button", { name: "Open in Steam" }).click();
+      expect(await page.evaluate(() => (window as any).__gamePages)).toEqual([{ provider: "steam", gameId: "1145360" }]);
       await expect(page).toHaveURL(/#\/library\/browse$/);
     });
 
     test("says so when the launcher can't be opened @negative", async ({ authedPage: page, api }) => {
       await seedUninstalledSteamGame(api);
-      await emulateDesktop(page, { installOpens: false });
-      await installLinkFromCard(page, "Install on Steam");
+      await emulateDesktop(page, { gamePageOpens: false });
+      await gamePagesFromCard(page, "Open in Steam");
       await expectToast(page, "Couldn't open Steam", "Check that Steam is installed on this PC.");
     });
 
@@ -160,7 +160,7 @@ test.describe("Library home page", () => {
       await emulateDesktop(page);
       await open(page, "/library/browse");
       await expect(page.getByRole("button", { name: "Launch" })).toBeVisible();
-      await expect(page.getByRole("button", { name: /^Install on/ })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /^Open in/ })).toHaveCount(0);
     });
 
     test("a game you added by hand has no launcher to install from @negative", async ({ authedPage: page, api }) => {
@@ -168,39 +168,43 @@ test.describe("Library home page", () => {
       await emulateDesktop(page);
       await open(page, "/library/browse");
       await expect(page.getByRole("button", { name: "Launch" })).toBeVisible();
-      await expect(page.getByRole("button", { name: /^Install on/ })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /^Open in/ })).toHaveCount(0);
     });
 
     test("in a plain browser there's no install button @negative", async ({ authedPage: page, api }) => {
       await seedUninstalledSteamGame(api);
       await open(page, "/library/browse");
       await expect(page.getByText("Hades", { exact: true })).toBeVisible();
-      await expect(page.getByRole("button", { name: /^Install on/ })).toHaveCount(0);
+      await expect(page.getByRole("button", { name: /^Open in/ })).toHaveCount(0);
     });
 
-    test("Epic: goes straight to the game's install page @positive", async ({ authedPage: page, api }) => {
+    test("Epic: asks for the game's page using its catalog ids @positive", async ({ authedPage: page, api }) => {
       await api.addGame(byName("Celeste"));
       await emulateDesktop(page);
-      await asEpicGame(page, { namespace: "ns1", appName: "My App" });
-      expect(await installLinkFromCard(page, "Install on Epic Games")).toEqual([
-        "com.epicgames.launcher://apps/ns1%3Acat123%3AMy%20App?action=install",
-      ]);
+      await asEpicGame(page, { namespace: "ns1" });
+      expect(await gamePagesFromCard(page, "Open in Epic Games")).toEqual([{ provider: "epic", gameId: "cat123", namespace: "ns1" }]);
     });
 
-    test("Epic: a game not resynced yet falls back to its store page @positive", async ({ authedPage: page, api }) => {
+    test("rescanning leaves the account cards alone @negative", async ({ authedPage: page, api }) => {
       await api.addGame(byName("Celeste"));
       await emulateDesktop(page);
-      await asEpicGame(page, { productSlug: "celeste/home" });
-      expect(await installLinkFromCard(page, "Install on Epic Games")).toEqual([
-        "com.epicgames.launcher://store/p/celeste",
-      ]);
-    });
-
-    test("Epic: with nothing else to go on, opens the Epic library @negative", async ({ authedPage: page, api }) => {
-      await api.addGame(byName("Celeste"));
-      await emulateDesktop(page);
-      await asEpicGame(page, {});
-      expect(await installLinkFromCard(page, "Install on Epic Games")).toEqual(["com.epicgames.launcher://library"]);
+      let release = () => {};
+      const held = new Promise<void>((resolve) => (release = resolve));
+      await page.route(/\/provider\/installations\/refresh$/, async (route: any) => {
+        await held;
+        await route.continue();
+      });
+      await page.route(/\/provider\/(epic|steam)\/status$/, (route: any) =>
+        route.fulfill({ json: { Data: { connected: true, displayName: "Tarnished", importedGames: 3, lastSync: null } } }),
+      );
+      await open(page, "/");
+      await page.getByRole("button", { name: "Rescan PC Games" }).click();
+      // While the rescan is still running, on the page with the cards.
+      await page.evaluate(() => (location.hash = "#/settings"));
+      await expect(page.getByRole("heading", { name: "Account connections" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Resync Library" })).toHaveCount(2);
+      await expect(page.getByText("Syncing", { exact: true })).toHaveCount(0);
+      release();
     });
   });
 

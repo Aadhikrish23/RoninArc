@@ -42,9 +42,10 @@ export default function ProviderCard({
   const stateConnected = isStateLoading
     ? false  // Never show as connected during loading — skeletons will render instead
     : connectionState
-      ? ["connected", "syncing", "connecting", "disconnecting"].includes(connectionState)
+      ? connected && ["connected", "syncing", "connecting", "disconnecting"].includes(connectionState)
       : connected;
-
+  const isSyncing = connectionState === "syncing";
+  const syncingNote = "Importing your games. A big library can take a minute or two, and you can keep using RoninArc meanwhile.";
 
   return (
     <Box
@@ -129,10 +130,16 @@ export default function ProviderCard({
                 ).toLocaleString()}
               </Text>
             )}
+
+            {isSyncing && (
+              <Text color={descriptionColor} fontSize="sm" pt={2} aria-live="polite">
+                {syncingNote}
+              </Text>
+            )}
           </VStack>
         ) : (
-          <Text color={descriptionColor} fontSize="sm">
-            {description || "This provider has not been connected."}
+          <Text color={descriptionColor} fontSize="sm" aria-live="polite">
+            {isSyncing ? syncingNote : description || "This provider has not been connected."}
           </Text>
         )}
 

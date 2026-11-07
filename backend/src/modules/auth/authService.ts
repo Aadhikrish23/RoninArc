@@ -97,14 +97,14 @@ async function revokeAllUserTokens(userId: mongoose.Types.ObjectId) {
    REGISTER
 ============================ */
 
-async function registerUser(name: string, password: string, email?: string, options: { id?: string } = {}) {
+async function registerUser(name: string, password: string, email?: string, options: { id?: string; passwordHash?: string } = {}) {
   const username = name.trim().toLowerCase();
 
   const plainPassword = password.trim();
 
   email = email?.trim();
 
-  if (username.length < 3 || plainPassword.length < 6) {
+  if (username.length < 3 || (!options.passwordHash && plainPassword.length < 6)) {
     throw new AppError("Invalid input", 400);
   }
 
@@ -124,7 +124,10 @@ async function registerUser(name: string, password: string, email?: string, opti
     const justMade = Date.now() - new Date((existingUser as any).createdAt ?? 0).getTime() < 10 * 60 * 1000;
     // Only ever the same account: a PC creating its cloud account must never land in another one.
     const sameAccount = options.id === undefined || String(existingUser._id) === options.id;
-    if (justMade && sameAccount && (await bcryptjs.compare(plainPassword, existingUser.passwordHash))) {
+    const samePassword = options.passwordHash
+      ? options.passwordHash === existingUser.passwordHash
+      : await bcryptjs.compare(plainPassword, existingUser.passwordHash);
+    if (justMade && sameAccount && samePassword) {
       return {
         userdata: { name: existingUser.username, email: existingUser.email, updatedAt: existingUser.updatedAt },
         accessToken: generateAccessToken(existingUser._id, existingUser.username),
@@ -143,7 +146,7 @@ async function registerUser(name: string, password: string, email?: string, opti
     }
   }
 
-  const passwordHash = await bcryptjs.hash(plainPassword, 11);
+  const passwordHash = options.passwordHash ?? (await bcryptjs.hash(plainPassword, 11));
 
   const user = await usermodel.create({
     ...(options.id ? { _id: new mongoose.Types.ObjectId(options.id) } : {}),

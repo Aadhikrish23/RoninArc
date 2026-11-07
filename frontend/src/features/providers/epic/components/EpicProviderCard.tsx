@@ -7,7 +7,7 @@ import EpicConnectButton from "./EpicConnectButton";
 export default function EpicProviderCard() {
   const { provider, connectionState, loading, disconnect, resync } = useEpic();
 
-  const isConnected = ["connected", "syncing"].includes(connectionState);
+  const isConnected = provider.connected && ["connected", "syncing", "disconnecting"].includes(connectionState);
 
   return (
     <ProviderCard
@@ -26,7 +26,8 @@ export default function EpicProviderCard() {
           <Button
             colorScheme="purple"
             onClick={resync}
-            isLoading={loading || connectionState === "syncing"}
+            isLoading={connectionState === "syncing"}
+            isDisabled={loading}
             loadingText="Syncing..."
           >
             Resync Library
@@ -36,7 +37,8 @@ export default function EpicProviderCard() {
             variant="outline"
             colorScheme="red"
             onClick={disconnect}
-            isLoading={loading || connectionState === "disconnecting"}
+            isLoading={connectionState === "disconnecting"}
+            isDisabled={loading}
             loadingText="Disconnecting..."
           >
             Disconnect
@@ -44,7 +46,10 @@ export default function EpicProviderCard() {
         </>
       ) : (
         <VStack align="stretch" spacing={3} w="100%">
-          <EpicConnectButton isLoading={loading || connectionState === "connecting"} />
+          <EpicConnectButton
+            isLoading={loading || connectionState === "connecting"}
+            loadingText={connectionState === "syncing" ? "Importing..." : undefined}
+          />
         </VStack>
       )}
     </ProviderCard>

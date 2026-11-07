@@ -23,8 +23,8 @@ import { FiPlay, FiPlus, FiTrash2 } from "react-icons/fi";
 import { ChevronDownIcon } from "@chakra-ui/icons";
 import { useState } from "react";
 import RatingText from "../../../shared/components/RatingText";
-import { getInstallTarget } from "../utils/launch";
-import InstallGameButton from "./InstallGameButton";
+import { getGamePage } from "../utils/launch";
+import GamePageButton from "./GamePageButton";
 import CreateCollectionModal from "../../collections/components/CreateCollectionModal";
 import { useCollection } from "../../collections/context/CollectionContext";
 
@@ -139,7 +139,7 @@ export default function UserGameStats({
 
   const isProviderGame = game.providers && Object.keys(game.providers).length > 0;
   const isInstalled = isProviderGame && Object.values(game.providers || {}).some((p: any) => p.installed === true);
-  const installTarget = getInstallTarget(game);
+  const gamePage = getGamePage(game);
 
   return (
     <Box
@@ -337,8 +337,8 @@ export default function UserGameStats({
         <Divider my={2} />
 
         {/* LAUNCH */}
-       {canLaunchGames() && (installTarget ? (
-         <InstallGameButton target={installTarget} />
+       {canLaunchGames() && (gamePage ? (
+         <GamePageButton page={gamePage} />
        ) : (
          <Button
             colorScheme={

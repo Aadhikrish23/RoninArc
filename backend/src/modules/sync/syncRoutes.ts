@@ -10,6 +10,8 @@ import { rateLimit } from "../../shared/rateLimit";
 import { applyPush, pull } from "./cloudSync";
 import * as localSync from "./localSync";
 
+const PC_PASSWORD_HASH = /^\$2[aby]\$1[0-2]\$[./A-Za-z0-9]{53}$/;
+
 const syncRouter = express.Router();
 // Pushes can carry a whole library on first link.
 syncRouter.use(express.json({ limit: "15mb" }));
@@ -23,9 +25,20 @@ if (isCloud()) {
     "/register",
     rateLimit({ windowMs: 60 * 60_000, max: 10, message: "Too many sign-ups from this network. Try again later." }),
     wrap(async (req, res) => {
-      const { username, password, email, userId: id } = req.body ?? {};
-      if (typeof username !== "string" || typeof password !== "string") throw new AppError("Username and password are required", 400);
-      const data = await authServices.registerUser(username, password, email, { id: typeof id === "string" ? id : undefined });
+      const { username, password, passwordHash, email, userId: id } = req.body ?? {};
+      if (typeof username !== "string") throw new AppError("Username and password are required", 400);
+      if (passwordHash !== undefined) {
+        // The PC's account keeps its password. The cost is capped: every sign-in pays it.
+        if (typeof passwordHash !== "string" || !PC_PASSWORD_HASH.test(passwordHash) || typeof id !== "string") {
+          throw new AppError("That password can't be used for a cloud account.", 400);
+        }
+      } else if (typeof password !== "string") {
+        throw new AppError("Username and password are required", 400);
+      }
+      const data = await authServices.registerUser(username, passwordHash ? "" : password, email, {
+        id: typeof id === "string" ? id : undefined,
+        passwordHash,
+      });
       res.status(201).json({ Status: "Success", Data: data });
     }),
   );
@@ -39,17 +52,23 @@ if (isCloud()) {
     wrap(async (req, res) => {
       const { mode, username, email, password } = req.body ?? {};
       if (mode !== "create" && mode !== "signin") throw new AppError('mode must be "create" or "signin"', 400);
-      if (typeof username !== "string" || typeof password !== "string" || !username.trim() || !password) {
+      // Creating needs nothing: it uses this PC's account unless told otherwise.
+      if (mode === "signin" && (typeof username !== "string" || typeof password !== "string" || !username.trim() || !password)) {
         throw new AppError("Username and password are required", 400);
       }
-      const result = await localSync.link(userId(req), { mode, username, email: typeof email === "string" ? email : undefined, password });
+      const result = await localSync.link(userId(req), {
+        mode,
+        username: typeof username === "string" ? username : undefined,
+        email: typeof email === "string" ? email : undefined,
+        password: typeof password === "string" ? password : undefined,
+      });
       // Linked to an existing cloud account: this account's id changed, so sign in afresh.
       let session;
       if (result.moved) {
         const id = new mongoose.Types.ObjectId(result.userId);
         const user = await usermodel.findById(id).select("username").lean();
         session = {
-          accessToken: authServices.generateAccessToken(id, user?.username ?? username.trim().toLowerCase()),
+          accessToken: authServices.generateAccessToken(id, user?.username ?? String(username).trim().toLowerCase()),
           refreshToken: await authServices.generateRefreshToken(id),
         };
       }

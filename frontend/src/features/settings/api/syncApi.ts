@@ -15,8 +15,9 @@ export interface SyncStatus {
 }
 
 const status = async () => (await api.get<SyncStatus>("sync/status")).data;
-const link = async (input: { mode: "create" | "signin"; username: string; email?: string; password: string }) =>
-  (await api.post<SyncStatus>("sync/link", input, { timeout: 120_000 })).data;
+/** Creating with nothing given uses this PC's account, password included. */
+const link = async (input: { mode: "create" | "signin"; username?: string; email?: string; password?: string }) =>
+  (await api.post<SyncStatus>("sync/link", input, { timeout: 300_000 })).data;
 const reconnect = async (password: string) => (await api.post<SyncStatus>("sync/reconnect", { password }, { timeout: 60_000 })).data;
 const unlink = async () => (await api.post<SyncStatus>("sync/unlink")).data;
 const syncNow = async () => (await api.post<SyncStatus>("sync/now", undefined, { timeout: 120_000 })).data;

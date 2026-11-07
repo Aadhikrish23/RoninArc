@@ -186,6 +186,27 @@ test.describe("Sync with RoninArc Cloud", () => {
     expect((await api.post("/sync/link", { mode: "create", username: user.username, email: user.email, password: user.password })).status()).toBe(409);
   });
 
+  test("linking with no details uses this PC's account, and its password works in the cloud @positive", async ({ api, user, request }) => {
+    await api.addGame(byName("Hades"));
+    const res = await api.post("/sync/link", { mode: "create" });
+    expect(res.status()).toBe(200);
+    expect(await json(res)).toMatchObject({ linked: true, cloudUsername: user.username, lastError: null, moved: false });
+    expect(await titles(await cloudSignIn(request, user.username, user.password))).toEqual(["Hades"]);
+    const wrong = await request.post(`${CLOUD_URL}/auth/login`, { data: { username: user.username, password: "not-the-password" } });
+    expect(wrong.status()).toBe(401);
+  });
+
+  test("the cloud only takes a PC's password as a well-formed hash of a sensible cost @negative", async ({ request }) => {
+    const body = (passwordHash: unknown, userId: unknown = "6a8f00c2b1d3e4f5a6b7c8d9") => ({
+      data: { username: uniqueName(), email: `${uniqueName()}@example.com`, passwordHash, userId },
+    });
+    const salt = "abcdefghijklmnopqrstuvabcdefghijklmnopqrstuvwxyz1234567".slice(0, 53);
+    for (const bad of ["plain-text-password", "", `$2b$31$${salt}`, `$2b$04$${salt}`, `$2b$11$${salt}x`, 12345]) {
+      expect((await request.post(`${CLOUD_URL}/sync/register`, body(bad))).status(), String(bad)).toBe(400);
+    }
+    expect((await request.post(`${CLOUD_URL}/sync/register`, body(`$2b$11$${salt}`, null))).status()).toBe(400);
+  });
+
   test("deleting the account on a linked PC deletes the cloud account too @positive", async ({ api, user, request }) => {
     await link(api, user);
     expect((await api.delete("/auth/account", { password: user.password })).status()).toBe(200);

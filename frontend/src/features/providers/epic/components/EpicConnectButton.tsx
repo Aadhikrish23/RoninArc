@@ -3,6 +3,7 @@ import useEpic from "../hooks/useEpic";
 
 interface Props {
   isLoading?: boolean;
+  loadingText?: string;
 }
 
 /**
@@ -14,7 +15,7 @@ interface Props {
  * It calls useEpic().authenticate() — the hook resolves the correct strategy
  * and orchestrates everything from code acquisition to library synchronisation.
  */
-export default function EpicConnectButton({ isLoading: parentLoading }: Props) {
+export default function EpicConnectButton({ isLoading: parentLoading, loadingText = "Connecting..." }: Props) {
   const { authenticate, loading } = useEpic();
   const toast = useToast();
 
@@ -40,7 +41,7 @@ export default function EpicConnectButton({ isLoading: parentLoading }: Props) {
       colorScheme="purple"
       onClick={handleClick}
       isLoading={loading || parentLoading}
-      loadingText="Connecting..."
+      loadingText={loadingText}
       w="100%"
     >
       Connect Epic Games

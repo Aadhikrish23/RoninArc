@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import axios from "axios";
 import {
   Alert,
   AlertDescription,
@@ -46,6 +47,7 @@ export default function CloudSyncSection() {
   const [username, setUsername] = useState(user?.name ?? "");
   const [email, setEmail] = useState(user?.email ?? "");
   const [password, setPassword] = useState("");
+  const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState<"link" | "sync" | "unlink" | "reconnect" | null>(null);
   const [confirmUnlink, setConfirmUnlink] = useState(false);
 
@@ -60,11 +62,39 @@ export default function CloudSyncSection() {
 
   const fail = (title: string, error: unknown) => toast({ title, description: getErrorMessage(error), status: "error", duration: 8000, isClosable: true });
 
-  const submitLink = async () => {
-    if (!mode) return;
+  /** Nothing to fill in, unless the cloud can't take this PC's details as they are. */
+  const syncToCloud = async (details: { username?: string; email?: string } = {}) => {
     setBusy("link");
+    setProblem(null);
     try {
-      const result = await syncApi.link({ mode, username: username.trim(), email: mode === "create" ? email.trim() : undefined, password });
+      setStatus(await syncApi.link({ mode: "create", ...details }));
+      setMode(null);
+      toast({
+        title: "Your library is in the cloud",
+        description: "On your phone, sign in with your RoninArc username and password.",
+        status: "success",
+        duration: 6000,
+      });
+    } catch (error) {
+      const code = axios.isAxiosError(error) ? error.response?.status : undefined;
+      if (code === 400 || code === 409) {
+        const message = getErrorMessage(error);
+        setProblem(message);
+        // A taken name may well be theirs (say, after "Stop syncing"), so offer to sign in to it.
+        setMode(/name/i.test(message) ? "signin" : "create");
+      } else {
+        fail("Couldn't sync to the cloud", error);
+      }
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const signIn = async () => {
+    setBusy("link");
+    setProblem(null);
+    try {
+      const result = await syncApi.link({ mode: "signin", username: username.trim(), password });
       if (result.moved && result.session) {
         // This PC's account took the cloud account's id: carry on signed in as it.
         const rememberMe = !!localStorage.getItem("roninarc_refresh_token");
@@ -74,16 +104,22 @@ export default function CloudSyncSection() {
       setMode(null);
       setPassword("");
       toast({
-        title: mode === "create" ? "Cloud account created" : "Signed in to RoninArc Cloud",
+        title: "Signed in to RoninArc Cloud",
         description: "Your library now syncs with the RoninArc app on your phone.",
         status: "success",
         duration: 6000,
       });
     } catch (error) {
-      fail(mode === "create" ? "Couldn't create the cloud account" : "Couldn't sign in to RoninArc Cloud", error);
+      fail("Couldn't sign in to RoninArc Cloud", error);
     } finally {
       setBusy(null);
     }
+  };
+
+  const switchMode = (next: Mode | null) => {
+    setMode(next);
+    setProblem(null);
+    setPassword("");
   };
 
   const run = async (kind: "sync" | "unlink" | "reconnect", call: () => Promise<SyncStatus>, done?: string) => {
@@ -170,16 +206,22 @@ export default function CloudSyncSection() {
         </Stack>
       ) : mode ? (
         <Stack spacing={3}>
+          {problem && (
+            <Alert status="warning" borderRadius="md">
+              <AlertIcon />
+              <AlertDescription fontSize="sm">{problem}</AlertDescription>
+            </Alert>
+          )}
           <Text fontSize="sm" color={muted}>
             {mode === "create"
-              ? "Your whole library goes up to a new cloud account. Use the same details to sign in on your phone."
-              : "Your library here merges into that account: games you have on both are kept once, with your notes and reviews from both."}
+              ? "Your password stays the same. Use these details to sign in on your phone."
+              : "If this account is yours, sign in and your library here merges into it: games you have on both are kept once, with your notes and reviews from both."}
           </Text>
           <FormControl>
             <FormLabel fontSize="sm">Cloud username</FormLabel>
             <Input value={username} onChange={(e) => setUsername(e.target.value)} autoComplete="username" />
           </FormControl>
-          {mode === "create" && (
+          {mode === "create" ? (
             <FormControl>
               <FormLabel fontSize="sm">Email</FormLabel>
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" />
@@ -187,37 +229,52 @@ export default function CloudSyncSection() {
                 Only for resetting a forgotten password.
               </Text>
             </FormControl>
+          ) : (
+            <FormControl>
+              <FormLabel fontSize="sm">Password</FormLabel>
+              <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" />
+            </FormControl>
           )}
-          <FormControl>
-            <FormLabel fontSize="sm">{mode === "create" ? "Choose a password" : "Password"}</FormLabel>
-            <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete={mode === "create" ? "new-password" : "current-password"} />
-          </FormControl>
-          <ButtonGroup spacing={3}>
-            <Button
-              colorScheme="purple"
-              isLoading={busy === "link"}
-              loadingText={mode === "create" ? "Uploading your library" : "Merging your library"}
-              isDisabled={!username.trim() || password.length < 6 || (mode === "create" && !email.trim())}
-              onClick={submitLink}
-            >
-              {mode === "create" ? "Create and sync" : "Sign in and sync"}
+          <ButtonGroup spacing={3} flexWrap="wrap">
+            {mode === "create" ? (
+              <Button
+                colorScheme="purple"
+                isLoading={busy === "link"}
+                loadingText="Syncing your library"
+                isDisabled={!username.trim() || !email.trim()}
+                onClick={() => syncToCloud({ username: username.trim(), email: email.trim() })}
+              >
+                Sync to cloud
+              </Button>
+            ) : (
+              <Button
+                colorScheme="purple"
+                isLoading={busy === "link"}
+                loadingText="Merging your library"
+                isDisabled={!username.trim() || !password}
+                onClick={signIn}
+              >
+                Sign in and sync
+              </Button>
+            )}
+            <Button variant="ghost" onClick={() => switchMode(mode === "create" ? "signin" : "create")}>
+              {mode === "create" ? "I already have a cloud account" : "Use a different name"}
             </Button>
-            <Button variant="ghost" onClick={() => (setMode(null), setPassword(""))}>
+            <Button variant="ghost" onClick={() => switchMode(null)}>
               Cancel
             </Button>
           </ButtonGroup>
         </Stack>
       ) : (
-        <Stack spacing={3}>
-          <HStack spacing={3} wrap="wrap">
-            <Button colorScheme="purple" onClick={() => setMode("create")}>
-              Create a cloud account
-            </Button>
-            <Button variant="outline" onClick={() => setMode("signin")}>
-              I already have one
-            </Button>
-          </HStack>
-        </Stack>
+        <Button
+          colorScheme="purple"
+          alignSelf="flex-start"
+          isLoading={busy === "link"}
+          loadingText="Syncing your library"
+          onClick={() => syncToCloud()}
+        >
+          Sync to cloud
+        </Button>
       )}
     </SettingsCard>
   );

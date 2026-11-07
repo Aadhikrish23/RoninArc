@@ -471,18 +471,7 @@ export function ProviderProvider({ children }: { children: React.ReactNode }) {
   );
 
   const refreshInstallations = useCallback(async (): Promise<any> => {
-    // Set epic and steam states to syncing if they are connected
-    setEpicState((prev) =>
-      prev.status.connected
-        ? { ...prev, connectionState: "syncing", loading: true }
-        : prev,
-    );
-    setSteamState((prev) =>
-      prev.status.connected
-        ? { ...prev, connectionState: "syncing", loading: true }
-        : prev,
-    );
-
+    // Only checks what's on this PC: the accounts aren't syncing, so their cards stay as they are.
     try {
       const steamScanned = window.electronAPI
         ? await window.electronAPI.scanSteamGames()

@@ -7,7 +7,7 @@ export default function SteamProviderCard() {
   const { provider, connectionState, loading, disconnect, resync, authenticate } = useProvider("steam");
   const toast = useToast();
 
-  const isConnected = ["connected", "syncing"].includes(connectionState);
+  const isConnected = provider.connected && ["connected", "syncing", "disconnecting"].includes(connectionState);
 
   const handleConnect = async () => {
     const result = await authenticate();
@@ -42,7 +42,8 @@ export default function SteamProviderCard() {
           <Button
             colorScheme="purple"
             onClick={resync}
-            isLoading={loading || connectionState === "syncing"}
+            isLoading={connectionState === "syncing"}
+            isDisabled={loading}
             loadingText="Syncing..."
           >
             Resync Library
@@ -52,7 +53,8 @@ export default function SteamProviderCard() {
             variant="outline"
             colorScheme="red"
             onClick={disconnect}
-            isLoading={loading || connectionState === "disconnecting"}
+            isLoading={connectionState === "disconnecting"}
+            isDisabled={loading}
             loadingText="Disconnecting..."
           >
             Disconnect
@@ -64,7 +66,7 @@ export default function SteamProviderCard() {
             colorScheme="purple"
             onClick={handleConnect}
             isLoading={loading || connectionState === "connecting"}
-            loadingText="Connecting..."
+            loadingText={connectionState === "syncing" ? "Importing..." : "Connecting..."}
           >
             Connect Steam
           </Button>

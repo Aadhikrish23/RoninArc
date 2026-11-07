@@ -77,54 +77,33 @@ export function getProviderLauncherUri(
   }
 }
 
-/**
- * A link into the launcher that owns the game, where it can be installed.
- * Epic needs namespace + catalog id + app name for its install page; games not
- * resynced since those were added fall back to the store page, then the library.
- */
-export function getProviderInstallUri(
-  providerKey: string,
-  providerData: NonNullable<Game["providers"]>[string]
-): string | null {
-  switch (providerKey) {
-    case "steam": {
-      const appId = providerData.providerGameId;
-      return appId && /^\d+$/.test(appId) ? `steam://install/${appId}` : null;
-    }
-    case "epic": {
-      const { namespace, providerGameId, appName, productSlug } = providerData;
-      if (namespace && providerGameId && appName) {
-        const id = [namespace, providerGameId, appName].map(encodeURIComponent).join("%3A");
-        return `com.epicgames.launcher://apps/${id}?action=install`;
-      }
-      if (productSlug) {
-        const slug = productSlug.replace(/\/home$/, "").split("/").map(encodeURIComponent).join("/");
-        return `com.epicgames.launcher://store/p/${slug}`;
-      }
-      return "com.epicgames.launcher://library";
-    }
-    default:
-      return null;
-  }
-}
+const LAUNCHERS_WITH_GAME_PAGES = ["steam", "epic"];
 
-export interface InstallTarget {
+export interface GamePage {
   /** Launcher name, as shown on the button. */
   name: string;
-  uri: string;
+  provider: string;
+  gameId: string;
+  namespace?: string;
 }
 
 /**
- * Where to install a game we know you own but don't have on this PC.
+ * The game's page in the launcher that owns it, for a game you don't have on this PC.
  * Null when it's already installed, or isn't from a launcher we can link to.
  */
-export function getInstallTarget(game: Game): InstallTarget | null {
+export function getGamePage(game: Game): GamePage | null {
   const providers = Object.entries(game.providers || {});
   if (providers.some(([, data]) => data.installed === true)) return null;
 
   for (const [key, data] of providers) {
-    const uri = getProviderInstallUri(key, data);
-    if (uri) return { name: PROVIDER_CONFIGS[key as ProviderId]?.name ?? key, uri };
+    if (LAUNCHERS_WITH_GAME_PAGES.includes(key) && data.providerGameId) {
+      return {
+        name: PROVIDER_CONFIGS[key as ProviderId]?.name ?? key,
+        provider: key,
+        gameId: data.providerGameId,
+        namespace: data.namespace,
+      };
+    }
   }
   return null;
 }
