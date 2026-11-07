@@ -55,7 +55,7 @@ test.describe("RAWG proxy API (/rawg)", () => {
   test("an upstream RAWG failure surfaces as 502 @negative", async ({ api }) => {
     const res = await api.get("/rawg/search", { query: RAWG_FAILURE_QUERY });
     expect(res.status()).toBe(502);
-    expect((await json(res)).error).toBe("Failed to fetch RAWG data");
+    expect((await json(res)).error).toBe("The game database isn't responding right now. Your library still works, so try again later.");
   });
 
   test("an unknown RAWG id returns 404 @negative", async ({ api }) => {

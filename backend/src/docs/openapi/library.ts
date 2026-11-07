@@ -428,7 +428,7 @@ export const libraryPaths = {
         400: appError("Empty query.", "Search query is required"),
         401: responses.unauthorized,
         500: appError("RAWG isn't configured on this server.", "RAWG API is not configured"),
-        502: appError("RAWG is unreachable or errored.", "Failed to fetch RAWG data"),
+        502: appError("RAWG is unreachable or errored.", "The game database isn't responding right now. Your library still works, so try again later."),
       },
     },
   },

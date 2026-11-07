@@ -81,12 +81,12 @@ test.describe("Logging & error monitoring (backend)", () => {
       const requestId = res.headers()["x-request-id"];
 
       const errorLine = await waitForLog((l) => l.requestId === requestId && l.level === 50 && !l.type);
-      expect(errorLine.msg).toBe("Failed to fetch RAWG data");
-      expect((errorLine.err as any).stack).toContain("Failed to fetch RAWG data");
+      expect(errorLine.msg).toBe("The game database isn't responding right now. Your library still works, so try again later.");
+      expect((errorLine.err as any).stack).toContain("The game database isn't responding right now. Your library still works, so try again later.");
       expect(errorLine).toMatchObject({ path: "/rawg/search", statusCode: 502 });
 
       const event = await waitForSentryEvent((e) => e.project === "1" && e.tags.requestId === requestId);
-      expect(event).toMatchObject({ message: "Failed to fetch RAWG data", environment: "e2e", platform: "node", hasStack: true });
+      expect(event).toMatchObject({ message: "The game database isn't responding right now. Your library still works, so try again later.", environment: "e2e", platform: "node", hasStack: true });
       // ...and nothing sensitive leaves the machine with it. (Sentry also
       // de-duplicates identical consecutive errors, so one event covers both checks.)
       expect(JSON.stringify(event.request ?? {})).not.toContain("Bearer");

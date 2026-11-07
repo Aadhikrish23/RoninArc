@@ -2,16 +2,42 @@ import axios from "axios";
 import AppError from "../../shared/errors/AppError";
 import dotenv from "dotenv";
 import { playtimeFor } from "./knownLengths";
+import { moduleLogger } from "../../shared/logging/logger";
 dotenv.config();
 
 const RAWG_BASE_URL = process.env.RAWG_BASE_URL;
 const RAWG_API_KEY = process.env.RAWG_API_KEY;
+
+const log = moduleLogger("rawg");
+const UNAVAILABLE_MESSAGE = "The game database isn't responding right now. Your library still works, so try again later.";
+const OUTAGE_PAUSE_MS = 30_000;
+let pausedUntil = 0;
+
+/** RAWG itself is down or stalled, rather than refusing this one request. */
+function isOutage(err: any): boolean {
+  const status = err?.response?.status;
+  return (!status && err?.isAxiosError) || status === 502 || status === 503 || status === 504 || (status >= 520 && status <= 527);
+}
+
+/** During an outage every search would wait out its timeouts, so skip RAWG for a while. */
+function assertNotPaused() {
+  if (Date.now() < pausedUntil) throw new AppError(UNAVAILABLE_MESSAGE, 502);
+}
+
+function unavailable(err: any): AppError {
+  if (err instanceof AppError) return err;
+  // Only these: the full error carries the request URL, and with it the API key.
+  log.warn({ status: err?.response?.status, code: err?.code }, "RAWG request failed");
+  if (isOutage(err)) pausedUntil = Date.now() + OUTAGE_PAUSE_MS;
+  return new AppError(UNAVAILABLE_MESSAGE, 502);
+}
 
 async function searchGames(query: string, page: number, precise = true) {
 
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
   }
+  assertNotPaused();
 
   try {
     const url = `${RAWG_BASE_URL}/games`;
@@ -26,7 +52,7 @@ async function searchGames(query: string, page: number, precise = true) {
           // No popularity ordering: with "-added", RAWG puts GTA V first for
           // "rdr 2" and even for "red dead redemption 2". Its default order is relevance.
         },
-        timeout: 10000,
+        timeout: 6000,
       });
     // One retry: RAWG sometimes drops or stalls a request ("stardew" failed every time a
     // playtester typed it, while the same search worked moments later).
@@ -49,7 +75,7 @@ async function searchGames(query: string, page: number, precise = true) {
 
     return cleaned;
   } catch (err) {
-    throw new AppError("Failed to fetch RAWG data", 502);
+    throw unavailable(err);
   }
 }
 async function searchBestMatch(query: string, pageSize: number) {
@@ -57,6 +83,7 @@ async function searchBestMatch(query: string, pageSize: number) {
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
   }
+  assertNotPaused();
 
   try {
     const url = `${RAWG_BASE_URL}/games`;
@@ -87,7 +114,7 @@ async function searchBestMatch(query: string, pageSize: number) {
 
     return cleaned;
   } catch (err) {
-    throw new AppError("Failed to fetch RAWG data", 502);
+    throw unavailable(err);
   }
 }
 /**
@@ -98,6 +125,7 @@ async function discoverByGenres(genreSlugs: string[], pageSize = 40, tagSlugs: s
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
   }
+  assertNotPaused();
 
   try {
     const response = await axios.get(`${RAWG_BASE_URL}/games`, {
@@ -124,7 +152,7 @@ async function discoverByGenres(genreSlugs: string[], pageSize = 40, tagSlugs: s
       tags: (g.tags ?? []).map((t: any) => String(t.slug)),
     }));
   } catch (err) {
-    throw new AppError("Failed to fetch RAWG data", 502);
+    throw unavailable(err);
   }
 }
 
@@ -132,6 +160,7 @@ async function getGameDetails(rawgId: string | number) {
   if (!RAWG_BASE_URL || !RAWG_API_KEY) {
     throw new AppError("RAWG API is not configured", 500);
   }
+  assertNotPaused();
 
   try {
     const [detailsResponse, screenshotsResponse, moviesResponse] = await Promise.all([
@@ -139,16 +168,19 @@ async function getGameDetails(rawgId: string | number) {
         params: {
           key: RAWG_API_KEY,
         },
+        timeout: 8000,
       }),
       axios.get(`${RAWG_BASE_URL}/games/${rawgId}/screenshots`, {
         params: {
           key: RAWG_API_KEY,
         },
+        timeout: 8000,
       }),
       axios.get(`${RAWG_BASE_URL}/games/${rawgId}/movies`, {
         params: {
           key: RAWG_API_KEY,
         },
+        timeout: 8000,
       }).catch(() => ({ data: { results: [] } })),
     ]);
 
@@ -199,6 +231,7 @@ async function getGameDetails(rawgId: string | number) {
       tags: g.tags?.slice(0, 10).map((t: any) => t.name) || [],
     };
   } catch (err) {
+    if (isOutage(err)) throw unavailable(err);
     throw new AppError("RAWG game not found", 404);
   }
 }
@@ -214,7 +247,7 @@ export interface GameFacts {
 }
 
 async function getGameFacts(rawgId: string | number): Promise<GameFacts> {
-  if (!RAWG_BASE_URL || !RAWG_API_KEY) return { tags: [], playtime: 0 };
+  if (!RAWG_BASE_URL || !RAWG_API_KEY || Date.now() < pausedUntil) return { tags: [], playtime: 0 };
   try {
     const res = await axios.get(`${RAWG_BASE_URL}/games/${rawgId}`, { params: { key: RAWG_API_KEY }, timeout: 8000 });
     return {
@@ -225,7 +258,8 @@ async function getGameFacts(rawgId: string | number): Promise<GameFacts> {
       genres: (res.data?.genres ?? []).map((g: any) => String(g.name)),
       developers: (res.data?.developers ?? []).map((d: any) => String(d.name)),
     };
-  } catch {
+  } catch (err) {
+    if (isOutage(err)) unavailable(err);
     return { tags: [], playtime: 0 };
   }
 }
