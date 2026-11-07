@@ -37,6 +37,10 @@ if (!gotSingleInstanceLock) {
 // runs unless the app is actually packaged.
 const EMBEDDED_MONGO_PORT = 27018;
 const BACKEND_PORT = 5000;
+// A warm start takes about 3s, but a cold one (first launch after installing, or after a reboot)
+// took over 30s reading the backend's 9,000 files: a 20s limit reported that as a failure.
+// A process that really dies is reported at once by its exit handler, so this can be generous.
+const STARTUP_TIMEOUT_MS = 3 * 60 * 1000;
 let mongodProcess = null;
 let backendProcess = null;
 
@@ -97,15 +101,19 @@ function startEmbeddedMongo() {
     mongodProcess.on("exit", (code) => {
       debugLog("[mongod] exited with code", code);
       mongodProcess = null;
+      if (!settled) {
+        settled = true;
+        reject(new Error(`The database stopped while starting (exit code ${code}).`));
+      }
     });
 
     setTimeout(() => {
       if (!settled) {
         settled = true;
-        debugLog("startEmbeddedMongo: TIMED OUT after 20s");
-        reject(new Error("mongod startup timed out after 20s"));
+        debugLog(`startEmbeddedMongo: TIMED OUT after ${STARTUP_TIMEOUT_MS / 1000}s`);
+        reject(new Error(`The database didn't start within ${STARTUP_TIMEOUT_MS / 60000} minutes.`));
       }
-    }, 20000);
+    }, STARTUP_TIMEOUT_MS);
   });
 }
 
@@ -180,16 +188,46 @@ function startBackend(extraEnv = {}) {
     backendProcess.on("exit", (code) => {
       debugLog("[backend] exited with code", code);
       backendProcess = null;
+      if (!settled) {
+        settled = true;
+        reject(new Error(`The backend stopped while starting (exit code ${code}).`));
+      }
     });
 
     setTimeout(() => {
       if (!settled) {
         settled = true;
-        debugLog("startBackend: TIMED OUT after 20s");
-        reject(new Error("backend startup timed out after 20s"));
+        debugLog(`startBackend: TIMED OUT after ${STARTUP_TIMEOUT_MS / 1000}s`);
+        reject(new Error(`The backend didn't start within ${STARTUP_TIMEOUT_MS / 60000} minutes.`));
       }
-    }, 20000);
+    }, STARTUP_TIMEOUT_MS);
   });
+}
+
+// Shown from the moment the app opens until the main window has loaded, so a slow cold start
+// doesn't look like nothing happened.
+function createSplashWindow() {
+  const splash = new BrowserWindow({
+    width: 420,
+    height: 220,
+    frame: false,
+    resizable: false,
+    title: "Starting RoninArc",
+    backgroundColor: "#1A202C",
+    icon: path.join(__dirname, "build", "icon.ico"),
+    webPreferences: { contextIsolation: true, nodeIntegration: false },
+  });
+  const html = `<!doctype html><html><head><meta charset="utf-8"><title>Starting RoninArc</title><style>
+    html,body{margin:0;height:100%;background:#1A202C;color:#fff;font-family:"Segoe UI",system-ui,sans-serif;-webkit-app-region:drag;user-select:none}
+    body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-bottom:4px solid #ff004d;box-sizing:border-box}
+    h1{margin:0;font-size:24px;font-weight:700}
+    p{margin:0;font-size:13px;color:#A0AEC0;text-align:center;padding:0 28px}
+    i{width:26px;height:26px;border-radius:50%;border:3px solid #2D3748;border-top-color:#805AD5;animation:s 1s linear infinite}
+    @keyframes s{to{transform:rotate(360deg)}}
+    @media (prefers-reduced-motion:reduce){i{animation-duration:4s}}
+  </style></head><body><h1>RoninArc</h1><i></i><p>Starting up. The first launch can take up to a minute.</p></body></html>`;
+  splash.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`);
+  return splash;
 }
 
 function stopChildProcesses() {
@@ -232,6 +270,7 @@ function createMainWindow() {
     win.loadURL(DEV_SERVER_URL);
     win.webContents.openDevTools();
   }
+  return win;
 }
 
 // ── Settings: version, updates, problem reports ──────────────────────────
@@ -267,7 +306,7 @@ ipcMain.handle("diagnostics:create", async () => {
     return { ok: true, path: zipPath };
   } catch (err) {
     debugLog("diagnostics: failed", err && err.message ? err.message : String(err));
-    return { ok: false, message: "Couldn't create the report. Please send startup.log from %APPDATA%\\RoninArc instead." };
+    return { ok: false, message: `Couldn't create the report. Please send ${DEBUG_LOG_PATH} instead.` };
   }
 });
 
@@ -405,7 +444,9 @@ ipcMain.handle("launch-game", async (event, gameId, exePath) => {
 
 app.whenReady().then(async () => {
   debugLog("app.whenReady: isDev=", isDev, "resourcesPath=", process.resourcesPath, "__dirname=", __dirname);
+  let splash = null;
   if (!isDev) {
+    splash = createSplashWindow();
     try {
       debugLog("app.whenReady: starting embedded mongo...");
       await startEmbeddedMongo();
@@ -420,16 +461,18 @@ app.whenReady().then(async () => {
     } catch (err) {
       debugLog("app.whenReady: FAILED", err.message || String(err));
       console.error("[startup] Failed to start embedded backend/database:", err);
+      splash.destroy();
       dialog.showErrorBox(
         "RoninArc failed to start",
-        `RoninArc's local backend or database could not be started.\n\n${err.message || err}`,
+        `RoninArc's local backend or database could not be started.\n\n${err.message || err}\n\nDetails are in ${DEBUG_LOG_PATH}`,
       );
       app.quit();
       return;
     }
   }
 
-  createMainWindow();
+  const mainWindow = createMainWindow();
+  if (splash) mainWindow.webContents.once("did-finish-load", () => splash.destroy());
 
   updates = setupUpdates({
     app,
