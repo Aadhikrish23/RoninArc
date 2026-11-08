@@ -32,7 +32,11 @@ const startSession = async (userId: Types.ObjectId, gameId: string) => {
   });
 };
 
-const endSession = async (userId: Types.ObjectId, gameId: string) => {
+/**
+ * `lastSeen`: when the desktop app last saw the game running. A check only notices a closed game a
+ * few seconds later, so ending at "now" adds time that wasn't played. Kept between start and now.
+ */
+const endSession = async (userId: Types.ObjectId, gameId: string, lastSeen?: Date) => {
   const session = await PlaySession.findOne({
     userId,
     gameId,
@@ -45,7 +49,10 @@ const endSession = async (userId: Types.ObjectId, gameId: string) => {
     return null;
   }
 
-  const endedAt = new Date();
+  const now = Date.now();
+  const endedAt = new Date(
+    lastSeen ? Math.min(now, Math.max(session.startedAt.getTime(), lastSeen.getTime())) : now,
+  );
 
   const durationMinutes = Math.floor(
     (endedAt.getTime() - session.startedAt.getTime()) / (1000 * 60),

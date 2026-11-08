@@ -299,5 +299,6 @@ function intentFor(command: QuickCommand, owned: string[], referent?: string): o
   if (command.kind === "status") {
     return { type: IntentType.SetStatus, targets, parameters: [{ type: IntentParameterType.Status, value: command.status }] };
   }
+  if (command.kind === "launch") return { type: IntentType.LaunchGame, targets, parameters: [] };
   return { type: IntentType.AddNote, targets, parameters: [{ type: IntentParameterType.Text, value: command.text }] };
 }

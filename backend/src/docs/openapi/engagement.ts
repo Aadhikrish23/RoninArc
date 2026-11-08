@@ -389,11 +389,19 @@ export const engagementPaths = {
     post: {
       tags: ["Play sessions"],
       summary: "End the open play session",
+      description:
+        "The desktop app sends `endedAt`, when it last saw the game running, so the few seconds it takes to notice a closed game aren't counted. It's kept between the session's start and now. Without it the session ends now.",
       security: bearerAuth,
       parameters: [libraryGameId()],
+      requestBody: jsonBody(
+        { type: "object", properties: { endedAt: { type: "string", format: "date-time" } }, additionalProperties: false },
+        { endedAt: "2026-11-08T12:13:05.000Z" },
+        undefined,
+        false,
+      ),
       responses: {
         200: ok("The closed session, with `endedAt` and `durationMinutes`.", ref("PlaySession")),
-        400: invalidGameId,
+        400: failed("Malformed id or `endedAt`.", "Invalid game id", "endedAt must be a date-time"),
         401: responses.unauthorized,
         404: failed("No open session for this game.", "No active session found"),
       },

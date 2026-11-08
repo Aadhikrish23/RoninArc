@@ -15,7 +15,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
   openGamePage: (game) => ipcRenderer.invoke("open-game-page", game),
 
   onGameExited: (callback) => {
-    const listener = (_event, gameId) => callback(gameId);
+    // endedAt: when the game was last seen running (ISO), so a slow check doesn't add minutes.
+    const listener = (_event, gameId, endedAt) => callback(gameId, endedAt);
 
     ipcRenderer.on("game-exited", listener);
 

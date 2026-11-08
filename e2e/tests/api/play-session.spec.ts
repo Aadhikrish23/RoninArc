@@ -33,6 +33,47 @@ test.describe("Play Session API (/play-session)", () => {
     expect(Data.durationMinutes).toBe(0);
   });
 
+  // The desktop app sends when it last saw the game running, so the seconds it takes to notice a
+  // closed game (and, before the fix, minutes) aren't counted as play time.
+  test("ends the session when the game was last seen, not when the end call arrives @positive", async ({ api }) => {
+    const game = await api.addGame(hades);
+    const started = (await json(await api.post(`/play-session/start/${game._id}`))).Data;
+    await new Promise((r) => setTimeout(r, 1200));
+    const lastSeen = new Date(new Date(started.startedAt).getTime() + 300).toISOString();
+    const res = await api.post(`/play-session/end/${game._id}`, { endedAt: lastSeen });
+    expect(res.status()).toBe(200);
+    expect((await json(res)).Data.endedAt).toBe(lastSeen);
+  });
+
+  for (const [label, offsetMs, expectEnd] of [
+    ["before the session started is moved up to its start", -60_000, "start"],
+    ["in the future is moved back to now", 3_600_000, "now"],
+  ] as const) {
+    test(`an endedAt ${label} @negative`, async ({ api }) => {
+      const game = await api.addGame(hades);
+      const started = (await json(await api.post(`/play-session/start/${game._id}`))).Data;
+      const startMs = new Date(started.startedAt).getTime();
+      const sent = new Date(startMs + offsetMs).toISOString();
+      const callAt = Date.now();
+      const { Data } = await json(await api.post(`/play-session/end/${game._id}`, { endedAt: sent }));
+      const endMs = new Date(Data.endedAt).getTime();
+      if (expectEnd === "start") expect(endMs).toBe(startMs);
+      else expect(Math.abs(endMs - callAt)).toBeLessThan(10_000);
+      expect(Data.durationMinutes).toBe(0);
+    });
+  }
+
+  test("a malformed endedAt is rejected and the session stays open @negative", async ({ api }) => {
+    const game = await api.addGame(hades);
+    await api.post(`/play-session/start/${game._id}`);
+    for (const endedAt of ["yesterday-ish", 12345]) {
+      const res = await api.post(`/play-session/end/${game._id}`, { endedAt });
+      expect(res.status(), String(endedAt)).toBe(400);
+      expect((await json(res)).Message).toBe("endedAt must be a date-time");
+    }
+    expect((await json(await api.post(`/play-session/end/${game._id}`))).Data.endedAt).toEqual(expect.any(String));
+  });
+
   test("lists recent sessions newest first, honouring the limit @positive", async ({ api }) => {
     const a = await api.addGame(hades);
     const b = await api.addGame(byName("Celeste"));

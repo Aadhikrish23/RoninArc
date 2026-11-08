@@ -30,7 +30,8 @@ declare global {
 
       scanEpicGames: () => Promise<EpicGame[]>;
 
-      onGameExited?: (callback: (gameId: string) => void) => () => void;
+      /** endedAt: when the game was last seen running (ISO); older desktop builds don't send it. */
+      onGameExited?: (callback: (gameId: string, endedAt?: string) => void) => () => void;
 
       scanSteamGames: () => Promise<
         {

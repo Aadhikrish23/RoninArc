@@ -85,6 +85,31 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect((await json(await api.get("/activity"))).Data.some((a: any) => a.type === "GAME_LAUNCHED")).toBe(false);
     });
 
+    // "i have started playing god of war 2018... so launch it" marked it Playing and silently dropped the launch.
+    for (const message of [
+      "i have started playing fallout shelter... so launch it",
+      "i started playing fallout shelter, launch it",
+      "started fallout shelter and launch it",
+      "mark fallout shelter as playing and launch it",
+      "started fallout shelter. launch it pls",
+    ]) {
+      test(`"${message}" marks it Playing AND launches it @positive`, async ({ api }) => {
+        const game = await api.addGame(shelter);
+        const { body } = await chat(api, message, { canLaunchGames: true });
+        expect(body.success).toBe(true);
+        expect(body.clientActions).toEqual([{ type: "launch_game", gameId: game._id, title: "Fallout Shelter" }]);
+        expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("playing");
+      });
+    }
+
+    test("a status command with chatter after the name still works without the planner @positive", async ({ api }) => {
+      const game = await api.addGame(shelter);
+      const { body } = await chat(api, "i started playing fallout shelter, its so good");
+      expect(body).toMatchObject({ success: true });
+      expect(body.clientActions).toBeUndefined();
+      expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("playing");
+    });
+
     for (const [label, client] of [["the web build", { canLaunchGames: false }], ["a client that doesn't say", undefined]] as const) {
       test(`'launch <game>' from ${label} explains it needs the desktop app and changes nothing @negative`, async ({ api }) => {
         await api.addGame(shelter);

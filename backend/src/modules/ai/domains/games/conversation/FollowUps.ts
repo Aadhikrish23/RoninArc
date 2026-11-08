@@ -335,7 +335,8 @@ export const withoutPoliteness = (title: string) => title.replace(/[\s,]+(please
 export type QuickCommand =
   | { kind: "rate"; game: string; rating: number; comment?: string }
   | { kind: "status"; game: string; status: string }
-  | { kind: "note"; game: string; text: string };
+  | { kind: "note"; game: string; text: string }
+  | { kind: "launch"; game: string };
 
 const STATUS_VERBS: Record<string, string> = {
   pause: "paused", paused: "paused",
@@ -352,9 +353,20 @@ const STATUS_WORDS_AS: Record<string, string> = {
 const NAME_END = /[,.!;:?]|\s+(?:im|i'm|i am|its|it's|it is|because|cuz|coz|since|lol|lmao|tho|bc|for now|rn|right now|already|finally|last night|yesterday|today|tonight|again)\b/i;
 /** A second request in the same message goes to the planner. */
 const SECOND_REQUEST =
-  /\b(and|also|plus|then)\s+(?:i'?m\s+|im\s+|i\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|starting|move|note|give|gimme|gib|take|get|throw|chuck|toss|stick|rename|make|create|finish|finished|unpause|resume)\b|[.;!]\s+(?:(?:ok|and|also|so|then|now)\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|move|note|give|gimme|gib|take|get|throw|rename|make|create)\b/i;
+  /\b(and|also|plus|then)\s+(?:i'?m\s+|im\s+|i\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|starting|move|note|give|gimme|gib|take|get|throw|chuck|toss|stick|rename|make|create|finish|finished|unpause|resume|launch|boot|fire)\b|[.;!]\s+(?:(?:ok|and|also|so|then|now)\s+)?(add|put|mark|set|remove|delete|rate|pause|drop|start|move|note|give|gimme|gib|take|get|throw|rename|make|create|launch|boot|fire)\b/i;
+/**
+ * A request in whatever follows the game name. "i have started playing god of war... so launch it"
+ * was read as just "started god of war": the launch after the name was silently thrown away.
+ */
+const LEFTOVER_REQUEST =
+  /\b(launch|open|run|boot|fire up|start|add|put|mark|set|remove|delete|rate|pause|drop|move|note|give|gimme|gib|rename|finish|unpause|resume|install|uninstall)\b/i;
 
 const cutName = (text: string) => text.split(NAME_END)[0].trim();
+/** The game name, or undefined when there's another request after it (the planner gets those). */
+const nameAlone = (text: string) => {
+  const name = cutName(text);
+  return LEFTOVER_REQUEST.test(text.slice(text.indexOf(name) + name.length)) ? undefined : name;
+};
 /** "ok, and ...", "so ...", "now ..." in front of a command. */
 const FILLER_START = /^(?:(?:ok|okay|k|and|also|so|then|now|alright|pls|please|just)[,!.]?\s+)+/i;
 
@@ -401,13 +413,23 @@ export function parseQuickCommand(message: string): QuickCommand | undefined {
   }
 
   const markAs = m.match(/^(?:mark|set|move|put)\s+(.+?)\s+(?:as|to)\s+(playing|paused|completed|done|finished|beaten|dropped|plan to play|planned|backlog)\b/i);
-  if (markAs) return { kind: "status", game: markAs[1].trim(), status: STATUS_WORDS_AS[markAs[2].toLowerCase()] };
+  if (markAs) {
+    if (LEFTOVER_REQUEST.test(m.slice(markAs[0].length))) return undefined;
+    return { kind: "status", game: markAs[1].trim(), status: STATUS_WORDS_AS[markAs[2].toLowerCase()] };
+  }
+
+  // "launch god of war", "boot up it", "fire up hades": start the game now.
+  const launch = m.match(/^(?:launch|boot(?:\s+up)?|fire\s+up)\s+(.+)$/i);
+  if (launch) {
+    const game = nameAlone(launch[1]);
+    return game ? { kind: "launch", game: withoutPoliteness(game.replace(/\s+(?:pls|please|plz|now|rn)$/i, "")) } : undefined;
+  }
 
   const told = m.match(/^(?:i\s+(?:just\s+|finally\s+|have\s+|already\s+)?|just\s+|finally\s+)?(finished|completed|beat|started|dropped|paused)\s+(?:playing\s+|on\s+)?(.+)$/i);
   const imperative = m.match(/^(pause|drop|start|finish|complete|unpause|resume|continue)\s+(?:playing\s+|on\s+)?(.+)$/i);
   const verbMatch = told ?? imperative;
   if (verbMatch) {
-    const game = cutName(verbMatch[2]);
+    const game = nameAlone(verbMatch[2]);
     if (!game) return undefined;
     return { kind: "status", game, status: STATUS_VERBS[verbMatch[1].toLowerCase()] };
   }
@@ -462,7 +484,7 @@ export function pinPronoun(message: string, referent: string | undefined, nameIn
     .join("");
 }
 
-const ACTION_START = /^(?:(?:ok|okay|and|also|so|then|now|pls|please|just)[,!.]?\s+)*(?:i\s+(?:just\s+|finally\s+)?)?(?:rate|give|gimme|gib|finished|completed|beat|started|dropped|paused|pause|drop|start|finish|complete|unpause|resume|continue|mark|set|move|put|add|remove|delete|note)\b/i;
+const ACTION_START = /^(?:(?:ok|okay|and|also|so|then|now|pls|please|just)[,!.]?\s+)*(?:i\s+(?:just\s+|finally\s+|have\s+|already\s+)?)?(?:rate|give|gimme|gib|finished|completed|beat|started|dropped|paused|pause|drop|start|finish|complete|unpause|resume|continue|mark|set|move|put|add|remove|delete|note|launch|boot|fire up)\b/i;
 
 /**
  * "drop cod, mp is dead anyway. give it a 4" -> two commands; "it" is the game before it.
@@ -470,7 +492,7 @@ const ACTION_START = /^(?:(?:ok|okay|and|also|so|then|now|pls|please|just)[,!.]?
  */
 export function parseQuickCommands(message: string): QuickCommand[] | undefined {
   const pieces = message
-    .split(/[.;!?]+\s+|,\s+(?=(?:and\s+)?(?:give|gimme|gib|rate|pause|drop|start|unpause|resume|mark|set|note)\b)|\s+and\s+(?=(?:give|gimme|gib|rate|pause|drop|start|unpause|resume|mark|set)\s)/i)
+    .split(/[.;!?]+\s+|,\s+(?=(?:(?:and|so|then|now)\s+)?(?:give|gimme|gib|rate|pause|drop|start|unpause|resume|mark|set|note|launch|boot|fire up)\b)|\s+and\s+(?=(?:(?:then|now)\s+)?(?:give|gimme|gib|rate|pause|drop|start|unpause|resume|mark|set|launch|boot|fire up)\s)/i)
     .map((p) => p.trim())
     .filter(Boolean);
   if (pieces.length < 2) return undefined;

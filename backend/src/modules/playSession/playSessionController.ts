@@ -54,9 +54,20 @@ export const endSession = async (req: Request, res: Response) => {
       });
     }
 
+    // When the game was last seen running (sent by the desktop app); the service keeps it within the session.
+    const rawEndedAt = req.body?.endedAt;
+    const endedAt = rawEndedAt === undefined ? undefined : new Date(rawEndedAt);
+    if (endedAt && (typeof rawEndedAt !== "string" || Number.isNaN(endedAt.getTime()))) {
+      return res.status(400).json({
+        Status: "Failed",
+        Message: "endedAt must be a date-time",
+      });
+    }
+
     const session = await playSessionService.endSession(
       new Types.ObjectId(userId),
       gameId,
+      endedAt,
     );
 
     if (!session) {

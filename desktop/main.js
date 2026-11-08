@@ -3,7 +3,9 @@ const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
 const path = require("node:path");
 const fs = require("node:fs");
 const { spawn, exec } = require("node:child_process");
+/** gameId -> tracking state from services/gameTracker.js, for games launched from RoninArc. */
 const activeGames = new Map();
+const gameTracker = require("./services/gameTracker");
 const { scanEpicGames } = require("./services/epicScanner");
 const { scanSteamGames } = require("./services/steamScanner");
 const { openGamePage } = require("./services/gamePage");
@@ -346,11 +348,6 @@ function getProcessList() {
   });
 }
 
-function getNewProcesses(before, after) {
-  const beforeSet = new Set(before);
-
-  return after.filter((process) => !beforeSet.has(process));
-}
 ipcMain.handle("open-game-page", (_event, game) => openGamePage(game, getProcessList));
 
 ipcMain.handle("launch-game", async (event, gameId, exePath) => {
@@ -361,9 +358,9 @@ ipcMain.handle("launch-game", async (event, gameId, exePath) => {
     const exeDir = isUri ? process.cwd() : path.dirname(exePath);
     const exeName = isUri ? "" : path.basename(exePath);
 
-    console.log("[launch-game] Using cwd:", exeDir);
+    console.log("[launch-game] Using cwd:", exeDir, "exe:", exeName || "(store link)");
 
-    const beforeProcesses = await getProcessList();
+    const before = await gameTracker.listProcesses();
 
     const child = spawn("cmd.exe", ["/c", "start", '""', `"${exePath}"`], {
       cwd: exeDir,
@@ -371,71 +368,9 @@ ipcMain.handle("launch-game", async (event, gameId, exePath) => {
       detached: true,
     });
 
-    console.log("[launch-game] pid:", child.pid);
-
-    activeGames.set(gameId, {
-      processes: exeName ? [exeName] : [],
-    });
-
-    console.log("[Initial Tracking]", exeName);
-
-    console.log("[Rykard Tracking]", exeName);
-
-    const discoveredProcesses = new Set();
-
-    let checks = 0;
-
-    const discoveryInterval = setInterval(async () => {
-      checks++;
-
-      const currentProcesses = await getProcessList();
-
-      const newProcesses = getNewProcesses(beforeProcesses, currentProcesses);
-
-      const gameProcesses = newProcesses.filter(
-        (process) =>
-          typeof process === "string" &&
-          process.endsWith(".exe") &&
-          !process.includes("crash") &&
-          !process.includes("search") &&
-          !process.includes("docker") &&
-          !process.includes("overlay") &&
-          !process.includes("service") &&
-          !process.includes("gamebar") &&
-          !process.includes("launcher"),
-      );
-
-      gameProcesses.forEach((process) => discoveredProcesses.add(process));
-
-      console.log(`[Rykard Discovery ${checks}/20]`);
-
-      console.log([...discoveredProcesses]);
-
-      if (checks >= 20) {
-        clearInterval(discoveryInterval);
-
-        const existing = activeGames.get(gameId);
-
-        if (!existing) {
-          return;
-        }
-
-        const finalProcesses = [
-          ...(existing.processes || []),
-          ...discoveredProcesses,
-        ];
-
-        activeGames.set(gameId, {
-          processes: [...new Set(finalProcesses)],
-        });
-
-        console.log("[Rykard Final Tracking]");
-
-        console.log(activeGames.get(gameId));
-      }
-    }, 1000);
-
-    console.log("[launch-game] spawn() called successfully");
+    const tracking = gameTracker.createTracking(exePath, before);
+    activeGames.set(gameId, tracking);
+    debugLog(`[game-tracker] launched ${gameId} pid=${child.pid} watching ${tracking.gameDir || "(store game folder, found once it starts)"}`);
 
     return true;
   } catch (err) {
@@ -514,46 +449,28 @@ app.on("before-quit", () => {
   stopChildProcesses();
 });
 
-setInterval(() => {
-  if (activeGames.size === 0) {
-    return;
-  }
-
-  exec("tasklist", (error, stdout) => {
-    if (error) {
-      return;
+// Every 5s while a launched game is being watched: is it still running? (see services/gameTracker.js)
+let trackerBusy = false;
+setInterval(async () => {
+  if (activeGames.size === 0 || trackerBusy) return;
+  trackerBusy = true;
+  try {
+    const processes = await gameTracker.listProcesses();
+    const now = Date.now();
+    for (const [gameId, tracking] of activeGames) {
+      const wasFolder = tracking.gameDir;
+      const state = gameTracker.check(tracking, processes, now);
+      if (tracking.gameDir && tracking.gameDir !== wasFolder) debugLog(`[game-tracker] ${gameId} found its folder: ${tracking.gameDir}`);
+      if (state !== "closed") continue;
+      activeGames.delete(gameId);
+      // The session ends when the game was last seen, not when this check noticed it was gone.
+      const endedAt = new Date(tracking.lastSeen).toISOString();
+      debugLog(`[game-tracker] ${gameId} closed; ${tracking.seen ? `last seen ${endedAt}` : "never seen running"}`);
+      BrowserWindow.getAllWindows()[0]?.webContents.send("game-exited", gameId, endedAt);
     }
-
-    activeGames.forEach((game, gameId) => {
-      console.log(`[Rykard Check] ${new Date().toLocaleTimeString()}`);
-
-      console.log("[Rykard Tracking]", game.processes);
-
-      const running =
-        Array.isArray(game.processes) &&
-        game.processes.some(
-          (processName) =>
-            typeof processName === "string" &&
-            processName.length > 0 &&
-            stdout.toLowerCase().includes(processName.toLowerCase()),
-        );
-
-      console.log(`[Rykard] running = ${running}`);
-
-      const hasRealProcess = game.processes.some((p) => p.endsWith(".exe"));
-
-      if (!running && hasRealProcess) {
-        console.log("[Rykard] Game closed");
-
-        activeGames.delete(gameId);
-
-        BrowserWindow.getAllWindows()[0]?.webContents.send(
-          "game-exited",
-          gameId,
-        );
-      }
-    });
-  });
+  } finally {
+    trackerBusy = false;
+  }
 }, 5000);
 
 ipcMain.handle("epic:scan", async () => {

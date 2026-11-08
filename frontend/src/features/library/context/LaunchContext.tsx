@@ -53,9 +53,9 @@ export function LaunchProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!window.electronAPI?.onGameExited) return;
 
-    const unsubscribe = window.electronAPI.onGameExited(async (gameId) => {
+    const unsubscribe = window.electronAPI.onGameExited(async (gameId, endedAt) => {
       try {
-        await endSession(gameId);
+        await endSession(gameId, endedAt);
         setRunning(gameId, false);
         toast({ title: "Play session ended", status: "success" });
         eventBus.publish("dashboard.updated");

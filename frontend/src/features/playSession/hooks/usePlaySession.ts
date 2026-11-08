@@ -17,8 +17,8 @@ export function usePlaySession() {
   }, []);
 
   const endSession = useCallback(
-    async (gameId: string) => {
-      return playSessionApi.endSession(gameId);
+    async (gameId: string, endedAt?: string) => {
+      return playSessionApi.endSession(gameId, endedAt);
     },
     []
   );

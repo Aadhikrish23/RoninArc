@@ -11,12 +11,15 @@ const startSession = async (
   return response.data.Data;
 };
 
+/** endedAt: when the game was last seen running; the server uses now when it's missing. */
 const endSession = async (
-  gameId: string
+  gameId: string,
+  endedAt?: string
 ) => {
   const response =
     await api.post(
-      `/play-session/end/${gameId}`
+      `/play-session/end/${gameId}`,
+      endedAt ? { endedAt } : undefined
     );
 
   return response.data.Data;
