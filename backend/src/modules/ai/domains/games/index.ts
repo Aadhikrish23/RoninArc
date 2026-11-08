@@ -16,6 +16,7 @@ import { preRoute } from "./pipeline/PreRoute";
 import { correctPlan } from "./pipeline/PlanCorrections";
 import { dropUnstatedStatusChanges, ensureCollectionAdds } from "./pipeline/StatusEvidence";
 import { groundPlan } from "./pipeline/PlanGrounding";
+import { dropBulkCollectionSteps, fillSeriesCollection } from "./pipeline/SeriesCollection";
 import { normalizeStatusIntents, shapePlan } from "./pipeline/PlanShaping";
 import { forgetChange, hasUntrackedChanges, rememberChange, snapshotBefore, type LastChange } from "./pipeline/UndoLog";
 import { askBeforeRemoving, rememberOfferedAdd, tidyReply } from "./pipeline/GameReplies";
@@ -51,12 +52,13 @@ export const gamesPack: DomainPack = {
     const owned = ownedTitles(requestContext);
     unrequested += dropUnstatedStatusChanges(plan, message, owned);
     ensureCollectionAdds(plan, message, owned, requestContext?.library?.collections ?? []);
+    dropBulkCollectionSteps(plan, message);
     return unrequested;
   },
   normalizePlan: normalizeStatusIntents,
-  groundPlan(plan, { userId, message, requestContext, lastExchange, session }) {
+  async groundPlan(plan, { userId, message, requestContext, lastExchange, session }) {
     const owned = ownedTitles(requestContext);
-    return groundPlan(plan, {
+    const grounded = await groundPlan(plan, {
       userId,
       message,
       owned,
@@ -66,6 +68,10 @@ export const gamesPack: DomainPack = {
       currentGame: lastNamedTitle(lastExchange?.assistant ?? "", owned) ?? session.references.currentGame?.displayName ?? null,
       pageGame: requestContext?.page?.gameTitle ?? null,
     });
+    // "add all the god of war games I have to it": after grounding, which would drop "God of War
+    // III" because the message never says "iii".
+    fillSeriesCollection(plan, message, owned);
+    return grounded;
   },
   shapePlan,
   // "add celeste and mark it completed": the game has to exist before the second step can find it.

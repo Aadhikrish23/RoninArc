@@ -199,6 +199,34 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect(collections[0].gameIds.map((g: any) => g._id)).toEqual([game._id]);
     });
 
+    // Reported 2026-11-08: the model planned only the new collection, so nothing went in it.
+    test("'create a collection called X and add all the X games' fills it with that series @positive", async ({ api }) => {
+      const base = byName("Hades");
+      const titles = ["God of War", "God of War II", "God of War III", "God of War Ragnarök"];
+      for (const [i, title] of titles.entries()) await api.addGame(base, { title, igdbId: 990000 + i });
+      await api.addGame(byName("Celeste"));
+      const { status, body } = await chat(
+        api,
+        "i have added some god of war so create an collection called god of war and all the god of war games i have in my library to that collection",
+      );
+      expect(status).toBe(200);
+      expect(body.message).toContain('I\'ve created the collection "God of War"');
+      expect(body.message).toContain('to your collection "God of War"');
+      for (const title of titles) expect(body.message).toContain(title);
+      expect(body.message).not.toContain("Celeste");
+      const collections = (await json(await api.get("/collection"))).Data;
+      expect(collections).toHaveLength(1);
+      expect(collections[0].gameIds.map((g: any) => g.title).sort()).toEqual([...titles].sort());
+    });
+
+    test("'all my steam games' is not a series, so nothing extra goes in @negative", async ({ api }) => {
+      await api.addGame(byName("Hades"));
+      const { body } = await chat(api, "create a collection called favs and add all my steam games to it");
+      const collections = (await json(await api.get("/collection"))).Data;
+      expect(body.message).toContain('"Favs"');
+      expect(collections[0].gameIds).toEqual([]);
+    });
+
     test("'what's in <collection>?' lists its games from the data, no model needed @positive", async ({ api }) => {
       const game = await api.addGame(shelter);
       const col = (await json(await api.post("/collection", { name: "Cozy Nights" }))).Data;

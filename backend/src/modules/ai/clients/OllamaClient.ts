@@ -121,6 +121,13 @@ export class OllamaClient {
             }
           ]
         });
+      } else if (/collection called .+ and .*\ball\b.*\bgames\b/.test(queryLower)) {
+        // What the real model sent for "create a collection called god of war and add all the god
+        // of war games i have to it": the collection, and nothing for the games.
+        const name = (query.match(/collection called (.+?) and /i)?.[1] ?? "New").replace(/\b(?!of\b)\w/g, (c) => c.toUpperCase());
+        responseText = JSON.stringify({
+          intents: [{ type: "CreateCollection", targets: [{ type: "Collection", name }], parameters: [] }],
+        });
       } else if (queryLower.includes("soulslike collection")) {
         // What the real model sends for "make a soulslike collection".
         responseText = JSON.stringify({
