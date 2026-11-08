@@ -8,22 +8,22 @@ test.describe("Recommendation reasons", () => {
     reasons,
     genres: extra.genres ?? ["Platformer", "Indie"],
     released: extra.released ?? "2018-01-25",
-    source: extra.source ?? "rawg",
+    source: extra.source ?? "igdb",
   });
 
   test("a repeated reason gives way when a card has another one @positive", () => {
     const out = diversifyReasons([
-      rec(["Critically acclaimed (Metacritic 94)"]),
-      rec(["Critically acclaimed (Metacritic 92)"]),
-      rec(["Critically acclaimed (Metacritic 91)", "Shorter: about 8h on average"]),
-      rec(["Critically acclaimed (Metacritic 90)"]),
+      rec(["Critically acclaimed (critics 94/100)"]),
+      rec(["Critically acclaimed (critics 92/100)"]),
+      rec(["Critically acclaimed (critics 91/100)", "Shorter: about 8h on average"]),
+      rec(["Critically acclaimed (critics 90/100)"]),
     ]);
     expect(out.map((r) => r.reasons)).toEqual([
-      ["Critically acclaimed (Metacritic 94)"],
-      ["Critically acclaimed (Metacritic 92)"],
+      ["Critically acclaimed (critics 94/100)"],
+      ["Critically acclaimed (critics 92/100)"],
       ["Shorter: about 8h on average"],
       // Nothing else to say: it keeps its own reason rather than filler.
-      ["Critically acclaimed (Metacritic 90)"],
+      ["Critically acclaimed (critics 90/100)"],
     ]);
   });
 
@@ -37,7 +37,7 @@ test.describe("Recommendation reasons", () => {
       { _id: "1", title: "The Witcher 3: Wild Hunt", tags: ["Action", "Adventure", "RPG"], progressStatus: "completed", rating: 10 } as any,
     ]);
     const [pick] = rankDiscover(
-      [{ id: 7, name: "Sekiro: Shadows Die Twice", genres: ["Action", "Adventure", "RPG"], rating: 4.4, metacritic: 88 } as any],
+      [{ id: 7, name: "Sekiro: Shadows Die Twice", genres: ["Action", "Adventure", "RPG"], rating: 4.4, criticScore: 88 } as any],
       [],
       profile,
       { limit: 3, dismissed: new Set() },

@@ -95,7 +95,7 @@ export default function Settings() {
       </Panel>
 
       <T size="xs" tone="faint" style={{ marginTop: space.xl, textAlign: "center" }} onLongPress={() => Linking.openURL(`${CLOUD_URL}/health`)}>
-        RoninArc {Constants.expoConfig?.version ?? ""}
+        RoninArc {Constants.expoConfig?.version ?? ""}. Game data from IGDB.com.
       </T>
     </Screen>
   );

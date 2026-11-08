@@ -27,11 +27,11 @@ It needs five things:
 
 ## 3. A keygate token for the cloud
 
-The cloud calls RAWG, NVIDIA and Steam through keygate, with one token of its own. Give it room, because the cloud enforces each person's AI limit itself (`AI_DAILY_LIMIT_PER_USER`):
+The cloud calls IGDB, NVIDIA and Steam through keygate, with one token of its own. Give it room, because the cloud enforces each person's AI limit itself (`AI_DAILY_LIMIT_PER_USER`):
 
 ```bash
 cd keygate
-npm run token -- create roninarc cloud-server nvidia=1500 rawg=650 steam=2000
+npm run token -- create roninarc cloud-server nvidia=1500 igdb=20000 steam=2000
 ```
 
 keygate's project-wide daily caps still bound the total cost.
@@ -45,10 +45,10 @@ keygate's project-wide daily caps still bound the total cost.
 |---|---|
 | `MONGO_URI` | the Atlas string from step 1 |
 | `RESEND_API_KEY` / `MAIL_FROM` | from step 2 |
-| `RAWG_BASE_URL` | `https://keygate.<you>.workers.dev/roninarc/rawg` |
+| `IGDB_BASE_URL` | `https://keygate.<you>.workers.dev/roninarc/igdb` |
 | `NVIDIA_BASE_URL` | `https://keygate.<you>.workers.dev/roninarc/nvidia` |
 | `STEAM_API_BASE` | `https://keygate.<you>.workers.dev/roninarc/steam` |
-| `RAWG_API_KEY`, `NVIDIA_API_KEY`, `STEAM_API_KEY` | the `kg_roninarc_…` token from step 3, in all three |
+| `IGDB_API_KEY`, `NVIDIA_API_KEY`, `STEAM_API_KEY` | the `kg_roninarc_…` token from step 3, in all three |
 
 3. Deploy, then open `https://<service>.onrender.com/health`. It should say `RoninArc was healthy`.
 

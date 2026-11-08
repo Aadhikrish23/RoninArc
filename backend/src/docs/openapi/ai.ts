@@ -15,7 +15,7 @@ export const aiSchemas: Record<string, Schema> = {
           pageGameId: {
             type: "string",
             pattern: "^[A-Za-z0-9]{1,40}$",
-            description: "The game page the user has open (library id or RAWG id), so \"add this game to cozy nights\" means that game.",
+            description: "The game page the user has open (library id or IGDB id), so \"add this game to cozy nights\" means that game.",
           },
           pageCollectionId: { type: "string", pattern: "^[A-Za-z0-9]{1,40}$", description: "The collection page the user has open." },
         },
@@ -80,9 +80,9 @@ export const aiSchemas: Record<string, Schema> = {
     type: "object",
     required: ["source", "title", "genres", "score", "reasons"],
     properties: {
-      source: { type: "string", enum: ["library", "rawg"], description: "`library` = from the user's backlog, `rawg` = a new game." },
+      source: { type: "string", enum: ["library", "igdb"], description: "`library` = from the user's backlog, `igdb` = a new game." },
       gameId: { ...objectId, description: "Library game id (backlog picks only)." },
-      rawgId: { type: "integer" },
+      igdbId: { type: "integer" },
       title: { type: "string", example: "Celeste" },
       imageURL: { type: "string" },
       genres: { type: "array", items: { type: "string" } },
@@ -120,7 +120,7 @@ export const aiSchemas: Record<string, Schema> = {
       focus: { type: "array", items: { type: "string" }, description: "Genres derived from the `q` hint." },
       backlog: { type: "array", items: ref("Recommendation") },
       discover: { type: "array", items: ref("Recommendation") },
-      discoverError: { type: "string", description: "Set when RAWG was unreachable; backlog picks are still returned." },
+      discoverError: { type: "string", description: "Set when IGDB was unreachable; backlog picks are still returned." },
     },
   },
 };
@@ -199,7 +199,7 @@ export const aiPaths = {
       tags: ["Recommendations"],
       summary: "Personalised game recommendations",
       description:
-        "Ranks the user's unfinished backlog (works offline) and unowned RAWG games in their favourite genres, using ratings, completions, drops and playtime. Every pick has a 0-100 match score and reasons.",
+        "Ranks the user's unfinished backlog (works offline) and unowned IGDB games in their favourite genres, using ratings, completions, drops and playtime. Every pick has a 0-100 match score and reasons.",
       security: bearerAuth,
       parameters: [
         queryParam("type", "Which lists to compute.", { type: "string", enum: ["all", "backlog", "discover"], default: "all" }),
@@ -217,46 +217,32 @@ export const aiPaths = {
     post: {
       tags: ["Recommendations"],
       summary: "Mark a game as not interesting",
-      description: "Stops a game from being suggested. Needs its RAWG id, its IGDB id, or both. Idempotent.",
+      description: "Stops a game from being suggested. Idempotent.",
       security: bearerAuth,
       requestBody: jsonBody(
         {
           type: "object",
-          anyOf: [{ required: ["rawgId"] }, { required: ["igdbId"] }],
-          properties: { rawgId: { type: "integer", minimum: 1 }, igdbId: { type: "integer", minimum: 1 }, title: { type: "string" } },
+          required: ["igdbId"],
+          properties: { igdbId: { type: "integer", minimum: 1 }, title: { type: "string" } },
         },
-        { rawgId: 28, title: "Celeste" },
+        { igdbId: 26226, title: "Celeste" },
       ),
       responses: {
         200: okMessage("Dismissed.", "Recommendation dismissed"),
-        400: appError("Missing/invalid id or title.", "A valid rawgId or igdbId is required", "title must be text"),
+        400: appError("Missing/invalid id or title.", "A valid igdbId is required", "title must be text"),
         401: responses.unauthorized,
       },
     },
   },
-  "/recommendations/dismiss/igdb/{igdbId}": {
+  "/recommendations/dismiss/{igdbId}": {
     delete: {
       tags: ["Recommendations"],
-      summary: "Undo a dismissal, by IGDB id",
+      summary: "Undo a dismissal",
       security: bearerAuth,
       parameters: [pathParam("igdbId", "IGDB game id.", { type: "string", pattern: "^\\d+$" })],
       responses: {
         200: okMessage("Restored.", "Recommendation restored"),
         400: appError("Invalid igdbId.", "A valid igdbId is required"),
-        401: responses.unauthorized,
-        404: appError("It wasn't dismissed.", "That game wasn't dismissed"),
-      },
-    },
-  },
-  "/recommendations/dismiss/{rawgId}": {
-    delete: {
-      tags: ["Recommendations"],
-      summary: "Undo a dismissal",
-      security: bearerAuth,
-      parameters: [pathParam("rawgId", "RAWG game id.", { type: "string", pattern: "^\\d+$" })],
-      responses: {
-        200: okMessage("Restored.", "Recommendation restored"),
-        400: appError("Invalid rawgId.", "A valid rawgId is required"),
         401: responses.unauthorized,
         404: appError("It wasn't dismissed.", "That game wasn't dismissed"),
       },

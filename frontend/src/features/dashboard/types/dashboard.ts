@@ -24,7 +24,7 @@ export interface DashboardGameSummary {
   _id: string;
   title: string;
   imageURL: string | null;
-  rawgId: number | null;
+  igdbId: number | null;
   progressStatus: string;
 }
 

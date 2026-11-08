@@ -3,7 +3,7 @@ import { IntentType } from "../intent/IntentType";
 import { IntentParameterType } from "../../../intent/IntentParameterType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { mentions } from "../conversation/TargetGrounding";
-import { titleMatchScore } from "../../../../rawg/titleMatch";
+import { titleMatchScore } from "../../../../igdb/titleMatch";
 import { EXPLICIT_ACTION, GAME_ADVICE, PER_GAME_INTENTS, RECOMMEND_ASK, RECORDED_DATA, STATUS_INTENTS } from "./Patterns";
 
 /** "rate it 8.5 and add a note to it: blood and wine dlc still unplayed" -> the note's text. */

@@ -24,6 +24,14 @@ const cases: [string, string, boolean][] = [
   ["mark elden ring completed", "The Elder Scrolls Online", false],
   ["like hades but shorter", "Fallout Shelter", false],
   ["im playing stardw valley", "Stardew Valley", true],
+  // A style isn't a game with that word in its title.
+  ["anything story rich", "Garden Story", false],
+  ["any good cozy games", "Cozy Grove", false],
+  ["recommend some horror", "Home - A Unique Horror Adventure", false],
+  ["turn based please", "Keylocker | Turn Based Cyberpunk Action", false],
+  ["open world survival stuff", "Empyrion - Galactic Survival", false],
+  ["mark garden story as playing", "Garden Story", true],
+  ["rate cozy grove 8", "Cozy Grove", true],
 ];
 
 test.describe("AI target grounding", () => {

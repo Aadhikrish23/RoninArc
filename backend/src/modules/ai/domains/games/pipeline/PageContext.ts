@@ -17,7 +17,7 @@ export async function resolvePage(userId: string, client: AIClientCapabilities):
       const id = client.pageGameId;
       const or: any[] = [];
       if (Types.ObjectId.isValid(id) && id.length === 24) or.push({ _id: id });
-      if (/^\d+$/.test(id)) or.push({ rawgId: Number(id) });
+      if (/^\d+$/.test(id)) or.push({ igdbId: Number(id) });
       const game = or.length ? await LibraryGame.findOne({ userId: uid, $or: or }).select("title").lean() : null;
       if (game) page.gameTitle = (game as any).title;
     }

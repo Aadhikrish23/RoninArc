@@ -1,13 +1,13 @@
 export type Status = "none" | "plan" | "playing" | "paused" | "completed" | "dropped";
 
 export interface GameArtwork {
-  selectedSource: "manual" | "rawg" | "epic" | "steam" | "gog" | "ea" | "ubisoft" | "xbox";
+  selectedSource: "manual" | "igdb" | "epic" | "steam" | "gog" | "ea" | "ubisoft" | "xbox";
   sources: Record<string, string>;
 }
 
 export interface Game {
   _id: string;
-  rawgId?: number | null;
+  igdbId?: number | null;
   title: string;
   description: string;
   imageURL: string;
@@ -42,8 +42,8 @@ export interface Game {
   // Enrichment fields
   screenshots?: string[];
   trailers?: string[];
-  rawgRating?: number;
-  metacritic?: number | null;
+  communityRating?: number;
+  criticScore?: number | null;
   website?: string;
   playtime?: number;
   developers?: string[];
@@ -55,14 +55,14 @@ export interface Game {
 
 export interface SearchResponse {
   owned: Game[];
-  discover: RawgGameResult[];
+  discover: GameSearchResult[];
   totalOwned: number;
   totalDiscover: number;
 }
 
 
 export interface AddGamePayload {
-  rawgId: number;
+  igdbId: number;
   title: string;
   description: string;
   imageURL: string;
@@ -79,7 +79,7 @@ export interface UpdateGamePayload {
   progressStatus?: Status;
 }
 
-export interface RawgGameResult {
+export interface GameSearchResult {
   id: number;
   name: string;
   description: string;
@@ -90,10 +90,10 @@ export interface RawgGameResult {
   added: number;
   ratingsCount: number;
   suggestionsCount: number;
-  metacritic: number | null;
+  criticScore: number | null;
 }
 
-export interface RawgGameDetails {
+export interface GameDbDetails {
   id: number;
 
   name: string;
@@ -114,7 +114,7 @@ export interface RawgGameDetails {
 
   website: string;
 
-  metacritic: number | null;
+  criticScore: number | null;
 
   playtime: number;
 

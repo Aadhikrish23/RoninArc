@@ -59,7 +59,7 @@ export default function AppRouter() {
           path="/providers/epic/callback"
           element={<EpicOAuthCallback />}
         />
-        <Route path="/library/game/:rawgId" element={<GameDetailsPage />} />
+        <Route path="/library/game/:igdbId" element={<GameDetailsPage />} />
         <Route
           path="/collections/:collectionId"
           element={<CollectionDetailsPage />}

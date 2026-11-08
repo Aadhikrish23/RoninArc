@@ -17,7 +17,7 @@ import { ConnectEpicTool } from "../actions/provider/ConnectEpicTool";
 import { DisconnectEpicTool } from "../actions/provider/DisconnectEpicTool";
 import { SyncEpicTool } from "../actions/provider/SyncEpicTool";
 import { LaunchGameTool } from "../actions/launcher/LaunchGameTool";
-import { SearchRawgTool } from "../actions/rawg/SearchRawgTool";
+import { SearchGamesTool } from "../actions/gamedb/SearchGamesTool";
 
 export function createToolRegistry(): ToolRegistry {
   const registry = new ToolRegistry();
@@ -49,8 +49,8 @@ export function createToolRegistry(): ToolRegistry {
   // Launcher Tools
   registry.register(new LaunchGameTool());
 
-  // RAWG Tools
-  registry.register(new SearchRawgTool());
+  // Game database tools
+  registry.register(new SearchGamesTool());
 
   return registry;
 }

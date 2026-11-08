@@ -10,20 +10,20 @@ import {
   Button,
 } from "@chakra-ui/react";
 
-import type { RawgGameResult, Game } from "../types/library";
+import type { GameSearchResult, Game } from "../types/library";
 import { useNavigate } from "react-router-dom";
 import { PLACEHOLDER_IMAGE } from "../../../shared/utils/placeholderImage";
 import { FiArrowRight } from "react-icons/fi";
 
 interface Props {
   ownedResults: Game[];
-  discoverResults: RawgGameResult[];
+  discoverResults: GameSearchResult[];
   onViewAll: () => void;
   /** One-click add from the suggestions, without opening the game or the full results. */
-  onAdd?: (game: RawgGameResult) => Promise<void> | void;
+  onAdd?: (game: GameSearchResult) => Promise<void> | void;
 }
 
-export default function RawgSearchDropdown({ ownedResults, discoverResults, onViewAll, onAdd }: Props) {
+export default function GameSearchDropdown({ ownedResults, discoverResults, onViewAll, onAdd }: Props) {
   const [adding, setAdding] = useState<number | null>(null);
   const bg = useColorModeValue("white", "gray.800");
   const border = useColorModeValue("gray.200", "gray.700");

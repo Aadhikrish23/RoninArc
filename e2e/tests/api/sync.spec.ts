@@ -2,6 +2,7 @@ import { test, expect } from "../../fixtures/test";
 import { Api, DEFAULT_PASSWORD, json, registerUser, uniqueName, type RegisteredUser } from "../../helpers/api";
 import { byName } from "../../fixtures/catalog.mjs";
 import { API_URL, CLOUD_AI_LIMIT, CLOUD_URL, RESEND_URL } from "../../env";
+import { keepGameDbIds, naturalFilters } from "../../../backend/src/modules/sync/syncKeys";
 
 // A PC (the suite's backend, local mode) syncing with RoninArc Cloud (a second backend, cloud
 // mode). "On the phone" = calling the cloud's API directly, as the mobile app does.
@@ -108,11 +109,11 @@ test.describe("Sync with RoninArc Cloud", () => {
     expect((await gameByTitle(phone, "Hades")).progressStatus).toBe("completed");
   });
 
-  test("the same game added on PC and phone by its IGDB id becomes one game @positive", async ({ api, user, request }) => {
+  test("the same game added on PC and phone becomes one game @positive", async ({ api, user, request }) => {
     await link(api, user);
     const phone = await cloudSignIn(request, user.username);
-    const onPhone = await phone.addGame(byName("Hades"), { rawgId: undefined, igdbId: 113112 });
-    const onPc = await api.addGame(byName("Hades"), { rawgId: undefined, igdbId: 113112 });
+    const onPhone = await phone.addGame(byName("Hades"));
+    const onPc = await api.addGame(byName("Hades"));
     await api.post(`/notes/${onPc._id}`, { content: "from the pc" });
     await syncNow(api);
 
@@ -122,29 +123,20 @@ test.describe("Sync with RoninArc Cloud", () => {
     expect((await json(await phone.get(`/notes/${onPhone._id}`))).Data.map((n: any) => n.content)).toEqual(["from the pc"]);
   });
 
-  test("a game found by its RAWG id keeps the IGDB id the other copy had @positive", async ({ api, user, request }) => {
-    await link(api, user);
-    const phone = await cloudSignIn(request, user.username);
-    await phone.addGame(byName("Celeste"), { igdbId: 26226 });
-    await api.addGame(byName("Celeste"));
-    await syncNow(api);
-
-    for (const device of [phone, api]) {
-      const games = ((await json(await device.get("/game"))).Data as any[]).filter((g) => g.title === "Celeste");
-      expect(games.map((g) => [g.rawgId, g.igdbId])).toEqual([[byName("Celeste").id, 26226]]);
-    }
+  test("the same game is recognised by either id, and the merged copy keeps both @positive", () => {
+    const games = { naturalKeys: ["igdbId", "rawgId"] };
+    expect(naturalFilters(games, { igdbId: 5, rawgId: 6 })).toEqual([{ igdbId: 5 }, { rawgId: 6 }]);
+    expect(naturalFilters(games, { igdbId: null, rawgId: 6 })).toEqual([{ rawgId: 6 }]);
+    expect(keepGameDbIds({ igdbId: 5, title: "new" }, { rawgId: 6, title: "old" })).toEqual({ igdbId: 5, rawgId: 6, title: "new" });
   });
 
-  test("the same number as a RAWG and an IGDB id stays two games @negative", async ({ api, user, request }) => {
-    await link(api, user);
-    const phone = await cloudSignIn(request, user.username);
-    await phone.addGame(byName("Hades"), { rawgId: 4242 });
-    await api.addGame(byName("Celeste"), { rawgId: undefined, igdbId: 4242 });
-    await syncNow(api);
-    expect(await titles(phone)).toEqual(["Celeste", "Hades"]);
+  test("a RAWG id and an IGDB id with the same number aren't the same game @negative", () => {
+    const filters = naturalFilters({ naturalKeys: ["igdbId", "rawgId"] }, { igdbId: 4242 });
+    expect(filters).toEqual([{ igdbId: 4242 }]);
+    expect(filters).not.toContainEqual({ rawgId: 4242 });
   });
 
-  test("dismissed games with only an IGDB id sync without clashing @positive", async ({ api, user, request }) => {
+  test("dismissed games sync without clashing @positive", async ({ api, user, request }) => {
     await link(api, user);
     const phone = await cloudSignIn(request, user.username);
     for (const igdbId of [11, 12]) expect((await api.post("/recommendations/dismiss", { igdbId })).status()).toBe(200);
@@ -152,8 +144,8 @@ test.describe("Sync with RoninArc Cloud", () => {
     expect((await phone.post("/recommendations/dismiss", { igdbId: 13 })).status()).toBe(200);
     const result = await syncNow(api);
     expect(result.lastError ?? null).toBeNull();
-    expect((await api.delete("/recommendations/dismiss/igdb/13")).status()).toBe(200);
-    expect((await phone.delete("/recommendations/dismiss/igdb/11")).status()).toBe(200);
+    expect((await api.delete("/recommendations/dismiss/13")).status()).toBe(200);
+    expect((await phone.delete("/recommendations/dismiss/11")).status()).toBe(200);
   });
 
   test("signing in to an existing cloud account merges this PC's library into it @positive", async ({ api, user, request }) => {

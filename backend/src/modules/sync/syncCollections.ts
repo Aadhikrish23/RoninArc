@@ -6,6 +6,7 @@ import Collection from "../collection/CollectionModel";
 import Activity from "../activity/ActivityModel";
 import PlaySession from "../playSession/PlaySessionModel";
 import RecommendationFeedback from "../recommendation/RecommendationFeedback";
+import { keepGameDbIds } from "./syncKeys";
 
 export interface SyncedCollection {
   /** Name used on the wire and in tombstones. */
@@ -35,13 +36,6 @@ const unionIds = (a: unknown[] = [], b: unknown[] = []) => {
   });
 };
 
-/** The same game found by one id may only know the other: the merged version keeps both. */
-const keepGameDbIds = (winner: any, loser: any) => ({
-  ...winner,
-  ...(winner.igdbId == null && loser.igdbId != null ? { igdbId: loser.igdbId } : {}),
-  ...(winner.rawgId == null && loser.rawgId != null ? { rawgId: loser.rawgId } : {}),
-});
-
 /** In dependency order: games before what points at them, so merges are known first. */
 export const SYNCED: SyncedCollection[] = [
   { name: "games", model: gameLibrarymodel, naturalKeys: ["igdbId", "rawgId"], localOnly: ["exePath"], merge: keepGameDbIds },
@@ -68,10 +62,6 @@ export const SYNCED: SyncedCollection[] = [
 ];
 
 export const syncedByName = new Map(SYNCED.map((c) => [c.name, c]));
-
-/** One filter per natural key this document has, in the order to try them. */
-export const naturalFilters = (coll: SyncedCollection, doc: any): Record<string, unknown>[] =>
-  (coll.naturalKeys ?? []).filter((k) => doc[k] !== undefined && doc[k] !== null).map((k) => ({ [k]: doc[k] }));
 
 /** Bookkeeping fields: the cloud's (when it applied a pushed change) and the device's (last synced version). */
 export const CLOUD_META = ["_changedAt", "_appliedAt"] as const;

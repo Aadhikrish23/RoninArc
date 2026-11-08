@@ -79,7 +79,7 @@ function GameCard({
   const gamePage = getGamePage(game);
 
   const handleCardClick = () => {
-    const detailId = game.rawgId ? String(game.rawgId) : game._id;
+    const detailId = game.igdbId ? String(game.igdbId) : game._id;
     navigate(`/library/game/${detailId}`);
   };
   const [loaded, setLoaded] = useState(false);

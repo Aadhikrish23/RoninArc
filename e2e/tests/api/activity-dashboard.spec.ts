@@ -19,8 +19,8 @@ test.describe("Activity API (/activity)", () => {
   });
 
   test("returns at most the 20 most recent entries @positive", async ({ api }) => {
-    for (const [i, g] of CATALOG.entries()) await api.addGame(g, { rawgId: 700000 + i });
-    const game = await api.addGame(byName("Hades"), { rawgId: 799999, title: "Extra" });
+    for (const [i, g] of CATALOG.entries()) await api.addGame(g, { igdbId: 700000 + i });
+    const game = await api.addGame(byName("Hades"), { igdbId: 799999, title: "Extra" });
     for (const status of ["playing", "paused", "completed", "dropped", "plan", "playing", "paused", "completed", "dropped", "plan", "playing", "paused"]) {
       await api.patch(`/game/${game._id}`, { progressStatus: status });
     }
@@ -163,7 +163,7 @@ test.describe("Dashboard API (/dashboard/stats)", () => {
   });
 
   test("recentGames and continuePlaying are capped at 5 @positive", async ({ api }) => {
-    for (const [i, g] of CATALOG.slice(0, 7).entries()) await api.addGame(g, { rawgId: 600000 + i, progressStatus: "playing" });
+    for (const [i, g] of CATALOG.slice(0, 7).entries()) await api.addGame(g, { igdbId: 600000 + i, progressStatus: "playing" });
     const stats = await json(await api.get("/dashboard/stats"));
     expect(stats.totalGames).toBe(7);
     expect(stats.recentGames).toHaveLength(5);

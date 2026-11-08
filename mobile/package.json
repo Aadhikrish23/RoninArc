@@ -38,7 +38,7 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
-    "api:types": "curl -s http://localhost:5000/api/docs.json -o .openapi.json && npx --yes openapi-typescript@7.13.0 .openapi.json -o src/api/schema.d.ts"
+    "api:types": "curl -s http://localhost:5000/api/docs.json -o .openapi.json && npx --yes -p typescript@5.9.3 -p openapi-typescript@7.13.0 openapi-typescript ./.openapi.json -o ./src/api/schema.d.ts"
   },
   "private": true
 }

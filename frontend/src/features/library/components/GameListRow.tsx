@@ -67,7 +67,7 @@ function GameListRow({
   const gamePage = getGamePage(game);
 
   const handleRowClick = () => {
-    const detailId = game.rawgId ? String(game.rawgId) : game._id;
+    const detailId = game.igdbId ? String(game.igdbId) : game._id;
     navigate(`/library/game/${detailId}`);
   };
 

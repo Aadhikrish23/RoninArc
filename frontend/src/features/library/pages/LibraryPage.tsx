@@ -15,9 +15,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useToast } from "@chakra-ui/react";
 
-import type { RawgGameResult } from "../types/library";
+import type { GameSearchResult } from "../types/library";
 import { useLibrary } from "../hooks/useLibrary";
-import { useRawgSearch } from "../hooks/useRawgSearch";
+import { useGameSearch } from "../hooks/useGameSearch";
 import { useReview } from "../../reviews/hooks/useReview";
 import ReviewModal from "../../reviews/components/ReviewModal";
 
@@ -26,8 +26,8 @@ import { useCollection } from "../../collections/hooks/useCollections";
 import CreateCollectionModal from "../../collections/components/CreateCollectionModal";
 
 import LibraryHeader from "../sections/LibraryHeader";
-import RawgResultsSection from "../sections/RawgResultsSection";
-import RawgSearch from "../components/RawgSearch";
+import GameResultsSection from "../sections/GameResultsSection";
+import GameSearch from "../components/GameSearch";
 import { useProvider } from "../../providers/context/ProviderContext";
 
 import HorizontalSection from "../components/HorizontalSection";
@@ -53,12 +53,12 @@ function LibraryPage() {
     setSearchText,
     ownedResults,
     discoverResults,
-    loading: rawgLoading,
-    error: rawgError,
+    loading: searchLoading,
+    error: searchError,
     clearSearch,
     searchedText,
     performSearch,
-  } = useRawgSearch();
+  } = useGameSearch();
   const navigate = useNavigate();
 
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -174,14 +174,14 @@ function LibraryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [libraryHome]);
 
-  const handleAddGame = async (rawgGame: RawgGameResult) => {
+  const handleAddGame = async (result: GameSearchResult) => {
     await addGame({
-      rawgId: rawgGame.id,
-      title: rawgGame.name,
-      description: rawgGame.description ?? "",
-      imageURL: rawgGame.imageURL,
+      igdbId: result.id,
+      title: result.name,
+      description: result.description ?? "",
+      imageURL: result.imageURL,
       exePath: "",
-      tags: rawgGame.genres,
+      tags: result.genres,
       progressStatus: "plan",
     });
 
@@ -226,23 +226,23 @@ function LibraryPage() {
       <Box maxW="1400px" mx="auto" px={6} pt={8} pb={24}>
         {showSearchResults ? (
           <>
-          <RawgSearch
+          <GameSearch
             searchText={searchText}
             onSearchChange={setSearchText}
             ownedResults={ownedResults}
             discoverResults={discoverResults}
-            loading={rawgLoading}
-            error={rawgError}
+            loading={searchLoading}
+            error={searchError}
             searchedText={searchedText}
             onAddGame={handleAddGame}
             onSearchSubmit={handleSearchSubmit}
           />
-          <RawgResultsSection
+          <GameResultsSection
             searchText={searchText}
             ownedResults={ownedResults}
             discoverResults={discoverResults}
-            loading={rawgLoading}
-            error={rawgError}
+            loading={searchLoading}
+            error={searchError}
             onAddGame={handleAddGame}
             onLaunchGame={openLaunchModal}
             onBack={handleBackToLibrary}
@@ -250,13 +250,13 @@ function LibraryPage() {
           </>
         ) : (
           <>
-            <RawgSearch
+            <GameSearch
               searchText={searchText}
               onSearchChange={setSearchText}
               ownedResults={ownedResults}
               discoverResults={discoverResults}
-              loading={rawgLoading}
-              error={rawgError}
+              loading={searchLoading}
+              error={searchError}
               searchedText={searchedText}
               onAddGame={handleAddGame}
               onSearchSubmit={handleSearchSubmit}

@@ -1,8 +1,8 @@
 import { IntentPlan } from "../../../intent/IntentPlan";
 import { IntentType } from "../intent/IntentType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
-import { titleMatchScore } from "../../../../rawg/titleMatch";
-import { expandAbbreviation } from "../../../../rawg/gameAbbreviations";
+import { titleMatchScore } from "../../../../igdb/titleMatch";
+import { expandAbbreviation } from "../../../../igdb/gameAbbreviations";
 
 /**
  * The model sometimes acts on a game the user never mentioned: "asdfgh" became
@@ -64,6 +64,12 @@ const EVERYDAY = new Set([
   "thing", "story", "games", "great", "still", "maybe", "about", "really", "trying", "going", "break", "collection",
 ]);
 
+/** Words that describe how a game plays. Alone they aren't naming a game that has one in its title ("story rich" isn't Garden Story). */
+const STYLE_WORDS = new Set([
+  "story", "rich", "cozy", "cosy", "horror", "survival", "turn", "based", "open", "world", "action", "adventure", "strategy", "puzzle", "racing",
+  "shooter", "simulator", "tactics", "fantasy", "rpg", "indie", "stealth", "multiplayer", "online", "battle", "royale", "idle", "tycoon",
+]);
+
 /** Does `text` name the game `title` (whole title, abbreviation, distinctive word, or a close typo of one)? */
 export function mentions(text: string, title: string): boolean {
   const words = tokens(text);
@@ -78,6 +84,7 @@ export function mentions(text: string, title: string): boolean {
       // "out of the soulslike collection": "of the" alone doesn't name "Return of the Obra Dinn".
       if (words.slice(i, i + size).every((w) => GENERIC.has(w))) continue;
       const window = words.slice(i, i + size).join(" ");
+      if (words.slice(i, i + size).every((w) => STYLE_WORDS.has(w)) && window !== tokens(title).join(" ")) continue;
       const expanded = expandAbbreviation(window);
       if (expanded && titleMatchScore(expanded, title) >= 90) return true;
       // Short common words ("top", "the") don't name a game unless they are its whole title.
@@ -100,7 +107,7 @@ export function mentions(text: string, title: string): boolean {
     // Typos only count on longer words: "play" is one letter from "slay" (Slay the Spire).
     // Everyday words are never typos of a title: "started" is two letters from "stardew".
     // Two typos need a long word: "shorter" is two letters from "shelter" (Fallout Shelter).
-    titleWords.some((tw) => tw.length >= 4 && (w === tw || (typosCount && w.length >= 5 && tw.length >= 5 && !EVERYDAY.has(w) && w[0] === tw[0] && editDistance(w, tw) <= (tw.length >= 8 ? 2 : 1)))),
+    titleWords.some((tw) => tw.length >= 4 && (w === tw && !STYLE_WORDS.has(w) || (typosCount && w.length >= 5 && tw.length >= 5 && !EVERYDAY.has(w) && w[0] === tw[0] && editDistance(w, tw) <= (tw.length >= 8 ? 2 : 1)))),
   );
 }
 

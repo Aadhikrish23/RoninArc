@@ -12,7 +12,7 @@ export interface GameSummary {
   _id: string;
   title: string;
   imageURL: string | null;
-  rawgId: number | null;
+  igdbId: number | null;
   progressStatus: string;
 }
 
@@ -55,7 +55,7 @@ const summarize = (g: any): GameSummary => ({
   _id: String(g._id),
   title: g.title,
   imageURL: coverOf(g),
-  rawgId: g.rawgId ?? null,
+  igdbId: g.igdbId ?? null,
   progressStatus: g.progressStatus || "none",
 });
 

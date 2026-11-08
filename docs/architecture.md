@@ -67,7 +67,7 @@ backend/src/
 
 * Authentication
 * Game Library
-* RAWG Integration
+* IGDB Integration
 * Game Launcher
 * Dashboard Analytics
 * Review System

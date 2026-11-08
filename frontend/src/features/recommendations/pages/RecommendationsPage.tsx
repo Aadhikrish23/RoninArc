@@ -70,7 +70,7 @@ function Section({
       ) : (
         <SimpleGrid columns={{ base: 1, sm: 2, lg: 3 }} spacing={5}>
           {items.map((rec, i) => (
-            <RecommendationCard key={`${rec.source}-${rec.gameId ?? rec.rawgId}`} rec={rec} {...actions} showScore={actions.showScore && i === 0} />
+            <RecommendationCard key={`${rec.source}-${rec.gameId ?? rec.igdbId}`} rec={rec} {...actions} showScore={actions.showScore && i === 0} />
           ))}
         </SimpleGrid>
       )}

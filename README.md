@@ -1,6 +1,6 @@
 # RoninArc — Forge Your Game Path
 
-RoninArc is a desktop-first game library, launcher, and tracking platform built with **React**, **TypeScript**, **Node.js**, **MongoDB**, **Electron**, and the **RAWG API**.
+RoninArc is a desktop-first game library, launcher, and tracking platform built with **React**, **TypeScript**, **Node.js**, **MongoDB**, **Electron**, and the **IGDB API**.
 
 It allows users to discover games, build a personal game library, track progress, review games, manage launch paths, and launch installed PC games directly from a unified interface.
 
@@ -23,7 +23,7 @@ The backend is deployed on Render and the desktop application is packaged as a W
 
 ## 🎮 Game Library
 
-- Add games from RAWG
+- Add games from IGDB
 - Store game metadata
 - Track game progress
 - Status Management:
@@ -37,9 +37,9 @@ The backend is deployed on Render and the desktop application is packaged as a W
 
 ---
 
-## 🔎 RAWG Integration
+## 🔎 IGDB Integration
 
-- Search games from RAWG API
+- Search games from IGDB API
 - Import game information
 - Import images and genres
 - Quick add to library
@@ -126,7 +126,7 @@ The backend is deployed on Render and the desktop application is packaged as a W
 
 ## External APIs
 
-- RAWG Game Database API
+- IGDB Game Database API
 
 ## Deployment
 
@@ -234,7 +234,7 @@ Environment Variables:
 ```env
 LOCAL_URL_Mongo=<mongodb_uri>
 JWT_SECRET=<jwt_secret>
-RAWG_API_KEY=<rawg_api_key>
+IGDB_API_KEY=<rawg_api_key>
 ```
 
 ---
@@ -301,10 +301,10 @@ PUT    /review/:gameId
 DELETE /review/:gameId
 ```
 
-## RAWG
+## IGDB
 
 ```http
-GET /rawg/search
+GET /igdb/search
 ```
 
 ---

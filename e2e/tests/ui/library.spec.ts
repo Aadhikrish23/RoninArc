@@ -258,7 +258,7 @@ test.describe("Library home page", () => {
   });
 });
 
-test.describe("RAWG search from the library", () => {
+test.describe("game database search from the library", () => {
   test("typing shows discover suggestions @positive", async ({ authedPage: page }) => {
     await open(page, "/");
     await page.getByPlaceholder("Search games...").fill("Hollow");
@@ -280,7 +280,7 @@ test.describe("RAWG search from the library", () => {
 
     const library = (await json(await api.get("/game"))).Data;
     expect(library.map((g: any) => g.title)).toEqual(["Hollow Knight"]);
-    expect(library[0]).toMatchObject({ rawgId: byName("Hollow Knight").id, progressStatus: "plan" });
+    expect(library[0]).toMatchObject({ igdbId: byName("Hollow Knight").id, progressStatus: "plan" });
   });
 
   test("games already owned are listed as owned, not discoverable @positive", async ({ authedPage: page, api }) => {

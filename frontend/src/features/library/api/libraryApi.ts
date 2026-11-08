@@ -3,7 +3,7 @@ import type {
   Game,
   UpdateGamePayload,
   AddGamePayload,
-  RawgGameDetails,
+  GameDbDetails,
   SearchResponse,
 } from "../types/library";
 
@@ -39,25 +39,25 @@ const deleteGame = async (id: string): Promise<void> => {
   await api.delete(`/game/${id}`);
 };
 
-const searchRawgGames = async (
+const searchGames = async (
   query: string,
   page = 1,
 ): Promise<SearchResponse> => {
-  const rawgdata = await api.get<{ Status: string; Data: SearchResponse }>(
-    "/rawg/search",
+  const response = await api.get<{ Status: string; Data: SearchResponse }>(
+    "/igdb/search",
     {
       params: { query, page },
     },
   );
-  return rawgdata.data.Data;
+  return response.data.Data;
 };
-const getRawgGameDetails = async (
+const getGameDbDetails = async (
   id: number | string,
-): Promise<RawgGameDetails> => {
+): Promise<GameDbDetails> => {
   const response = await api.get<{
     Status: string;
-    Data: RawgGameDetails;
-  }>(`/rawg/${id}`);
+    Data: GameDbDetails;
+  }>(`/igdb/${id}`);
 
   return response.data.Data;
 };
@@ -67,6 +67,6 @@ export default {
   addGame,
   updateGame,
   deleteGame,
-  searchRawgGames,
-  getRawgGameDetails,
+  searchGames,
+  getGameDbDetails,
 };

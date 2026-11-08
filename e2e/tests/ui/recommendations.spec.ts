@@ -35,7 +35,7 @@ test.describe("For You (recommendations) page", () => {
     // A game you own has no "% match": that badge is for discoveries.
     await expect(backlogCard).not.toContainText("% match");
     // Stardew shares only "Indie" with Hollow Knight: too broad to call it similar, or "your taste".
-    await expect(backlogCard).toContainText("Waiting in your backlog");
+    await expect(backlogCard).toContainText("Critically acclaimed (critics 89/100)");
     await expect(backlogCard).not.toContainText("Matches your taste for Indie");
     await expect(cardIn(page, "Discover", "Celeste")).toBeVisible();
     await expect(section(page, "Discover").getByRole("article", { name: "Hollow Knight" })).toHaveCount(0);

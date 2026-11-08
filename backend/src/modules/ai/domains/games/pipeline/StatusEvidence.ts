@@ -4,7 +4,7 @@ import { IntentParameterType } from "../../../intent/IntentParameterType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { mentions, namedTitles } from "../conversation/TargetGrounding";
 import { namedCollection } from "../conversation/FollowUps";
-import { titleMatchScore } from "../../../../rawg/titleMatch";
+import { titleMatchScore } from "../../../../igdb/titleMatch";
 
 /**
  * Words that have to be in the user's message for each status. "ok put elden ring and hollow

@@ -1,4 +1,4 @@
-import { expandAbbreviation } from "../../../../rawg/gameAbbreviations";
+import { expandAbbreviation } from "../../../../igdb/gameAbbreviations";
 
 /**
  * "is elden ring harder than ds3?" -> "... than ds3 (Dark Souls III)?": the answer model read

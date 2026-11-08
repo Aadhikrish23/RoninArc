@@ -6,15 +6,17 @@ export type ProgressStatus = "none" | "plan" | "playing" | "paused" | "completed
 export interface LibrarySignalGame {
   _id: string;
   title: string;
-  rawgId?: number;
+  igdbId?: number;
   tags: string[];
+  /** Play styles ("souls-like"), stored on the game. */
+  styles: string[];
   progressStatus: ProgressStatus;
   rating: number | null;
   playMinutes: number;
-  rawgRating?: number;
-  metacritic?: number | null;
+  communityRating?: number;
+  criticScore?: number | null;
   imageURL?: string;
-  /** RAWG's average hours to play, when known. */
+  /** Hours to finish, when known. */
   avgHours?: number;
 }
 
@@ -23,12 +25,14 @@ export interface DiscoverCandidate {
   name: string;
   imageURL?: string;
   rating?: number;
-  released?: string;
+  released?: string | null;
   genres: string[];
-  metacritic?: number | null;
+  criticScore?: number | null;
   avgHours?: number;
-  /** RAWG tag slugs ("cozy", "co-op"), when known. */
+  /** Play styles ("cozy", "co-op"), when known. */
   tags?: string[];
+  /** The game database lists this as similar to the game asked about. */
+  similar?: boolean;
 }
 
 /** "short" keeps games under ~20h (or the user's own limit), "long" keeps games over ~25h; unknown lengths stay. */
@@ -47,14 +51,14 @@ export interface TasteProfile {
 }
 
 export interface Recommendation {
-  source: "library" | "rawg";
+  source: "library" | "igdb";
   gameId?: string;
-  rawgId?: number;
+  igdbId?: number;
   title: string;
   imageURL?: string;
   genres: string[];
   status?: ProgressStatus;
-  released?: string;
+  released?: string | null;
   score: number; // 0..100
   reasons: string[];
 }
@@ -168,14 +172,14 @@ function tasteMatch(genres: string[], profile: TasteProfile): { score: number; t
   return { score: (sum / genres.length + 1) / 2, top: top?.genre };
 }
 
-function quality(rating?: number, metacritic?: number | null): number {
-  if (metacritic) return metacritic / 100;
+function quality(rating?: number, criticScore?: number | null): number {
+  if (criticScore) return criticScore / 100;
   if (rating) return rating / 5;
   return 0.5;
 }
 
-function qualityReason(rating?: number, metacritic?: number | null): string | null {
-  if (metacritic && metacritic >= 85) return `Critically acclaimed (Metacritic ${metacritic})`;
+function qualityReason(rating?: number, criticScore?: number | null): string | null {
+  if (criticScore && criticScore >= 85) return `Critically acclaimed (critics ${criticScore}/100)`;
   if (rating && rating >= 4.2) return `Highly rated by players (${(rating * 2).toFixed(1)}/10)`;
   return null;
 }
@@ -186,7 +190,7 @@ const BROAD_GENRES = new Set(["action", "adventure", "rpg", "indie", "casual"]);
 /** Reasons that describe the game itself (status, length) and are fine on every card. */
 const FACT_REASON = /^(You're in the middle of it|On pause|Shorter|Short:|Long:)/;
 
-/** "Critically acclaimed (Metacritic 93)" and "(Metacritic 91)" are the same kind of reason. */
+/** "Critically acclaimed (critics 93/100)" and "(critics 91/100)" are the same kind of reason. */
 const reasonKind = (reason: string) => reason.replace(/\(.*?\)/g, "").replace(/\d+(\.\d+)?/g, "").replace(/, which .*$/, "").trim();
 
 /**
@@ -273,13 +277,10 @@ function likeReason(genres: string[], like?: LikeGame): string | null {
   return shared.length > 0 ? `Shares ${shared.slice(0, 2).join(" and ")} with ${like.title}` : null;
 }
 
-/**
- * Games with no ending (farming, sandbox, survival, MMOs...) log a low RAWG average because
- * most players dip in: Stardew Valley "about 13h", Terraria "15h". Their length is unknown.
- */
+/** Games with no ending (farming, sandbox, survival, MMOs...) have no real length: Stardew Valley isn't "about 13h". */
 const OPEN_ENDED = /\b(sandbox|simulation|farming|life sim|survival|crafting|building|mmo|massively multiplayer|open world survival|city builder|management)\b/i;
 
-/** RAWG's average playtime is unreliable below a few hours (few players logged it), so treat it as unknown. */
+/** Under a few hours the figure comes from very few players, so treat it as unknown. */
 const knownHours = (hours?: number, tags: string[] = []) =>
   hours && hours >= 3 && !tags.some((t) => OPEN_ENDED.test(t)) ? hours : undefined;
 
@@ -287,10 +288,9 @@ const knownHours = (hours?: number, tags: string[] = []) =>
 function lengthReason(hours: number | undefined, tags: string[], length?: LengthPreference, like?: LikeGame): string | null {
   const h = knownHours(hours, tags);
   if (!h || !length) return null;
-  // It's what players log on RAWG, not a promise ("about 4h on average" read as one).
-  if (length === "long") return h >= 25 ? `Long: players log about ${h}h` : null;
+  if (length === "long") return h >= 25 ? `Long: about ${h}h to finish` : null;
   if (h > 15) return null;
-  return like ? `Shorter than ${like.title}: players log about ${h}h` : `Short: players log about ${h}h`;
+  return like ? `Shorter than ${like.title}: about ${h}h to finish` : `Short: about ${h}h to finish`;
 }
 
 function fitsLength(hours: number | undefined, length?: LengthPreference, tags: string[] = []): boolean {
@@ -341,19 +341,19 @@ export function rankBacklog(
         game.progressStatus === "paused" ? "On pause, whenever you want to go back" : null,
         likeReason(game.tags || [], options.like) ?? tasteReason(game.tags || [], match.top, profile, game.title, used),
         lengthReason(game.avgHours, game.tags || [], options.length, options.like),
-        qualityReason(game.rawgRating, game.metacritic),
+        qualityReason(game.communityRating, game.criticScore),
       ].filter((r): r is string => !!r);
       if (reasons.length === 0) reasons.push("Waiting in your backlog");
 
       return {
         source: "library" as const,
         gameId: game._id,
-        rawgId: game.rawgId,
+        igdbId: game.igdbId,
         title: game.title,
         imageURL: game.imageURL,
         genres: game.tags || [],
         status: game.progressStatus,
-        score: finalScore(match.score, quality(game.rawgRating, game.metacritic), boost, personalized),
+        score: finalScore(match.score, quality(game.communityRating, game.criticScore), boost, personalized),
         reasons,
       };
     })
@@ -392,7 +392,7 @@ export function rankDiscover(
 ): Recommendation[] {
   const used = new Map<string, number>();
   const personalized = profile.signalCount > 0;
-  const ownedIds = new Set(library.map((g) => g.rawgId).filter((id): id is number => typeof id === "number"));
+  const ownedIds = new Set(library.map((g) => g.igdbId).filter((id): id is number => typeof id === "number"));
   const ownedTitles = new Set(library.map((g) => norm(g.title)));
   const focus = options.focus ?? [];
   const seen = new Set<number>();
@@ -410,7 +410,7 @@ export function rankDiscover(
       !ownedIds.has(c.id) &&
       !ownedTitles.has(norm(c.name)) &&
       !options.dismissed.has(c.id) &&
-      overlapsFocus(c.genres, focus) &&
+      (c.similar || overlapsFocus(c.genres, focus)) &&
       fitsLength(c.avgHours, options.length, c.genres)
     );
   });
@@ -422,21 +422,21 @@ export function rankDiscover(
     .map((c) => {
       const match = tasteMatch(c.genres, profile);
       const reasons = [
-        likeReason(c.genres, options.like) ?? tasteReason(c.genres, match.top, profile, c.name, used),
+        c.similar && options.like ? `Similar to ${options.like.title}` : (likeReason(c.genres, options.like) ?? tasteReason(c.genres, match.top, profile, c.name, used)),
         lengthReason(c.avgHours, c.genres, options.length, options.like),
         options.tagLabelFor ? options.tagLabelFor(c) ?? null : options.tagLabel ?? null,
-        qualityReason(c.rating, c.metacritic),
+        qualityReason(c.rating, c.criticScore),
       ].filter((r): r is string => !!r);
       if (reasons.length === 0) reasons.push(personalized ? "Something new to try" : "Popular with players right now");
 
       return {
-        source: "rawg" as const,
-        rawgId: c.id,
+        source: "igdb" as const,
+        igdbId: c.id,
         title: c.name,
         imageURL: c.imageURL,
         genres: c.genres,
         released: c.released,
-        score: finalScore(match.score, quality(c.rating, c.metacritic), likeOverlap(c.genres, options.like) * 0.4, personalized),
+        score: finalScore(match.score, quality(c.rating, c.criticScore), likeOverlap(c.genres, options.like) * 0.4 + (c.similar ? 0.25 : 0), personalized),
         reasons,
       };
     })

@@ -40,16 +40,17 @@ export const librarySchemas: Record<string, Schema> = {
     properties: {
       _id: objectId,
       userId: objectId,
-      rawgId: { type: ["integer", "null"], description: "RAWG id. `null` for store imports (e.g. Steam) until metadata is matched.", example: 274755 },
-      igdbId: { type: ["integer", "null"], description: "IGDB id, when known. Not interchangeable with rawgId: the same number is a different game on each." },
+      igdbId: { type: ["integer", "null"], description: "IGDB id. `null` for store imports (e.g. Steam) until they're matched.", example: 113112 },
+      rawgId: { type: ["integer", "null"], description: "Old IGDB id, on games added before the move to IGDB. Not interchangeable with igdbId: the same number is a different game on each." },
+      styleTags: { type: "array", items: { type: "string" }, description: "Play styles from the game database (`souls-like`, `co-op`).", example: ["roguelike", "roguelite"] },
       title: { type: "string", example: "Hades" },
       description: { type: "string" },
-      tags: { type: "array", items: { type: "string" }, description: "Genres (from RAWG) and user tags.", example: ["Action", "RPG"] },
+      tags: { type: "array", items: { type: "string" }, description: "Genres (from IGDB) and user tags.", example: ["Action", "RPG"] },
       imageURL: { type: "string", description: "Cover art URL for the selected artwork source (virtual)." },
       artwork: {
         type: "object",
         properties: {
-          selectedSource: { type: "string", enum: ["manual", "rawg", "epic", "steam", "gog", "ea", "ubisoft", "xbox"] },
+          selectedSource: { type: "string", enum: ["manual", "igdb", "epic", "steam", "gog", "ea", "ubisoft", "xbox"] },
           sources: { type: "object", additionalProperties: { type: "string" } },
         },
       },
@@ -65,10 +66,10 @@ export const librarySchemas: Record<string, Schema> = {
       providers: { type: "object", additionalProperties: providerLink, description: "Keyed by provider id (`steam`, `epic`)." },
       screenshots: { type: "array", items: { type: "string" } },
       trailers: { type: "array", items: { type: "string" } },
-      rawgRating: { type: "number", description: "RAWG community rating out of 5." },
-      metacritic: nullable({ type: "number" }),
+      communityRating: { type: "number", description: "IGDB community rating out of 5." },
+      criticScore: nullable({ type: "number" }),
       website: { type: "string" },
-      playtime: { type: "number", description: "Average playtime in hours (RAWG)." },
+      playtime: { type: "number", description: "Hours to finish, from the game database." },
       metadataState: {
         type: "object",
         properties: {
@@ -94,10 +95,8 @@ export const librarySchemas: Record<string, Schema> = {
   },
   AddGameRequest: {
     type: "object",
-    required: ["title", "tags"],
-    anyOf: [{ required: ["rawgId"] }, { required: ["igdbId"] }],
+    required: ["igdbId", "title", "tags"],
     properties: {
-      rawgId: { type: "integer", description: "RAWG id. A user can own each RAWG id once." },
       igdbId: { type: "integer", description: "IGDB id. A user can own each IGDB id once." },
       title: { type: "string", minLength: 1 },
       tags: { type: "array", items: { type: "string" } },
@@ -116,7 +115,7 @@ export const librarySchemas: Record<string, Schema> = {
       exePath: { type: "string" },
     },
   },
-  RawgSearchResult: {
+  GameSearchResult: {
     type: "object",
     required: ["id", "name"],
     properties: {
@@ -129,20 +128,20 @@ export const librarySchemas: Record<string, Schema> = {
       added: { type: "integer" },
       ratingsCount: { type: "integer" },
       suggestionsCount: { type: "integer" },
-      metacritic: nullable({ type: "number" }),
+      criticScore: nullable({ type: "number" }),
     },
   },
-  RawgSearchResponse: {
+  GameSearchResponse: {
     type: "object",
     required: ["owned", "discover", "totalOwned", "totalDiscover"],
     properties: {
       owned: { type: "array", items: ref("LibraryGame"), description: "Library games whose title matches the query." },
-      discover: { type: "array", items: ref("RawgSearchResult"), description: "RAWG results the user doesn't own." },
+      discover: { type: "array", items: ref("GameSearchResult"), description: "IGDB results the user doesn't own." },
       totalOwned: { type: "integer" },
       totalDiscover: { type: "integer" },
     },
   },
-  RawgGameDetails: {
+  GameDbDetails: {
     type: "object",
     required: ["id", "name"],
     properties: {
@@ -157,7 +156,7 @@ export const librarySchemas: Record<string, Schema> = {
       ratingsCount: { type: "integer" },
       released: nullable({ type: "string" }),
       website: nullable({ type: "string" }),
-      metacritic: nullable({ type: "number" }),
+      criticScore: nullable({ type: "number" }),
       playtime: { type: "number" },
       genres: { type: "array", items: { type: "string" } },
       platforms: { type: "array", items: { type: "string" } },
@@ -193,12 +192,12 @@ export const librarySchemas: Record<string, Schema> = {
     type: "object",
     description: "The few game fields a dashboard row needs to show and link to a game.",
     additionalProperties: false,
-    required: ["_id", "title", "imageURL", "rawgId", "progressStatus"],
+    required: ["_id", "title", "imageURL", "igdbId", "progressStatus"],
     properties: {
       _id: objectId,
       title: { type: "string", example: "Hades" },
       imageURL: nullable({ type: "string" }),
-      rawgId: { type: ["integer", "null"], description: "Null for games imported without a RAWG match." },
+      igdbId: { type: ["integer", "null"], description: "Null for games imported without a IGDB match." },
       progressStatus: { type: "string", enum: ["none", "plan", "playing", "paused", "completed", "dropped"] },
     },
   },
@@ -329,12 +328,12 @@ export const libraryPaths = {
       tags: libTags,
       summary: "Add a game",
       security: bearerAuth,
-      requestBody: jsonBody(ref("AddGameRequest"), { rawgId: 274755, title: "Hades", tags: ["Action", "RPG"], progressStatus: "plan" }),
+      requestBody: jsonBody(ref("AddGameRequest"), { igdbId: 113112, title: "Hades", tags: ["Action", "RPG"], progressStatus: "plan" }),
       responses: {
         201: ok("Game added. A GAME_ADDED activity is recorded.", ref("LibraryGame")),
         400: appError(
           "Validation failed, or the game is already in the library.",
-          "Valid rawgId or igdbId is required",
+          "Valid igdbId is required",
           "Title is required",
           "Invalid Tags",
           "Invalid status",
@@ -404,9 +403,9 @@ export const libraryPaths = {
   "/game/{gameid}/enrich": {
     post: {
       tags: libTags,
-      summary: "Fill in metadata from RAWG",
+      summary: "Fill in metadata from IGDB",
       description:
-        "Finds the best RAWG match by title and stores rating, screenshots, developers, etc. `metadataState.status` becomes `complete`, or `failed` when no plausible match exists.",
+        "Finds the best IGDB match by title and stores rating, screenshots, developers, etc. `metadataState.status` becomes `complete`, or `failed` when no plausible match exists.",
       security: bearerAuth,
       parameters: [gameId],
       responses: {
@@ -417,35 +416,35 @@ export const libraryPaths = {
       },
     },
   },
-  "/rawg/search": {
+  "/igdb/search": {
     get: {
-      tags: ["RAWG"],
-      summary: "Search RAWG, split into owned vs. discoverable",
+      tags: ["IGDB"],
+      summary: "Search IGDB, split into owned vs. discoverable",
       security: bearerAuth,
       parameters: [
         queryParam("query", "Search text.", { type: "string", minLength: 1 }, true),
         queryParam("page", "1-based page; invalid values fall back to 1.", { type: "integer", minimum: 1, default: 1 }),
       ],
       responses: {
-        200: ok("Search results.", ref("RawgSearchResponse")),
+        200: ok("Search results.", ref("GameSearchResponse")),
         400: appError("Empty query.", "Search query is required"),
         401: responses.unauthorized,
-        500: appError("RAWG isn't configured on this server.", "RAWG API is not configured"),
-        502: appError("RAWG is unreachable or errored.", "The game database isn't responding right now. Your library still works, so try again later."),
+        500: appError("IGDB isn't configured on this server.", "The game database is not configured"),
+        502: appError("IGDB is unreachable or errored.", "The game database isn't responding right now. Your library still works, so try again later."),
       },
     },
   },
-  "/rawg/{rawgId}": {
+  "/igdb/{igdbId}": {
     get: {
-      tags: ["RAWG"],
-      summary: "Full RAWG details for a game",
+      tags: ["IGDB"],
+      summary: "Full IGDB details for a game",
       security: bearerAuth,
-      parameters: [pathParam("rawgId", "RAWG game id.", { type: "string", pattern: "^\\d+$" })],
+      parameters: [pathParam("igdbId", "IGDB game id.", { type: "string", pattern: "^\\d+$" })],
       responses: {
-        200: ok("Game details.", ref("RawgGameDetails")),
+        200: ok("Game details.", ref("GameDbDetails")),
         401: responses.unauthorized,
-        404: appError("Unknown RAWG id.", "RAWG game not found"),
-        500: appError("RAWG isn't configured on this server.", "RAWG API is not configured"),
+        404: appError("Unknown IGDB id.", "Game not found"),
+        500: appError("IGDB isn't configured on this server.", "The game database is not configured"),
       },
     },
   },

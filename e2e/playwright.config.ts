@@ -1,6 +1,6 @@
 import { defineConfig, devices } from "@playwright/test";
 import { CLOUD_AI_LIMIT, CLOUD_PORT, CLOUD_URL, RESEND_PORT, RESEND_URL } from "./env";
-import { API_PORT, API_URL, BACKEND_SENTRY_DSN, BROWSER_SENTRY_DSN, LOG_DIR, MONGO_PORT, MONGO_URL, RAWG_PORT, SENTRY_PORT, WEB_PORT, WEB_URL } from "./env";
+import { API_PORT, API_URL, BACKEND_SENTRY_DSN, BROWSER_SENTRY_DSN, LOG_DIR, MONGO_PORT, MONGO_URL, IGDB_PORT, SENTRY_PORT, WEB_PORT, WEB_URL } from "./env";
 
 export default defineConfig({
   testDir: "./tests",
@@ -40,10 +40,10 @@ export default defineConfig({
       timeout: 60_000,
     },
     {
-      name: "rawg-mock",
-      command: "node servers/rawg-mock.mjs",
-      port: RAWG_PORT,
-      env: { E2E_RAWG_PORT: String(RAWG_PORT) },
+      name: "igdb-mock",
+      command: "node servers/igdb-mock.mjs",
+      port: IGDB_PORT,
+      env: { E2E_IGDB_PORT: String(IGDB_PORT) },
       reuseExistingServer: false,
     },
     {
@@ -77,8 +77,9 @@ export default defineConfig({
         Atlas_URL: `${MONGO_URL}/RoninArc_atlas_e2e`,
         ALLOWED_ORIGIN: WEB_URL,
         JWT_SECRET: "roninarc-e2e-secret",
-        RAWG_BASE_URL: `http://127.0.0.1:${RAWG_PORT}`,
-        RAWG_API_KEY: "e2e-key",
+        IGDB_BASE_URL: `http://127.0.0.1:${IGDB_PORT}`,
+        IGDB_API_KEY: "e2e-key",
+        IGDB_CALL_GAP_MS: "0",
         AI_PROVIDER: "ollama",
         MOCK_LLM: "true",
         // Unmatched mock queries fall through to a "live" call; make it fail fast.
@@ -116,8 +117,9 @@ export default defineConfig({
         AI_DAILY_LIMIT_PER_USER: String(CLOUD_AI_LIMIT),
         // Every test call comes from one address; the limits stay testable at 20x.
         RATE_LIMIT_MULTIPLIER: "20",
-        RAWG_BASE_URL: `http://127.0.0.1:${RAWG_PORT}`,
-        RAWG_API_KEY: "e2e-key",
+        IGDB_BASE_URL: `http://127.0.0.1:${IGDB_PORT}`,
+        IGDB_API_KEY: "e2e-key",
+        IGDB_CALL_GAP_MS: "0",
         AI_PROVIDER: "ollama",
         MOCK_LLM: "true",
         OLLAMA_BASE_URL: "http://127.0.0.1:9",

@@ -75,7 +75,7 @@ export class Api {
   /** Adds a catalog game to the library and returns the created document. */
   async addGame(game: CatalogGame, overrides: Record<string, unknown> = {}) {
     const res = await this.post("/game/add", {
-      rawgId: game.id,
+      igdbId: game.id,
       title: game.name,
       description: game.description,
       imageURL: game.image,
@@ -85,7 +85,7 @@ export class Api {
       ...overrides,
     });
     expect(res.status(), await res.text()).toBe(201);
-    return (await res.json()).Data as { _id: string; title: string; rawgId: number; progressStatus: string; tags: string[] };
+    return (await res.json()).Data as { _id: string; title: string; igdbId: number; progressStatus: string; tags: string[] };
   }
 
   async createCollection(name: string, description = "") {

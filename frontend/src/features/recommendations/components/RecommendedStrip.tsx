@@ -16,8 +16,8 @@ export default function RecommendedStrip() {
   // New games only: your own games are already in the sections above (and on For You's "Play next").
   // A game added a moment ago (from search) drops out before the next refresh.
   const { games } = useLibrary();
-  const owned = new Set(games.map((g) => g.rawgId).filter(Boolean));
-  const lifted = liftSharedReason(data ? data.discover.filter((r) => !r.rawgId || !owned.has(r.rawgId)).slice(0, 4) : []);
+  const owned = new Set(games.map((g) => g.igdbId).filter(Boolean));
+  const lifted = liftSharedReason(data ? data.discover.filter((r) => !r.igdbId || !owned.has(r.igdbId)).slice(0, 4) : []);
   const picks = lifted.recs;
   if (picks.length === 0) return null;
 
@@ -39,7 +39,7 @@ export default function RecommendedStrip() {
       <SimpleGrid columns={{ base: 1, sm: 2, lg: 4 }} spacing={5}>
         {picks.map((rec, i) => (
           <RecommendationCard
-            key={`${rec.source}-${rec.gameId ?? rec.rawgId}`}
+            key={`${rec.source}-${rec.gameId ?? rec.igdbId}`}
             rec={rec}
             onAddToLibrary={addToLibrary}
             onDismiss={dismiss}

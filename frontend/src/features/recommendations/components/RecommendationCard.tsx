@@ -32,7 +32,7 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
   const fromLibrary = rec.source === "library";
 
   const openDetails = () => {
-    if (rec.rawgId) navigate(`/library/game/${rec.rawgId}`);
+    if (rec.igdbId) navigate(`/library/game/${rec.igdbId}`);
   };
 
   return (
@@ -49,9 +49,9 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
     >
       <Box
         position="relative"
-        cursor={rec.rawgId ? "pointer" : "default"}
+        cursor={rec.igdbId ? "pointer" : "default"}
         onClick={openDetails}
-        tabIndex={rec.rawgId ? 0 : undefined}
+        tabIndex={rec.igdbId ? 0 : undefined}
         onKeyDown={(e) => {
           if (e.key === "Enter") openDetails();
         }}
@@ -74,7 +74,7 @@ export default function RecommendationCard({ rec, onAddToLibrary, onDismiss, onS
 
       <Stack spacing={3} p={4} flex="1">
         <Box>
-          <Text fontWeight="bold" fontSize="md" noOfLines={1} cursor={rec.rawgId ? "pointer" : "default"} onClick={openDetails}>
+          <Text fontWeight="bold" fontSize="md" noOfLines={1} cursor={rec.igdbId ? "pointer" : "default"} onClick={openDetails}>
             {rec.title}
           </Text>
           <Wrap spacing={1} mt={1}>

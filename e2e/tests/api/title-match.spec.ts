@@ -1,12 +1,12 @@
 import { test, expect } from "@playwright/test";
-import { MIN_CONFIDENT_MATCH, rankByTitle, titleMatchScore } from "../../../backend/src/modules/rawg/titleMatch";
+import { MIN_CONFIDENT_MATCH, rankByTitle, titleMatchScore } from "../../../backend/src/modules/igdb/titleMatch";
 
-// Pure function behind the AI's "add <game>": picks the RAWG result whose
-// title matches what was typed, instead of whichever result RAWG lists first.
-// The lists below are real RAWG search results for these queries.
+// Pure function behind the AI's "add <game>": picks the game database result whose
+// title matches what was typed, instead of whichever result game database lists first.
+// The lists below are real search results for these queries.
 const best = (query: string, names: string[]) => rankByTitle(query, names.map((name) => ({ name })))[0];
 
-test.describe("RAWG title matching", () => {
+test.describe("game database title matching", () => {
   for (const [query, names, expected] of [
     ["rdr 2", ["Grand Theft Auto V", "Portal 2", "Left 4 Dead 2", "Red Dead Redemption 2", "Half-Life 2"], "Red Dead Redemption 2"],
     ["gta 5", ["The Elder Scrolls V: Skyrim", "Grand Theft Auto IV", "Grand Theft Auto V", "Gears 5"], "Grand Theft Auto V"],
@@ -22,7 +22,7 @@ test.describe("RAWG title matching", () => {
     });
   }
 
-  test("ties keep RAWG's own order @positive", () => {
+  test("ties keep the database's own order @positive", () => {
     expect(rankByTitle("fallout", [{ name: "Fallout 4" }, { name: "Fallout 3" }]).map((r) => r.item.name)).toEqual(["Fallout 4", "Fallout 3"]);
   });
 
@@ -33,7 +33,7 @@ test.describe("RAWG title matching", () => {
 });
 
 // Playtest round 5: searches that ranked wrong or crashed.
-test.describe("RAWG title matching: round 5", () => {
+test.describe("game database title matching: round 5", () => {
   for (const [query, names, expected] of [
     ["hifi rush", ["C-RUSH", "Rush Bros.", "Hi-Fi Rush"], "Hi-Fi Rush"],
     ["skyrim", ["Skyrim Stuff", "The Elder Scrolls V: Skyrim Special Edition"], "The Elder Scrolls V: Skyrim Special Edition"],

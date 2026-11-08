@@ -1,6 +1,6 @@
 import { test, expect } from "../../fixtures/test";
 import { Api, json, registerUser } from "../../helpers/api";
-import { RAWG_FAILURE_GENRE, byName } from "../../fixtures/catalog.mjs";
+import { IGDB_FAILURE_GENRE, byName } from "../../fixtures/catalog.mjs";
 import { API_URL } from "../../env";
 
 const get = async (api: Api, params: Record<string, string | number> = {}) => {
@@ -19,7 +19,7 @@ test.describe("Recommendations API (/recommendations)", () => {
       expect(body.Data.discover.length).toBeGreaterThan(0);
       expect(body.Data.discover.length).toBeLessThanOrEqual(6);
       for (const r of body.Data.discover) {
-        expect(r).toMatchObject({ source: "rawg", rawgId: expect.any(Number), title: expect.any(String) });
+        expect(r).toMatchObject({ source: "igdb", igdbId: expect.any(Number), title: expect.any(String) });
         expect(r.score).toBeGreaterThanOrEqual(0);
         expect(r.score).toBeLessThanOrEqual(100);
         expect(r.reasons.length).toBeGreaterThan(0);
@@ -99,18 +99,18 @@ test.describe("Recommendations API (/recommendations)", () => {
       expect(titles(discover)).not.toContain("Hollow Knight");
       expect(titles(discover)[0]).toBe("Celeste");
       expect(titles(discover)).toContain("Stardew Valley");
-      expect(discover[0]).toMatchObject({ source: "rawg", rawgId: byName("Celeste").id });
+      expect(discover[0]).toMatchObject({ source: "igdb", igdbId: byName("Celeste").id });
       expect(discover.every((r: any) => r.genres.some((g: string) => ["Platformer", "Indie"].includes(g)))).toBe(true);
     });
 
     test("a game the user already owns is never suggested, even by title @negative", async ({ api }) => {
-      await api.addGame(byName("Celeste"), { rawgId: 1, progressStatus: "completed" });
+      await api.addGame(byName("Celeste"), { igdbId: 1, progressStatus: "completed" });
       const { body } = await get(api, { type: "discover", limit: 20 });
       expect(titles(body.Data.discover)).not.toContain("Celeste");
     });
 
     test("when the game database is unreachable, backlog picks still work offline @negative", async ({ api }) => {
-      await api.addGame(byName("Hades"), { rawgId: 5001, title: "Gwent Night", tags: [RAWG_FAILURE_GENRE], progressStatus: "completed" });
+      await api.addGame(byName("Hades"), { igdbId: 5001, title: "Gwent Night", tags: [IGDB_FAILURE_GENRE], progressStatus: "completed" });
       await api.addGame(byName("Celeste"));
 
       const { status, body } = await get(api);
@@ -130,13 +130,14 @@ test.describe("Recommendations API (/recommendations)", () => {
       const { body } = await get(api, { q: "something like Hades" });
       expect(body.Data.focus.sort()).toEqual(["Action", "RPG"]);
       expect(titles(body.Data.backlog)).toEqual(["Elden Ring"]);
-      expect(body.Data.discover.every((r: any) => r.genres.some((g: string) => ["Action", "RPG"].includes(g)))).toBe(true);
+      const sameGenres = body.Data.discover.filter((r: any) => !r.reasons.includes("Similar to Hades"));
+      expect(sameGenres.every((r: any) => r.genres.some((g: string) => ["Action", "RPG"].includes(g)))).toBe(true);
     });
 
     test("a loose word match isn't taken for the game asked about @negative", async ({ api }) => {
-      await api.addGame(byName("Hades"), { rawgId: 7001, title: "Fallout Shelter", tags: ["Simulation"] });
-      await api.addGame(byName("Celeste"), { rawgId: 7002, title: "Garden Story", tags: ["Simulation"] });
-      await api.addGame(byName("Stardew Valley"), { rawgId: 7003, title: "Cozy Grove", tags: ["Simulation"] });
+      await api.addGame(byName("Hades"), { igdbId: 7001, title: "Fallout Shelter", tags: ["Simulation"] });
+      await api.addGame(byName("Celeste"), { igdbId: 7002, title: "Garden Story", tags: ["Simulation"] });
+      await api.addGame(byName("Stardew Valley"), { igdbId: 7003, title: "Cozy Grove", tags: ["Simulation"] });
 
       for (const q of ["like hades but shorter", "story rich", "cozy games"]) {
         const { body } = await get(api, { type: "backlog", q });
@@ -146,10 +147,24 @@ test.describe("Recommendations API (/recommendations)", () => {
     });
 
     test("the same game imported twice is suggested once @negative", async ({ api }) => {
-      await api.addGame(byName("Celeste"), { rawgId: 7101 });
-      await api.addGame(byName("Celeste"), { rawgId: 7102 });
+      await api.addGame(byName("Celeste"), { igdbId: 7101 });
+      await api.addGame(byName("Celeste"), { igdbId: 7102 });
       const { body } = await get(api, { type: "backlog" });
       expect(titles(body.Data.backlog)).toEqual(["Celeste"]);
+    });
+
+    test("'like <game>' puts the database's similar games first, even outside its genres @positive", async ({ api }) => {
+      const { body } = await get(api, { type: "discover", q: "something like Hades", limit: 20 });
+      const celeste = body.Data.discover.find((r: any) => r.title === "Celeste");
+      expect(celeste.reasons).toContain("Similar to Hades");
+      expect(titles(body.Data.discover)).not.toContain("Hades");
+    });
+
+    test("a style finds owned games by their stored tags, with no call per game @positive", async ({ api }) => {
+      await api.addGame(byName("Elden Ring"));
+      await api.addGame(byName("Celeste"));
+      const { body } = await get(api, { type: "backlog", q: "a souls-like" });
+      expect(titles(body.Data.backlog)).toEqual(["Elden Ring"]);
     });
 
     test("a genre name focuses on that genre @positive", async ({ api }) => {
@@ -200,7 +215,7 @@ test.describe("Recommendations API (/recommendations)", () => {
 
     test("requires authentication @negative", async ({ anon }) => {
       expect((await anon.get("/recommendations")).status()).toBe(401);
-      expect((await anon.post("/recommendations/dismiss", { rawgId: 28 })).status()).toBe(401);
+      expect((await anon.post("/recommendations/dismiss", { igdbId: 28 })).status()).toBe(401);
     });
   });
 
@@ -209,45 +224,39 @@ test.describe("Recommendations API (/recommendations)", () => {
       const celeste = byName("Celeste");
       expect(titles((await get(api, { type: "discover", limit: 20 })).body.Data.discover)).toContain("Celeste");
 
-      const dismiss = await api.post("/recommendations/dismiss", { rawgId: celeste.id, title: "Celeste" });
+      const dismiss = await api.post("/recommendations/dismiss", { igdbId: celeste.id, title: "Celeste" });
       expect(dismiss.status()).toBe(200);
       expect(titles((await get(api, { type: "discover", limit: 20 })).body.Data.discover)).not.toContain("Celeste");
 
       // Dismissing twice is harmless.
-      expect((await api.post("/recommendations/dismiss", { rawgId: celeste.id })).status()).toBe(200);
+      expect((await api.post("/recommendations/dismiss", { igdbId: celeste.id })).status()).toBe(200);
 
       const undo = await api.delete(`/recommendations/dismiss/${celeste.id}`);
       expect(undo.status()).toBe(200);
       expect(titles((await get(api, { type: "discover", limit: 20 })).body.Data.discover)).toContain("Celeste");
     });
 
-    test("games known only by their IGDB id can be dismissed and restored, several of them @positive", async ({ api }) => {
+    test("several games can be dismissed and restored, and repeats are harmless @positive", async ({ api }) => {
       for (const igdbId of [901, 902]) {
         expect((await api.post("/recommendations/dismiss", { igdbId, title: `Game ${igdbId}` })).status()).toBe(200);
       }
       expect((await api.post("/recommendations/dismiss", { igdbId: 901 })).status()).toBe(200);
-      expect((await api.delete("/recommendations/dismiss/igdb/901")).status()).toBe(200);
-      expect((await api.delete("/recommendations/dismiss/igdb/901")).status()).toBe(404);
-      expect((await api.delete("/recommendations/dismiss/igdb/902")).status()).toBe(200);
-    });
-
-    test("a RAWG and an IGDB id with the same number are different games @negative", async ({ api }) => {
-      expect((await api.post("/recommendations/dismiss", { rawgId: 903 })).status()).toBe(200);
-      expect((await api.delete("/recommendations/dismiss/igdb/903")).status()).toBe(404);
-      expect((await api.delete("/recommendations/dismiss/903")).status()).toBe(200);
+      expect((await api.delete("/recommendations/dismiss/901")).status()).toBe(200);
+      expect((await api.delete("/recommendations/dismiss/901")).status()).toBe(404);
+      expect((await api.delete("/recommendations/dismiss/902")).status()).toBe(200);
     });
 
     test("dismissals are per user @negative", async ({ api, request }) => {
-      await api.post("/recommendations/dismiss", { rawgId: byName("Celeste").id });
+      await api.post("/recommendations/dismiss", { igdbId: byName("Celeste").id });
       const other = new Api(request, API_URL, (await registerUser(request, API_URL)).accessToken);
       expect(titles((await get(other, { type: "discover", limit: 20 })).body.Data.discover)).toContain("Celeste");
     });
 
     for (const [label, body] of [
-      ["missing rawgId", {}],
-      ["string rawgId", { rawgId: "28" }],
-      ["negative rawgId", { rawgId: -1 }],
-      ["non-text title", { rawgId: 28, title: 5 }],
+      ["missing igdbId", {}],
+      ["string igdbId", { igdbId: "28" }],
+      ["negative igdbId", { igdbId: -1 }],
+      ["non-text title", { igdbId: 28, title: 5 }],
     ] as const) {
       test(`dismiss rejects ${label} with 400 @negative`, async ({ api }) => {
         expect((await api.post("/recommendations/dismiss", body)).status()).toBe(400);

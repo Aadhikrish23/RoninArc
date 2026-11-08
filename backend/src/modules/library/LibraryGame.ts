@@ -25,7 +25,7 @@ export interface IMetadataState {
 }
 
 export interface IGameArtwork {
-  selectedSource: "manual" | "rawg" | "epic" | "steam" | "gog" | "ea" | "ubisoft" | "xbox";
+  selectedSource: "manual" | "igdb" | "rawg" | "epic" | "steam" | "gog" | "ea" | "ubisoft" | "xbox";
   sources: Record<string, string>;
 }
 
@@ -36,7 +36,10 @@ export interface IGameLibrary extends mongoose.Document {
   igdbId?: number | null;
   title: string;
   description: string;
+  /** Genres ("RPG"), shown on the game and used for taste. */
   tags: string[];
+  /** Play styles ("souls-like", "co-op"), from the game database. Stored so asking never needs a call per game. */
+  styleTags: string[];
   artwork: IGameArtwork;
   imageURL?: string;
   developer?: string;
@@ -56,8 +59,8 @@ export interface IGameLibrary extends mongoose.Document {
   // Enrichment fields
   screenshots: string[];
   trailers: string[];
-  rawgRating: number;
-  metacritic?: number | null;
+  communityRating: number;
+  criticScore?: number | null;
   website?: string;
   playtime?: number;
   developers: string[];
@@ -97,10 +100,14 @@ const gameLibraryschema = new mongoose.Schema<IGameLibrary>(
       type: [String],
       default: [],
     },
+    styleTags: {
+      type: [String],
+      default: [],
+    },
     artwork: {
       selectedSource: {
         type: String,
-        enum: ["manual", "rawg", "epic", "steam", "gog", "ea", "ubisoft", "xbox"],
+        enum: ["manual", "igdb", "rawg", "epic", "steam", "gog", "ea", "ubisoft", "xbox"],
         default: "manual",
       },
       sources: {
@@ -156,11 +163,11 @@ const gameLibraryschema = new mongoose.Schema<IGameLibrary>(
       type: [String],
       default: [],
     },
-    rawgRating: {
+    communityRating: {
       type: Number,
       default: 0,
     },
-    metacritic: {
+    criticScore: {
       type: Number,
       default: null,
     },

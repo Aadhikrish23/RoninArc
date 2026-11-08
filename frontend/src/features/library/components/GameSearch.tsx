@@ -12,24 +12,24 @@ import {
 
 import { SearchIcon } from "@chakra-ui/icons";
 
-import type { RawgGameResult, Game } from "../types/library";
-import RawgSearchDropdown from "./RawgSearchDropdown";
+import type { GameSearchResult, Game } from "../types/library";
+import GameSearchDropdown from "./GameSearchDropdown";
 import { useEffect, useRef, useState } from "react";
 
-interface RawgSearchProps {
+interface GameSearchProps {
   searchText: string;
   onSearchChange: (value: string) => void;
   ownedResults: Game[];
-  discoverResults: RawgGameResult[];
+  discoverResults: GameSearchResult[];
   loading: boolean;
   error: string | null;
   /** The text the results are for. */
   searchedText?: string;
-  onAddGame: (game: RawgGameResult) => void;
+  onAddGame: (game: GameSearchResult) => void;
   onSearchSubmit: () => void;
 }
 
-export default function RawgSearch({
+export default function GameSearch({
   searchText,
   onSearchChange,
   ownedResults,
@@ -39,7 +39,7 @@ export default function RawgSearch({
   searchedText,
   onSearchSubmit,
   onAddGame,
-}: RawgSearchProps) {
+}: GameSearchProps) {
   const cardBg = useColorModeValue("white", "gray.800");
 
   const subtleBorder = useColorModeValue("gray.200", "gray.700");
@@ -99,7 +99,7 @@ export default function RawgSearch({
 
         {/* Results are only shown for the text they belong to, never the previous search. */}
         {dropdownOpen && !error && searchText.trim() && searchedText === searchText.trim() && (ownedResults.length > 0 || discoverResults.length > 0) && (
-          <RawgSearchDropdown
+          <GameSearchDropdown
             ownedResults={ownedResults}
             discoverResults={rankedDiscoverResults}
             onAdd={onAddGame}

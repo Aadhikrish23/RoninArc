@@ -3,8 +3,8 @@ import CollectionModel from "../../../../collection/CollectionModel";
 import Note from "../../../../notes/Notemodel";
 import Review from "../../../../review/Reviewmodel";
 import LibraryGame from "../../../../library/LibraryGame";
-import rawgService from "../../../../rawg/rawgService";
-import { rankByTitle } from "../../../../rawg/titleMatch";
+import igdbService from "../../../../igdb/igdbService";
+import { rankByTitle } from "../../../../igdb/titleMatch";
 import { gameFacts, gamesInQuestion, playtimeFor } from "./GameFacts";
 import dashboardOverviewService from "../../../../dashboard/dashboardOverviewService";
 import { franchiseMatch, namedTitles } from "./TargetGrounding";
@@ -31,11 +31,11 @@ const IT_REF = /\b(it|its|that game|that one)\b/i;
 const QUESTION_START = /^(what|whats|what's|how|is|are|do|did|does|can|could|should|would|which|who|when|where|why|any|show|list|tell|read)\b/i;
 const EASY =/\b(easy|easier|not (into |a fan of )?(hard|difficult)|chill|casual|relaxing|beginner|cozy|cosy)\b/i;
 
-/** Play features players ask about, as RAWG tag slugs. */
+/** Play features players ask about. */
 const FEATURES: [RegExp, string, string[]][] = [
-  [/\b(co-?op|coop|cooperative|play with (my|a) (friend|gf|bf|partner|wife|husband))\b/i, "co-op", ["co-op", "cooperative", "online-co-op", "local-co-op", "split-screen"]],
-  [/\b(multiplayer|multi-player|pvp|online)\b/i, "multiplayer", ["multiplayer", "online-multiplayer", "online-pvp", "pvp", "massively-multiplayer"]],
-  [/\b(split[- ]?screen|couch)\b/i, "split-screen", ["split-screen", "local-co-op", "local-multiplayer"]],
+  [/\b(co-?op|coop|cooperative|play with (my|a) (friend|gf|bf|partner|wife|husband))\b/i, "co-op", ["co-op"]],
+  [/\b(multiplayer|multi-player|pvp|online)\b/i, "multiplayer", ["multiplayer"]],
+  [/\b(split[- ]?screen|couch)\b/i, "split-screen", ["split-screen"]],
   [/\b(single[- ]?player|solo)\b/i, "single-player", ["singleplayer"]],
 ];
 
@@ -121,42 +121,28 @@ async function describePlaytime(question: string, ctx: DirectAnswerContext): Pro
   if (!PLAYTIME.test(question)) return undefined;
   const title = gameFor(question, ctx);
   if (!title) {
-    // "how long is outer wilds" for a game they don't own: RAWG's average, not the model's guess.
+    // "how long is outer wilds" for a game they don't own: the database's average, not the model's guess.
     const [asked] = gamesInQuestion(question, []);
     const found = asked ? await playtimeFor(asked) : undefined;
-    return found ? `Players log about ${found.hours} hours on ${found.name} on average. That's a community average, so a full run often takes longer.` : undefined;
+    return found ? `${found.name} takes about ${found.hours} hours to finish, going by what players report.` : undefined;
   }
   const game = await libraryGame(ctx.userId, title);
   if (!game) return undefined;
-  // The library copy is filled in by background enrichment; ask RAWG if it isn't there yet.
-  const hours = typeof game.playtime === "number" && game.playtime > 0 ? game.playtime : game.rawgId ? (await factsOf(game.rawgId)).playtime : 0;
-  // RAWG's average is unreliable below a few hours (few players logged it).
-  // RAWG's figure is hours its users logged, not time to beat: Hollow Knight came back as 7 and
-  // Outer Wilds as 4. Under 15 it misleads, so the answer model gives a cautious range instead.
-  if (hours < 15) return `I don't have a reliable playtime for ${game.title}, sorry.`;
-  // The figure is what players log on RAWG, which often runs low for long games; say so plainly.
-  return `Players log about ${hours} hours on ${game.title} on average. That's a community average, so a full run often takes longer.`;
+  // The library copy is filled in by background enrichment; ask if it isn't there yet.
+  const hours = typeof game.playtime === "number" && game.playtime > 0 ? game.playtime : game.igdbId ? (await igdbService.getGameFacts(game.igdbId)).playtime : 0;
+  if (!hours) return `I don't have a reliable playtime for ${game.title}, sorry.`;
+  return `${game.title} takes about ${hours} hours to finish, going by what players report.`;
 }
-
-const factCache = new Map<number, { tags: string[]; playtime: number }>();
-async function factsOf(rawgId: number) {
-  if (!factCache.has(rawgId)) factCache.set(rawgId, await rawgService.getGameFacts(rawgId));
-  return factCache.get(rawgId)!;
-}
-const tagsOf = async (rawgId: number) => (await factsOf(rawgId)).tags;
 
 async function describeFeature(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   const feature = FEATURES.find(([re]) => re.test(question));
   if (!feature || !MY_LIBRARY.test(question) || ACTION.test(question)) return undefined;
   const [, label, slugs] = feature;
-  const games = (await LibraryGame.find({ userId: new Types.ObjectId(ctx.userId), rawgId: { $exists: true } })
-    .select("title rawgId progressStatus")
-    .limit(60)
-    .lean()) as any[];
-  const tagged = await Promise.all(games.map(async (g) => ({ title: g.title as string, status: g.progressStatus, tags: await tagsOf(g.rawgId) })));
+  const games = (await LibraryGame.find({ userId: new Types.ObjectId(ctx.userId), "styleTags.0": { $exists: true } }).select("title styleTags progressStatus").lean()) as any[];
+  const tagged = games.map((g) => ({ title: g.title as string, status: g.progressStatus, tags: g.styleTags as string[] }));
   let matches = tagged.filter((g) => g.tags.some((t) => slugs.includes(t)) && g.status !== "dropped");
   const easy = EASY.test(question);
-  if (easy) matches = matches.filter((g) => !g.tags.some((t) => ["difficult", "souls-like", "hard"].includes(t)));
+  if (easy) matches = matches.filter((g) => !g.tags.some((t) => ["difficult", "souls-like"].includes(t)));
   if (matches.length === 0) {
     return `None of your games are tagged ${label}${easy ? " (leaving out the hard ones)" : ""}. Want me to suggest some?`;
   }
@@ -261,7 +247,7 @@ const RELEASE_ASK = [
 ];
 
 /**
- * Release status from RAWG, not the answer model: it insisted Hollow Knight: Silksong "hasn't come
+ * Release status from the game database, not the answer model: it insisted Hollow Knight: Silksong "hasn't come
  * out yet" (its training predates the release) while the app's own search lists it as 2025.
  */
 async function describeRelease(question: string): Promise<string | undefined> {
@@ -269,11 +255,11 @@ async function describeRelease(question: string): Promise<string | undefined> {
   if (!asked) return undefined;
   const title = asked.replace(/^(the game|that game|the new|new)\s+/i, "").replace(/\s+(yet|already|still)$/i, "").trim();
   if (title.split(/\s+/).length > 7 || /^(it|that|this|he|she|they)$/i.test(title)) return undefined;
-  const results = await rawgService.searchBestMatch(title, 10).catch(() => []);
+  const results = await igdbService.searchBestMatch(title, 10).catch(() => []);
   const best = rankByTitle(title, results as any[])[0];
   if (!best || best.score < 60) return undefined;
   const game = best.item as any;
-  if (!game.released) return `RAWG doesn't list a release date for ${game.name} yet, so it doesn't look like it's out.`;
+  if (!game.released) return `The game database doesn't list a release date for ${game.name} yet, so it doesn't look like it's out.`;
   const date = new Date(game.released);
   const when = date.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
   return date.getTime() <= Date.now() ? `Yes, ${game.name} is out: it released on ${when}.` : `Not yet: ${game.name} is set for ${when}.`;

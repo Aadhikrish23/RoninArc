@@ -48,7 +48,7 @@ import {
 } from "@chakra-ui/react";
 
 export default function GameDetailsPage() {
-  const { rawgId } = useParams();
+  const { igdbId } = useParams();
   const location = useLocation();
   const aboutText = useColorModeValue("gray.600", "gray.400");
 
@@ -78,19 +78,19 @@ export default function GameDetailsPage() {
   const [isRemoveGameOpen, setIsRemoveGameOpen] = useState(false);
   const cancelRemoveRef = useRef<HTMLButtonElement>(null);
 
-  const isMongoId = /^[0-9a-fA-F]{24}$/.test(rawgId || "");
+  const isMongoId = /^[0-9a-fA-F]{24}$/.test(igdbId || "");
   const libraryGame = isMongoId
-    ? (games.find((g) => g._id === rawgId) ?? null)
-    : (games.find((g) => g.rawgId === Number(rawgId)) ?? null);
+    ? (games.find((g) => g._id === igdbId) ?? null)
+    : (games.find((g) => g.igdbId === Number(igdbId)) ?? null);
 
-  const { game, loading, error } = useGameDetails(rawgId, libraryGame);
+  const { game, loading, error } = useGameDetails(igdbId, libraryGame);
   const { notes, loading: notesLoading, saving: notesSaving, addNote, editNote, removeNote } = useNotes(libraryGame?._id);
 
   const handleAddGame = async () => {
     if (!game) return;
 
     await addGame({
-      rawgId: game.id,
+      igdbId: game.id,
       title: game.name,
       description: game.description,
       imageURL: game.imageURL,

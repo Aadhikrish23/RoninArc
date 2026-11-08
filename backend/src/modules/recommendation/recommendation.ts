@@ -7,7 +7,6 @@ const recommendationRouter = express.Router();
 recommendationRouter.use(authMiddleware);
 recommendationRouter.get("/", recommendationController.getRecommendations);
 recommendationRouter.post("/dismiss", recommendationController.dismiss);
-recommendationRouter.delete("/dismiss/igdb/:igdbId", recommendationController.undoDismissIgdb);
-recommendationRouter.delete("/dismiss/:rawgId", recommendationController.undoDismiss);
+recommendationRouter.delete("/dismiss/:igdbId", recommendationController.undoDismiss);
 
 export default recommendationRouter;

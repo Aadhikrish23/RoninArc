@@ -15,7 +15,6 @@ interface updatetype {
 const addGame = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const userId = req.user.id;
-    const rawgId = req.body.rawgId;
     const igdbId = req.body.igdbId;
     let title = req.body.title;
     let description = req.body.description;
@@ -24,9 +23,8 @@ const addGame = async (req: Request, res: Response, next: NextFunction) => {
     let exePath = req.body.exePath;
     let status = req.body.progressStatus;
 
-    const givenIds = [rawgId, igdbId].filter((id) => id !== undefined);
-    if (givenIds.length === 0 || !givenIds.every((id) => typeof id === "number" && !Number.isNaN(id))) {
-      return next(new AppError("Valid rawgId or igdbId is required", 400));
+    if (typeof igdbId !== "number" || Number.isNaN(igdbId)) {
+      return next(new AppError("Valid igdbId is required", 400));
     }
     if (typeof title !== "string" || !title || title.trim() === "") {
       return next(new AppError("Title is required", 400));
@@ -56,7 +54,6 @@ const addGame = async (req: Request, res: Response, next: NextFunction) => {
       }
     }
     const payload = {
-      rawgId,
       igdbId,
       title: title.trim(),
       

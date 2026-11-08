@@ -10,7 +10,7 @@ import {
   Heading,
 } from "@chakra-ui/react";
 
-import type { Game, RawgGameResult } from "../types/library";
+import type { Game, GameSearchResult } from "../types/library";
 import { ButtonGroup, Grid, IconButton } from "@chakra-ui/react";
 
 import { FiGrid, FiList } from "react-icons/fi";
@@ -25,15 +25,15 @@ import { useColorModeValue } from "@chakra-ui/react";
 interface Props {
   searchText: string;
   ownedResults: Game[];
-  discoverResults: RawgGameResult[];
+  discoverResults: GameSearchResult[];
   loading: boolean;
   error: string | null;
-  onAddGame: (game: RawgGameResult) => Promise<void>;
+  onAddGame: (game: GameSearchResult) => Promise<void>;
   onLaunchGame: (game: Game) => void;
   onBack: () => void;
 }
 
-export default function RawgResultsSection({
+export default function GameResultsSection({
   searchText,
   ownedResults,
   discoverResults,
@@ -49,7 +49,7 @@ export default function RawgResultsSection({
   const [added, setAdded] = useState<Set<number>>(new Set());
   const mutedText = useColorModeValue("gray.600", "gray.400");
 
-  const add = async (game: RawgGameResult) => {
+  const add = async (game: GameSearchResult) => {
     await onAddGame(game);
     setAdded((prev) => new Set(prev).add(game.id));
   };
@@ -170,7 +170,7 @@ export default function RawgResultsSection({
     );
   };
 
-  const renderDiscoverGrid = (game: RawgGameResult) => (
+  const renderDiscoverGrid = (game: GameSearchResult) => (
     <Box
       key={game.id}
       borderWidth="1px"
@@ -216,7 +216,7 @@ export default function RawgResultsSection({
     </Box>
   );
 
-  const renderDiscoverList = (game: RawgGameResult) => (
+  const renderDiscoverList = (game: GameSearchResult) => (
     <Flex
       key={game.id}
       gap={4}

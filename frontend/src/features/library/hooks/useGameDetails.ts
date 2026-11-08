@@ -1,21 +1,21 @@
 import { useEffect, useState } from "react";
 import libraryApi from "../api/libraryApi";
-import type { RawgGameDetails, Game } from "../types/library";
+import type { GameDbDetails, Game } from "../types/library";
 
-const mapLocalGameToRawgDetails = (game: Game): RawgGameDetails => ({
-  id: game.rawgId || 0,
+const localGameToDetails = (game: Game): GameDbDetails => ({
+  id: game.igdbId || 0,
   name: game.title,
   description: game.description || "No description available.",
   imageURL: game.imageURL || "",
   imageAlt: game.title,
   screenshots: game.screenshots || [],
-  rating: game.rawgRating || game.rating || 0,
+  rating: game.communityRating || game.rating || 0,
   ratingsCount: 0,
   released: game.metadataSyncedAt
     ? new Date(game.metadataSyncedAt).toLocaleDateString()
     : "",
   website: game.website || "",
-  metacritic: game.metacritic || null,
+  criticScore: game.criticScore || null,
   playtime: game.playtime || 0,
   genres: game.tags || [],
   platforms: game.provider === "epic" ? ["PC"] : [],
@@ -25,7 +25,7 @@ const mapLocalGameToRawgDetails = (game: Game): RawgGameDetails => ({
 });
 
 export function useGameDetails(id?: string, localGame?: Game | null) {
-  const [game, setGame] = useState<RawgGameDetails | null>(null);
+  const [game, setGame] = useState<GameDbDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,25 +43,25 @@ export function useGameDetails(id?: string, localGame?: Game | null) {
           // Always ask backend for the latest game.
           const libraryGame = await libraryApi.getGameById(id);
 
-          if (libraryGame.rawgId) {
-            const rawgGame = await libraryApi.getRawgGameDetails(
-              libraryGame.rawgId,
+          if (libraryGame.igdbId) {
+            const result = await libraryApi.getGameDbDetails(
+              libraryGame.igdbId,
             );
 
-            setGame(rawgGame);
+            setGame(result);
           } else {
-            setGame(mapLocalGameToRawgDetails(libraryGame));
+            setGame(localGameToDetails(libraryGame));
           }
 
           return;
         } else {
-          // RAWG ID
-          const data = await libraryApi.getRawgGameDetails(id);
+          // A game database id
+          const data = await libraryApi.getGameDbDetails(id);
           setGame(data);
         }
       } catch (err) {
         if (localGame) {
-          setGame(mapLocalGameToRawgDetails(localGame));
+          setGame(localGameToDetails(localGame));
         } else {
           setError("Failed to load game details");
         }

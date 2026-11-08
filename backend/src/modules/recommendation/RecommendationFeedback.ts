@@ -25,7 +25,7 @@ const RecommendationFeedback = mongoose.model("RecommendationFeedback", recommen
 
 export default RecommendationFeedback;
 
-/** RAWG and IGDB use the same range of numbers for different games, so these never share a field. */
+/** RAWG (older entries) and IGDB use the same range of numbers for different games, so these never share a field. */
 export interface GameDbIds {
   rawgId?: number | null;
   igdbId?: number | null;

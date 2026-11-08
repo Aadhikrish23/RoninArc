@@ -1,3 +1,4 @@
+import metadataEnrichmentService from "../library/metadataEnrichmentService";
 import mongoose from "mongoose";
 import EpicOwnership from "./epic/models/EpicOwnership";
 import gameLibrarymodel from "../library/LibraryGame";
@@ -175,7 +176,7 @@ export async function syncProviderGames({
     };
 
     if (matchedGame) {
-      // Update existing game. Never overwrite user-managed fields or existing RAWG enrichment data!
+      // Update existing game. Never overwrite user-managed fields or existing enrichment data!
       const updateData: any = {
         [`providers.${provider}`]: providerOwnershipInfo,
         // Sync legacy compatibility fields
@@ -353,6 +354,9 @@ export async function syncProviderGames({
 
     console.log(`[SyncService] Completed sync run for provider "${provider}".`);
   }
+
+  // Imported games arrive with no tags or ratings: fetch them in the background.
+  void metadataEnrichmentService.enrichLibrary(userId);
 }
 /**
  * Epic Games specific synchronization wrapper.

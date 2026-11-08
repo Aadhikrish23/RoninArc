@@ -9,10 +9,10 @@ const celeste = byName("Celeste");
 test.describe("Library API (/game)", () => {
   test.describe("add", () => {
     test("adds a game with defaults and logs a GAME_ADDED activity @positive", async ({ api }) => {
-      const res = await api.post("/game/add", { rawgId: hades.id, title: `  ${hades.name}  `, tags: hades.genres });
+      const res = await api.post("/game/add", { igdbId: hades.id, title: `  ${hades.name}  `, tags: hades.genres });
       expect(res.status()).toBe(201);
       const { Data } = await json(res);
-      expect(Data).toMatchObject({ rawgId: hades.id, title: hades.name, progressStatus: "plan", tags: hades.genres });
+      expect(Data).toMatchObject({ igdbId: hades.id, title: hades.name, progressStatus: "plan", tags: hades.genres });
 
       const activity = await json(await api.get("/activity"));
       expect(activity.Data.some((a: any) => a.type === "GAME_ADDED" && a.message.includes(hades.name))).toBe(true);
@@ -20,15 +20,15 @@ test.describe("Library API (/game)", () => {
 
     test("accepts every valid progress status @positive", async ({ api }) => {
       for (const [i, status] of ["none", "plan", "playing", "paused", "completed", "dropped"].entries()) {
-        const res = await api.post("/game/add", { rawgId: 900000 + i, title: `Status ${status}`, tags: [], progressStatus: status });
+        const res = await api.post("/game/add", { igdbId: 900000 + i, title: `Status ${status}`, tags: [], progressStatus: status });
         expect(res.status(), status).toBe(201);
         expect((await json(res)).Data.progressStatus).toBe(status);
       }
     });
 
-    test("rejects a duplicate rawgId for the same user @negative", async ({ api }) => {
+    test("rejects a duplicate igdbId for the same user @negative", async ({ api }) => {
       await api.addGame(hades);
-      const res = await api.post("/game/add", { rawgId: hades.id, title: "Hades again", tags: [] });
+      const res = await api.post("/game/add", { igdbId: hades.id, title: "Hades again", tags: [] });
       expect(res.status()).toBe(400);
       expect((await json(res)).error).toBe("Game already exists");
     });
@@ -41,15 +41,14 @@ test.describe("Library API (/game)", () => {
     });
 
     for (const [label, payload, error] of [
-      ["no game id", { title: "X", tags: [] }, "Valid rawgId or igdbId is required"],
-      ["string rawgId", { rawgId: "123", title: "X", tags: [] }, "Valid rawgId or igdbId is required"],
-      ["string igdbId", { igdbId: "123", title: "X", tags: [] }, "Valid rawgId or igdbId is required"],
-      ["a good rawgId with a bad igdbId", { rawgId: 1, igdbId: "123", title: "X", tags: [] }, "Valid rawgId or igdbId is required"],
-      ["missing title", { rawgId: 1, tags: [] }, "Title is required"],
-      ["blank title", { rawgId: 1, title: "   ", tags: [] }, "Title is required"],
-      ["non-array tags", { rawgId: 1, title: "X", tags: "rpg" }, "Invalid Tags"],
-      ["non-string description", { rawgId: 1, title: "X", tags: [], description: 42 }, "Invalid inputs: description,imageURL,exePath must be text/string "],
-      ["unknown status", { rawgId: 1, title: "X", tags: [], progressStatus: "speedrunning" }, "Invalid status"],
+      ["no game id", { title: "X", tags: [] }, "Valid igdbId is required"],
+      ["string igdbId", { igdbId: "123", title: "X", tags: [] }, "Valid igdbId is required"],
+      ["an old-style rawgId alone", { rawgId: 123, title: "X", tags: [] }, "Valid igdbId is required"],
+      ["missing title", { igdbId: 1, tags: [] }, "Title is required"],
+      ["blank title", { igdbId: 1, title: "   ", tags: [] }, "Title is required"],
+      ["non-array tags", { igdbId: 1, title: "X", tags: "rpg" }, "Invalid Tags"],
+      ["non-string description", { igdbId: 1, title: "X", tags: [], description: 42 }, "Invalid inputs: description,imageURL,exePath must be text/string "],
+      ["unknown status", { igdbId: 1, title: "X", tags: [], progressStatus: "speedrunning" }, "Invalid status"],
     ] as const) {
       test(`rejects ${label} with 400 @negative`, async ({ api }) => {
         const res = await api.post("/game/add", payload);
@@ -59,7 +58,7 @@ test.describe("Library API (/game)", () => {
     }
 
     test("requires authentication @negative", async ({ anon }) => {
-      expect((await anon.post("/game/add", { rawgId: 1, title: "X", tags: [] })).status()).toBe(401);
+      expect((await anon.post("/game/add", { igdbId: 1, title: "X", tags: [] })).status()).toBe(401);
     });
   });
 
@@ -216,19 +215,34 @@ test.describe("Library API (/game)", () => {
   });
 
   test.describe("metadata enrichment", () => {
-    test("enriches a game from RAWG (screenshots, developers, rating) @positive", async ({ api }) => {
-      const game = await api.addGame(byName("Stardew Valley"), { rawgId: 1 });
+    test("enriches a game (screenshots, developers, styles) @positive", async ({ api }) => {
+      const game = await api.addGame(byName("Stardew Valley"));
       const res = await api.post(`/game/${game._id}/enrich`);
       expect(res.status()).toBe(200);
       const { Data } = await json(res);
       expect(Data.metadataState.status).toBe("complete");
-      expect(Data.rawgId).toBe(byName("Stardew Valley").id);
+      expect(Data.igdbId).toBe(byName("Stardew Valley").id);
       expect(Data.developers).toEqual(["ConcernedApe"]);
       expect(Data.screenshots).toHaveLength(1);
+      expect(Data.styleTags).toEqual(expect.arrayContaining(["co-op", "cozy"]));
+      expect(Data.playtime).toBe(20);
     });
 
-    test("marks enrichment as failed when RAWG has no plausible match @negative", async ({ api }) => {
-      const game = await api.addGame(hades, { title: "Zzqx Totally Unknown Title", rawgId: 2 });
+    test("adding a game gets its details straight away @positive", async ({ api }) => {
+      const game = await api.addGame(byName("Elden Ring")) as any;
+      expect(game.styleTags).toEqual(expect.arrayContaining(["souls-like", "co-op"]));
+      expect(game.imageURL).toBeTruthy();
+    });
+
+    test("what the player or a store gave a game isn't replaced @negative", async ({ api }) => {
+      const game = await api.addGame(byName("Hades"), { description: "my own words", tags: ["Mine"] });
+      const { Data } = await json(await api.post(`/game/${game._id}/enrich`));
+      expect(Data.description).toBe("my own words");
+      expect(Data.tags).toEqual(["Mine"]);
+    });
+
+    test("marks enrichment as failed when the database doesn't have the game @negative", async ({ api }) => {
+      const game = await api.addGame(hades, { title: "Zzqx Totally Unknown Title", igdbId: 999999 });
       const res = await api.post(`/game/${game._id}/enrich`);
       expect(res.status()).toBe(200);
       expect((await json(res)).Data.metadataState.status).toBe("failed");

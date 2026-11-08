@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, type ChatResponse, type Collection, type DashboardOverview, type Game, type Note, type RawgResult, type Recommendation, type Review } from "@/api/client";
+import { api, type ChatResponse, type Collection, type DashboardOverview, type Game, type Note, type GameSearchResult, type Recommendation, type Review } from "@/api/client";
 import type { ProgressStatus } from "@/ui/theme";
 
 /** Everything that shows library data; refreshed after any change. */
@@ -33,10 +33,10 @@ export const useRecommendations = (query?: string) =>
     queryFn: () => api<{ backlog: Recommendation[]; discover: Recommendation[]; discoverError?: string }>(`/recommendations${query ? `?q=${encodeURIComponent(query)}` : ""}`, { timeoutMs: 45_000 }),
   });
 
-export const useRawgSearch = (query: string) =>
+export const useGameSearch = (query: string) =>
   useQuery({
-    queryKey: ["rawg", query],
-    queryFn: () => api<{ owned: RawgResult[]; discover: RawgResult[] }>(`/rawg/search?query=${encodeURIComponent(query)}`),
+    queryKey: ["igdb", query],
+    queryFn: () => api<{ owned: GameSearchResult[]; discover: GameSearchResult[] }>(`/igdb/search?query=${encodeURIComponent(query)}`),
     enabled: query.trim().length >= 2,
     staleTime: 5 * 60_000,
   });
@@ -49,10 +49,10 @@ function useLibraryMutation<A, R = unknown>(fn: (args: A) => Promise<R>) {
 export const useSetStatus = () => useLibraryMutation(({ id, status }: { id: string; status: ProgressStatus }) => api(`/game/${id}`, { method: "PATCH", body: { progressStatus: status } }));
 
 export const useAddGame = () =>
-  useLibraryMutation((g: RawgResult) =>
+  useLibraryMutation((g: GameSearchResult) =>
     api<Game>("/game/add", {
       method: "POST",
-      body: { rawgId: g.id, title: g.name, imageURL: g.imageURL ?? "", tags: g.genres ?? [], description: "", exePath: "", progressStatus: "plan" },
+      body: { igdbId: g.id, title: g.name, imageURL: g.imageURL ?? "", tags: g.genres ?? [], description: "", exePath: "", progressStatus: "plan" },
     }),
   );
 
@@ -76,7 +76,7 @@ export const useToggleInCollection = () =>
     add ? api(`/collection/${collectionId}/games`, { method: "POST", body: { gameId } }) : api(`/collection/${collectionId}/games/${gameId}`, { method: "DELETE" }),
   );
 
-export const useDismissRecommendation = () => useLibraryMutation((rawgId: number) => api("/recommendations/dismiss", { method: "POST", body: { rawgId } }));
+export const useDismissRecommendation = () => useLibraryMutation((igdbId: number) => api("/recommendations/dismiss", { method: "POST", body: { igdbId } }));
 
 export async function sendChat(message: string): Promise<ChatResponse> {
   // The phone can't launch games; the assistant says so instead of trying.

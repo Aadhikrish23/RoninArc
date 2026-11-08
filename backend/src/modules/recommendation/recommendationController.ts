@@ -34,28 +34,27 @@ const getRecommendations = async (req: Request, res: Response, next: NextFunctio
 
 const dismiss = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { rawgId, igdbId, title } = req.body ?? {};
-    const given = [rawgId, igdbId].filter((id) => id !== undefined);
-    if (given.length === 0 || !given.every(validId)) {
-      return next(new AppError("A valid rawgId or igdbId is required", 400));
+    const { igdbId, title } = req.body ?? {};
+    if (!validId(igdbId)) {
+      return next(new AppError("A valid igdbId is required", 400));
     }
     if (title !== undefined && typeof title !== "string") {
       return next(new AppError("title must be text", 400));
     }
-    await recommendationService.dismiss(req.user.id, { rawgId, igdbId }, title);
+    await recommendationService.dismiss(req.user.id, { igdbId }, title);
     return res.status(200).json({ Status: "Success", Message: "Recommendation dismissed" });
   } catch (error) {
     next(error);
   }
 };
 
-const restore = (idField: "rawgId" | "igdbId") => async (req: Request, res: Response, next: NextFunction) => {
+const undoDismiss = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const id = Number(req.params[idField]);
-    if (!validId(id)) {
-      return next(new AppError(`A valid ${idField} is required`, 400));
+    const igdbId = Number(req.params.igdbId);
+    if (!validId(igdbId)) {
+      return next(new AppError("A valid igdbId is required", 400));
     }
-    const removed = await recommendationService.undoDismiss(req.user.id, { [idField]: id });
+    const removed = await recommendationService.undoDismiss(req.user.id, { igdbId });
     if (!removed) {
       return next(new AppError("That game wasn't dismissed", 404));
     }
@@ -65,4 +64,4 @@ const restore = (idField: "rawgId" | "igdbId") => async (req: Request, res: Resp
   }
 };
 
-export default { getRecommendations, dismiss, undoDismiss: restore("rawgId"), undoDismissIgdb: restore("igdbId") };
+export default { getRecommendations, dismiss, undoDismiss };

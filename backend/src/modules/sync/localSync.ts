@@ -7,7 +7,8 @@ import usermodel from "../auth/models/User";
 import RefreshToken from "../auth/models/RefreshToken";
 import EpicOwnership from "../providers/epic/models/EpicOwnership";
 import { SyncLink, Tombstone } from "./syncModels";
-import { CLOUD_META, SYNCED, changedAt, forWire, naturalFilters, syncedByName, type SyncedCollection } from "./syncCollections";
+import { CLOUD_META, SYNCED, changedAt, forWire, syncedByName, type SyncedCollection } from "./syncCollections";
+import { naturalFilters } from "./syncKeys";
 
 const { EJSON } = mongoose.mongo.BSON;
 const log = moduleLogger("sync");

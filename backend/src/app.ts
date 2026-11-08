@@ -8,7 +8,7 @@ import authRouter from "./modules/auth/auth";
 import type { Request, Response, NextFunction } from "express";
 import AppError from "./shared/errors/AppError";
 import library_router from "./modules/library/library";
-import rawgRouter from "./modules/rawg/rawg";
+import igdbRouter from "./modules/igdb/igdb";
 import dashboardRouter from "./modules/dashboard/dashboard";
 import reviewRouter from "./modules/review/review";
 import collectionRoutes from "./modules/collection/collectionRoutes";
@@ -98,7 +98,7 @@ if (isCloud()) {
 app.use("/auth", passwordRouter);
 app.use("/auth", authRouter);
 app.use("/game", library_router);
-app.use("/rawg", rawgRouter);
+app.use("/igdb", igdbRouter);
 app.use("/dashboard", dashboardRouter);
 app.use("/review", reviewRouter);
 app.use("/collection", collectionRoutes);

@@ -45,10 +45,10 @@ export function useRecommendations(options: { limit: number; q?: string }) {
     );
 
   const dismiss = async (rec: Recommendation) => {
-    if (!rec.rawgId) return;
+    if (!rec.igdbId) return;
     removeLocally(rec);
     try {
-      await recommendationApi.dismiss(rec.rawgId, rec.title);
+      await recommendationApi.dismiss(rec.igdbId, rec.title);
       toast({
         duration: 6000,
         render: ({ onClose }) => (
@@ -76,16 +76,16 @@ export function useRecommendations(options: { limit: number; q?: string }) {
   };
 
   const undoDismiss = async (rec: Recommendation) => {
-    if (!rec.rawgId) return;
-    await recommendationApi.undoDismiss(rec.rawgId);
+    if (!rec.igdbId) return;
+    await recommendationApi.undoDismiss(rec.igdbId);
     refresh();
   };
 
   const addToLibrary = async (rec: Recommendation) => {
-    if (!rec.rawgId) return;
+    if (!rec.igdbId) return;
     try {
       await addGame({
-        rawgId: rec.rawgId,
+        igdbId: rec.igdbId,
         title: rec.title,
         description: "",
         imageURL: rec.imageURL ?? "",

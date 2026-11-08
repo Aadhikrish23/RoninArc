@@ -66,7 +66,7 @@ export function registerCapabilities() {
   registry.register({
     id: "add-game",
     name: "Add Game",
-    description: "Searches RAWG and adds a game to your library.",
+    description: "Searches the game database and adds a game to your library.",
     intentType: IntentType.AddGame,
     requirements: [{ contextCategory: ContextCategory.Library }],
   });

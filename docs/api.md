@@ -41,11 +41,11 @@ GET /game/filter/search
 
 Filters games using query parameters.
 
-## RAWG
+## IGDB
 
-GET /rawg/search
+GET /igdb/search
 
-Searches games using the RAWG API.
+Searches games using the IGDB API.
 
 Parameters:
 

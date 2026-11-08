@@ -1,9 +1,10 @@
 import { Types } from "mongoose";
 import libraryServices from "../library/libraryServices";
 import PlaySession from "../playSession/PlaySessionModel";
-import rawgService from "../rawg/rawgService";
+import igdbService from "../igdb/igdbService";
 import RecommendationFeedback, { clearNotInterested, markNotInterested, type GameDbIds } from "./RecommendationFeedback";
 import {
+  DiscoverCandidate,
   LibrarySignalGame,
   Recommendation,
   buildTasteProfile,
@@ -14,45 +15,16 @@ import {
   rankDiscover,
   type LengthPreference,
 } from "./recommendationEngine";
+import { KNOWN_GENRES } from "../igdb/igdbStyles";
 import { closestTitle, fullyNamedTitles } from "../ai/domains/games/conversation/TargetGrounding";
-import { expandAbbreviation } from "../rawg/gameAbbreviations";
-import { rankByTitle } from "../rawg/titleMatch";
-import { playtimeFor } from "../rawg/knownLengths";
+import { expandAbbreviation } from "../igdb/gameAbbreviations";
+import { rankByTitle } from "../igdb/titleMatch";
+import { playtimeFor } from "../igdb/knownLengths";
 
 export type RecommendationType = "all" | "backlog" | "discover";
 
-// RAWG genre names as they appear in library tags, mapped to RAWG's slugs.
-const RAWG_GENRE_SLUGS: Record<string, string> = {
-  action: "action",
-  indie: "indie",
-  adventure: "adventure",
-  rpg: "role-playing-games-rpg",
-  strategy: "strategy",
-  shooter: "shooter",
-  casual: "casual",
-  simulation: "simulation",
-  puzzle: "puzzle",
-  arcade: "arcade",
-  platformer: "platformer",
-  "massively multiplayer": "massively-multiplayer",
-  racing: "racing",
-  sports: "sports",
-  fighting: "fighting",
-  family: "family",
-  "board games": "board-games",
-  educational: "educational",
-  card: "card",
-};
-const KNOWN_GENRES = [
-  "Action", "Indie", "Adventure", "RPG", "Strategy", "Shooter", "Casual", "Simulation", "Puzzle",
-  "Arcade", "Platformer", "Massively Multiplayer", "Racing", "Sports", "Fighting", "Family",
-  "Board Games", "Educational", "Card",
-];
-
-const toSlug = (genre: string) => {
-  const key = genre.trim().toLowerCase();
-  return Object.prototype.hasOwnProperty.call(RAWG_GENRE_SLUGS, key) ? RAWG_GENRE_SLUGS[key] : undefined;
-};
+/** Genre words a hint can name ("a good platformer"), beyond the genres in the library. */
+const FOCUS_GENRES = [...KNOWN_GENRES, "Casual", "Board Games", "Educational"];
 
 export interface RecommendationResult {
   profile: {
@@ -66,7 +38,7 @@ export interface RecommendationResult {
   discoverError?: string;
 }
 
-/** Play styles players ask for, as RAWG tag slugs (verified against RAWG's /tags). */
+/** Play styles players ask for (see igdb/igdbStyles.ts for how each is found). */
 const STYLE_TAGS: [RegExp, string, string][] = [
   [/\brogue-?lites?\b/, "roguelite", "Roguelite"],
   [/\brogue-?likes?\b/, "roguelike", "Roguelike"],
@@ -85,38 +57,17 @@ const STYLE_TAGS: [RegExp, string, string][] = [
   [/\bhorror\b/, "horror", "Horror"],
 ];
 
-/** Genres and RAWG tags of games built for short sessions (a run, a level, a match). */
+/** Genres and styles of games built for short sessions (a run, a level, a match). */
 const SESSION_GENRES = /\b(platformer|arcade|puzzle|fighting|racing|card|sports|casual)\b/i;
 const SESSION_TAGS = new Set(["roguelike", "roguelite", "rogue-lite", "arcade", "short", "platformer", "puzzle", "card-game", "deckbuilding"]);
 
 /** "what should I play tonight", "only got an hour", "30 mins": a session, so in-progress games lead. */
 const SESSION = /\b(tonight|today|right now|rn|this evening|an hour|one hour|half an hour|\d+\s*(min|mins|minutes|h|hr|hrs|hours?))\b/;
 
-/** Owned games' RAWG tags, cached for the life of the process (tags rarely change). */
-const tagCache = new Map<number, string[]>();
-async function tagsFor(rawgId: number): Promise<string[]> {
-  if (!tagCache.has(rawgId)) tagCache.set(rawgId, await rawgService.getGameTagSlugs(rawgId));
-  return tagCache.get(rawgId)!;
-}
-
-/** Owned games' RAWG facts (playtime), cached like the tags. */
-const factsCache = new Map<number, Promise<{ playtime: number }>>();
-function factsFor(rawgId: number): Promise<{ playtime: number }> {
-  if (!factsCache.has(rawgId)) factsCache.set(rawgId, rawgService.getGameFacts(rawgId).catch(() => ({ playtime: 0, tags: [] })));
-  return factsCache.get(rawgId)!;
-}
-
 /** Styles that library genres can stand in for. */
 const STYLE_GENRES: Record<string, string[]> = { cozy: ["Simulation", "Casual", "Family"] };
 
-/** Tags that count as a style on a game the user owns (Stardew is "relaxing" and "farming", not always "cozy"). */
-const STYLE_SYNONYMS: Record<string, string[]> = {
-  // "cute" and "casual" are too broad: Hollow Knight is tagged cute and came back as "cozy".
-  cozy: ["cozy", "relaxing", "farming", "life-sim", "wholesome"],
-  "co-op": ["co-op", "online-co-op", "local-co-op", "cooperative", "split-screen"],
-  farming: ["farming", "agriculture", "life-sim"],
-};
-const hasStyle = (tags: string[], style: string) => (STYLE_SYNONYMS[style] ?? [style]).some((t) => tags.includes(t));
+const hasStyle = (tags: string[], style: string) => tags.includes(style);
 
 /** Play styles specific enough to define "games like X" (open world or co-op alone don't). */
 const DISTINCTIVE_STYLES = new Set(["roguelite", "roguelike", "souls-like", "metroidvania", "deckbuilding", "jrpg"]);
@@ -160,15 +111,15 @@ async function loadSignals(userId: string): Promise<LibrarySignalGame[]> {
   return library.map((g: any) => ({
     _id: String(g._id),
     title: g.title,
-    rawgId: g.rawgId,
+    igdbId: g.igdbId,
     tags: g.tags || [],
+    styles: g.styleTags || [],
     progressStatus: g.progressStatus || "none",
     rating: g.rating ?? null,
     playMinutes: minutesByGame.get(String(g._id)) || 0,
-    rawgRating: g.rawgRating,
-    metacritic: g.metacritic,
+    communityRating: g.communityRating,
+    criticScore: g.criticScore,
     imageURL: g.imageURL || g.artwork?.sources?.[g.artwork?.selectedSource] || undefined,
-    // Stored playtimes came from RAWG before the known-length fixes; correct them here too.
     avgHours: playtimeFor(g.title, typeof g.playtime === "number" ? g.playtime : undefined),
   }));
 }
@@ -193,16 +144,18 @@ function namedLibraryGame(query: string, library: LibrarySignalGame[]): LibraryS
   return title ? library.find((g) => g.title === title) : undefined;
 }
 
-/** The game named after "like", looked up on RAWG when it isn't in the library. */
-async function likeGameOutsideLibrary(query?: string): Promise<{ title: string; rawgId: number; genres: string[]; avgHours?: number } | undefined> {
+/** The game named after "like", looked up in the game database when it isn't in the library. */
+async function likeGameOutsideLibrary(query?: string): Promise<{ title: string; igdbId: number; genres: string[]; avgHours?: number } | undefined> {
   const name = likeName(query);
   if (!name) return undefined;
   try {
     const term = expandAbbreviation(name) ?? name;
-    const [best] = rankByTitle(term, await rawgService.searchGames(term, 1));
+    const [best] = rankByTitle(term, await igdbService.searchGames(term, 1));
     if (!best || best.score < 80) return undefined;
     const game = best.item as any;
-    return { title: game.name, rawgId: game.id, genres: game.genres ?? [], avgHours: game.avgHours };
+    // Searching doesn't fetch lengths, and "like hades but shorter" needs this one.
+    const { playtime } = await igdbService.getGameFacts(game.id);
+    return { title: game.name, igdbId: game.id, genres: game.genres ?? [], avgHours: playtime || undefined };
   } catch {
     return undefined; // a hint, not a requirement
   }
@@ -215,7 +168,7 @@ async function getRecommendations(
   const library = await loadSignals(userId);
   const profile = buildTasteProfile(library);
   const libraryTags = Array.from(new Set(library.flatMap((g) => g.tags)));
-  const focus = focusGenres(options.query, library, Array.from(new Set([...KNOWN_GENRES, ...libraryTags])));
+  const focus = focusGenres(options.query, library, Array.from(new Set([...FOCUS_GENRES, ...libraryTags])));
   let length = lengthPreference(options.query);
   const styles = styleTags(options.query);
   // "like Hades": the library game the hint names, to rank and explain by.
@@ -223,7 +176,6 @@ async function getRecommendations(
   // "like Hades" when Hades isn't in the library: look it up, so its genres and style still count.
   const outside = likeGame ? undefined : await likeGameOutsideLibrary(options.query);
   const likeTitle = likeGame?.title ?? outside?.title;
-  const likeRawgId = likeGame?.rawgId ?? outside?.rawgId;
   const like = likeGame ? { title: likeGame.title, tags: likeGame.tags } : outside ? { title: outside.title, tags: outside.genres } : undefined;
   // "like Celeste but shorter": shorter than Celeste itself, not just "a short game" (Hollow Knight
   // passed as short once and came back as "shorter than Celeste").
@@ -232,10 +184,11 @@ async function getRecommendations(
   if (length === "short" && likeHours && likeHours >= 3) {
     length = { maxHours: Math.max(3, Math.min(20, likeHours - 1)) };
   }
-  // "like Hades" also means "plays like Hades": borrow its play style (roguelike) from RAWG.
+  // "like Hades" also means "plays like Hades": borrow its play style (roguelike).
+  const likeIgdbId = likeGame?.igdbId ?? outside?.igdbId;
   let discoverStyles = styles;
-  if (styles.slugs.length === 0 && likeRawgId) {
-    const tags = await rawgService.getGameTagSlugs(likeRawgId);
+  if (styles.slugs.length === 0 && (likeGame || likeIgdbId)) {
+    const tags = likeGame ? likeGame.styles : await igdbService.getGameTagSlugs(likeIgdbId as number);
     const style = STYLE_TAGS.find(([, slug]) => DISTINCTIVE_STYLES.has(slug) && tags.includes(slug));
     if (style) discoverStyles = { slugs: [style[1]], label: `${style[2]}, like ${likeTitle}` };
   }
@@ -243,11 +196,10 @@ async function getRecommendations(
   // not just the most popular games in a broad genre like Action.
   if (discoverStyles.slugs.length === 0 && focus.length === 0 && !like) {
     const favourite = library
-      .filter((g) => typeof g.rating === "number" && g.rating >= 8 && g.rawgId)
+      .filter((g) => typeof g.rating === "number" && g.rating >= 8)
       .sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))[0];
-    if (favourite?.rawgId) {
-      const tags = await rawgService.getGameTagSlugs(favourite.rawgId);
-      const style = STYLE_TAGS.find(([, slug]) => DISTINCTIVE_STYLES.has(slug) && tags.includes(slug));
+    if (favourite) {
+      const style = STYLE_TAGS.find(([, slug]) => DISTINCTIVE_STYLES.has(slug) && favourite.styles.includes(slug));
       if (style) discoverStyles = { slugs: [style[1]], label: `${style[2]}, like ${favourite.title}` };
     }
   }
@@ -274,17 +226,11 @@ async function getRecommendations(
     // not a 60-hour open world you haven't started.
     const shortSession = session && length !== undefined && length !== "long";
     const backlogLength = shortSession ? undefined : length;
-    // Games added by hand often have no length yet (background enrichment): "like hades but
-    // shorter" then passed The Witcher 3, DS3 and Elden Ring as "unknown". Ask RAWG for them.
-    const owned = length
-      ? await Promise.all(library.slice(0, 40).map(async (g) => (g.avgHours || !g.rawgId ? g : { ...g, avgHours: (await factsFor(g.rawgId)).playtime || g.avgHours })))
-      : library;
-    let backlogPool = backlogLength ? owned.filter((g) => (g.avgHours ?? 0) >= 3) : owned;
+    let backlogPool = backlogLength ? library.filter((g) => (g.avgHours ?? 0) >= 3) : library;
     // "like hades": backlog picks have to play like it (a roguelite), not just share "Action".
     const likeStyle = like && styles.slugs.length === 0 ? discoverStyles.slugs.find((s) => DISTINCTIVE_STYLES.has(s)) : undefined;
     if (likeStyle) {
-      const tagged = await Promise.all(backlogPool.map(async (g) => ({ g, tags: g.rawgId ? await tagsFor(g.rawgId) : [] })));
-      backlogPool = tagged.filter((t) => hasStyle(t.tags, likeStyle)).map((t) => t.g);
+      backlogPool = backlogPool.filter((g) => hasStyle(g.styles, likeStyle));
     }
     if (shortSession) {
       // Drop only games known to be long; unknown lengths (new adds) stay, so Hades and Celeste still show.
@@ -296,8 +242,7 @@ async function getRecommendations(
       if (tight && shortEnough.length > 0) {
         // Games you can drop into for an hour or two (runs, levels, matches) beat a story you'd
         // have to commit to: "2 hrs before bed" got GTA V and Disco Elysium, and missed Hades.
-        const tagged = await Promise.all(shortEnough.map(async (g) => ({ g, tags: g.rawgId ? await tagsFor(g.rawgId) : [] })));
-        const sessiony = tagged.filter(({ g, tags }) => SESSION_GENRES.test((g.tags ?? []).join(",")) || tags.some((t) => SESSION_TAGS.has(t))).map(({ g }) => g);
+        const sessiony = shortEnough.filter((g) => SESSION_GENRES.test((g.tags ?? []).join(",")) || g.styles.some((t) => SESSION_TAGS.has(t)));
         if (sessiony.length >= 2) pool = sessiony;
       }
       backlogPool = tight && pool.length > 0 ? pool : backlogPool.filter((g) => g.progressStatus === "playing" || (g.avgHours ?? 0) <= 25);
@@ -305,10 +250,8 @@ async function getRecommendations(
     if (styles.slugs.length === 0) {
       result.backlog = rankBacklog(backlogPool, profile, { limit: options.limit, focus, length: backlogLength, like, session });
     } else {
-      // "cozy co-op": the user's own games' RAWG tags say how they play; genres stand in when tags are missing.
-      const tagged = await Promise.all(
-        backlogPool.map(async (g) => ({ game: g, tags: g.rawgId ? await tagsFor(g.rawgId) : [] })),
-      );
+      // "cozy co-op": the user's own games' styles say how they play; genres stand in when styles are missing.
+      const tagged = backlogPool.map((g) => ({ game: g, tags: g.styles }));
       // Games with every style asked for come first ("cozy co-op" is Stardew, not RDR2's online mode).
       const matched = (tags: string[]) => styles.slugs.filter((s) => hasStyle(tags, s)).length;
       const best = Math.max(0, ...tagged.map((t) => matched(t.tags)));
@@ -325,24 +268,27 @@ async function getRecommendations(
 
   if (options.type !== "backlog") {
     const seedGenres = focus.length > 0 ? focus : favouriteGenres(profile, 3);
-    const slugs = seedGenres.map(toSlug).filter((s): s is string => !!s);
     try {
-      const [candidates, dismissed] = await Promise.all([
-        // One retry: RAWG is sometimes slow or briefly unavailable.
-        rawgService
-          .discoverByGenres(discoverStyles.slugs.length > 0 ? [] : slugs, 40, discoverStyles.slugs)
-          .catch(() => rawgService.discoverByGenres(discoverStyles.slugs.length > 0 ? [] : slugs, 40, discoverStyles.slugs)),
-        RecommendationFeedback.find({ userId }).select("rawgId").lean(),
+      const genres = discoverStyles.slugs.length > 0 ? [] : seedGenres;
+      const [found, similar, dismissed] = await Promise.all([
+        // One retry: the database is sometimes slow or briefly unavailable.
+        igdbService.discover(genres, 40, discoverStyles.slugs).catch(() => igdbService.discover(genres, 40, discoverStyles.slugs)),
+        // "like Hades": the database's own list of games like it comes first.
+        like && likeIgdbId ? igdbService.similarGames(likeIgdbId).catch(() => []) : Promise.resolve([]),
+        RecommendationFeedback.find({ userId }).select("igdbId title").lean(),
       ]);
-      // RAWG treats "cozy,co-op" as either tag (GTA V and Dota 2 came back as "cozy co-op"):
-      // keep the games that have every style asked for, as long as there are enough of them.
+      const candidates: DiscoverCandidate[] = [...similar.map((game) => ({ ...game, similar: true })), ...found];
+      // A filter on "cozy" or "co-op" finds games with either: keep the ones with every style
+      // asked for, as long as there are enough of them.
       const wanted = discoverStyles.slugs;
       const withAll = wanted.length > 1 ? candidates.filter((c: any) => wanted.every((s) => (c.tags ?? []).includes(s))) : candidates;
       const pool = withAll.length >= Math.min(3, options.limit) ? withAll : candidates;
-      result.discover = rankDiscover(pool, library, profile, {
+      // Dismissed before IGDB (no igdbId): the title is all that's left to go on.
+      const dismissedTitles = new Set(dismissed.filter((d: any) => !d.igdbId && d.title).map((d: any) => String(d.title).toLowerCase()));
+      result.discover = rankDiscover(pool.filter((c) => !dismissedTitles.has(c.name.toLowerCase())), library, profile, {
         limit: options.limit,
         // The game it's "like" isn't a suggestion for itself.
-        dismissed: new Set([...dismissed.map((d: any) => d.rawgId), ...(outside ? [outside.rawgId] : [])]),
+        dismissed: new Set([...dismissed.map((d: any) => d.igdbId), ...(outside ? [outside.igdbId] : [])]),
         focus: discoverStyles.slugs.length > 0 ? [] : focus,
         length,
         like,
@@ -356,7 +302,7 @@ async function getRecommendations(
         },
       });
     } catch {
-      // Discovery needs RAWG; backlog picks are computed locally and still work offline.
+      // Discovery needs the game database; backlog picks are computed locally and still work offline.
       result.discoverError = "Couldn't reach the game database right now, so only picks from your own library are shown.";
     }
   }

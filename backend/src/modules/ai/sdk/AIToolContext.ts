@@ -1,7 +1,7 @@
 /** What the calling app can do itself. The web build can't start games; the desktop app can. */
 export interface AIClientCapabilities {
   canLaunchGames: boolean;
-  /** The game page the user has open (library id or RAWG id), for "this game". */
+  /** The game page the user has open (library id or IGDB id), for "this game". */
   pageGameId?: string;
   /** The collection page the user has open, for "this collection". */
   pageCollectionId?: string;

@@ -1,13 +1,13 @@
-import rawgService, { type GameFacts } from "../../../../rawg/rawgService";
-import { rankByTitle } from "../../../../rawg/titleMatch";
-import { expandAbbreviation } from "../../../../rawg/gameAbbreviations";
+import igdbService, { type GameFacts } from "../../../../igdb/igdbService";
+import { rankByTitle } from "../../../../igdb/titleMatch";
+import { expandAbbreviation } from "../../../../igdb/gameAbbreviations";
 import { namedTitles } from "./TargetGrounding";
 
 /**
  * Facts from the game database for the games a question is about, so the answer model doesn't
  * guess them: it said Silksong "hasn't come out yet", put Outer Wilds at 4 hours, and called
- * Genichiro an Elden Ring boss. Release dates, developers and genres come from RAWG; anything
- * RAWG doesn't know is left out rather than filled in.
+ * Genichiro an Elden Ring boss. Release dates, developers and genres come from the game database;
+ * anything it doesn't know is left out rather than filled in.
  */
 
 /** Games named in a question that may not be in the library: "is pentiment worth it", "how long is outer wilds". */
@@ -33,10 +33,10 @@ async function lookUp(title: string): Promise<GameFacts | undefined> {
       key,
       (async () => {
         const term = expandAbbreviation(title) ?? title;
-        const results = await rawgService.searchBestMatch(term, 5).catch(() => []);
+        const results = await igdbService.searchBestMatch(term, 5).catch(() => []);
         const best = rankByTitle(term, results as any[])[0];
         if (!best || best.score < 70) return undefined;
-        const facts = await rawgService.getGameFacts((best.item as any).id);
+        const facts = await igdbService.getGameFacts((best.item as any).id);
         return facts.name ? facts : undefined;
       })(),
     );
@@ -55,8 +55,7 @@ function describe(f: GameFacts): string {
   }
   if (f.developers?.length) parts.push(`developer ${f.developers.slice(0, 2).join(", ")}`);
   if (f.genres?.length) parts.push(`genres ${f.genres.slice(0, 4).join(", ")}`);
-  // RAWG's average is hours logged, not time to beat (Hollow Knight: 7); only long ones are worth passing on.
-  if (f.playtime >= 15) parts.push(`players log at least ${f.playtime} hours on average`);
+  if (f.playtime > 0) parts.push(`about ${f.playtime} hours to finish`);
   return `${f.name}: ${parts.join("; ")}.`;
 }
 
@@ -90,8 +89,8 @@ export async function factsForQuestion(question: string, owned: string[]): Promi
 /** The database facts for one game by name ("hollow knight"), or undefined. */
 export const gameFacts = (title: string) => lookUp(title);
 
-/** "how long is outer wilds" for a game that isn't in the library: RAWG's average, when it's reliable. */
+/** "how long is outer wilds" for a game that isn't in the library. */
 export async function playtimeFor(title: string): Promise<{ name: string; hours: number } | undefined> {
   const f = await lookUp(title).catch(() => undefined);
-  return f?.name && f.playtime >= 15 ? { name: f.name, hours: f.playtime } : undefined;
+  return f?.name && f.playtime > 0 ? { name: f.name, hours: f.playtime } : undefined;
 }

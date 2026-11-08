@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { FlatList, View } from "react-native";
 import { router, useLocalSearchParams } from "expo-router";
-import type { RawgResult } from "@/api/client";
-import { useAddGame, useRawgSearch } from "@/data/hooks";
+import type { GameSearchResult } from "@/api/client";
+import { useAddGame, useGameSearch } from "@/data/hooks";
 import { Button, Card, Cover, Empty, Field, Loading, T } from "@/ui/components";
 import { space, useColors } from "@/ui/theme";
 
@@ -19,19 +19,19 @@ export default function AddGame() {
   const params = useLocalSearchParams<{ q?: string }>();
   const [text, setText] = useState(params.q ?? "");
   const query = useDebounced(text.trim(), 350);
-  const search = useRawgSearch(query);
+  const search = useGameSearch(query);
   const add = useAddGame();
   const [added, setAdded] = useState<Record<number, string>>({});
   const [error, setError] = useState<string | null>(null);
   const c = useColors();
 
-  // Owned matches come back as library games ("title", "_id"), not RAWG results ("name", "id").
-  const results: (RawgResult & { ownedId?: string })[] = [
-    ...(search.data?.owned ?? []).map((g: any) => ({ id: g.rawgId ?? g._id, name: g.title, imageURL: g.imageURL, genres: g.tags ?? [], released: g.released ?? null, ownedId: g._id })),
+  // Owned matches come back as library games ("title", "_id"), not search results ("name", "id").
+  const results: (GameSearchResult & { ownedId?: string })[] = [
+    ...(search.data?.owned ?? []).map((g: any) => ({ id: g.igdbId ?? g._id, name: g.title, imageURL: g.imageURL, genres: g.tags ?? [], released: g.released ?? null, ownedId: g._id })),
     ...(search.data?.discover ?? []),
   ];
 
-  const onAdd = async (r: RawgResult) => {
+  const onAdd = async (r: GameSearchResult) => {
     setError(null);
     try {
       const game: any = await add.mutateAsync(r);

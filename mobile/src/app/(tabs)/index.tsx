@@ -106,15 +106,15 @@ function RecommendationCard({ rec, topPick }: { rec: Recommendation; topPick: bo
             <Button
               title="Add to library"
               loading={add.isPending}
-              disabled={!rec.rawgId}
-              onPress={() => rec.rawgId && add.mutate({ id: rec.rawgId, name: rec.title, imageURL: rec.imageURL ?? null, genres: rec.genres })}
+              disabled={!rec.igdbId}
+              onPress={() => rec.igdbId && add.mutate({ id: rec.igdbId, name: rec.title, imageURL: rec.imageURL ?? null, genres: rec.genres })}
               style={{ flex: 1, minHeight: 36, paddingHorizontal: space.sm }}
             />
             <Button
               title="Not interested"
               variant="outline"
-              disabled={!rec.rawgId}
-              onPress={() => rec.rawgId && dismiss.mutate(rec.rawgId)}
+              disabled={!rec.igdbId}
+              onPress={() => rec.igdbId && dismiss.mutate(rec.igdbId)}
               style={{ flex: 1, minHeight: 36, paddingHorizontal: space.sm }}
             />
           </>
@@ -225,8 +225,8 @@ export default function Library() {
               <FlatList
                 horizontal
                 data={picks}
-                keyExtractor={(r, i) => `${r.rawgId ?? r.gameId ?? i}`}
-                renderItem={({ item, index }) => <RecommendationCard rec={item} topPick={index === 0 && item.source === "rawg"} />}
+                keyExtractor={(r, i) => `${r.igdbId ?? r.gameId ?? i}`}
+                renderItem={({ item, index }) => <RecommendationCard rec={item} topPick={index === 0 && item.source === "igdb"} />}
                 ItemSeparatorComponent={() => <View style={{ width: space.md }} />}
                 showsHorizontalScrollIndicator={false}
                 contentContainerStyle={{ paddingBottom: space.xs, paddingHorizontal: 1 }}

@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { test, expect } from "../../fixtures/test";
 import { DEFAULT_PASSWORD, json, uniqueName } from "../../helpers/api";
 import { rawLogText, readLogLines, waitForLog, waitForSentryEvent } from "../../helpers/logs";
-import { RAWG_FAILURE_QUERY } from "../../fixtures/catalog.mjs";
+import { IGDB_FAILURE_QUERY } from "../../fixtures/catalog.mjs";
 import { API_URL } from "../../env";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
@@ -47,9 +47,9 @@ test.describe("Logging & error monitoring (backend)", () => {
 
     test("query strings are never written to the log @negative", async ({ api }) => {
       const secret = `qs${randomUUID().slice(0, 8)}`;
-      const res = await api.get("/rawg/search", { query: secret });
+      const res = await api.get("/igdb/search", { query: secret });
       const line = await waitForLog((l) => l.requestId === res.headers()["x-request-id"] && l.type === "http");
-      expect(line.path).toBe("/rawg/search");
+      expect(line.path).toBe("/igdb/search");
       expect(rawLogText()).not.toContain(secret);
     });
 
@@ -76,14 +76,14 @@ test.describe("Logging & error monitoring (backend)", () => {
 
   test.describe("server errors", () => {
     test("a 5xx is logged with its stack and reported to Sentry, tagged with the request id @positive", async ({ api }) => {
-      const res = await api.get("/rawg/search", { query: RAWG_FAILURE_QUERY });
+      const res = await api.get("/igdb/search", { query: IGDB_FAILURE_QUERY });
       expect(res.status()).toBe(502);
       const requestId = res.headers()["x-request-id"];
 
       const errorLine = await waitForLog((l) => l.requestId === requestId && l.level === 50 && !l.type);
       expect(errorLine.msg).toBe("The game database isn't responding right now. Your library still works, so try again later.");
       expect((errorLine.err as any).stack).toContain("The game database isn't responding right now. Your library still works, so try again later.");
-      expect(errorLine).toMatchObject({ path: "/rawg/search", statusCode: 502 });
+      expect(errorLine).toMatchObject({ path: "/igdb/search", statusCode: 502 });
 
       const event = await waitForSentryEvent((e) => e.project === "1" && e.tags.requestId === requestId);
       expect(event).toMatchObject({ message: "The game database isn't responding right now. Your library still works, so try again later.", environment: "e2e", platform: "node", hasStack: true });

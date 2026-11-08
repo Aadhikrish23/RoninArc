@@ -1,6 +1,6 @@
 import libraryServices from "../../../../library/libraryServices";
-import { titleMatchScore } from "../../../../rawg/titleMatch";
-import { expandAbbreviation } from "../../../../rawg/gameAbbreviations";
+import { titleMatchScore } from "../../../../igdb/titleMatch";
+import { expandAbbreviation } from "../../../../igdb/gameAbbreviations";
 import { LibraryGame } from "./LibraryGame";
 import { EntityResolutionStatus } from "../../../entity/EntityResolutionStatus";
 import { EntityResolutionResult } from "../../../entity/EntityResolutionResult";

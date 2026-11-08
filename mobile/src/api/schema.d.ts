@@ -1142,7 +1142,7 @@ export interface paths {
                 content: {
                     /**
                      * @example {
-                     *       "rawgId": 274755,
+                     *       "igdbId": 113112,
                      *       "title": "Hades",
                      *       "tags": [
                      *         "Action",
@@ -1177,7 +1177,7 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "Valid rawgId is required"
+                         *       "error": "Valid igdbId is required"
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
@@ -1538,8 +1538,8 @@ export interface paths {
         get?: never;
         put?: never;
         /**
-         * Fill in metadata from RAWG
-         * @description Finds the best RAWG match by title and stores rating, screenshots, developers, etc. `metadataState.status` becomes `complete`, or `failed` when no plausible match exists.
+         * Fill in metadata from IGDB
+         * @description Finds the best IGDB match by title and stores rating, screenshots, developers, etc. `metadataState.status` becomes `complete`, or `failed` when no plausible match exists.
          */
         post: {
             parameters: {
@@ -1619,14 +1619,14 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/rawg/search": {
+    "/igdb/search": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Search RAWG, split into owned vs. discoverable */
+        /** Search IGDB, split into owned vs. discoverable */
         get: {
             parameters: {
                 query: {
@@ -1650,7 +1650,7 @@ export interface paths {
                         "application/json": {
                             /** @constant */
                             Status: "Success";
-                            Data: components["schemas"]["RawgSearchResponse"];
+                            Data: components["schemas"]["GameSearchResponse"];
                         };
                     };
                 };
@@ -1684,7 +1684,7 @@ export interface paths {
                         "application/json": components["schemas"]["AppError"];
                     };
                 };
-                /** @description RAWG isn't configured on this server. */
+                /** @description IGDB isn't configured on this server. */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -1693,13 +1693,13 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "RAWG API is not configured"
+                         *       "error": "The game database is not configured"
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
                     };
                 };
-                /** @description RAWG is unreachable or errored. */
+                /** @description IGDB is unreachable or errored. */
                 502: {
                     headers: {
                         [name: string]: unknown;
@@ -1708,7 +1708,7 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "Failed to fetch RAWG data"
+                         *       "error": "The game database isn't responding right now. Your library still works, so try again later."
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
@@ -1724,21 +1724,21 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/rawg/{rawgId}": {
+    "/igdb/{igdbId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Full RAWG details for a game */
+        /** Full IGDB details for a game */
         get: {
             parameters: {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description RAWG game id. */
-                    rawgId: string;
+                    /** @description IGDB game id. */
+                    igdbId: string;
                 };
                 cookie?: never;
             };
@@ -1753,7 +1753,7 @@ export interface paths {
                         "application/json": {
                             /** @constant */
                             Status: "Success";
-                            Data: components["schemas"]["RawgGameDetails"];
+                            Data: components["schemas"]["GameDbDetails"];
                         };
                     };
                 };
@@ -1772,7 +1772,7 @@ export interface paths {
                         "application/json": components["schemas"]["AppError"];
                     };
                 };
-                /** @description Unknown RAWG id. */
+                /** @description Unknown IGDB id. */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -1781,13 +1781,13 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "RAWG game not found"
+                         *       "error": "Game not found"
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
                     };
                 };
-                /** @description RAWG isn't configured on this server. */
+                /** @description IGDB isn't configured on this server. */
                 500: {
                     headers: {
                         [name: string]: unknown;
@@ -1796,7 +1796,7 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "RAWG API is not configured"
+                         *       "error": "The game database is not configured"
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
@@ -3826,7 +3826,7 @@ export interface paths {
         };
         /**
          * Personalised game recommendations
-         * @description Ranks the user's unfinished backlog (works offline) and unowned RAWG games in their favourite genres, using ratings, completions, drops and playtime. Every pick has a 0-100 match score and reasons.
+         * @description Ranks the user's unfinished backlog (works offline) and unowned IGDB games in their favourite genres, using ratings, completions, drops and playtime. Every pick has a 0-100 match score and reasons.
          */
         get: {
             parameters: {
@@ -3908,7 +3908,7 @@ export interface paths {
         put?: never;
         /**
          * Mark a game as not interesting
-         * @description Stops a RAWG game from being suggested. Idempotent.
+         * @description Stops a game from being suggested. Idempotent.
          */
         post: {
             parameters: {
@@ -3921,12 +3921,12 @@ export interface paths {
                 content: {
                     /**
                      * @example {
-                     *       "rawgId": 28,
+                     *       "igdbId": 26226,
                      *       "title": "Celeste"
                      *     }
                      */
                     "application/json": {
-                        rawgId: number;
+                        igdbId: number;
                         title?: string;
                     };
                 };
@@ -3947,7 +3947,7 @@ export interface paths {
                         "application/json": components["schemas"]["SuccessMessage"];
                     };
                 };
-                /** @description Missing/invalid rawgId or title. */
+                /** @description Missing/invalid id or title. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -3956,7 +3956,7 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "A valid rawgId is required"
+                         *       "error": "A valid igdbId is required"
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
@@ -3985,7 +3985,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/recommendations/dismiss/{rawgId}": {
+    "/recommendations/dismiss/{igdbId}": {
         parameters: {
             query?: never;
             header?: never;
@@ -4001,8 +4001,8 @@ export interface paths {
                 query?: never;
                 header?: never;
                 path: {
-                    /** @description RAWG game id. */
-                    rawgId: string;
+                    /** @description IGDB game id. */
+                    igdbId: string;
                 };
                 cookie?: never;
             };
@@ -4023,7 +4023,7 @@ export interface paths {
                         "application/json": components["schemas"]["SuccessMessage"];
                     };
                 };
-                /** @description Invalid rawgId. */
+                /** @description Invalid igdbId. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -4032,7 +4032,7 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "A valid rawgId is required"
+                         *       "error": "A valid igdbId is required"
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
@@ -4864,10 +4864,7 @@ export interface paths {
                 content: {
                     /**
                      * @example {
-                     *       "mode": "create",
-                     *       "username": "ronin",
-                     *       "email": "ronin@example.com",
-                     *       "password": "Sup3rSecret!"
+                     *       "mode": "create"
                      *     }
                      */
                     "application/json": components["schemas"]["SyncLinkRequest"];
@@ -5328,15 +5325,25 @@ export interface components {
              */
             userId: string;
             /**
-             * @description RAWG id. `null` for store imports (e.g. Steam) until metadata is matched.
-             * @example 274755
+             * @description IGDB id. `null` for store imports (e.g. Steam) until they're matched.
+             * @example 113112
              */
+            igdbId?: number | null;
+            /** @description Old IGDB id, on games added before the move to IGDB. Not interchangeable with igdbId: the same number is a different game on each. */
             rawgId?: number | null;
+            /**
+             * @description Play styles from the game database (`souls-like`, `co-op`).
+             * @example [
+             *       "roguelike",
+             *       "roguelite"
+             *     ]
+             */
+            styleTags?: string[];
             /** @example Hades */
             title: string;
             description?: string;
             /**
-             * @description Genres (from RAWG) and user tags.
+             * @description Genres (from IGDB) and user tags.
              * @example [
              *       "Action",
              *       "RPG"
@@ -5347,7 +5354,7 @@ export interface components {
             imageURL?: string;
             artwork?: {
                 /** @enum {string} */
-                selectedSource?: "manual" | "rawg" | "epic" | "steam" | "gog" | "ea" | "ubisoft" | "xbox";
+                selectedSource?: "manual" | "igdb" | "epic" | "steam" | "gog" | "ea" | "ubisoft" | "xbox";
                 sources?: {
                     [key: string]: string;
                 };
@@ -5386,11 +5393,11 @@ export interface components {
             };
             screenshots?: string[];
             trailers?: string[];
-            /** @description RAWG community rating out of 5. */
-            rawgRating?: number;
-            metacritic?: number | null;
+            /** @description IGDB community rating out of 5. */
+            communityRating?: number;
+            criticScore?: number | null;
             website?: string;
-            /** @description Average playtime in hours (RAWG). */
+            /** @description Hours to finish, from the game database. */
             playtime?: number;
             metadataState?: {
                 /** @enum {string} */
@@ -5422,8 +5429,8 @@ export interface components {
             rating: number | null;
         };
         AddGameRequest: {
-            /** @description RAWG id. A user can own each RAWG id once. */
-            rawgId: number;
+            /** @description IGDB id. A user can own each IGDB id once. */
+            igdbId: number;
             title: string;
             tags: string[];
             description?: string;
@@ -5438,7 +5445,7 @@ export interface components {
             tags?: string[];
             exePath?: string;
         };
-        RawgSearchResult: {
+        GameSearchResult: {
             /** @example 9767 */
             id: number;
             /** @example Hollow Knight */
@@ -5450,17 +5457,17 @@ export interface components {
             added?: number;
             ratingsCount?: number;
             suggestionsCount?: number;
-            metacritic?: number | null;
+            criticScore?: number | null;
         };
-        RawgSearchResponse: {
+        GameSearchResponse: {
             /** @description Library games whose title matches the query. */
             owned: components["schemas"]["LibraryGame"][];
-            /** @description RAWG results the user doesn't own. */
-            discover: components["schemas"]["RawgSearchResult"][];
+            /** @description IGDB results the user doesn't own. */
+            discover: components["schemas"]["GameSearchResult"][];
             totalOwned: number;
             totalDiscover: number;
         };
-        RawgGameDetails: {
+        GameDbDetails: {
             id: number;
             name: string;
             description?: string | null;
@@ -5472,7 +5479,7 @@ export interface components {
             ratingsCount?: number;
             released?: string | null;
             website?: string | null;
-            metacritic?: number | null;
+            criticScore?: number | null;
             playtime?: number;
             genres?: string[];
             platforms?: string[];
@@ -5511,8 +5518,8 @@ export interface components {
             /** @example Hades */
             title: string;
             imageURL: string | null;
-            /** @description Null for games imported without a RAWG match. */
-            rawgId: number | null;
+            /** @description Null for games imported without a IGDB match. */
+            igdbId: number | null;
             /** @enum {string} */
             progressStatus: "none" | "plan" | "playing" | "paused" | "completed" | "dropped";
         };
@@ -5823,7 +5830,7 @@ export interface components {
             client?: {
                 /** @default false */
                 canLaunchGames: boolean;
-                /** @description The game page the user has open (library id or RAWG id), so "add this game to cozy nights" means that game. */
+                /** @description The game page the user has open (library id or IGDB id), so "add this game to cozy nights" means that game. */
                 pageGameId?: string;
                 /** @description The collection page the user has open. */
                 pageCollectionId?: string;
@@ -5881,16 +5888,16 @@ export interface components {
         };
         Recommendation: {
             /**
-             * @description `library` = from the user's backlog, `rawg` = a new game.
+             * @description `library` = from the user's backlog, `igdb` = a new game.
              * @enum {string}
              */
-            source: "library" | "rawg";
+            source: "library" | "igdb";
             /**
              * @description Library game id (backlog picks only).
              * @example 6a1f0c2b9e4d3a0012ab34cd
              */
             gameId?: string;
-            rawgId?: number;
+            igdbId?: number;
             /** @example Celeste */
             title: string;
             imageURL?: string;
@@ -5922,7 +5929,7 @@ export interface components {
             focus: string[];
             backlog: components["schemas"]["Recommendation"][];
             discover: components["schemas"]["Recommendation"][];
-            /** @description Set when RAWG was unreachable; backlog picks are still returned. */
+            /** @description Set when IGDB was unreachable; backlog picks are still returned. */
             discoverError?: string;
         };
         ClientLogEntry: {
@@ -5978,18 +5985,22 @@ export interface components {
              * @enum {unknown}
              */
             mode: "create" | "signin";
-            /** @example ronin */
-            username: string;
             /**
-             * @description Required to create a cloud account (password resets go there).
+             * @description Required to sign in. To create, defaults to this PC's account.
+             * @example ronin
+             */
+            username?: string;
+            /**
+             * @description To create, defaults to this PC's account (password resets go there).
              * @example ronin@example.com
              */
             email?: string;
             /**
              * Format: password
+             * @description Required to sign in. To create, leave it out to keep this PC's password.
              * @example Sup3rSecret!
              */
-            password: string;
+            password?: string;
         };
         SyncPushRequest: {
             /** @description Documents keyed by collection: games, collections, reviews, notes, playSessions, activities, feedback. */

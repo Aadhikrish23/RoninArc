@@ -42,7 +42,7 @@ import { eventBus } from "../../../shared/events/EventBus";
 import { canLaunchGames } from "../../../shared/utils/runtime";
 import { PLACEHOLDER_IMAGE, coverImage } from "../../../shared/utils/placeholderImage";
 
-const detailsPath = (g: DashboardGameSummary) => `/library/game/${g.rawgId ? String(g.rawgId) : g._id}`;
+const detailsPath = (g: DashboardGameSummary) => `/library/game/${g.igdbId ? String(g.igdbId) : g._id}`;
 
 /** 0 → "0h", 45 → "45m", 135 → "2h 15m". */
 function formatMinutes(minutes: number): string {

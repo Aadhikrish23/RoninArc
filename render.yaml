@@ -32,10 +32,10 @@ services:
       - key: MAIL_FROM
         sync: false
       # Game data, the AI and Steam go through keygate with the cloud's own token
-      # (npm run token -- create roninarc cloud-server nvidia=1500 rawg=650 steam=2000).
-      - key: RAWG_BASE_URL
+      # (npm run token -- create roninarc cloud-server nvidia=1500 igdb=20000 steam=2000).
+      - key: IGDB_BASE_URL
         sync: false
-      - key: RAWG_API_KEY
+      - key: IGDB_API_KEY
         sync: false
       - key: AI_PROVIDER
         value: nvidia

@@ -10,12 +10,12 @@ const getRecommendations = async (params: {
   return response.data.Data;
 };
 
-const dismiss = async (rawgId: number, title: string): Promise<void> => {
-  await api.post("/recommendations/dismiss", { rawgId, title });
+const dismiss = async (igdbId: number, title: string): Promise<void> => {
+  await api.post("/recommendations/dismiss", { igdbId, title });
 };
 
-const undoDismiss = async (rawgId: number): Promise<void> => {
-  await api.delete(`/recommendations/dismiss/${rawgId}`);
+const undoDismiss = async (igdbId: number): Promise<void> => {
+  await api.delete(`/recommendations/dismiss/${igdbId}`);
 };
 
 export default { getRecommendations, dismiss, undoDismiss };

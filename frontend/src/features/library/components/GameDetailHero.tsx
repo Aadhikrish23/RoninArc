@@ -1,9 +1,10 @@
 import { Box, Badge, Flex, Heading, Text } from "@chakra-ui/react";
 
-import type { RawgGameDetails } from "../types/library";
+import type { GameDbDetails } from "../types/library";
+import { bannerImage } from "../../../shared/utils/placeholderImage";
 
 interface Props {
-  game: RawgGameDetails;
+  game: GameDbDetails;
 }
 
 export default function GameDetailHero({ game }: Props) {
@@ -13,7 +14,7 @@ export default function GameDetailHero({ game }: Props) {
       borderRadius="xl"
       overflow="hidden"
       position="relative"
-      backgroundImage={`url(${game.imageURL})`}
+      backgroundImage={`url(${bannerImage(game.imageURL)})`}
       backgroundSize="cover"
       backgroundPosition="center"
     >

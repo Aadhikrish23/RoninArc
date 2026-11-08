@@ -18,6 +18,9 @@ import Collection from "../collection/CollectionModel";
 import activityService from "../activity/activityService";
 import metadataEnrichmentService from "./metadataEnrichmentService";
 
+/** How long adding a game waits for its details before answering anyway. */
+const ENRICH_WAIT_MS = 4000;
+
 async function addGameToLibrary(
   userId: string,
   payload: Partial<{
@@ -74,7 +77,12 @@ async function addGameToLibrary(
     data._id as any
   );
 
-  return data.toObject();
+  // Its tags, length and ratings, straight away if the database is quick; otherwise they follow.
+  const enriched = await Promise.race([
+    metadataEnrichmentService.enrichGame(userId, String(data._id)).catch(() => undefined),
+    new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), ENRICH_WAIT_MS)),
+  ]);
+  return enriched ?? data.toObject();
 }
 
 async function getUserLibrary(userId: string) {
@@ -116,7 +124,6 @@ async function getGameById(userId: string, gameid: string) {
   const metadataState = data.metadataState?.status;
 
   const needsEnrichment =
-    !data.rawgId &&
     !data.igdbId &&
     metadataState !== "pending" &&
     metadataState !== "enriching" &&

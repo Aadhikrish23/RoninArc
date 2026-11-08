@@ -7,10 +7,10 @@ import {
   useColorModeValue,
 } from "@chakra-ui/react";
 
-import type { RawgGameDetails } from "../types/library";
+import type { GameDbDetails } from "../types/library";
 
 interface Props {
-  game: RawgGameDetails;
+  game: GameDbDetails;
 }
 
 export default function GameStats({
@@ -29,23 +29,23 @@ export default function GameStats({
 
   const stats = [
     {
-      // RAWG rates out of 5; show it on the same /10 scale as the header and your own rating.
+      // Stored out of 5; show it on the same /10 scale as the header.
       label: "Player rating",
       value: game.rating ? `${(game.rating * 2).toFixed(1)}/10` : "-",
     },
     {
-      label: "Player reviews",
+      label: "Player ratings",
       value: game.ratingsCount,
     },
     {
-      label: "Metacritic",
-      value: game.metacritic ?? "-",
+      label: "Critic score",
+      value: game.criticScore ?? "-",
     },
     {
-      label: "Avg. playtime",
+      label: "Time to finish",
       value: game.playtime ? `${game.playtime}h` : "-",
     },
-  ].filter((stat) => stat.label !== "Avg. playtime" || (game.playtime ?? 0) >= 15);
+  ].filter((stat) => stat.label !== "Time to finish" || (game.playtime ?? 0) > 0);
 
   return (
     <SimpleGrid

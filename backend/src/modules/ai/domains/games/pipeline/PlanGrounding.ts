@@ -5,7 +5,7 @@ import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { dropUngroundedIntents, mentions, sameGame } from "../conversation/TargetGrounding";
 import { existingReviewText } from "../conversation/DirectActions";
 import type { Exchange } from "../../../conversation/RecentExchanges";
-import { titleMatchScore } from "../../../../rawg/titleMatch";
+import { titleMatchScore } from "../../../../igdb/titleMatch";
 import { AUTO_ADD_FOR, REWRITES_REVIEW } from "./Patterns";
 
 /** Comment text that's really the command: "bump my rating to an 8", "mark it done n rate it 9". */

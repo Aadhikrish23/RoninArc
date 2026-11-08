@@ -3,6 +3,7 @@ import app from "./app";
 import mongoose from "mongoose";
 import backupService from "./modules/backup/backupService";
 import { startSyncScheduler } from "./modules/sync/localSync";
+import metadataEnrichmentService from "./modules/library/metadataEnrichmentService";
 import { syncFeedbackIndexes } from "./modules/recommendation/RecommendationFeedback";
 import { isCloud } from "./shared/runtimeMode";
 import { logger, LOG_DIR, appLogFile } from "./shared/logging/logger";
@@ -77,6 +78,9 @@ const startserver = async () => {
   startAutoBackup();
   // A PC linked to RoninArc Cloud syncs every minute (and soon after each change).
   startSyncScheduler();
+  // Fills in tags and art for anything imported or synced without them. The cloud only gets games
+  // that have been through this on a PC or when they were added.
+  if (!isCloud()) void metadataEnrichmentService.enrichAllLibraries().catch((error) => reportError(error, { phase: "enrichment" }));
   app.listen(PORT, () => {
     log.info({ port: Number(PORT), logDir: LOG_DIR, sentry: sentryEnabled() }, `Server is up and running on port:${PORT}`);
   });

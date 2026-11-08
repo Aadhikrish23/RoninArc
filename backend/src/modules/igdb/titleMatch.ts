@@ -1,7 +1,7 @@
 /**
  * How well a game title matches what someone typed, 0-100.
  *
- * RAWG's search is fuzzy and people type the way they talk ("rdr 2",
+ * Game searches are fuzzy and people type the way they talk ("rdr 2",
  * "gta 5", "witcher 3"), so picking "the first result" adds the wrong game.
  * This scores a title against the query so callers can pick the real match,
  * or admit there isn't one.
@@ -95,7 +95,7 @@ function scoreTitle(query: string, title: string): number {
   return Math.round((matched / q.length) * 50);
 }
 
-/** Results sorted by match quality; ties keep RAWG's own (relevance) order. */
+/** Results sorted by match quality; ties keep the database's own (relevance) order. */
 export function rankByTitle<T extends { name?: string; added?: number }>(query: string, results: T[]): { item: T; score: number; rank: number }[] {
   // Among good matches, the game people actually own beats a tool or fan upload with a tighter
   // title: "the witcher 3" is The Witcher 3: Wild Hunt, not "The Witcher 3 REDkit". Only the order

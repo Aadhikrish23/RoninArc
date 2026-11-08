@@ -3,7 +3,7 @@ import { IntentType } from "../intent/IntentType";
 import { IntentParameterType } from "../../../intent/IntentParameterType";
 import { IntentTargetType } from "../../../intent/IntentTargetType";
 import { READ_ONLY } from "../conversation/TargetGrounding";
-import { titleMatchScore } from "../../../../rawg/titleMatch";
+import { titleMatchScore } from "../../../../igdb/titleMatch";
 import { asksToReadNotes, collectionDirection, collectionDirectionFor, isQuestionOnly, meansDroppedStatus, statedScore, wasAskedFor } from "../conversation/FollowUps";
 
 /**

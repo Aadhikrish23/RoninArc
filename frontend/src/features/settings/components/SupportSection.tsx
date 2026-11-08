@@ -112,6 +112,13 @@ export default function SupportSection() {
           Updates and problem reports are in the RoninArc desktop app.
         </Text>
       )}
+      <Text fontSize="sm" color={muted}>
+        Game data from{" "}
+        <Text as="a" href="https://www.igdb.com" target="_blank" rel="noreferrer" textDecoration="underline">
+          IGDB.com
+        </Text>
+        .
+      </Text>
     </SettingsCard>
   );
 }

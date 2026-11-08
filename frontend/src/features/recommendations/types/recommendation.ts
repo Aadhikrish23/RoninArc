@@ -1,9 +1,9 @@
 import type { Status } from "../../library/types/library";
 
 export interface Recommendation {
-  source: "library" | "rawg";
+  source: "library" | "igdb";
   gameId?: string;
-  rawgId?: number;
+  igdbId?: number;
   title: string;
   imageURL?: string;
   genres: string[];

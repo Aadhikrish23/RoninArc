@@ -88,7 +88,7 @@ test.describe("a note in the same message as a rating", () => {
 test.describe("length reasons on recommendations", () => {
   const profile = buildTasteProfile([]);
   const pick = (candidate: any, options: any = {}) =>
-    rankDiscover([{ id: 1, rating: 4.4, metacritic: 85, ...candidate }], [], profile, { limit: 3, dismissed: new Set(), length: "short", ...options })[0];
+    rankDiscover([{ id: 1, rating: 4.4, criticScore: 85, ...candidate }], [], profile, { limit: 3, dismissed: new Set(), length: "short", ...options })[0];
 
   test("open-ended games make no length claim @negative", () => {
     const stardew = pick({ name: "Stardew Valley", genres: ["Simulation", "RPG", "Indie"], avgHours: 13 });
@@ -97,17 +97,17 @@ test.describe("length reasons on recommendations", () => {
 
   test("'shorter' says what it's shorter than @positive", () => {
     const short = pick({ name: "Crypt of the NecroDancer", genres: ["Action", "Indie"], avgHours: 4 }, { like: { title: "Hades", tags: ["Roguelike"] } });
-    expect(short.reasons).toContain("Shorter than Hades: players log about 4h");
+    expect(short.reasons).toContain("Shorter than Hades: about 4h to finish");
   });
 
   test("without a game to compare with it just says short @positive", () => {
     const short = pick({ name: "Limbo", genres: ["Platformer", "Indie"], avgHours: 4 });
-    expect(short.reasons).toContain("Short: players log about 4h");
+    expect(short.reasons).toContain("Short: about 4h to finish");
   });
 
   test("asking for something long never says 'shorter' @negative", () => {
     const long = pick({ name: "The Witcher 3: Wild Hunt", genres: ["RPG"], avgHours: 60 }, { length: "long" });
     expect(long.reasons.join(" | ")).not.toMatch(/Short/);
-    expect(long.reasons).toContain("Long: players log about 60h");
+    expect(long.reasons).toContain("Long: about 60h to finish");
   });
 });

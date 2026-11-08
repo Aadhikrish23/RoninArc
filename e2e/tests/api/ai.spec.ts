@@ -442,7 +442,7 @@ test.describe("AI chat API: round 6", () => {
   test("'how long is <game>' answers with the average playtime @positive", async ({ api }) => {
     await api.addGame(shelter);
     const { body } = await chat(api, "how long is fallout shelter to beat?");
-    expect(body.message).toBe("Players log about 20 hours on Fallout Shelter on average. That's a community average, so a full run often takes longer.");
+    expect(body.message).toBe("Fallout Shelter takes about 20 hours to finish, going by what players report.");
   });
 
   test("'any co-op games in my library' reads the games' tags @positive", async ({ api }) => {
@@ -642,7 +642,7 @@ test.describe("AI chat API: round 13", () => {
   test("a question with a command tacked on answers and does the command @positive", async ({ api }) => {
     const game = await api.addGame(shelter, { progressStatus: "paused" });
     const { body } = await chat(api, "how long is fallout shelter? thinking of going back to it, unpause it");
-    expect(body.message).toContain("Players log about 20 hours on Fallout Shelter on average.");
+    expect(body.message).toContain("Fallout Shelter takes about 20 hours to finish, going by what players report.");
     expect(body.message).toContain("I've marked Fallout Shelter as Playing.");
     expect((await json(await api.get(`/game/${game._id}`))).Data.progressStatus).toBe("playing");
   });

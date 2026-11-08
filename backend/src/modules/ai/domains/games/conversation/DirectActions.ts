@@ -7,7 +7,7 @@ import Review from "../../../../review/Reviewmodel";
 import Note from "../../../../notes/Notemodel";
 import reviewToolService from "../services/ReviewToolService";
 import libraryToolService from "../services/LibraryToolService";
-import rawgService from "../../../../rawg/rawgService";
+import igdbService from "../../../../igdb/igdbService";
 
 /** Deletes or renames a collection by name. Deleting returns a confirmation step first. */
 export type CollectionActionResult =
@@ -73,7 +73,7 @@ export async function editReview(userId: string, title: string, text: string, ra
   return { success: true, message: `I've updated your review of ${game.title}: ${score}/10 -- "${text}".` };
 }
 
-/** Collection names that describe a play style, as RAWG tag slugs. */
+/** Collection names that describe a play style. */
 const COLLECTION_STYLES: [RegExp, string][] = [
   [/souls/i, "souls-like"],
   [/rogue-?lite/i, "roguelite"],
@@ -115,9 +115,7 @@ export async function followUpOffer(userId: string, intents: { type: string; tar
     const col = newest.find((c) => name && c.name.toLowerCase() === name.toLowerCase()) ?? newest[0];
     const style = col ? COLLECTION_STYLES.find(([re]) => re.test(col.name))?.[1] : undefined;
     if (!col || !style || (col.gameIds ?? []).length > 0) return undefined;
-    const owned = (await LibraryGame.find({ userId: uid, rawgId: { $exists: true } }).select("_id title rawgId").limit(30).lean()) as any[];
-    const facts = await Promise.all(owned.map((g) => rawgService.getGameFacts(g.rawgId)));
-    const fits = owned.filter((_, i) => facts[i].tags.includes(style));
+    const fits = (await LibraryGame.find({ userId: uid, styleTags: style }).select("_id title").limit(6).lean()) as any[];
     if (fits.length === 0) return undefined;
     const picks = fits.slice(0, 6);
     const titles = picks.map((g) => g.title as string);

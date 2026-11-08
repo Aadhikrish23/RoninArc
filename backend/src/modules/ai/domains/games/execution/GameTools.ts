@@ -94,7 +94,7 @@ const metadata: ToolCapability[] = [
     executionPolicy: "SEQUENTIAL",
     requiredParameters: ["gameName"],
     optionalParameters: [],
-    description: "Searches RAWG and adds a game to the user's library",
+    description: "Searches the game database and adds a game to the user's library",
     parameters: [
       { name: "gameName", type: "string", required: true },
     ],

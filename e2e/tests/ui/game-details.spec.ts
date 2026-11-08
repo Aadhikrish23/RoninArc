@@ -6,7 +6,7 @@ import { expectToast, open } from "../../helpers/ui";
 const hades = byName("Hades");
 
 test.describe("Game details page", () => {
-  test("shows RAWG metadata and the user's library stats @positive", async ({ authedPage: page, api }) => {
+  test("shows game database metadata and the user's library stats @positive", async ({ authedPage: page, api }) => {
     await api.addGame(hades, { progressStatus: "playing" });
     await open(page, `/library/game/${hades.id}`);
     await expect(page.getByRole("heading", { name: "Hades", level: 2 })).toBeVisible();
@@ -26,7 +26,7 @@ test.describe("Game details page", () => {
     expect((await json(await api.get("/game"))).Data.map((g: any) => g.title)).toEqual(["Elden Ring"]);
   });
 
-  test("an unknown RAWG id does not render a game @negative", async ({ authedPage: page }) => {
+  test("an unknown game id does not render a game @negative", async ({ authedPage: page }) => {
     await open(page, "/library/game/987654321");
     await expect(page.getByRole("heading", { name: "Your library" })).toHaveCount(0);
     await expect(page.getByRole("button", { name: "Add To Library" })).toHaveCount(0);

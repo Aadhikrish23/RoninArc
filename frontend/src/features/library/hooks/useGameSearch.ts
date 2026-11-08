@@ -4,7 +4,7 @@ import libraryApi from "../api/libraryApi";
 import type { SearchResponse } from "../types/library";
 import { getErrorMessage } from "../../../shared/utils/error";
 
-export function useRawgSearch() {
+export function useGameSearch() {
   const [searchText, setSearchText] = useState("");
 
   const [results, setResults] = useState<SearchResponse>({
@@ -40,11 +40,11 @@ export function useRawgSearch() {
       if (!options.silent) setLoading(true);
       setError(null);
 
-      const data = await libraryApi.searchRawgGames(searchText, 1);
+      const data = await libraryApi.searchGames(searchText, 1);
       if (requestId !== latestRequest.current) return;
 
       if (!data) {
-        setError("Failed to search RAWG");
+        setError("Failed to search for games");
         return;
       }
 

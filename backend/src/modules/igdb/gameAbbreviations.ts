@@ -1,6 +1,6 @@
 /**
- * Abbreviations players actually type, mapped to the title RAWG knows.
- * RAWG's search can't connect "ds3" to Dark Souls III on its own (it returns
+ * Abbreviations players actually type, mapped to the title the database knows.
+ * Searching can't connect "ds3" to Dark Souls III on its own (it returns
  * unrelated titles containing "DS 3"), so these are expanded before searching.
  * Keys are normalised: lowercase, no spaces or punctuation.
  */

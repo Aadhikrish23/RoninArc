@@ -8,7 +8,7 @@ import { systemPaths, systemSchemas } from "./system";
 import { syncPaths, syncSchemas } from "./sync";
 
 const description = `
-REST API behind the RoninArc game launcher: accounts, the game library, RAWG metadata, reviews, notes,
+REST API behind the RoninArc game launcher: accounts, the game library, IGDB metadata, reviews, notes,
 collections, play sessions, activity, Steam/Epic integration, cloud backup, recommendations and the AI assistant.
 
 **Authentication.** Sign in with \`POST /auth/login\` (or register) and send the returned \`accessToken\` as
@@ -35,7 +35,7 @@ export const openApiDocument = {
   tags: [
     { name: "Auth", description: "Accounts, sessions and passwords." },
     { name: "Library", description: "The user's games." },
-    { name: "RAWG", description: "Game metadata search (RAWG video game database)." },
+    { name: "IGDB", description: "Game search and details (the IGDB video game database)." },
     { name: "Dashboard", description: "Library statistics." },
     { name: "Reviews", description: "One 1-10 rating (plus optional text) per game." },
     { name: "Notes", description: "Free-text notes on a game." },

@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 import AppError from "../../shared/errors/AppError";
 import usermodel from "../auth/models/User";
 import { Tombstone } from "./syncModels";
-import { CLOUD_META, LOCAL_META, SYNCED, changedAt, forWire, naturalFilters, syncedByName, type SyncedCollection } from "./syncCollections";
+import { CLOUD_META, LOCAL_META, SYNCED, changedAt, forWire, syncedByName, type SyncedCollection } from "./syncCollections";
+import { naturalFilters } from "./syncKeys";
 
 const { EJSON } = mongoose.mongo.BSON;
 

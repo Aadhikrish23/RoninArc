@@ -1,6 +1,6 @@
 // desktop/services/keygate.js
 //
-// The packaged app ships no RAWG / NVIDIA / Steam keys. Game search, the AI and Steam sync go
+// The packaged app ships no IGDB / NVIDIA / Steam keys. Game search, the AI and Steam sync go
 // through keygate (a small proxy that holds the real keys) with this install's own token,
 // which the app asks keygate for on first launch.
 //
@@ -66,13 +66,13 @@ async function ensureToken(userDataDir, config, { fetchImpl = fetch, log = () =>
   }
 }
 
-/** Backend settings that send RAWG, the AI and Steam through keygate with this install's token. */
+/** Backend settings that send IGDB, the AI and Steam through keygate with this install's token. */
 function backendEnv(config, token) {
   if (!config || !token) return {};
   const base = `${config.url}/${config.project}`;
   return {
-    RAWG_BASE_URL: `${base}/rawg`,
-    RAWG_API_KEY: token,
+    IGDB_BASE_URL: `${base}/igdb`,
+    IGDB_API_KEY: token,
     AI_PROVIDER: "nvidia",
     NVIDIA_BASE_URL: `${base}/nvidia`,
     NVIDIA_API_KEY: token,
