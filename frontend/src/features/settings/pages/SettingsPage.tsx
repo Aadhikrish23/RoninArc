@@ -1,11 +1,10 @@
 import {
   Box,
   Heading,
+  Stack,
   Text,
   useColorModeValue,
   useDisclosure,
-  Grid,
-  GridItem,
 } from "@chakra-ui/react";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -49,56 +48,32 @@ export default function SettingsPage() {
 
   return (
     <Box minH="100vh" bg={bg}>
-      <Box maxW="900px" mx="auto" px={6} py={8}>
-        <Box mb={8}>
+      <Box maxW="1400px" mx="auto" px={6} pt={8} pb={24}>
+        <Box mb={7}>
           <Heading size="lg">Settings</Heading>
-          <Text mt={2} color={mutedText}>
-            Configure RoninArc launcher preferences and manage account connections.
+          <Text mt={1.5} fontSize="sm" color={mutedText}>
+            Your account, where your games come from, and this copy of RoninArc.
           </Text>
         </Box>
 
-        <Grid
-          templateColumns={{
-            base: "1fr",
-            md: "1fr 1fr",
-          }}
-          gap={6}
-        >
-          <GridItem>
-            <AccountSection username={username} onLogout={handleLogout} />
-          </GridItem>
+        {/* One column, in the order people look for things; deleting the account is last. */}
+        <Stack spacing={10} maxW="760px">
+          <AccountSection username={username} onLogout={handleLogout} />
 
-          <GridItem>
-            <AppearanceSection />
-          </GridItem>
+          <ProviderSection title="Game sources" description="Import the games you own. Resync to pick up new purchases.">
+            <SteamProviderCard />
+            <EpicProviderCard />
+          </ProviderSection>
 
-          <GridItem colSpan={{ base: 1, md: 2 }}>
-            <CloudSyncSection />
-          </GridItem>
-
-          <GridItem colSpan={{ base: 1, md: 2 }}>
-            <ProviderSection title="Account connections">
-              <EpicProviderCard />
-              <SteamProviderCard />
-              {/* <ComingSoonProviderCard providerId="gog" /> */}
-            </ProviderSection>
-          </GridItem>
-
-          <GridItem>
-            <SecuritySection
-              onChangePassword={() => setPasswordOpen(true)}
-              onLogoutAllDevices={() => setLogoutAllOpen(true)}
-            />
-          </GridItem>
-
-          <GridItem>
-            <DangerZoneSection onDeleteAccount={deleteModal.onOpen} />
-          </GridItem>
-
-          <GridItem colSpan={{ base: 1, md: 2 }}>
-            <SupportSection />
-          </GridItem>
-        </Grid>
+          <CloudSyncSection />
+          <AppearanceSection />
+          <SecuritySection
+            onChangePassword={() => setPasswordOpen(true)}
+            onLogoutAllDevices={() => setLogoutAllOpen(true)}
+          />
+          <SupportSection />
+          <DangerZoneSection onDeleteAccount={deleteModal.onOpen} />
+        </Stack>
       </Box>
 
       {/* Modals */}

@@ -1,62 +1,46 @@
-import {
-  Button,
-  HStack,
-  Icon,
-  Text,
-  
-  useColorMode,
-} from "@chakra-ui/react";
+import { Button, ButtonGroup, useColorMode, useColorModeValue } from "@chakra-ui/react";
+import { FiMoon, FiSun } from "react-icons/fi";
 
-import {
-  MoonIcon,
-  SunIcon,
-} from "@chakra-ui/icons";
-
-import { FiDroplet, FiMonitor } from "react-icons/fi";
-
-import SettingsCard from "./SettingsCard";
+import { SettingsPanel, SettingsRow, SettingsSection } from "./SettingsLayout";
 
 export default function AppearanceSection() {
-  const {
-    colorMode,
-    toggleColorMode,
-  } = useColorMode();
+  const { colorMode, setColorMode } = useColorMode();
+  const border = useColorModeValue("gray.200", "whiteAlpha.300");
+  const muted = useColorModeValue("gray.600", "gray.400");
+  const onBg = useColorModeValue("purple.50", "rgba(214,188,250,0.12)");
+  const onText = useColorModeValue("purple.600", "purple.200");
+
+  const option = (mode: "light" | "dark", label: string, icon: React.ReactElement) => {
+    const on = colorMode === mode;
+    return (
+      <Button
+        leftIcon={icon}
+        aria-pressed={on}
+        onClick={() => setColorMode(mode)}
+        bg={on ? onBg : "transparent"}
+        color={on ? onText : muted}
+        borderColor={border}
+        _hover={{ bg: on ? onBg : undefined }}
+      >
+        {label}
+      </Button>
+    );
+  };
 
   return (
-    <SettingsCard
-      title="Appearance"
-      icon={FiDroplet}
-      description="Customize RoninArc theme and display."
-    >
-      <HStack
-        justify="space-between"
-      >
-        <HStack>
-          <Icon
-            as={FiMonitor}
-          />
-          <Text>
-            Current theme:
-            {" "}
-            <strong>
-              {colorMode === "light" ? "Light" : "Dark"}
-            </strong>
-          </Text>
-        </HStack>
-
-        <Button
-          onClick={toggleColorMode}
-          leftIcon={
-            colorMode === "light"
-              ? <MoonIcon />
-              : <SunIcon />
+    <SettingsSection id="appearance" title="Appearance">
+      <SettingsPanel>
+        <SettingsRow
+          label="Theme"
+          detail="Applies to every screen in this app."
+          actions={
+            <ButtonGroup size="sm" variant="outline" isAttached role="group" aria-label="Theme">
+              {option("light", "Light", <FiSun />)}
+              {option("dark", "Dark", <FiMoon />)}
+            </ButtonGroup>
           }
-        >
-          {colorMode === "light"
-            ? "Dark mode"
-            : "Light mode"}
-        </Button>
-      </HStack>
-    </SettingsCard>
+        />
+      </SettingsPanel>
+    </SettingsSection>
   );
 }

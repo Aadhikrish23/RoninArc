@@ -201,8 +201,8 @@ test.describe("Library home page", () => {
       await page.getByRole("button", { name: "Rescan PC Games" }).click();
       // While the rescan is still running, on the page with the cards.
       await page.evaluate(() => (location.hash = "#/settings"));
-      await expect(page.getByRole("heading", { name: "Account connections" })).toBeVisible();
-      await expect(page.getByRole("button", { name: "Resync Library" })).toHaveCount(2);
+      await expect(page.getByRole("heading", { name: "Game sources" })).toBeVisible();
+      await expect(page.getByRole("button", { name: "Resync library" })).toHaveCount(2);
       await expect(page.getByText("Syncing", { exact: true })).toHaveCount(0);
       release();
     });

@@ -1,52 +1,35 @@
-import {
-  Button,
-  VStack,
-  Divider,
-} from "@chakra-ui/react";
+import { Button } from "@chakra-ui/react";
 
-import { FiLock } from "react-icons/fi";
-
-import SettingsCard from "./SettingsCard";
+import { SettingsPanel, SettingsRow, SettingsSection } from "./SettingsLayout";
 
 interface Props {
   onChangePassword: () => void;
   onLogoutAllDevices: () => void;
 }
 
-export default function SecuritySection({
-  onChangePassword,
-  onLogoutAllDevices,
-}: Props) {
+export default function SecuritySection({ onChangePassword, onLogoutAllDevices }: Props) {
   return (
-    <SettingsCard
-      title="Security"
-      icon={FiLock}
-      description="Manage passwords and active sessions."
-    >
-      <VStack
-        align="stretch"
-        spacing={4}
-      >
-        <Button
-          variant="outline"
-          onClick={
-            onChangePassword
+    <SettingsSection id="security" title="Security">
+      <SettingsPanel>
+        <SettingsRow
+          label="Password"
+          detail="Changing it signs you out, so you sign in again with the new one."
+          actions={
+            <Button size="sm" variant="outline" onClick={onChangePassword}>
+              Change password
+            </Button>
           }
-        >
-          Change password
-        </Button>
-
-        <Divider />
-
-        <Button
-          variant="outline"
-          onClick={
-            onLogoutAllDevices
+        />
+        <SettingsRow
+          label="Sessions"
+          detail="Signs you out on every device, including this one."
+          actions={
+            <Button size="sm" variant="outline" onClick={onLogoutAllDevices}>
+              Log out of all devices
+            </Button>
           }
-        >
-          Log out of all devices
-        </Button>
-      </VStack>
-    </SettingsCard>
+        />
+      </SettingsPanel>
+    </SettingsSection>
   );
 }

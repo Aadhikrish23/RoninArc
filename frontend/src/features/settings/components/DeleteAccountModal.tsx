@@ -1,5 +1,9 @@
 import {
+  Box,
   Button,
+  ListItem,
+  UnorderedList,
+  useColorModeValue,
   FormControl,
   FormLabel,
   Input,
@@ -26,6 +30,7 @@ export default function DeleteAccountModal({
 }: DeleteAccountModalProps) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const muted = useColorModeValue("gray.600", "gray.400");
 
   const navigate = useNavigate();
 
@@ -77,6 +82,7 @@ export default function DeleteAccountModal({
       <>
         <Button
           variant="ghost"
+          mr={2}
           onClick={onClose}
         >
           Cancel
@@ -96,20 +102,17 @@ export default function DeleteAccountModal({
       align="stretch"
       spacing={4}
     >
-      <Text
-        color="red.400"
-        fontWeight="bold"
-      >
-        This action cannot be
-        undone.
-      </Text>
-
-      <Text>
-        Your account, library,
-        reviews, collections and
-        activity history will be
-        permanently removed.
-      </Text>
+      <Box>
+        <Text mb={2}>This permanently removes:</Text>
+        <UnorderedList color={muted} fontSize="sm" spacing={0.5}>
+          <ListItem>your account</ListItem>
+          <ListItem>your library, reviews and collections</ListItem>
+          <ListItem>your activity history</ListItem>
+        </UnorderedList>
+        <Text mt={3} fontSize="sm" color={muted}>
+          This can't be undone.
+        </Text>
+      </Box>
 
       <FormControl>
         <FormLabel>
@@ -119,7 +122,7 @@ export default function DeleteAccountModal({
         <Input
           type="password"
           value={password}
-          placeholder="Enter password"
+          autoComplete="current-password"
           onChange={(e) =>
             setPassword(
               e.target.value

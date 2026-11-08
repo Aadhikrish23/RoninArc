@@ -73,12 +73,14 @@ test.describe("Navigation", () => {
 });
 
 test.describe("Settings", () => {
-  test("toggles dark mode and keeps it after reload @positive", async ({ authedPage: page }) => {
+  test("switches the theme and keeps it after reload @positive", async ({ authedPage: page }) => {
     await open(page, "/settings");
-    await page.getByRole("button", { name: /Dark mode|Light mode/ }).click();
-    const theme = await page.locator("strong").first().innerText();
+    const theme = page.getByRole("group", { name: "Theme" });
+    const pick = (await theme.getByRole("button", { name: "Dark" }).getAttribute("aria-pressed")) === "true" ? "Light" : "Dark";
+    await theme.getByRole("button", { name: pick }).click();
+    await expect(theme.getByRole("button", { name: pick })).toHaveAttribute("aria-pressed", "true");
     await page.reload();
-    await expect(page.locator("strong").first()).toHaveText(theme);
+    await expect(page.getByRole("group", { name: "Theme" }).getByRole("button", { name: pick })).toHaveAttribute("aria-pressed", "true");
   });
 
   test("in the browser, About and support points to the desktop app @negative", async ({ authedPage: page }) => {
@@ -110,7 +112,7 @@ test.describe("Settings", () => {
 
   test("both providers show as disconnected for a new user @positive", async ({ authedPage: page }) => {
     await open(page, "/settings");
-    await expect(page.getByText("Disconnected")).toHaveCount(2);
+    await expect(page.getByText("Not connected", { exact: true })).toHaveCount(2);
   });
 
   test("changes the password and signs out @positive", async ({ authedPage: page, anon, user }) => {
@@ -120,7 +122,7 @@ test.describe("Settings", () => {
     await d.getByRole("textbox", { name: "Current Password" }).fill(user.password);
     await d.getByRole("textbox", { name: "New Password" }).fill("Another-Pass-77");
     await d.getByRole("textbox", { name: "Confirm password" }).fill("Another-Pass-77");
-    await d.getByRole("button", { name: "Update Password" }).click();
+    await d.getByRole("button", { name: "Change password" }).click();
     await expect(page).toHaveURL(/#\/login$/);
     expect((await anon.post("/auth/login", { username: user.username, password: "Another-Pass-77" })).status()).toBe(200);
   });
@@ -132,7 +134,7 @@ test.describe("Settings", () => {
     await d.getByRole("textbox", { name: "Current Password" }).fill("whatever1");
     await d.getByRole("textbox", { name: "New Password" }).fill("Another-Pass-77");
     await d.getByRole("textbox", { name: "Confirm password" }).fill("Different-77");
-    await d.getByRole("button", { name: "Update Password" }).click();
+    await d.getByRole("button", { name: "Change password" }).click();
     await expectToast(page, "Failed", "Passwords do not match");
   });
 
@@ -143,7 +145,7 @@ test.describe("Settings", () => {
     await d.getByRole("textbox", { name: "Current Password" }).fill("wrong-pass-1");
     await d.getByRole("textbox", { name: "New Password" }).fill("Another-Pass-77");
     await d.getByRole("textbox", { name: "Confirm password" }).fill("Another-Pass-77");
-    await d.getByRole("button", { name: "Update Password" }).click();
+    await d.getByRole("button", { name: "Change password" }).click();
     await expectToast(page, "Failed", "Current password incorrect");
   });
 

@@ -1,11 +1,13 @@
-import { Button, VStack, useToast } from "@chakra-ui/react";
+import { Button, useColorModeValue, useToast } from "@chakra-ui/react";
 import { FaSteam } from "react-icons/fa";
+import { FiRefreshCw } from "react-icons/fi";
 import ProviderCard from "../../components/ProviderCard";
 import { useProvider } from "../../context/ProviderContext";
 
 export default function SteamProviderCard() {
   const { provider, connectionState, loading, disconnect, resync, authenticate } = useProvider("steam");
   const toast = useToast();
+  const mutedButton = useColorModeValue("gray.600", "gray.400");
 
   const isConnected = provider.connected && ["connected", "syncing", "disconnecting"].includes(connectionState);
 
@@ -22,55 +24,57 @@ export default function SteamProviderCard() {
       });
     }
     // Errors (e.g. not running in the desktop app) are surfaced by the
-    // "Error" status badge -- no toast needed for them.
+    // "Couldn't connect" status -- no toast needed for them.
   };
 
   return (
     <ProviderCard
       title="Steam"
-      icon={<FaSteam size={22} />}
+      icon={<FaSteam size={20} />}
       connected={provider.connected}
       connectionState={connectionState}
       displayName={provider.displayName}
       lastSync={provider.lastSync}
       importedGames={provider.importedGames}
       loading={loading}
-      description="Sign in with Steam to import your full library, including games you haven't installed, and see which ones are on this PC."
+      description="Imports your whole Steam library, including games you haven't installed, and shows which ones are on this PC."
     >
       {isConnected ? (
         <>
           <Button
-            colorScheme="purple"
+            size="sm"
+            variant="outline"
+            leftIcon={<FiRefreshCw />}
             onClick={resync}
             isLoading={connectionState === "syncing"}
             isDisabled={loading}
-            loadingText="Syncing..."
+            loadingText="Syncing"
           >
-            Resync Library
+            Resync library
           </Button>
 
           <Button
-            variant="outline"
-            colorScheme="red"
+            size="sm"
+            variant="ghost"
+            color={mutedButton}
             onClick={disconnect}
             isLoading={connectionState === "disconnecting"}
             isDisabled={loading}
-            loadingText="Disconnecting..."
+            loadingText="Disconnecting"
           >
             Disconnect
           </Button>
         </>
       ) : (
-        <VStack align="stretch" spacing={3} w="100%">
-          <Button
-            colorScheme="purple"
-            onClick={handleConnect}
-            isLoading={loading || connectionState === "connecting"}
-            loadingText={connectionState === "syncing" ? "Importing..." : "Connecting..."}
-          >
-            Connect Steam
-          </Button>
-        </VStack>
+        <Button
+          size="sm"
+          colorScheme="purple"
+          onClick={handleConnect}
+          isLoading={loading || connectionState === "connecting"}
+          loadingText={connectionState === "syncing" ? "Importing" : "Connecting"}
+        >
+          Connect Steam
+        </Button>
       )}
     </ProviderCard>
   );

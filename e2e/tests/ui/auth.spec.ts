@@ -181,7 +181,7 @@ test.describe("Onboarding wizard", () => {
     await fillLogin(page, user.username, user.password);
     await page.getByRole("button", { name: "Set Up Connections" }).click();
     await expect(page).toHaveURL(/#\/settings$/);
-    await expect(page.getByRole("heading", { name: "Account connections" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Game sources" })).toBeVisible();
   });
 
   test("cannot be dismissed with Escape @negative", async ({ page, user }) => {

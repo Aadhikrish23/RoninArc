@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { Button, HStack, Stack, Text, useColorModeValue, useToast } from "@chakra-ui/react";
-import { FiLifeBuoy } from "react-icons/fi";
+import { Button, Text, useToast } from "@chakra-ui/react";
 
-import SettingsCard from "./SettingsCard";
+import { SettingsNote, SettingsPanel, SettingsRow, SettingsSection } from "./SettingsLayout";
 
 type UpdateStatus = Awaited<ReturnType<NonNullable<NonNullable<Window["electronAPI"]>["checkForUpdates"]>>>;
 
@@ -30,7 +29,6 @@ function describe(status: UpdateStatus | null): string {
 export default function SupportSection() {
   const api = typeof window !== "undefined" ? window.electronAPI : undefined;
   const desktop = !!api?.createProblemReport;
-  const muted = useColorModeValue("gray.600", "gray.400");
   const toast = useToast();
 
   const [version, setVersion] = useState<string | null>(null);
@@ -79,46 +77,57 @@ export default function SupportSection() {
     }
   };
 
-  return (
-    <SettingsCard title="About and support" icon={FiLifeBuoy} description="Your version, updates, and a report to send when something goes wrong.">
-      {desktop ? (
-        <Stack spacing={4}>
-          <Stack spacing={1}>
-            <Text fontWeight="medium">RoninArc {version ?? ""}</Text>
-            <Text fontSize="sm" color={muted} aria-live="polite">
-              {describe(update)}
-            </Text>
-          </Stack>
-          <HStack spacing={3} wrap="wrap">
-            {update?.state === "ready" ? (
-              <Button colorScheme="purple" onClick={() => api?.installUpdate?.()}>
-                Restart to update
-              </Button>
-            ) : (
-              <Button variant="outline" onClick={check} isLoading={checking} isDisabled={update?.state === "disabled" || update?.state === "downloading"}>
-                Check for updates
-              </Button>
-            )}
-            <Button variant="outline" onClick={report} isLoading={reporting} loadingText="Creating report">
-              Create problem report
-            </Button>
-          </HStack>
-          <Text fontSize="sm" color={muted}>
-            The report holds RoninArc's recent logs, which include your recent AI messages and game names. Passwords, tokens and keys are removed.
-          </Text>
-        </Stack>
-      ) : (
-        <Text fontSize="sm" color={muted}>
-          Updates and problem reports are in the RoninArc desktop app.
-        </Text>
-      )}
-      <Text fontSize="sm" color={muted}>
-        Game data from{" "}
-        <Text as="a" href="https://www.igdb.com" target="_blank" rel="noreferrer" textDecoration="underline">
-          IGDB.com
-        </Text>
-        .
+  const credit = (
+    <SettingsNote>
+      Game data from{" "}
+      <Text as="a" href="https://www.igdb.com" target="_blank" rel="noreferrer" textDecoration="underline" textUnderlineOffset="3px">
+        IGDB.com
       </Text>
-    </SettingsCard>
+      .
+    </SettingsNote>
+  );
+
+  return (
+    <SettingsSection id="about" title="About and support">
+      <SettingsPanel>
+        {desktop ? (
+          <>
+            <SettingsRow
+              label={`RoninArc ${version ?? ""}`.trim()}
+              detail={<span aria-live="polite">{describe(update)}</span>}
+              actions={
+                update?.state === "ready" ? (
+                  <Button size="sm" colorScheme="purple" onClick={() => api?.installUpdate?.()}>
+                    Restart to update
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={check}
+                    isLoading={checking}
+                    isDisabled={update?.state === "disabled" || update?.state === "downloading"}
+                  >
+                    Check for updates
+                  </Button>
+                )
+              }
+            />
+            <SettingsRow
+              label="Problem report"
+              detail="Saves a zip to your Desktop to send along with what you were doing. It holds RoninArc's recent logs, which include your recent AI messages and game names. Passwords, tokens and keys are removed."
+              actions={
+                <Button size="sm" variant="outline" onClick={report} isLoading={reporting} loadingText="Creating report">
+                  Create problem report
+                </Button>
+              }
+            />
+          </>
+        ) : (
+          <SettingsRow label="RoninArc" detail="Updates and problem reports are in the RoninArc desktop app." />
+        )}
+        {credit}
+      </SettingsPanel>
+    </SettingsSection>
   );
 }

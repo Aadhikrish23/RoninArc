@@ -1,51 +1,27 @@
-import {
-  Button,
-  
-  VStack,
-  Badge,
-} from "@chakra-ui/react";
+import { Avatar, Button } from "@chakra-ui/react";
 
-import { FiUser } from "react-icons/fi";
-
-import SettingsCard from "./SettingsCard";
+import { SettingsPanel, SettingsRow, SettingsSection } from "./SettingsLayout";
 
 interface Props {
   username: string;
   onLogout: () => void;
 }
 
-export default function AccountSection({
-  username,
-  onLogout,
-}: Props) {
+export default function AccountSection({ username, onLogout }: Props) {
   return (
-    <SettingsCard
-      title="Account"
-      icon={FiUser}
-      description="Your RoninArc profile."
-    >
-      <VStack
-        align="stretch"
-        spacing={4}
-      >
-        <Badge
-          colorScheme="purple"
-          w="fit-content"
-          textTransform="none"
-          fontSize="sm"
-          p={2}
-          borderRadius="md"
-        >
-          {username}
-        </Badge>
-
-        <Button
-          variant="outline"
-          onClick={onLogout}
-        >
-          Log out
-        </Button>
-      </VStack>
-    </SettingsCard>
+    <SettingsSection id="account" title="Account">
+      <SettingsPanel>
+        <SettingsRow
+          lead={<Avatar name={username} size="sm" bg="purple.500" color="white" />}
+          label={username}
+          detail="Signed in on this PC"
+          actions={
+            <Button size="sm" variant="outline" onClick={onLogout}>
+              Log out
+            </Button>
+          }
+        />
+      </SettingsPanel>
+    </SettingsSection>
   );
 }

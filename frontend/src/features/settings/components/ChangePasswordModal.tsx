@@ -3,6 +3,7 @@ import {
   FormControl,
   FormLabel,
   Input,
+  Text,
   VStack,
   useToast,
 } from "@chakra-ui/react";
@@ -86,7 +87,8 @@ export default function ChangePasswordModal({
     footer={
       <>
         <Button
-          mr={3}
+          variant="ghost"
+          mr={2}
           onClick={onClose}
         >
           Cancel
@@ -97,7 +99,7 @@ export default function ChangePasswordModal({
           isLoading={loading}
           onClick={handleSubmit}
         >
-          Update Password
+          Change password
         </Button>
       </>
     }
@@ -108,12 +110,11 @@ export default function ChangePasswordModal({
     >
       <FormControl>
         <FormLabel>
-          Current Password
+          Current password
         </FormLabel>
 
         <Input
           type="password"
-          placeholder="Current password"
           value={currentPassword}
           onChange={(e) =>
             setCurrentPassword(
@@ -125,12 +126,11 @@ export default function ChangePasswordModal({
 
       <FormControl>
         <FormLabel>
-          New Password
+          New password
         </FormLabel>
 
         <Input
           type="password"
-          placeholder="New password"
           value={newPassword}
           onChange={(e) =>
             setNewPassword(
@@ -147,7 +147,6 @@ export default function ChangePasswordModal({
 
         <Input
           type="password"
-          placeholder="Confirm password"
           value={confirmPassword}
           onChange={(e) =>
             setConfirmPassword(
@@ -156,6 +155,9 @@ export default function ChangePasswordModal({
           }
         />
       </FormControl>
+      <Text fontSize="sm" color="gray.500">
+        You'll be signed out afterwards. Sign in with the new password.
+      </Text>
     </VStack>
   </SettingsModal>
 );

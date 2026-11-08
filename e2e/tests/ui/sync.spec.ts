@@ -107,7 +107,7 @@ test.describe("RoninArc Cloud in Settings", () => {
     await expect(page.getByText(/Importing your games\. A big library can take a minute or two/)).toBeVisible();
     const importing = page.locator("#epic-connect-button");
     await expect(importing).toBeDisabled();
-    await expect(importing).toContainText("Importing...");
+    await expect(importing).toContainText("Importing");
     await expect(page.getByText("Connected as")).toHaveCount(0);
     await expect(page.getByRole("button", { name: /Disconnect/ })).toHaveCount(0);
     finish();

@@ -1,66 +1,24 @@
-import { Badge, Spinner, HStack } from "@chakra-ui/react";
 import type { ProviderConnectionState } from "../types/provider";
+import { StatusDot, type StatusTone } from "../../settings/components/SettingsLayout";
 
 interface Props {
   connected: boolean;
   connectionState?: ProviderConnectionState;
 }
 
-export default function ProviderStatusBadge({
-  connected,
-  connectionState,
-}: Props) {
-  // connectionState (UI lifecycle) always takes priority when provided.
-  // Only fall back to the connected boolean when connectionState is undefined.
+const LOOK: Record<ProviderConnectionState, [StatusTone, string]> = {
+  loading: ["busy", "Checking"],
+  connecting: ["busy", "Connecting"],
+  syncing: ["busy", "Syncing"],
+  disconnecting: ["busy", "Disconnecting"],
+  connected: ["ok", "Connected"],
+  error: ["error", "Couldn't connect"],
+  disconnected: ["off", "Not connected"],
+};
+
+export default function ProviderStatusBadge({ connected, connectionState }: Props) {
+  // connectionState (UI lifecycle) wins; the connected flag is the fallback.
   const state = connectionState ?? (connected ? "connected" : "disconnected");
-
-
-  let colorScheme = "gray";
-  let label = "Disconnected";
-
-  switch (state) {
-    case "loading":
-      return <Spinner size="xs" color="blue.500" />;
-    case "connecting":
-      colorScheme = "blue";
-      label = "Connecting";
-      break;
-    case "syncing":
-      colorScheme = "teal";
-      label = "Syncing";
-      break;
-    case "disconnecting":
-      colorScheme = "orange";
-      label = "Disconnecting";
-      break;
-    case "connected":
-      colorScheme = "green";
-      label = "Connected";
-      break;
-    case "error":
-      colorScheme = "red";
-      label = "Error";
-      break;
-    case "disconnected":
-    default:
-      colorScheme = "gray";
-      label = "Disconnected";
-      break;
-  }
-
-  const isInProgress = ["connecting", "syncing", "disconnecting"].includes(state);
-
-  return (
-    <Badge
-      px={3}
-      py={1}
-      rounded="full"
-      colorScheme={colorScheme}
-    >
-      <HStack spacing={1} display="inline-flex" align="center">
-        {isInProgress && <Spinner size="xs" speed="0.8s" />}
-        <span>{label}</span>
-      </HStack>
-    </Badge>
-  );
-}
+  const [tone, label] = LOOK[state] ?? LOOK.disconnected;
+  return <StatusDot tone={tone}>{label}</StatusDot>;
+}

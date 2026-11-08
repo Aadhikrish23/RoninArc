@@ -31,7 +31,7 @@ export default function SettingsModal({
       <ModalOverlay />
 
       <ModalContent
-        borderRadius="2xl"
+        borderRadius="xl"
         mx={4}
       >
         <ModalHeader>

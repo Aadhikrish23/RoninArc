@@ -2,7 +2,6 @@ import {
   Button,
   Text,
   useToast,
-  VStack,
 } from "@chakra-ui/react";
 
 import { useState } from "react";
@@ -65,14 +64,15 @@ export default function LogoutAllDevicesModal({
     footer={
       <>
         <Button
-          mr={3}
+          variant="ghost"
+          mr={2}
           onClick={onClose}
         >
           Cancel
         </Button>
 
         <Button
-          colorScheme="orange"
+          colorScheme="purple"
           isLoading={loading}
           onClick={handleSubmit}
         >
@@ -81,24 +81,9 @@ export default function LogoutAllDevicesModal({
       </>
     }
   >
-    <VStack
-      align="stretch"
-      spacing={4}
-    >
-      <Text>
-        RoninArc will revoke all
-        active sessions.
-      </Text>
-
-      <Text
-        color="orange.400"
-        fontSize="sm"
-      >
-        You'll be signed out from
-        every device including
-        this one.
-      </Text>
-    </VStack>
+    <Text>
+      This signs you out on every device, including this one. You can sign in again straight away.
+    </Text>
   </SettingsModal>
 );
 }

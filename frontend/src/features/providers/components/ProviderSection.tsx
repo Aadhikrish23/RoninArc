@@ -1,36 +1,15 @@
-import {
-  Heading,
-  SimpleGrid,
-  VStack,
-} from "@chakra-ui/react";
+import { SettingsPanel, SettingsSection } from "../../settings/components/SettingsLayout";
 
 interface Props {
   title?: string;
+  description?: string;
   children: React.ReactNode;
 }
 
-export default function ProviderSection({
-  title = "Providers",
-  children,
-}: Props) {
+export default function ProviderSection({ title = "Game sources", description, children }: Props) {
   return (
-    <VStack
-      align="stretch"
-      spacing={6}
-    >
-      <Heading size="md">
-        {title}
-      </Heading>
-
-      <SimpleGrid
-        columns={{
-          base: 1,
-          xl: 2,
-        }}
-        spacing={6}
-      >
-        {children}
-      </SimpleGrid>
-    </VStack>
+    <SettingsSection id="sources" title={title} description={description}>
+      <SettingsPanel>{children}</SettingsPanel>
+    </SettingsSection>
   );
 }

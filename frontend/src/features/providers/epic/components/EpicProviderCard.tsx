@@ -1,56 +1,59 @@
-import { Button, VStack } from "@chakra-ui/react";
+import { Button, useColorModeValue } from "@chakra-ui/react";
 import { SiEpicgames } from "react-icons/si";
+import { FiRefreshCw } from "react-icons/fi";
 import ProviderCard from "../../components/ProviderCard";
 import useEpic from "../hooks/useEpic";
 import EpicConnectButton from "./EpicConnectButton";
 
 export default function EpicProviderCard() {
   const { provider, connectionState, loading, disconnect, resync } = useEpic();
+  const mutedButton = useColorModeValue("gray.600", "gray.400");
 
   const isConnected = provider.connected && ["connected", "syncing", "disconnecting"].includes(connectionState);
 
   return (
     <ProviderCard
       title="Epic Games"
-      icon={<SiEpicgames size={22} />}
+      icon={<SiEpicgames size={20} />}
       connected={provider.connected}
       connectionState={connectionState}
       displayName={provider.displayName}
       lastSync={provider.lastSync}
       importedGames={provider.importedGames}
       loading={loading}
-      description="Connect your Epic Games account to automatically import your library and synchronize metadata."
+      description="Imports your Epic library and keeps its details up to date."
     >
       {isConnected ? (
         <>
           <Button
-            colorScheme="purple"
+            size="sm"
+            variant="outline"
+            leftIcon={<FiRefreshCw />}
             onClick={resync}
             isLoading={connectionState === "syncing"}
             isDisabled={loading}
-            loadingText="Syncing..."
+            loadingText="Syncing"
           >
-            Resync Library
+            Resync library
           </Button>
 
           <Button
-            variant="outline"
-            colorScheme="red"
+            size="sm"
+            variant="ghost"
+            color={mutedButton}
             onClick={disconnect}
             isLoading={connectionState === "disconnecting"}
             isDisabled={loading}
-            loadingText="Disconnecting..."
+            loadingText="Disconnecting"
           >
             Disconnect
           </Button>
         </>
       ) : (
-        <VStack align="stretch" spacing={3} w="100%">
-          <EpicConnectButton
-            isLoading={loading || connectionState === "connecting"}
-            loadingText={connectionState === "syncing" ? "Importing..." : undefined}
-          />
-        </VStack>
+        <EpicConnectButton
+          isLoading={loading || connectionState === "connecting"}
+          loadingText={connectionState === "syncing" ? "Importing" : undefined}
+        />
       )}
     </ProviderCard>
   );

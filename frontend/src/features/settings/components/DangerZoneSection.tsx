@@ -1,42 +1,26 @@
-import {
-  Button,
-  VStack,
-} from "@chakra-ui/react";
+import { Button } from "@chakra-ui/react";
 
-import { FiAlertTriangle } from "react-icons/fi";
-
-import SettingsCard from "./SettingsCard";
+import { SettingsPanel, SettingsRow, SettingsSection } from "./SettingsLayout";
 
 interface Props {
   onDeleteAccount: () => void;
 }
 
-export default function DangerZoneSection({
-  onDeleteAccount,
-}: Props) {
+/** Last on the page, and quiet until you mean it: the dialog asks for your password. */
+export default function DangerZoneSection({ onDeleteAccount }: Props) {
   return (
-    <SettingsCard
-      danger
-      title="Danger zone"
-      icon={FiAlertTriangle}
-      description="Permanent actions."
-    >
-      {/* What deleting removes is spelled out in the confirmation dialog. */}
-      <VStack
-        align="stretch"
-        spacing={4}
-      >
-        <Button
-          colorScheme="red"
-          variant="solid"
-          alignSelf="start"
-          onClick={
-            onDeleteAccount
+    <SettingsSection id="delete" title="Delete account">
+      <SettingsPanel danger>
+        <SettingsRow
+          label="Delete your RoninArc account"
+          detail="Permanently removes your account, library, reviews, collections and activity history. This can't be undone."
+          actions={
+            <Button size="sm" variant="outline" colorScheme="red" onClick={onDeleteAccount}>
+              Delete account…
+            </Button>
           }
-        >
-          Delete account
-        </Button>
-      </VStack>
-    </SettingsCard>
+        />
+      </SettingsPanel>
+    </SettingsSection>
   );
 }

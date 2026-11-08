@@ -1,19 +1,22 @@
-import {
-  Box,
-  ButtonGroup,
-  Divider,
-  Heading,
-  HStack,
-  Text,
-  VStack,
-  Skeleton,
-  useColorModeValue,
-} from "@chakra-ui/react";
+import { HStack, Skeleton, Stack } from "@chakra-ui/react";
 
 import type { ProviderCardProps } from "../types/provider";
 import ProviderStatusBadge from "./ProviderStatusBadge";
+import { IconTile, SettingsRow } from "../../settings/components/SettingsLayout";
 
+/** "today, 14:32", "yesterday, 09:10", or the date. */
+function syncedWhen(iso: string): string {
+  const at = new Date(iso);
+  if (Number.isNaN(at.getTime())) return "";
+  const time = at.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const day = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const days = Math.round((day(new Date()) - day(at)) / 86_400_000);
+  if (days === 0) return `today, ${time}`;
+  if (days === 1) return `yesterday, ${time}`;
+  return at.toLocaleDateString([], { day: "numeric", month: "short", year: "numeric" });
+}
 
+/** One store in Game sources: its logo, whether it's connected, and its buttons. */
 export default function ProviderCard({
   title,
   icon,
@@ -26,139 +29,47 @@ export default function ProviderCard({
   loading = false,
   children,
 }: ProviderCardProps) {
-  const bg = useColorModeValue(
-    "white",
-    "gray.800"
-  );
-
-  const border = useColorModeValue(
-    "gray.200",
-    "gray.700"
-  );
-  const descriptionColor = useColorModeValue("gray.600", "gray.400");
-
-  // Loading has highest priority — never infer connected/disconnected during loading
+  // Loading has highest priority: never infer connected/disconnected while loading.
   const isStateLoading = connectionState === "loading" || (loading && !connectionState);
   const stateConnected = isStateLoading
-    ? false  // Never show as connected during loading — skeletons will render instead
+    ? false
     : connectionState
       ? connected && ["connected", "syncing", "connecting", "disconnecting"].includes(connectionState)
       : connected;
   const isSyncing = connectionState === "syncing";
   const syncingNote = "Importing your games. A big library can take a minute or two, and you can keep using RoninArc meanwhile.";
 
+  const facts = [
+    displayName,
+    importedGames !== undefined ? `${importedGames} ${importedGames === 1 ? "game" : "games"}` : null,
+    lastSync ? `last synced ${syncedWhen(lastSync)}` : null,
+  ].filter(Boolean);
+
+  const detail = isStateLoading ? (
+    <Skeleton height="14px" width="220px" mt={1} />
+  ) : stateConnected ? (
+    <Stack spacing={0.5}>
+      <span>{facts.join(" · ")}</span>
+      {isSyncing && <span aria-live="polite">{syncingNote}</span>}
+    </Stack>
+  ) : (
+    <span aria-live="polite">{isSyncing ? syncingNote : description || "Not connected yet."}</span>
+  );
+
   return (
-    <Box
-      bg={bg}
-      borderWidth="1px"
-      borderColor={border}
-      rounded="xl"
-      p={6}
-      h="100%"
-      display="flex"
-      flexDirection="column"
-      shadow="sm"
-      transition="all .2s"
-      _hover={{
-        shadow: "md",
-      }}
-    >
-      <VStack
-        spacing={5}
-        align="stretch"
-        flex="1"
-      >
-        {/* Header */}
-
-        <HStack
-          justify="space-between"
-          align="center"
-        >
-          <HStack spacing={3}>
-            {icon}
-
-            <Heading size="md">
-              {title}
-            </Heading>
-          </HStack>
-
-          <ProviderStatusBadge
-            connected={connected}
-            connectionState={connectionState}
-          />
-        </HStack>
-
-        <Divider />
-
-        {/* Provider Info */}
-
-        {isStateLoading ? (
-          <VStack align="start" spacing={3} w="100%">
-            <Skeleton height="15px" width="120px" />
-            <Skeleton height="15px" width="80px" />
-            <Skeleton height="15px" width="180px" />
-          </VStack>
-        ) : stateConnected ? (
-          <VStack
-            align="start"
-            spacing={1}
-          >
-            <Text
-              fontWeight="semibold"
-            >
-              Connected as
-            </Text>
-
-            <Text>
-              {displayName || "..."}
-            </Text>
-
-            {importedGames !== undefined && (
-              <Text fontSize="sm">
-                Imported games: <strong>{importedGames}</strong>
-              </Text>
-            )}
-
-            {lastSync && (
-              <Text
-                color="gray.500"
-                fontSize="sm"
-              >
-                Last synced:{" "}
-                {new Date(
-                  lastSync
-                ).toLocaleString()}
-              </Text>
-            )}
-
-            {isSyncing && (
-              <Text color={descriptionColor} fontSize="sm" pt={2} aria-live="polite">
-                {syncingNote}
-              </Text>
-            )}
-          </VStack>
+    <SettingsRow
+      lead={icon ? <IconTile>{icon}</IconTile> : undefined}
+      label={title}
+      status={isStateLoading ? undefined : <ProviderStatusBadge connected={connected} connectionState={connectionState} />}
+      detail={detail}
+      actions={
+        children &&
+        (isStateLoading ? (
+          <Skeleton height="32px" width="120px" rounded="md" />
         ) : (
-          <Text color={descriptionColor} fontSize="sm" aria-live="polite">
-            {isSyncing ? syncingNote : description || "This provider has not been connected."}
-          </Text>
-        )}
-
-        {children && (
-          <>
-            <Divider mt="auto" />
-
-            {isStateLoading ? (
-              <HStack spacing={3}>
-                <Skeleton height="40px" width="130px" rounded="md" />
-              </HStack>
-            ) : (
-              <ButtonGroup>
-                {children}
-              </ButtonGroup>
-            )}
-          </>
-        )}
-      </VStack>
-    </Box>
+          <HStack spacing={2}>{children}</HStack>
+        ))
+      }
+    />
   );
 }
