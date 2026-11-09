@@ -8,9 +8,10 @@ RoninArc is a game library and backlog tracker for Windows PC gamers, with an An
 - **Recommendations:** what to play next from your backlog, and new games to discover, each with a reason.
 - **The AI assistant changes your library:** "I finished celeste, 9/10", "make a soulslike collection and put ds3 in it", "create a God of War collection with all my God of War games", "what should I play tonight? I've got 2 hours", "undo that".
 - **Offline-first:** everything except search, the AI and store imports works without internet, and your data stays on your PC.
+- **Accounts:** sign in with your email and password on the PC and the phone. Your name is just what the app calls you, so it doesn't have to be unique.
 - **Cloud sync and the phone app:** tick "Sync with my other devices" when you sign in (on by default), then scan a QR code or type a 6-digit code from the PC on your Android phone. No password on the phone, and the PC keeps working offline.
 
-Current version: **1.0.2**. Downloads are on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases/latest).
+Current version: **1.0.3**. Downloads are on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases/latest).
 
 ## Documentation
 

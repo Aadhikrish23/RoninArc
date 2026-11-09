@@ -58,7 +58,7 @@ export default function SettingsPage() {
 
         {/* One column, in the order people look for things; deleting the account is last. */}
         <Stack spacing={10} maxW="760px">
-          <AccountSection username={username} onLogout={handleLogout} />
+          <AccountSection name={username} email={user?.email} onLogout={handleLogout} />
 
           <ProviderSection title="Game sources" description="Import the games you own. Resync to pick up new purchases.">
             <SteamProviderCard />

@@ -1,6 +1,6 @@
 import crypto from "crypto";
 import bcryptjs from "bcryptjs";
-import usermodel from "./models/User";
+import usermodel, { displayNameOf } from "./models/User";
 import PasswordReset from "./models/PasswordReset";
 import RefreshToken from "./models/RefreshToken";
 import { cutOffTokens } from "./tokenCutoff";
@@ -18,13 +18,13 @@ const escapeHtml = (s: string) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", 
 const publicUrl = () => (process.env.PUBLIC_URL || process.env.RENDER_EXTERNAL_URL || "").replace(/\/+$/, "");
 
 /**
- * "Forgot password": emails a reset link to the account with this email or username. Always
+ * "Forgot password": emails a reset link to the account with this email. Always
  * answers the same way, so it can't be used to find out who has an account.
  */
 export async function requestPasswordReset(identifier: string): Promise<void> {
   const value = String(identifier ?? "").trim().toLowerCase();
-  if (!value) throw new AppError("Enter your email address or username.", 400);
-  const user: any = await usermodel.findOne(value.includes("@") ? { email: new RegExp(`^${value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") } : { username: value }).lean();
+  if (!value || !value.includes("@")) throw new AppError("Enter your email address.", 400);
+  const user: any = await usermodel.findOne({ email: new RegExp(`^${value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, "i") }).lean();
   if (!user?.email) {
     log.info("password reset requested for an unknown account or one without email");
     return;
@@ -35,11 +35,11 @@ export async function requestPasswordReset(identifier: string): Promise<void> {
   await PasswordReset.create({ userId: user._id, tokenHash: hash(token), expiresAt: new Date(Date.now() + LINK_MINUTES * 60_000) });
 
   const link = `${publicUrl()}/auth/reset-password?token=${encodeURIComponent(token)}`;
-  const name = escapeHtml(user.username);
+  const name = escapeHtml(displayNameOf(user));
   await sendEmail({
     to: user.email,
     subject: "Reset your RoninArc password",
-    text: `Hi ${user.username},\n\nSomeone (hopefully you) asked to reset the password for your RoninArc account.\n\nSet a new password here (the link works for ${LINK_MINUTES} minutes, once):\n${link}\n\nIf you didn't ask for this, ignore this email; your password stays the same.`,
+    text: `Hi ${displayNameOf(user)},\n\nSomeone (hopefully you) asked to reset the password for your RoninArc account.\n\nSet a new password here (the link works for ${LINK_MINUTES} minutes, once):\n${link}\n\nIf you didn't ask for this, ignore this email; your password stays the same.`,
     html: `<div style="font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:auto;color:#1a202c">
 <h2 style="margin:0 0 16px">Reset your RoninArc password</h2>
 <p>Hi ${name},</p>

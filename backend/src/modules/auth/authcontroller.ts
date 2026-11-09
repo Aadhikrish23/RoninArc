@@ -13,114 +13,46 @@ import { markPhoneLinked } from "../sync/linkCodes";
 /** The phone app says so in a header; the PC then stops offering "get your library on your phone". */
 const fromPhone = (req: Request) => isCloud() && req.get("x-roninarc-client") === "phone";
 
-const registerUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+
+/** Sign up: a name (shown in the app, not unique), an email (you sign in with it) and a password. */
+const registerUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let username =
-      req.body.username;
-
-    let password =
-      req.body.password;
-
-    let email =
-      req.body.email;
-
-    if (
-      !username ||
-      typeof username !==
-        "string" ||
-      username.trim() === "" ||
-      !password ||
-      typeof password !==
-        "string" ||
-      password.trim() === ""
-    ) {
-      return next(
-        new AppError(
-          "Username and password are required",
-          400
-        )
-      );
-    }
-
-    username =
-      username.trim();
-
-    password =
-      password.trim();
-
-    email =
-      email !== undefined
-        ? email.trim()
-        : "";
-
-    const data =
-      await authServices.registerUser(
-        username,
-        password,
-        email
-      );
-    if (fromPhone(req)) await markPhoneLinked(data.userdata.name).catch(() => undefined);
-
-    return res.status(201).json({
-      Status: "Success",
-      Data: data,
-    });
+    // Apps before 1.0.3 send the name as `username`.
+    const name = str(req.body?.displayName) || str(req.body?.name) || str(req.body?.username);
+    const email = str(req.body?.email);
+    const password = str(req.body?.password);
+    if (!email || !password) return next(new AppError("Email and password are required", 400));
+    const data = await authServices.registerUser(name, password, email);
+    if (fromPhone(req)) await markPhoneLinked(data.userdata.email).catch(() => undefined);
+    return res.status(201).json({ Status: "Success", Data: data });
   } catch (error) {
     next(error);
   }
 };
 
-const loginUser = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+/** Sign in with an email and password. */
+const loginUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    let username =
-      req.body.username;
+    // Apps before 1.0.3 send whatever was typed as `username`.
+    const identifier = str(req.body?.email) || str(req.body?.username);
+    const password = str(req.body?.password);
+    if (!identifier || !password) return next(new AppError(authServices.SIGN_IN_WITH_EMAIL, 400));
+    const data = await authServices.loginUser(identifier, password);
+    if (fromPhone(req)) await markPhoneLinked(data.userdata.email).catch(() => undefined);
+    return res.status(200).json({ Status: "Success", Data: data });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    let password =
-      req.body.password;
-
-    if (
-      !username ||
-      typeof username !==
-        "string" ||
-      username.trim() === "" ||
-      !password ||
-      typeof password !==
-        "string" ||
-      password.trim() === ""
-    ) {
-      return next(
-        new AppError(
-          "Username and password are required",
-          400
-        )
-      );
-    }
-
-    username =
-      username.trim();
-
-    password =
-      password.trim();
-
-    const data =
-      await authServices.loginUser(
-        username,
-        password
-      );
-    if (fromPhone(req)) await markPhoneLinked(data.userdata.name).catch(() => undefined);
-
-    return res.status(200).json({
-      Status: "Success",
-      Data: data,
-    });
+/** An account from before email sign-in adds its email; the password confirms it. */
+const setEmail = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const password = typeof req.body?.password === "string" ? req.body.password : "";
+    if (!password) return next(new AppError("Password is required", 400));
+    const data = await authServices.setEmail(req.user.id, req.body?.email, password);
+    return res.status(200).json({ Status: "Success", Data: data });
   } catch (error) {
     next(error);
   }
@@ -312,6 +244,7 @@ const logoutAllDevices = async (
 
 export default {
   registerUser,
+  setEmail,
   changePassword,
 
   loginUser,

@@ -8,7 +8,7 @@ import { space } from "@/ui/theme";
 
 export default function SignIn() {
   const { signIn } = useAuth();
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [waking, setWaking] = useState(false);
@@ -16,11 +16,11 @@ export default function SignIn() {
   const passwordRef = useRef<ComponentRef<typeof TextInput>>(null);
 
   const submit = async () => {
-    if (!username.trim() || !password) return setError("Enter your username (or email) and password.");
+    if (!email.trim() || !password) return setError("Enter your email and password.");
     setBusy(true);
     setError(null);
     try {
-      await signIn(username, password, () => setWaking(true));
+      await signIn(email, password, () => setWaking(true));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't sign in.");
     } finally {
@@ -56,7 +56,7 @@ export default function SignIn() {
         </T>
         <View style={{ flex: 1, height: 1, backgroundColor: "#4A5568" }} />
       </View>
-      <Field label="Username or email" placeholder="Enter your username or email" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username" textContentType="username" keyboardType="email-address" returnKeyType="next" onSubmitEditing={() => passwordRef.current?.focus()} />
+      <Field label="Email" placeholder="you@example.com" value={email} onChangeText={setEmail} autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" keyboardType="email-address" returnKeyType="next" onSubmitEditing={() => passwordRef.current?.focus()} />
       <Field ref={passwordRef} label="Password" placeholder="Enter your password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="current-password" textContentType="password" returnKeyType="go" onSubmitEditing={submit} />
       <Pressable accessibilityRole="link" accessibilityLabel="Forgot password?" onPress={() => router.push("/forgot-password")} hitSlop={8} style={{ alignSelf: "flex-end", marginTop: -space.sm }}>
         <T size="sm" style={{ color: "#B794F4" }}>

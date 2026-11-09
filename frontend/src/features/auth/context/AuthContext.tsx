@@ -9,8 +9,10 @@ import authApi from "../api/authApi";
 import { setTokenUpdater } from "../../../shared/utils/tokenManager";
 
 export interface AuthUser {
+  /** The display name (shown in the app; not unique). */
   name: string;
-  email?: string;
+  /** How the account signs in. Missing only on PC accounts from before email sign-in. */
+  email?: string | null;
 }
 
 interface AuthContextType {
@@ -27,6 +29,8 @@ interface AuthContextType {
     rememberMe?: boolean,
   ) => void;
   updateTokens: (accessToken: string, refreshToken: string) => void;
+  /** The signed-in person's name or email changed (e.g. an email was added). */
+  updateUser: (changes: Partial<AuthUser>) => void;
 
   logout: () => void;
 }
@@ -105,6 +109,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setRefreshToken(null);
     }
   };
+  const updateUser = (changes: Partial<AuthUser>) => {
+    setUser((current) => {
+      if (!current) return current;
+      const next = { ...current, ...changes };
+      const store = localStorage.getItem("roninarc_user") ? localStorage : sessionStorage;
+      store.setItem("roninarc_user", JSON.stringify(next));
+      return next;
+    });
+  };
   const updateTokens = (accessToken: string, refreshTokenValue: string) => {
     setToken(accessToken);
     setRefreshToken(refreshTokenValue);
@@ -139,6 +152,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoading,
         login,
         updateTokens,
+        updateUser,
         logout,
       }}
     >

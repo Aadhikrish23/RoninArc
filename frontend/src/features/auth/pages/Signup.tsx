@@ -16,8 +16,7 @@ import {
   Checkbox,
   useToast,
 } from "@chakra-ui/react";
-import { useEffect, useRef, useState } from "react";
-import syncApi from "../../settings/api/syncApi";
+import { useRef, useState } from "react";
 import { setSyncPreference, syncPreference, syncWithOtherDevices } from "../../settings/syncOtherDevices";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import authApi from "../api/authApi";
@@ -28,7 +27,7 @@ import { getErrorMessage } from "../../../shared/utils/error";
 
 function Signup() {
   const [show, setShow] = useState<boolean>(false);
-  const [username, setUsername] = useState<string>("");
+  const [displayName, setDisplayName] = useState<string>("");
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [confirmpassword, setConfirmPassword] = useState<string>("");
@@ -37,27 +36,6 @@ function Signup() {
 
   const [emailErrorShown, setEmailErrorShown] = useState(false);
   const [syncDevices, setSyncDevices] = useState<boolean>(syncPreference);
-  // Is the name free in RoninArc Cloud? Asked while typing, only when syncing is ticked.
-  const [cloudName, setCloudName] = useState<{ name: string; available: boolean; suggestions: string[] } | null>(null);
-
-  useEffect(() => {
-    const name = username.trim().toLowerCase();
-    if (!syncDevices || name.length < 3) return;
-    let live = true;
-    const timer = setTimeout(() => {
-      syncApi
-        .nameAvailable(name)
-        .then((r) => live && setCloudName({ name, ...r }))
-        // Offline, or the cloud isn't set up in this build: say nothing; the sign-up still works.
-        .catch(() => live && setCloudName({ name, available: true, suggestions: [] }));
-    }, 500);
-    return () => {
-      live = false;
-      clearTimeout(timer);
-    };
-  }, [username, syncDevices]);
-  // Only the answer for the name in the box now (and only while syncing is ticked).
-  const nameTaken = syncDevices && !!cloudName && !cloudName.available && cloudName.name === username.trim().toLowerCase();
 
   const navigate = useNavigate();
   const toast = useToast();
@@ -76,7 +54,7 @@ function Signup() {
   };
 
   // Enter and a click in the same moment both see loading=false; a ref stops the second request
-  // (it came back "Username is already taken" for the account the first one had just made).
+  // (it came back "already exists" for the account the first one had just made).
   const submitting = useRef(false);
   const handlesubmit = async () => {
     if (submitting.current) return;
@@ -84,26 +62,22 @@ function Signup() {
     try {
       setLoading(true);
 
-      const name = username.trim();
+      const name = displayName.trim();
       const pass = password.trim();
       const confirm = confirmpassword.trim();
-      const mail = email ? email.trim() : "";
+      const mail = email.trim();
 
-      if (!name || !pass) {
-        throw new Error("Username and password are required");
+      if (!name || !mail || !pass) {
+        throw new Error("Enter your name, email and a password.");
       }
-
+      if (!isValidEmail(mail)) {
+        throw new Error("Enter a valid email address. You sign in with it.");
+      }
       if (pass !== confirm) {
         throw new Error("Password and Confirm password must be the same");
       }
 
-      // ✅ Email format check (if email is provided)
-      if (mail && !isValidEmail(mail)) {
-        setEmail("");
-        throw new Error("Please enter a valid email address");
-      }
-
-      const datas = await authApi.userSignup(name, pass, mail);
+      const datas = await authApi.userSignup(name, mail, pass);
 
       // Clear old user data
       // deleteCurrentUser();
@@ -165,9 +139,10 @@ function Signup() {
             {/* Enter in any field submits. */}
             <Stack spacing={4} onKeyDown={(e) => { if (e.key === "Enter" && !loading && (e.target as HTMLElement).tagName !== "BUTTON") handlesubmit(); }}>
               <FormControl>
-                <FormLabel color="gray.200">Username</FormLabel>
+                <FormLabel color="gray.200">Name</FormLabel>
                 <Input
-                  placeholder="Enter your username"
+                  placeholder="What should RoninArc call you?"
+                  autoComplete="nickname"
                   bg="gray.900"
                   color="#fff"
                   borderColor="gray.700"
@@ -176,42 +151,23 @@ function Signup() {
                     borderColor: "purple.400",
                     boxShadow: "0 0 0 1px #9F7AEA",
                   }}
-                  value={username}
+                  value={displayName}
                   onChange={(e) => {
-                    setUsername(e.target.value);
+                    setDisplayName(e.target.value);
                   }}
-                  aria-describedby="cloud-name-note"
                 />
-                {nameTaken && (
-                  <Box id="cloud-name-note" mt={2} fontSize="sm" color="orange.200" aria-live="polite">
-                    <Text>That name is taken in RoninArc Cloud, so it can't be used for syncing. You can still use it on this PC.</Text>
-                    {cloudName!.suggestions.length > 0 && (
-                      <Flex mt={2} gap={2} flexWrap="wrap" align="center">
-                        <Text as="span" color="gray.300">
-                          Free:
-                        </Text>
-                        {cloudName!.suggestions.map((s) => (
-                          <Button key={s} size="xs" variant="outline" colorScheme="purple" onClick={() => setUsername(s)}>
-                            {s}
-                          </Button>
-                        ))}
-                      </Flex>
-                    )}
-                  </Box>
-                )}
               </FormControl>
 
               <FormControl>
                 <FormLabel color="gray.200">
                   Email{" "}
-                  {syncDevices && (
-                    <Text as="span" fontSize="xs" color="gray.400" fontWeight="normal">
-                      (needed for syncing, and to reset a forgotten password)
-                    </Text>
-                  )}
+                  <Text as="span" fontSize="xs" color="gray.400" fontWeight="normal">
+                    (you sign in with it)
+                  </Text>
                 </FormLabel>
                 <Input
-                  placeholder="Enter your email"
+                  placeholder="you@example.com"
+                  autoComplete="email"
                   bg="gray.900"
                   color="#fff"
                   borderColor="gray.700"

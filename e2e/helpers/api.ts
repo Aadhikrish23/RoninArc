@@ -6,7 +6,7 @@ export type CatalogGame = (typeof CATALOG)[number];
 
 let counter = 0;
 
-/** Unique, lowercase (the backend lowercases usernames), >= 3 chars. */
+/** Unique, lowercase, >= 3 chars: a display name, and the start of a unique test email. */
 export function uniqueName(prefix = "user"): string {
   counter += 1;
   const rand = Math.random().toString(36).slice(2, 7);
@@ -16,12 +16,13 @@ export function uniqueName(prefix = "user"): string {
 export const DEFAULT_PASSWORD = "Sup3rSecret!";
 
 export interface RegisteredUser {
+  /** The display name it signed up with (also the start of its email). Sign in with `email`. */
   username: string;
   password: string;
   email: string;
   accessToken: string;
   refreshToken: string;
-  userdata: { name: string; email: string; updatedAt: string };
+  userdata: { name: string; displayName: string; email: string; updatedAt: string };
 }
 
 export async function registerUser(
@@ -32,7 +33,7 @@ export async function registerUser(
   const username = overrides.username ?? uniqueName();
   const password = overrides.password ?? DEFAULT_PASSWORD;
   const email = overrides.email ?? `${username}@example.com`;
-  const res = await request.post(`${baseURL}/auth/register`, { data: { username, password, email } });
+  const res = await request.post(`${baseURL}/auth/register`, { data: { displayName: username, password, email } });
   expect(res.status(), await res.text()).toBe(201);
   const body = await res.json();
   return { username, password, email, ...body.Data };

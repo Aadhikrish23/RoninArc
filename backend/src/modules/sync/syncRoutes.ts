@@ -9,7 +9,7 @@ import { isCloud } from "../../shared/runtimeMode";
 import { rateLimit } from "../../shared/rateLimit";
 import { applyPush, pull } from "./cloudSync";
 import * as localSync from "./localSync";
-import { claimLinkCode, createLinkCode, nameAvailability } from "./linkCodes";
+import { claimLinkCode, createLinkCode } from "./linkCodes";
 
 const PC_PASSWORD_HASH = /^\$2[aby]\$1[0-2]\$[./A-Za-z0-9]{53}$/;
 
@@ -19,13 +19,15 @@ syncRouter.use(express.json({ limit: "15mb" }));
 
 const userId = (req: Request) => String((req as any).user?.id);
 /** After linking to an existing cloud account the id changed: a fresh session for the new one. */
-async function sessionFor(result: { moved: boolean; userId: string }, fallbackName?: string) {
+async function sessionFor(result: { moved: boolean; userId: string }) {
   if (!result.moved) return undefined;
   const id = new mongoose.Types.ObjectId(result.userId);
-  const user = await usermodel.findById(id).select("username").lean();
+  const user = await usermodel.findById(id).lean();
   return {
-    accessToken: authServices.generateAccessToken(id, user?.username ?? String(fallbackName ?? "").trim().toLowerCase()),
+    accessToken: authServices.generateAccessToken(id, user?.username ?? ""),
     refreshToken: await authServices.generateRefreshToken(id),
+    // The account this PC now uses: its name and email may differ from the old one's.
+    userdata: user ? authServices.userdata(user) : undefined,
   };
 }
 
@@ -37,28 +39,25 @@ if (isCloud()) {
     "/register",
     rateLimit({ windowMs: 60 * 60_000, max: 10, message: "Too many sign-ups from this network. Try again later." }),
     wrap(async (req, res) => {
-      const { username, password, passwordHash, email, userId: id } = req.body ?? {};
-      if (typeof username !== "string") throw new AppError("Username and password are required", 400);
+      const { username, displayName, password, passwordHash, email, userId: id } = req.body ?? {};
+      if (typeof email !== "string" || !email.trim()) throw new AppError("Email and password are required", 400);
       if (passwordHash !== undefined) {
         // The PC's account keeps its password. The cost is capped: every sign-in pays it.
         if (typeof passwordHash !== "string" || !PC_PASSWORD_HASH.test(passwordHash) || typeof id !== "string") {
           throw new AppError("That password can't be used for a cloud account.", 400);
         }
       } else if (typeof password !== "string") {
-        throw new AppError("Username and password are required", 400);
+        throw new AppError("Email and password are required", 400);
       }
-      const data = await authServices.registerUser(username, passwordHash ? "" : password, email, {
+      // PCs before 1.0.3 send only `username`: it's their name, and their handle if it's free here.
+      const name = typeof displayName === "string" && displayName.trim() ? displayName : typeof username === "string" ? username : "";
+      const data = await authServices.registerUser(name, passwordHash ? "" : password, email, {
         id: typeof id === "string" ? id : undefined,
         passwordHash,
+        handle: typeof username === "string" ? username : undefined,
       });
       res.status(201).json({ Status: "Success", Data: data });
     }),
-  );
-  // The sign-up form asks while you type. Says only taken/free (and free names near it).
-  syncRouter.get(
-    "/name-available",
-    rateLimit({ windowMs: 15 * 60_000, max: 120, message: "Too many name checks. Try again in a few minutes." }),
-    wrap(async (req, res) => res.json(await nameAvailability(req.query.username))),
   );
   // A linked PC asks for a code to show (with a QR code); a phone trades it for a session.
   syncRouter.post(
@@ -80,24 +79,23 @@ if (isCloud()) {
     "/link",
     authMiddleware,
     wrap(async (req, res) => {
-      const { mode, username, email, password } = req.body ?? {};
+      const { mode, email, password } = req.body ?? {};
       if (mode !== "create" && mode !== "signin") throw new AppError('mode must be "create" or "signin"', 400);
-      // Creating needs nothing: it uses this PC's account unless told otherwise.
-      if (mode === "signin" && (typeof username !== "string" || typeof password !== "string" || !username.trim() || !password)) {
-        throw new AppError("Username and password are required", 400);
+      // Creating needs nothing: it uses this PC's account (and its email) unless told otherwise.
+      if (mode === "signin" && (typeof email !== "string" || typeof password !== "string" || !email.trim() || !password)) {
+        throw new AppError("Email and password are required", 400);
       }
       const result = await localSync.link(userId(req), {
         mode,
-        username: typeof username === "string" ? username : undefined,
         email: typeof email === "string" ? email : undefined,
         password: typeof password === "string" ? password : undefined,
       });
       // Linked to an existing cloud account: this account's id changed, so sign in afresh.
-      res.json({ ...result.status, moved: result.moved, session: await sessionFor(result, username) });
+      res.json({ ...result.status, moved: result.moved, session: await sessionFor(result) });
     }),
   );
   // "Sync with my other devices" at sign-in: link if possible, never fail. The password (just
-  // typed) only tries the existing cloud account of the same name; it isn't kept.
+  // typed) only tries the existing cloud account with the same email; it isn't kept.
   syncRouter.post(
     "/auto-link",
     authMiddleware,
@@ -108,15 +106,6 @@ if (isCloud()) {
     }),
   );
   syncRouter.delete("/auto-link", authMiddleware, wrap(async (req, res) => res.json(await localSync.dropAutoLink(userId(req)))));
-  // The sign-up form asks before the account exists, so no sign-in here.
-  syncRouter.get(
-    "/name-available",
-    rateLimit({ windowMs: 15 * 60_000, max: 120, message: "Too many name checks. Try again in a few minutes." }),
-    wrap(async (req, res) => {
-      if (typeof req.query.username !== "string" || req.query.username.trim().length < 3) throw new AppError("Usernames are at least 3 characters.", 400);
-      res.json(await localSync.nameAvailable(req.query.username));
-    }),
-  );
   syncRouter.post("/phone-code", authMiddleware, wrap(async (req, res) => res.status(201).json(await localSync.phoneCode(userId(req)))));
   syncRouter.post(
     "/reconnect",

@@ -1,102 +1,186 @@
 import jwt from "jsonwebtoken";
 import { test, expect } from "../../fixtures/test";
-import { DEFAULT_PASSWORD, MISSING_ID, json, registerUser, uniqueName } from "../../helpers/api";
+import { Api, DEFAULT_PASSWORD, MISSING_ID, json, registerUser, uniqueName } from "../../helpers/api";
+import { makeLegacyPcAccount } from "../../helpers/db";
 import { API_URL } from "../../env";
 import { byName } from "../../fixtures/catalog.mjs";
 
 test.describe("Auth API", () => {
   test.describe("register", () => {
     test("creates an account and returns tokens @positive", async ({ anon }) => {
-      const username = uniqueName("reg");
-      const res = await anon.post("/auth/register", { username, password: DEFAULT_PASSWORD, email: `${username}@example.com` });
+      const name = uniqueName("reg");
+      const res = await anon.post("/auth/register", { displayName: "Ronin Reg", password: DEFAULT_PASSWORD, email: `${name}@example.com` });
       expect(res.status()).toBe(201);
       const body = await json(res);
       expect(body.Status).toBe("Success");
-      expect(body.Data.userdata).toMatchObject({ name: username, email: `${username}@example.com` });
+      expect(body.Data.userdata).toMatchObject({ name: "Ronin Reg", displayName: "Ronin Reg", email: `${name}@example.com` });
       expect(body.Data.accessToken).toEqual(expect.any(String));
       expect(body.Data.refreshToken).toMatch(/^[0-9a-f]{128}$/);
     });
 
-    test("normalises the username to lowercase and trims input @positive", async ({ anon }) => {
+    test("lower-cases and trims the email; it signs in whatever its case @positive", async ({ anon }) => {
       const base = uniqueName("case");
-      const res = await anon.post("/auth/register", { username: `  ${base.toUpperCase()}  `, password: `  ${DEFAULT_PASSWORD}  ` });
+      const res = await anon.post("/auth/register", { displayName: "Case", email: `  ${base.toUpperCase()}@Example.COM  `, password: `  ${DEFAULT_PASSWORD}  ` });
       expect(res.status()).toBe(201);
-      expect((await json(res)).Data.userdata.name).toBe(base);
+      expect((await json(res)).Data.userdata.email).toBe(`${base}@example.com`);
 
-      const login = await anon.post("/auth/login", { username: base, password: DEFAULT_PASSWORD });
+      const login = await anon.post("/auth/login", { email: `${base.toUpperCase()}@EXAMPLE.com`, password: DEFAULT_PASSWORD });
       expect(login.status()).toBe(200);
     });
 
-    test("email is optional @positive", async ({ anon }) => {
-      const res = await anon.post("/auth/register", { username: uniqueName("noemail"), password: DEFAULT_PASSWORD });
+    test("display names don't have to be unique @positive", async ({ anon }) => {
+      for (let i = 0; i < 2; i++) {
+        const res = await anon.post("/auth/register", { displayName: "Ronin", email: `${uniqueName("same")}@example.com`, password: DEFAULT_PASSWORD });
+        expect(res.status(), `account ${i + 1}`).toBe(201);
+        expect((await json(res)).Data.userdata.name).toBe("Ronin");
+      }
+    });
+
+    test("with no name, the part of the email before @ is the name @positive", async ({ anon }) => {
+      const base = uniqueName("noname");
+      const res = await anon.post("/auth/register", { email: `${base}@example.com`, password: DEFAULT_PASSWORD });
       expect(res.status()).toBe(201);
+      expect((await json(res)).Data.userdata.name).toBe(base);
+    });
+
+    test("an app before 1.0.3 sending `username` still signs up (it's the name) @positive", async ({ anon }) => {
+      const base = uniqueName("old");
+      const res = await anon.post("/auth/register", { username: "OldApp Ronin", email: `${base}@example.com`, password: DEFAULT_PASSWORD });
+      expect(res.status()).toBe(201);
+      expect((await json(res)).Data.userdata.name).toBe("OldApp Ronin");
     });
 
     for (const [label, payload] of [
-      ["missing username", { password: DEFAULT_PASSWORD }],
-      ["missing password", { username: "someone" }],
-      ["blank username", { username: "   ", password: DEFAULT_PASSWORD }],
-      ["non-string password", { username: "someone", password: 123456 }],
+      ["missing email", { displayName: "someone", password: DEFAULT_PASSWORD }],
+      ["missing password", { displayName: "someone", email: "someone@example.com" }],
+      ["blank email", { email: "   ", password: DEFAULT_PASSWORD }],
+      ["non-string password", { email: "someone@example.com", password: 123456 }],
       ["empty body", {}],
     ] as const) {
       test(`rejects ${label} with 400 @negative`, async ({ anon }) => {
         const res = await anon.post("/auth/register", payload);
         expect(res.status()).toBe(400);
-        expect(await json(res)).toMatchObject({ error: "Username and password are required" });
+        expect(await json(res)).toMatchObject({ error: "Email and password are required" });
       });
     }
 
-    test("rejects a username shorter than 3 characters @negative", async ({ anon }) => {
-      const res = await anon.post("/auth/register", { username: "ab", password: DEFAULT_PASSWORD });
+    test("rejects something that isn't an email @negative", async ({ anon }) => {
+      const res = await anon.post("/auth/register", { displayName: "x", email: "just-a-name", password: DEFAULT_PASSWORD });
       expect(res.status()).toBe(400);
-      expect((await json(res)).error).toBe("Invalid input");
+      expect((await json(res)).error).toMatch(/valid email/);
     });
 
     test("rejects a password shorter than 6 characters @negative", async ({ anon }) => {
-      const res = await anon.post("/auth/register", { username: uniqueName("short"), password: "12345" });
+      const res = await anon.post("/auth/register", { email: `${uniqueName("short")}@example.com`, password: "12345" });
       expect(res.status()).toBe(400);
-      expect((await json(res)).error).toBe("Invalid input");
+      expect((await json(res)).error).toBe("Use a password of at least 6 characters.");
     });
 
-    test("rejects a duplicate username, case-insensitively, with 409 @negative", async ({ anon, user }) => {
-      const res = await anon.post("/auth/register", { username: user.username.toUpperCase(), password: `${DEFAULT_PASSWORD}-someone-else` });
+    test("rejects a duplicate email, case-insensitively, with 409 @negative", async ({ anon, user }) => {
+      const res = await anon.post("/auth/register", { displayName: "Someone Else", email: user.email.toUpperCase(), password: `${DEFAULT_PASSWORD}-someone-else` });
       expect(res.status()).toBe(409);
-      expect((await json(res)).error).toBe("Username is already taken");
+      expect((await json(res)).error).toBe("An account with this email already exists. Sign in, or reset its password.");
     });
 
-    test("repeating a sign-up that just succeeded signs you in instead of 'already taken' @positive", async ({ anon, user }) => {
+    test("repeating a sign-up that just succeeded signs you in instead of 'already exists' @positive", async ({ anon, user }) => {
       // A double click or a retry after a slow reply sends the same sign-up twice.
-      const res = await anon.post("/auth/register", { username: user.username, password: DEFAULT_PASSWORD });
+      const res = await anon.post("/auth/register", { displayName: user.username, email: user.email, password: DEFAULT_PASSWORD });
       expect(res.status()).toBe(201);
       expect((await json(res)).Data.accessToken).toBeTruthy();
     });
   });
 
   test.describe("login", () => {
-    test("returns fresh tokens for valid credentials @positive", async ({ anon, user }) => {
-      const res = await anon.post("/auth/login", { username: user.username, password: user.password });
+    test("returns fresh tokens for a valid email and password @positive", async ({ anon, user }) => {
+      const res = await anon.post("/auth/login", { email: user.email, password: user.password });
       expect(res.status()).toBe(200);
       const body = await json(res);
-      expect(body.Data.userdata.name).toBe(user.username);
+      expect(body.Data.userdata).toMatchObject({ name: user.username, email: user.email });
       expect(body.Data.accessToken).toEqual(expect.any(String));
       expect(body.Data.refreshToken).not.toBe(user.refreshToken);
     });
 
-    test("rejects a wrong password with 401 @negative", async ({ anon, user }) => {
-      const res = await anon.post("/auth/login", { username: user.username, password: "WrongPass123" });
-      expect(res.status()).toBe(401);
-      expect((await json(res)).error).toBe("Invalid credentials");
+    test("an app before 1.0.3 sending the email as `username` still signs in @positive", async ({ anon, user }) => {
+      expect((await anon.post("/auth/login", { username: user.email, password: user.password })).status()).toBe(200);
     });
 
-    test("rejects an unknown user with the same 401 (no user enumeration) @negative", async ({ anon }) => {
-      const res = await anon.post("/auth/login", { username: uniqueName("ghost"), password: DEFAULT_PASSWORD });
+    test("signing in with a name instead of the email is refused with a clear message @negative", async ({ anon, user }) => {
+      for (const body of [{ username: user.username, password: user.password }, { email: user.username, password: user.password }]) {
+        const res = await anon.post("/auth/login", body);
+        expect(res.status()).toBe(400);
+        expect((await json(res)).error).toBe("Sign in with your email address and password.");
+      }
+    });
+
+    test("rejects a wrong password with 401 @negative", async ({ anon, user }) => {
+      const res = await anon.post("/auth/login", { email: user.email, password: "WrongPass123" });
       expect(res.status()).toBe(401);
-      expect((await json(res)).error).toBe("Invalid credentials");
+      expect((await json(res)).error).toBe("Wrong email or password.");
+    });
+
+    test("rejects an unknown email with the same 401 (no account enumeration) @negative", async ({ anon }) => {
+      const res = await anon.post("/auth/login", { email: `${uniqueName("ghost")}@example.com`, password: DEFAULT_PASSWORD });
+      expect(res.status()).toBe(401);
+      expect((await json(res)).error).toBe("Wrong email or password.");
     });
 
     test("rejects missing credentials with 400 @negative", async ({ anon }) => {
-      const res = await anon.post("/auth/login", { username: "" });
+      const res = await anon.post("/auth/login", { email: "" });
       expect(res.status()).toBe(400);
+    });
+  });
+
+  test.describe("accounts made before email sign-in (PC)", () => {
+    test("one with no email still signs in with its old name, and is asked for an email @positive", async ({ anon, request }) => {
+      const user = await registerUser(request, API_URL);
+      const oldName = await makeLegacyPcAccount(user.email);
+      const res = await anon.post("/auth/login", { username: oldName, password: user.password });
+      expect(res.status()).toBe(200);
+      const body = await json(res);
+      expect(body.Data.userdata).toMatchObject({ name: oldName, email: null });
+      const me = await json(await new Api(request, API_URL, body.Data.accessToken).get("/auth/me"));
+      expect(me.Data).toMatchObject({ needsEmail: true, email: null, displayName: oldName });
+    });
+
+    test("adding an email (password-confirmed) makes it sign in by email only @positive", async ({ anon, request }) => {
+      const user = await registerUser(request, API_URL);
+      const oldName = await makeLegacyPcAccount(user.email);
+      const session = await json(await anon.post("/auth/login", { username: oldName, password: user.password }));
+      const api = new Api(request, API_URL, session.Data.accessToken);
+      const newEmail = `${uniqueName("added")}@example.com`;
+
+      const res = await api.patch("/auth/email", { email: newEmail.toUpperCase(), password: user.password });
+      expect(res.status()).toBe(200);
+      expect((await json(res)).Data).toMatchObject({ email: newEmail });
+      expect((await json(await api.get("/auth/me"))).Data.needsEmail).toBe(false);
+
+      expect((await anon.post("/auth/login", { email: newEmail, password: user.password })).status()).toBe(200);
+      // The old name is for accounts without an email only.
+      expect((await anon.post("/auth/login", { username: oldName, password: user.password })).status()).toBe(400);
+    });
+
+    test("adding an email needs the right password, a real email, and one no one else uses @negative", async ({ anon, request }) => {
+      const other = await registerUser(request, API_URL);
+      const user = await registerUser(request, API_URL);
+      const oldName = await makeLegacyPcAccount(user.email);
+      const api = new Api(request, API_URL, (await json(await anon.post("/auth/login", { username: oldName, password: user.password }))).Data.accessToken);
+
+      const wrong = await api.patch("/auth/email", { email: `${uniqueName("x")}@example.com`, password: "not-it" });
+      expect(wrong.status()).toBe(401);
+      expect((await json(wrong)).error).toBe("Wrong password.");
+
+      const notEmail = await api.patch("/auth/email", { email: "nope", password: user.password });
+      expect(notEmail.status()).toBe(400);
+
+      const taken = await api.patch("/auth/email", { email: other.email, password: user.password });
+      expect(taken.status()).toBe(409);
+      expect((await json(taken)).error).toBe("Another account already uses this email.");
+
+      expect((await json(await api.get("/auth/me"))).Data.needsEmail).toBe(true);
+    });
+
+    test("adding an email requires being signed in @negative", async ({ anon }) => {
+      expect((await anon.patch("/auth/email", { email: "a@example.com", password: "x" })).status()).toBe(401);
     });
   });
 
@@ -105,7 +189,7 @@ test.describe("Auth API", () => {
       const res = await api.get("/auth/me");
       expect(res.status()).toBe(200);
       const { Data } = await json(res);
-      expect(Data).toMatchObject({ username: user.username, email: user.email });
+      expect(Data).toMatchObject({ displayName: user.username, email: user.email, needsEmail: false });
       expect(Data).not.toHaveProperty("passwordHash");
     });
 
@@ -178,7 +262,7 @@ test.describe("Auth API", () => {
     });
 
     test("logout-all revokes every session of the user @positive", async ({ api, anon, user }) => {
-      const second = await json(await anon.post("/auth/login", { username: user.username, password: user.password }));
+      const second = await json(await anon.post("/auth/login", { email: user.email, password: user.password }));
       const res = await api.post("/auth/logout-all");
       expect(res.status()).toBe(200);
 
@@ -200,8 +284,8 @@ test.describe("Auth API", () => {
       const res = await api.patch("/auth/change-password", { currentPassword: user.password, newPassword: NEW_PASSWORD });
       expect(res.status()).toBe(200);
 
-      expect((await anon.post("/auth/login", { username: user.username, password: user.password })).status()).toBe(401);
-      expect((await anon.post("/auth/login", { username: user.username, password: NEW_PASSWORD })).status()).toBe(200);
+      expect((await anon.post("/auth/login", { email: user.email, password: user.password })).status()).toBe(401);
+      expect((await anon.post("/auth/login", { email: user.email, password: NEW_PASSWORD })).status()).toBe(200);
       expect((await anon.post("/auth/refresh", { refreshToken: user.refreshToken })).status()).toBe(401);
     });
 
@@ -240,11 +324,11 @@ test.describe("Auth API", () => {
       expect(res.status()).toBe(200);
       expect((await json(res)).Message).toBe("Account deleted successfully");
 
-      expect((await anon.post("/auth/login", { username: user.username, password: user.password })).status()).toBe(401);
+      expect((await anon.post("/auth/login", { email: user.email, password: user.password })).status()).toBe(401);
       // The old access token is still a validly-signed JWT, but the user is gone.
       expect((await api.get("/auth/me")).status()).toBe(404);
 
-      // The username is free again and the new account starts empty.
+      // The email is free again and the new account starts empty.
       const again = await registerUser(request, API_URL, { username: user.username });
       const lib = await request.get(`${API_URL}/game`, { headers: { Authorization: `Bearer ${again.accessToken}` } });
       expect((await json(lib)).Data).toEqual([]);
@@ -254,7 +338,7 @@ test.describe("Auth API", () => {
       const res = await api.delete("/auth/account", { password: "WrongPass123" });
       expect(res.status()).toBe(401);
       expect((await json(res)).error).toBe("Invalid password");
-      expect((await anon.post("/auth/login", { username: user.username, password: user.password })).status()).toBe(200);
+      expect((await anon.post("/auth/login", { email: user.email, password: user.password })).status()).toBe(200);
     });
 
     test("rejects a missing password @negative", async ({ api }) => {

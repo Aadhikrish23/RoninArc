@@ -16,22 +16,22 @@ test.describe("RoninArc Cloud in Settings", () => {
 
     await expectToast(page, "Your library is in the cloud");
     await expect(card(page).getByRole("textbox")).toHaveCount(0);
-    await expect(card(page).getByText(`Syncing as ${user.username}`)).toBeVisible();
+    await expect(card(page).getByText(`Syncing as ${user.email}`)).toBeVisible();
     await expect(card(page).getByText(/Last synced just now/)).toBeVisible();
 
-    const login = await request.post(`${CLOUD_URL}/auth/login`, { data: { username: user.username, password: user.password } });
+    const login = await request.post(`${CLOUD_URL}/auth/login`, { data: { email: user.email, password: user.password } });
     const token = (await login.json()).Data.accessToken;
     const games = await (await request.get(`${CLOUD_URL}/game`, { headers: { Authorization: `Bearer ${token}` } })).json();
     expect(games.Data.map((g: any) => g.title)).toEqual(["Hades"]);
   });
 
   test("stop syncing asks first and keeps the library @negative", async ({ authedPage: page, api, user }) => {
-    await api.post("/sync/link", { mode: "create", username: user.username, email: user.email, password: user.password });
+    await api.post("/sync/link", { mode: "create", email: user.email, password: user.password });
     await open(page, "/settings");
     await card(page).getByRole("button", { name: "Stop syncing" }).click();
     await expect(card(page).getByText(/Stop syncing this PC\?/)).toBeVisible();
     await card(page).getByRole("button", { name: "Keep syncing" }).click();
-    await expect(card(page).getByText(`Syncing as ${user.username}`)).toBeVisible();
+    await expect(card(page).getByText(`Syncing as ${user.email}`)).toBeVisible();
 
     await card(page).getByRole("button", { name: "Stop syncing" }).click();
     await card(page).getByRole("button", { name: "Stop syncing" }).click();
@@ -45,42 +45,33 @@ test.describe("RoninArc Cloud in Settings", () => {
     await open(page, "/settings");
     await card(page).getByRole("button", { name: "Sync to cloud" }).click();
     await expectToast(page, "Your library is in the cloud");
-    await expect(card(page).getByText(`Syncing as ${user.username}`)).toBeVisible();
+    await expect(card(page).getByText(`Syncing as ${user.email}`)).toBeVisible();
   });
 
-  test("a name that's already yours in the cloud: sign in to it and the library merges @positive", async ({ authedPage: page, request }) => {
-    const mine = await registerUser(request, CLOUD_URL, { username: uniqueName("mine") });
-    await page.route(/\/sync\/link$/, async (route: any) => {
-      const body = route.request().postDataJSON();
-      await route.continue({ postData: JSON.stringify({ ...body, username: body.username ?? mine.username }) });
-    });
+  test("your email already has a cloud account (made on the phone): enter its password and the library merges @positive", async ({ authedPage: page, request, user }) => {
+    await registerUser(request, CLOUD_URL, { username: "On The Phone", email: user.email, password: "Ph0nePass!" });
     await open(page, "/settings");
     await card(page).getByRole("button", { name: "Sync to cloud" }).click();
-    await expect(card(page).getByText("Username is already taken")).toBeVisible();
-    await card(page).getByLabel("Cloud username").fill(mine.username);
-    await card(page).getByLabel("Password").fill(mine.password);
+    await expect(card(page).getByText("already exists")).toBeVisible();
+    await expect(card(page).getByLabel("Cloud email")).toHaveValue(user.email);
+    await card(page).getByLabel("Cloud password").fill("Ph0nePass!");
     await card(page).getByRole("button", { name: "Sign in and sync" }).click();
     await expectToast(page, "Signed in to RoninArc Cloud");
-    await expect(card(page).getByText(`Syncing as ${mine.username}`)).toBeVisible();
+    await expect(card(page).getByText(`Syncing as ${user.email}`)).toBeVisible();
   });
 
-  test("a name someone else has: pick another and keep the same password @negative", async ({ authedPage: page, request }) => {
-    const taken = await registerUser(request, CLOUD_URL, { username: uniqueName("taken") });
-    await page.route(/\/sync\/link$/, async (route: any) => {
-      // This account's own name is free, so ask for the taken one on the first try.
-      const body = route.request().postDataJSON();
-      await route.continue({ postData: JSON.stringify({ ...body, username: body.username ?? taken.username }) });
-    });
+  test("'I already have a cloud account' signs in to another one by email; a wrong password says so @negative", async ({ authedPage: page, request }) => {
+    const other = await registerUser(request, CLOUD_URL, { username: uniqueName("other") });
     await open(page, "/settings");
-    await card(page).getByRole("button", { name: "Sync to cloud" }).click();
-    await expect(card(page).getByText("Username is already taken")).toBeVisible();
-
-    await card(page).getByRole("button", { name: "Use a different name" }).click();
-    await expect(card(page).getByLabel("Password")).toHaveCount(0);
-    await card(page).getByLabel("Cloud username").fill(uniqueName("other"));
-    await card(page).getByRole("button", { name: "Sync to cloud" }).click();
-    await expectToast(page, "Your library is in the cloud");
-    await expect(card(page).getByText(/Syncing as other/)).toBeVisible();
+    await card(page).getByRole("button", { name: "I already have a cloud account" }).click();
+    await card(page).getByLabel("Cloud email").fill(other.email);
+    await card(page).getByLabel("Cloud password").fill("not-the-password");
+    await card(page).getByRole("button", { name: "Sign in and sync" }).click();
+    await expect(card(page).getByText(/Wrong email or password/)).toBeVisible();
+    await card(page).getByLabel("Cloud password").fill(other.password);
+    await card(page).getByRole("button", { name: "Sign in and sync" }).click();
+    await expectToast(page, "Signed in to RoninArc Cloud");
+    await expect(card(page).getByText(`Syncing as ${other.email}`)).toBeVisible();
   });
 
   test("while Epic's first import runs: one progress button and no fake account details @positive", async ({ authedPage: page }) => {
@@ -127,10 +118,10 @@ test.describe("RoninArc Cloud in Settings", () => {
 
 test.describe("Forgot password on the sign-in page", () => {
   test("emails a link for an account that syncs @positive", async ({ page, api, user, request }) => {
-    await api.post("/sync/link", { mode: "create", username: user.username, email: user.email, password: user.password });
+    await api.post("/sync/link", { mode: "create", email: user.email, password: user.password });
     await open(page, "/login");
     await page.getByRole("button", { name: "Forgot password?" }).click();
-    await page.getByLabel("Email or username").fill(user.email);
+    await page.getByRole("dialog").getByLabel("Email", { exact: true }).fill(user.email);
     await page.getByRole("button", { name: "Email me a link" }).click();
     await expect(page.getByText(/If an account matches, we've emailed a link/)).toBeVisible();
 

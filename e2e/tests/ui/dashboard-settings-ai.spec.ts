@@ -124,7 +124,7 @@ test.describe("Settings", () => {
     await d.getByRole("textbox", { name: "Confirm password" }).fill("Another-Pass-77");
     await d.getByRole("button", { name: "Change password" }).click();
     await expect(page).toHaveURL(/#\/login$/);
-    expect((await anon.post("/auth/login", { username: user.username, password: "Another-Pass-77" })).status()).toBe(200);
+    expect((await anon.post("/auth/login", { email: user.email, password: "Another-Pass-77" })).status()).toBe(200);
   });
 
   test("mismatched new passwords are refused @negative", async ({ authedPage: page }) => {
@@ -163,7 +163,7 @@ test.describe("Settings", () => {
     await d.getByRole("textbox", { name: "Confirm password" }).fill("WrongPass123");
     await d.getByRole("button", { name: "Delete account" }).click();
     await expectToast(page, "Delete failed");
-    expect((await anon.post("/auth/login", { username: user.username, password: user.password })).status()).toBe(200);
+    expect((await anon.post("/auth/login", { email: user.email, password: user.password })).status()).toBe(200);
   });
 
   test("deletes the account with the right password @positive", async ({ authedPage: page, anon, user }) => {
@@ -173,7 +173,7 @@ test.describe("Settings", () => {
     await d.getByRole("textbox", { name: "Confirm password" }).fill(user.password);
     await d.getByRole("button", { name: "Delete account" }).click();
     await expect(page).toHaveURL(/#\/login$/);
-    expect((await anon.post("/auth/login", { username: user.username, password: user.password })).status()).toBe(401);
+    expect((await anon.post("/auth/login", { email: user.email, password: user.password })).status()).toBe(401);
   });
 });
 

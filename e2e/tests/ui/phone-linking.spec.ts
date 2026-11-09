@@ -4,22 +4,22 @@ import { expectToast, fillLogin, open } from "../../helpers/ui";
 import { byName } from "../../fixtures/catalog.mjs";
 import { CLOUD_URL } from "../../env";
 
-// Getting the library onto a phone: the "Sync with my other devices" box at sign-in, the cloud
-// name check while signing up, Connect your phone (QR + code) and the dashboard banner.
+// Getting the library onto a phone: the "Sync with my other devices" box at sign-in, email
+// sign-up, Connect your phone (QR + code) and the dashboard banner.
 
 test.describe("Sync with my other devices", () => {
   test("ticked by default: signing in links this PC to RoninArc Cloud @positive", async ({ page, user, api }) => {
     await open(page, "/login");
     await expect(page.getByRole("checkbox", { name: "Sync with my other devices" })).toBeChecked();
-    await fillLogin(page, user.username, user.password);
+    await fillLogin(page, user.email, user.password);
     await expectToast(page, "Syncing with your other devices");
-    expect(await json(await api.get("/sync/status"))).toMatchObject({ linked: true, cloudUsername: user.username });
+    expect(await json(await api.get("/sync/status"))).toMatchObject({ linked: true, cloudEmail: user.email });
   });
 
   test("unticked: signing in changes nothing about syncing, and it stays unticked next time @negative", async ({ page, user, api }) => {
     await open(page, "/login");
     await page.getByText("Sync with my other devices").click();
-    await fillLogin(page, user.username, user.password);
+    await fillLogin(page, user.email, user.password);
     await expect(page).toHaveURL(/#\/$/);
     expect((await json(await api.get("/sync/status"))).linked).toBe(false);
     await page.evaluate(() => sessionStorage.clear());
@@ -27,51 +27,48 @@ test.describe("Sync with my other devices", () => {
     await expect(page.getByRole("checkbox", { name: "Sync with my other devices" })).not.toBeChecked();
   });
 
-  test("the name is someone else's in the cloud: the sign-in works, Settings offers free names @negative", async ({ page, user, api, request }) => {
-    await registerUser(request, CLOUD_URL, { username: user.username, password: "Someone3lse!", email: `other-${user.username}@example.com` });
+  test("the email already has a cloud account with another password: the sign-in works, Settings asks for that password @negative", async ({ page, user, request }) => {
+    await registerUser(request, CLOUD_URL, { username: "Cloud Me", email: user.email, password: "Someone3lse!" });
     await open(page, "/login");
-    await fillLogin(page, user.username, user.password);
+    await fillLogin(page, user.email, user.password);
     await expectToast(page, "Sync needs your attention");
     await expect(page).toHaveURL(/#\/$/);
     await page.getByRole("button", { name: "Skip" }).click().catch(() => {});
 
     await open(page, "/settings");
-    const row = page.locator("#cloud").getByText("Sync needs your attention");
-    await expect(row).toBeVisible();
-    const pick = page.getByRole("button", { name: /^Sync as / }).first();
-    const name = (await pick.textContent())!.replace(/^Sync as /, "");
-    await pick.click();
-    await expect(page.getByText(`Syncing as ${name}`)).toBeVisible();
-    expect((await json(await api.get("/sync/status"))).cloudUsername).toBe(name);
+    await expect(page.locator("#cloud").getByText("Sync needs your attention")).toBeVisible();
+    await expect(page.locator("#cloud")).toContainText("already has a RoninArc Cloud account");
+    await page.getByRole("button", { name: "Enter its password" }).click();
+    await expect(page.getByRole("textbox", { name: "Cloud email" })).toHaveValue(user.email);
+    await page.getByLabel("Cloud password").fill("Someone3lse!");
+    await page.getByRole("button", { name: "Sign in and sync" }).click();
+    // Merged into the cloud account (the PC account takes its id); the app carries on as it.
+    await expect(page.getByText(`Syncing as ${user.email}`)).toBeVisible();
   });
 });
 
-test.describe("Sign-up checks the name in RoninArc Cloud", () => {
-  test("a taken name says so and offers free ones; picking one fills it in @negative", async ({ page, request }) => {
-    const taken = await registerUser(request, CLOUD_URL);
+test.describe("Sign-up", () => {
+  test("asks for a name, an email and a password; names don't have to be unique @positive", async ({ page, user }) => {
     await open(page, "/signup");
-    await page.getByRole("textbox", { name: "Username" }).fill(taken.username);
-    await expect(page.getByText("That name is taken in RoninArc Cloud")).toBeVisible();
-    const suggestion = page.getByRole("button").filter({ hasText: new RegExp(`^${taken.username.slice(0, 5)}`) }).first();
-    const name = (await suggestion.textContent())!;
-    await suggestion.click();
-    await expect(page.getByRole("textbox", { name: "Username" })).toHaveValue(name);
-    await expect(page.getByText("That name is taken in RoninArc Cloud")).toBeHidden();
-  });
-
-  test("no email: the sign-up still works, and Settings asks for what syncing needs @negative", async ({ page }) => {
-    await open(page, "/signup");
-    await page.getByRole("textbox", { name: "Username" }).fill(uniqueName("noemail"));
+    await expect(page.getByRole("textbox", { name: "Username" })).toHaveCount(0);
+    await page.getByRole("textbox", { name: "Name" }).fill(user.username);
+    await page.getByRole("textbox", { name: /^Email/ }).fill(`${uniqueName("signup")}@example.com`);
     await page.getByRole("textbox", { name: "Password", exact: true }).fill(DEFAULT_PASSWORD);
     await page.getByRole("textbox", { name: "Confirm password" }).fill(DEFAULT_PASSWORD);
     await page.getByRole("button", { name: "Sign up" }).click();
     await expectToast(page, "Signup successful");
-    await expectToast(page, "Sync needs your attention");
-    await page.getByRole("button", { name: "Skip" }).click().catch(() => {});
-    await open(page, "/settings");
-    await expect(page.locator("#cloud").getByText("Sync needs your attention")).toBeVisible();
-    await page.getByRole("button", { name: "Sync to cloud" }).click();
-    await expect(page.getByRole("textbox", { name: "Email" })).toBeVisible();
+  });
+
+  test("without an email it doesn't sign up @negative", async ({ page }) => {
+    let called = false;
+    page.on("request", (r) => r.url().includes("/auth/register") && (called = true));
+    await open(page, "/signup");
+    await page.getByRole("textbox", { name: "Name" }).fill("No Email");
+    await page.getByRole("textbox", { name: "Password", exact: true }).fill(DEFAULT_PASSWORD);
+    await page.getByRole("textbox", { name: "Confirm password" }).fill(DEFAULT_PASSWORD);
+    await page.getByRole("button", { name: "Sign up" }).click();
+    await expectToast(page, "Signup failed", "Enter your name, email and a password.");
+    expect(called).toBe(false);
   });
 });
 

@@ -7,14 +7,14 @@ import { keepGameDbIds, naturalFilters } from "../../../backend/src/modules/sync
 // A PC (the suite's backend, local mode) syncing with RoninArc Cloud (a second backend, cloud
 // mode). "On the phone" = calling the cloud's API directly, as the mobile app does.
 
-async function cloudSignIn(request: any, username: string, password = DEFAULT_PASSWORD): Promise<Api> {
-  const res = await request.post(`${CLOUD_URL}/auth/login`, { data: { username, password } });
+async function cloudSignIn(request: any, email: string, password = DEFAULT_PASSWORD): Promise<Api> {
+  const res = await request.post(`${CLOUD_URL}/auth/login`, { data: { email, password } });
   expect(res.status(), await res.text()).toBe(200);
   return new Api(request, CLOUD_URL, (await res.json()).Data.accessToken);
 }
 
 async function link(api: Api, user: RegisteredUser, extra: Record<string, unknown> = {}) {
-  const res = await api.post("/sync/link", { mode: "create", username: user.username, email: user.email, password: user.password, ...extra });
+  const res = await api.post("/sync/link", { mode: "create", email: user.email, password: user.password, ...extra });
   const body = await json(res);
   expect(res.status(), JSON.stringify(body)).toBe(200);
   return body;
@@ -38,9 +38,9 @@ test.describe("Sync with RoninArc Cloud", () => {
     await api.post(`/collection/${col._id}/games`, { gameId: hades._id });
 
     const status = await link(api, user);
-    expect(status).toMatchObject({ linked: true, cloudUsername: user.username, lastError: null, pending: { changes: 0, deletes: 0 } });
+    expect(status).toMatchObject({ linked: true, cloudEmail: user.email, lastError: null, pending: { changes: 0, deletes: 0 } });
 
-    const phone = await cloudSignIn(request, user.username);
+    const phone = await cloudSignIn(request, user.email);
     const cloudHades = await gameByTitle(phone, "Hades");
     expect(cloudHades._id).toBe(hades._id);
     expect((await json(await phone.get(`/notes/${hades._id}`))).Data.map((n: any) => n.content)).toEqual(["beat Meg first"]);
@@ -52,7 +52,7 @@ test.describe("Sync with RoninArc Cloud", () => {
   test("changes made on the phone reach the PC, and the PC's reach the phone @positive", async ({ api, user, request }) => {
     const celeste = await api.addGame(byName("Celeste"));
     await link(api, user);
-    const phone = await cloudSignIn(request, user.username);
+    const phone = await cloudSignIn(request, user.email);
 
     await phone.patch(`/game/${celeste._id}`, { progressStatus: "completed" });
     await phone.addGame(byName("Hollow Knight"));
@@ -70,7 +70,7 @@ test.describe("Sync with RoninArc Cloud", () => {
     const celeste = await api.addGame(byName("Celeste"));
     await api.post(`/notes/${celeste._id}`, { content: "strawberries" });
     await link(api, user);
-    const phone = await cloudSignIn(request, user.username);
+    const phone = await cloudSignIn(request, user.email);
 
     await api.delete(`/game/${hades._id}`);
     await syncNow(api);
@@ -86,7 +86,7 @@ test.describe("Sync with RoninArc Cloud", () => {
   test("a game's .exe path stays on its PC @negative", async ({ api, user, request }) => {
     const hades = await api.addGame(byName("Hades"), { exePath: "C:\\Games\\Hades\\Hades.exe" });
     await link(api, user);
-    const phone = await cloudSignIn(request, user.username);
+    const phone = await cloudSignIn(request, user.email);
     expect((await gameByTitle(phone, "Hades")).exePath ?? "").toBe("");
 
     await phone.patch(`/game/${hades._id}`, { progressStatus: "playing" });
@@ -99,7 +99,7 @@ test.describe("Sync with RoninArc Cloud", () => {
   test("the same game changed on both: the later change wins @positive", async ({ api, user, request }) => {
     const hades = await api.addGame(byName("Hades"));
     await link(api, user);
-    const phone = await cloudSignIn(request, user.username);
+    const phone = await cloudSignIn(request, user.email);
 
     await api.patch(`/game/${hades._id}`, { progressStatus: "paused" }); // earlier
     await new Promise((r) => setTimeout(r, 50));
@@ -111,7 +111,7 @@ test.describe("Sync with RoninArc Cloud", () => {
 
   test("the same game added on PC and phone becomes one game @positive", async ({ api, user, request }) => {
     await link(api, user);
-    const phone = await cloudSignIn(request, user.username);
+    const phone = await cloudSignIn(request, user.email);
     const onPhone = await phone.addGame(byName("Hades"));
     const onPc = await api.addGame(byName("Hades"));
     await api.post(`/notes/${onPc._id}`, { content: "from the pc" });
@@ -138,7 +138,7 @@ test.describe("Sync with RoninArc Cloud", () => {
 
   test("dismissed games sync without clashing @positive", async ({ api, user, request }) => {
     await link(api, user);
-    const phone = await cloudSignIn(request, user.username);
+    const phone = await cloudSignIn(request, user.email);
     for (const igdbId of [11, 12]) expect((await api.post("/recommendations/dismiss", { igdbId })).status()).toBe(200);
     expect((await phone.post("/recommendations/dismiss", { igdbId: 12 })).status()).toBe(200);
     expect((await phone.post("/recommendations/dismiss", { igdbId: 13 })).status()).toBe(200);
@@ -164,7 +164,7 @@ test.describe("Sync with RoninArc Cloud", () => {
     const pcCol = await api.createCollection("Favourites");
     await api.post(`/collection/${pcCol._id}/games`, { gameId: celeste._id });
 
-    const res = await link(api, user, { mode: "signin", username: cloudUser.username, password: cloudUser.password, email: undefined });
+    const res = await link(api, user, { mode: "signin", email: cloudUser.email, password: cloudUser.password });
     expect(res.moved).toBe(true);
     const pc = new Api(request, API_URL, res.session.accessToken);
     await syncNow(pc);
@@ -186,22 +186,22 @@ test.describe("Sync with RoninArc Cloud", () => {
     const phone = new Api(request, CLOUD_URL, cloudUser.accessToken);
     await phone.addGame(byName("Celeste"));
 
-    const res = await request.post(`${API_URL}/auth/login`, { data: { username: cloudUser.username, password: cloudUser.password } });
+    const res = await request.post(`${API_URL}/auth/login`, { data: { email: cloudUser.email, password: cloudUser.password } });
     expect(res.status(), await res.text()).toBe(200);
     const pc = new Api(request, API_URL, (await res.json()).Data.accessToken);
     expect(await titles(pc)).toEqual(["Celeste"]);
-    expect(await json(await pc.get("/sync/status"))).toMatchObject({ linked: true, cloudUsername: cloudUser.username });
+    expect(await json(await pc.get("/sync/status"))).toMatchObject({ linked: true, cloudEmail: cloudUser.email });
   });
 
   test("a wrong password still fails on the PC, cloud or not @negative", async ({ api, user, request }) => {
     await link(api, user);
-    const res = await request.post(`${API_URL}/auth/login`, { data: { username: user.username, password: "not-the-password" } });
+    const res = await request.post(`${API_URL}/auth/login`, { data: { email: user.email, password: "not-the-password" } });
     expect(res.status()).toBe(401);
   });
 
   test("changing the password on the phone: the PC asks to sign in again, then syncs @positive", async ({ api, user, request }) => {
     await link(api, user);
-    const phone = await cloudSignIn(request, user.username);
+    const phone = await cloudSignIn(request, user.email);
     expect((await phone.patch("/auth/change-password", { currentPassword: user.password, newPassword: "N3wPassw0rd!" })).status()).toBe(200);
 
     await syncNow(api);
@@ -218,21 +218,21 @@ test.describe("Sync with RoninArc Cloud", () => {
     expect(await titles(api)).toEqual(["Hades"]);
   });
 
-  test("linking twice, or with a name the cloud already has, is refused @negative", async ({ api, user, request }) => {
+  test("linking twice, or with an email the cloud already has, is refused @negative", async ({ api, user, request }) => {
     const taken = await registerUser(request, CLOUD_URL, { username: uniqueName("taken") });
-    const clash = await api.post("/sync/link", { mode: "create", username: taken.username, email: `${uniqueName()}@example.com`, password: DEFAULT_PASSWORD });
+    const clash = await api.post("/sync/link", { mode: "create", email: taken.email, password: DEFAULT_PASSWORD });
     expect(clash.status()).toBe(409);
     await link(api, user);
-    expect((await api.post("/sync/link", { mode: "create", username: user.username, email: user.email, password: user.password })).status()).toBe(409);
+    expect((await api.post("/sync/link", { mode: "create", email: user.email, password: user.password })).status()).toBe(409);
   });
 
   test("linking with no details uses this PC's account, and its password works in the cloud @positive", async ({ api, user, request }) => {
     await api.addGame(byName("Hades"));
     const res = await api.post("/sync/link", { mode: "create" });
     expect(res.status()).toBe(200);
-    expect(await json(res)).toMatchObject({ linked: true, cloudUsername: user.username, lastError: null, moved: false });
-    expect(await titles(await cloudSignIn(request, user.username, user.password))).toEqual(["Hades"]);
-    const wrong = await request.post(`${CLOUD_URL}/auth/login`, { data: { username: user.username, password: "not-the-password" } });
+    expect(await json(res)).toMatchObject({ linked: true, cloudEmail: user.email, lastError: null, moved: false });
+    expect(await titles(await cloudSignIn(request, user.email, user.password))).toEqual(["Hades"]);
+    const wrong = await request.post(`${CLOUD_URL}/auth/login`, { data: { email: user.email, password: "not-the-password" } });
     expect(wrong.status()).toBe(401);
   });
 
@@ -250,17 +250,17 @@ test.describe("Sync with RoninArc Cloud", () => {
   test("deleting the account on a linked PC deletes the cloud account too @positive", async ({ api, user, request }) => {
     await link(api, user);
     expect((await api.delete("/auth/account", { password: user.password })).status()).toBe(200);
-    const res = await request.post(`${CLOUD_URL}/auth/login`, { data: { username: user.username, password: user.password } });
+    const res = await request.post(`${CLOUD_URL}/auth/login`, { data: { email: user.email, password: user.password } });
     expect(res.status()).toBe(401);
   });
 });
 
 test.describe("RoninArc Cloud accounts", () => {
   test("cloud accounts need an email, and one account per email @negative", async ({ request }) => {
-    const noEmail = await request.post(`${CLOUD_URL}/auth/register`, { data: { username: uniqueName(), password: DEFAULT_PASSWORD } });
+    const noEmail = await request.post(`${CLOUD_URL}/auth/register`, { data: { displayName: uniqueName(), password: DEFAULT_PASSWORD } });
     expect(noEmail.status()).toBe(400);
     const first = await registerUser(request, CLOUD_URL);
-    const again = await request.post(`${CLOUD_URL}/auth/register`, { data: { username: uniqueName(), password: DEFAULT_PASSWORD, email: first.email.toUpperCase() } });
+    const again = await request.post(`${CLOUD_URL}/auth/register`, { data: { displayName: uniqueName(), password: `${DEFAULT_PASSWORD}-other`, email: first.email.toUpperCase() } });
     expect(again.status()).toBe(409);
   });
 
@@ -284,9 +284,9 @@ test.describe("RoninArc Cloud accounts", () => {
     expect((await request.post(`${CLOUD_URL}/auth/reset-password`, { data: { token, password: "Res3tPass!" } })).status()).toBe(200);
     expect((await request.post(`${CLOUD_URL}/auth/reset-password`, { data: { token, password: "Another1!" } })).status()).toBe(400);
 
-    expect((await request.post(`${CLOUD_URL}/auth/login`, { data: { username: user.username, password: "Res3tPass!" } })).status()).toBe(200);
+    expect((await request.post(`${CLOUD_URL}/auth/login`, { data: { email: user.email, password: "Res3tPass!" } })).status()).toBe(200);
     // The PC: the new password signs in (the cloud vouches for it, then its hash comes down).
-    expect((await request.post(`${API_URL}/auth/login`, { data: { username: user.username, password: "Res3tPass!" } })).status()).toBe(200);
+    expect((await request.post(`${API_URL}/auth/login`, { data: { email: user.email, password: "Res3tPass!" } })).status()).toBe(200);
   });
 
   test("forgot password never reveals whether an account exists @negative", async ({ request }) => {

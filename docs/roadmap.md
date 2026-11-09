@@ -60,8 +60,7 @@ Current release: **1.0.2**, on [GitHub releases](https://github.com/Aadhikrish23
 - **Link code and QR code:** "Connect your phone" on the PC shows a 6-digit code and a QR code. The phone signs in with no password and no cloud name.
 - **PC prompts:** a dismissible "Get your library on your phone" banner on the dashboard, and a permanent "Your phone" row in Settings.
 - **Sign-in checkbox:** "Sync with my other devices", ticked by default, on desktop login and sign-up. Offline, it links once the PC is online.
-- **Taken cloud names:** checked while you type; a silent sign-in when the name turns out to be yours; otherwise a "needs attention" notice with suggested free names or "It's mine".
-- **Email sign-in:** the cloud accepts the email as well as the username.
+- **Email sign-in only:** accounts sign in with email and password on the PC and the phone; names are display names and don't have to be unique. Old PC accounts without an email are asked to add one. An email that already has a cloud account links by its password (same person, libraries merge) or asks for it in Settings.
 
 **Housekeeping**
 - **Website:** shows the current version.

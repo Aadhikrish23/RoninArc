@@ -16,8 +16,8 @@ export async function expectToast(page: Page, title: string | RegExp, descriptio
   if (description) await expect(t).toContainText(description);
 }
 
-export async function fillLogin(page: Page, username: string, password: string, rememberMe = false) {
-  await page.getByRole("textbox", { name: "Username" }).fill(username);
+export async function fillLogin(page: Page, email: string, password: string, rememberMe = false) {
+  await page.getByRole("textbox", { name: "Email" }).fill(email);
   await page.getByRole("textbox", { name: "Password" }).fill(password);
   if (rememberMe) await page.getByText("Remember me").click();
   await page.getByRole("button", { name: "Log in" }).click();

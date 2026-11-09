@@ -36,7 +36,7 @@ export default function ForgotPassword() {
         ) : (
           <>
             <T tone="muted">{"We'll email you a link to set a new password."}</T>
-            <Field label="Email or username" value={identifier} onChangeText={setIdentifier} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" returnKeyType="send" onSubmitEditing={submit} />
+            <Field label="Email" value={identifier} onChangeText={setIdentifier} autoCapitalize="none" autoCorrect={false} keyboardType="email-address" returnKeyType="send" onSubmitEditing={submit} />
             {error ? (
               <T tone="danger" size="sm">
                 {error}

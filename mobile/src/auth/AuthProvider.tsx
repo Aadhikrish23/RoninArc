@@ -6,8 +6,9 @@ interface AuthState {
   ready: boolean;
   user: Session["user"] | null;
   /** `onWaking`: the cloud is waking up (up to a minute), so the screen can say so. */
-  signIn: (usernameOrEmail: string, password: string, onWaking?: () => void) => Promise<void>;
-  signUp: (username: string, email: string, password: string, onWaking?: () => void) => Promise<void>;
+  signIn: (email: string, password: string, onWaking?: () => void) => Promise<void>;
+  /** `name` is only shown in the app; you sign in with the email. */
+  signUp: (name: string, email: string, password: string, onWaking?: () => void) => Promise<void>;
   /** The 6-digit code (or scanned QR) from RoninArc on the PC: signs in to that account, no password. */
   signInWithCode: (code: string, onWaking?: () => void) => Promise<void>;
   signOut: () => Promise<void>;
@@ -15,7 +16,7 @@ interface AuthState {
 
 const AuthContext = createContext<AuthState | null>(null);
 
-type AuthPayload = { userdata: { name: string; email?: string }; accessToken: string; refreshToken: string };
+type AuthPayload = { userdata: { name: string; displayName?: string; email?: string | null }; accessToken: string; refreshToken: string };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
@@ -49,13 +50,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       ready,
       user,
-      signIn: async (username, password, onWaking) => {
+      signIn: async (email, password, onWaking) => {
         await wakeCloud(onWaking);
-        await start(await api<AuthPayload>("/auth/login", { method: "POST", body: { username: username.trim(), password }, auth: false, timeoutMs: 45_000, retry: 1 }));
+        await start(await api<AuthPayload>("/auth/login", { method: "POST", body: { email: email.trim(), password }, auth: false, timeoutMs: 45_000, retry: 1 }));
       },
-      signUp: async (username, email, password, onWaking) => {
+      signUp: async (name, email, password, onWaking) => {
         await wakeCloud(onWaking);
-        await start(await api<AuthPayload>("/auth/register", { method: "POST", body: { username: username.trim(), email: email.trim(), password }, auth: false, timeoutMs: 45_000, retry: 1 }));
+        await start(await api<AuthPayload>("/auth/register", { method: "POST", body: { displayName: name.trim(), email: email.trim(), password }, auth: false, timeoutMs: 45_000, retry: 1 }));
       },
       signInWithCode: async (code, onWaking) => {
         await wakeCloud(onWaking);

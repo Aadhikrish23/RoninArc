@@ -62,7 +62,7 @@ export default function ForgotPasswordModal({ isOpen, onClose }: { isOpen: boole
                 We'll email you a link to set a new one. This works for accounts that sync with RoninArc Cloud.
               </Text>
               <FormControl>
-                <FormLabel color="gray.200">Email or username</FormLabel>
+                <FormLabel color="gray.200">Email</FormLabel>
                 <Input
                   value={identifier}
                   onChange={(e) => setIdentifier(e.target.value)}

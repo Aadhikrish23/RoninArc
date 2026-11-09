@@ -15,7 +15,8 @@ export const syncSchemas: Record<string, Schema> = {
     properties: {
       available: { type: "boolean", description: "This build can reach RoninArc Cloud." },
       linked: { type: "boolean", description: "This account syncs with a RoninArc Cloud account." },
-      cloudUsername: { type: ["string", "null"] },
+      cloudUsername: { type: ["string", "null"], description: "The cloud account's internal handle." },
+      cloudEmail: { type: ["string", "null"], description: "The email this PC signs in to the cloud with (\"Syncing as ...\")." },
       lastSyncAt: { oneOf: [dateTime, { type: "null" }] },
       lastError: { type: ["string", "null"], description: "Why the last sync didn't finish, in plain words (e.g. offline)." },
       needsSignIn: { type: "boolean", description: "The cloud refused this PC's session (password changed elsewhere): sign in again." },
@@ -25,27 +26,27 @@ export const syncSchemas: Record<string, Schema> = {
         properties: { changes: { type: "integer", minimum: 0 }, deletes: { type: "integer", minimum: 0 } },
       },
       moved: { type: "boolean", description: "Linking took over an existing cloud account's id: use `session` from now on." },
-      session: { ...ref("TokenPair"), description: "New sign-in for this PC, when the account id changed." },
+      session: {
+        type: "object",
+        description: "New sign-in for this PC, when the account id changed.",
+        required: ["accessToken", "refreshToken"],
+        properties: { accessToken: { type: "string" }, refreshToken: { type: "string" }, userdata: ref("UserData") },
+      },
       phoneLinked: { type: "boolean", description: "A phone has signed in to this cloud account, so the PC stops offering \"get your library on your phone\"." },
       autoLink: {
         type: ["object", "null"],
         description: "\"Sync with my other devices\" was ticked at sign-in but this PC isn't linked yet.",
         properties: {
           waiting: { type: "boolean", description: "Waiting for internet; retried every minute." },
-          attention: { type: ["string", "null"], enum: ["name-taken", "failed", null], description: "Needs the person: `name-taken` means the name belongs to someone else in the cloud." },
+          attention: {
+            type: ["string", "null"],
+            enum: ["email-taken", "needs-email", "failed", null],
+            description: "Needs the person: `email-taken` means the email already has a cloud account with a different password (enter it to sync with it); `needs-email` means this account has no email yet.",
+          },
           message: { type: ["string", "null"] },
-          suggestions: { type: "array", items: { type: "string" }, description: "Free cloud names to offer instead." },
         },
       },
       result: { enum: ["linked", "waiting", "needs-attention", "unavailable"], description: "Only from `POST /sync/auto-link`." },
-    },
-  },
-  NameAvailability: {
-    type: "object",
-    required: ["available", "suggestions"],
-    properties: {
-      available: { type: "boolean" },
-      suggestions: { type: "array", items: { type: "string" }, description: "Up to three free names close to a taken one.", example: ["ronin-pc", "ronin2"] },
     },
   },
   LinkCode: {
@@ -61,8 +62,7 @@ export const syncSchemas: Record<string, Schema> = {
     required: ["mode"],
     properties: {
       mode: { enum: ["create", "signin"], description: "`create`: a new cloud account from this PC's library. `signin`: an existing cloud account (this PC's library merges into it)." },
-      username: { type: "string", description: "Required to sign in. To create, defaults to this PC's account.", example: "ronin" },
-      email: { type: "string", description: "To create, defaults to this PC's account (password resets go there).", example: "ronin@example.com" },
+      email: { type: "string", description: "Required to sign in. To create, defaults to this PC's account's email.", example: "ronin@example.com" },
       password: { type: "string", format: "password", description: "Required to sign in. To create, leave it out to keep this PC's password.", example: "Sup3rSecret!" },
     },
   },
@@ -109,6 +109,7 @@ export const syncSchemas: Record<string, Schema> = {
         properties: {
           id: { type: "string" },
           username: { type: "string" },
+          displayName: { type: ["string", "null"] },
           email: { type: ["string", "null"] },
           passwordHash: { type: "string" },
           phoneLinkedAt: { oneOf: [dateTime, { type: "null" }], description: "When a phone first signed in to this account." },
@@ -119,7 +120,7 @@ export const syncSchemas: Record<string, Schema> = {
   ForgotPasswordRequest: {
     type: "object",
     required: ["identifier"],
-    properties: { identifier: { type: "string", description: "The account's email address or username.", example: "ronin@example.com" } },
+    properties: { identifier: { type: "string", description: "The account's email address.", example: "ronin@example.com" } },
   },
   ResetPasswordRequest: {
     type: "object",
@@ -138,11 +139,11 @@ const forgotPassword = {
       tags: ["Auth"],
       summary: "Email a password reset link",
       description:
-        "Emails a single-use link (valid 30 minutes) to the account with this email or username. Always answers the same way, so it can't reveal who has an account. On a PC, accounts that sync with RoninArc Cloud reset through the cloud.",
+        "Emails a single-use link (valid 30 minutes) to the account with this email. Always answers the same way, so it can't reveal who has an account. On a PC, accounts that sync with RoninArc Cloud reset through the cloud.",
       requestBody: jsonBody(ref("ForgotPasswordRequest"), { identifier: "ronin@example.com" }),
       responses: {
         200: okMessage("Sent if an account matches.", "If an account matches, we've emailed a link to reset its password. Check your inbox (and spam)."),
-        400: appError("No email or username given.", "Enter your email address or username."),
+        400: appError("No email given.", "Enter your email address."),
         429: rateLimited,
         502: appError("RoninArc Cloud failed (on a PC).", "Couldn't ask RoninArc Cloud for a reset link."),
         503: appError("RoninArc Cloud isn't reachable or set up (on a PC).", "Couldn't reach RoninArc Cloud. Check your internet connection and try again."),
@@ -176,39 +177,28 @@ const cloudPaths = {
     post: {
       tags,
       summary: "Create a cloud account for a PC's library",
-      description: "Like `POST /auth/register`, but keeps the PC account's id so its library syncs without renumbering. Send `passwordHash` instead of `password` to keep the PC account's password.",
+      description:
+        "Like `POST /auth/register`, but keeps the PC account's id so its library syncs without renumbering. Send `passwordHash` instead of `password` to keep the PC account's password. `username` is the PC account's internal handle, kept when it's free here (PCs before 1.0.3 send only this, as the name too).",
       requestBody: jsonBody(
         {
           type: "object",
-          required: ["username", "email"],
+          required: ["email"],
           properties: {
-            username: { type: "string" },
             email: { type: "string" },
+            displayName: { type: "string" },
+            username: { type: "string", description: "The PC account's handle." },
             password: { type: "string", format: "password" },
             passwordHash: { type: "string", description: "The PC account's bcrypt hash (cost 10 to 12). Needs `userId`." },
             userId: { type: "string", description: "The PC account's id." },
           },
         },
-        { username: "ronin", password: "Sup3rSecret!", email: "ronin@example.com", userId: "6a8f00c2b1d3e4f5a6b7c8d9" },
+        { email: "ronin@example.com", displayName: "Ronin", username: "ronin", password: "Sup3rSecret!", userId: "6a8f00c2b1d3e4f5a6b7c8d9" },
       ),
       responses: {
         201: { description: "Account created and signed in.", content: { "application/json": { schema: { type: "object", properties: { Status: { const: "Success" }, Data: ref("AuthSession") } } } } },
-        400: appError("Missing or invalid fields (cloud accounts need an email).", "Enter a valid email address. It's how you reset a forgotten password."),
-        409: appError("Username or email taken, or the id is in use.", "Username is already taken", "An account with this email already exists. Sign in, or reset its password."),
+        400: appError("Missing or invalid fields.", "Email and password are required", "Enter a valid email address. You sign in with it, and it's how you reset a forgotten password."),
+        409: appError("The email already has an account, or the id is in use.", "An account with this email already exists. Sign in, or reset its password."),
         429: rateLimited,
-      },
-    },
-  },
-  "/sync/name-available": {
-    get: {
-      tags,
-      summary: "Is this cloud name free?",
-      description: "For sign-up forms, while typing. Says only taken or free, plus up to three free names near a taken one.",
-      parameters: [{ name: "username", in: "query", required: true, schema: { type: "string", minLength: 3 }, example: "ronin" }],
-      responses: {
-        200: { description: "Free or taken.", content: { "application/json": { schema: ref("NameAvailability") } } },
-        400: appError("Under 3 characters.", "Usernames are at least 3 characters."),
-        429: appError("Too many checks from this network.", "Too many name checks. Try again in a few minutes."),
       },
     },
   },
@@ -267,9 +257,9 @@ const cloudPaths = {
 };
 
 const cloudLinkError = {
-  400: appError("Missing or invalid fields.", "Username and password are required"),
+  400: appError("Missing or invalid fields, or no email on this account.", "Email and password are required", "Add your email to turn on sync."),
   401: responses.unauthorized,
-  409: appError("Already linked, or the cloud account name/email is taken.", "This account already syncs with RoninArc Cloud."),
+  409: appError("Already linked, or the email already has a cloud account.", "This account already syncs with RoninArc Cloud.", "That email already has a RoninArc Cloud account. Enter its password to sync with it."),
   502: appError("RoninArc Cloud failed.", "Couldn't create the cloud account."),
   503: appError("RoninArc Cloud isn't reachable, or isn't set up in this build.", "Couldn't reach RoninArc Cloud. Check your internet connection and try again."),
 };
@@ -294,7 +284,7 @@ const localPaths = {
       tags,
       summary: "Sync with my other devices (at sign-in)",
       description:
-        "Links like `POST /sync/link` in `create` mode but never fails: offline it waits and retries every minute; if the name is taken in the cloud, the just-typed `password` tries signing in to that account (merging when it's the same person); otherwise the status says it needs attention, with free names to offer.",
+        "Links like `POST /sync/link` in `create` mode but never fails: offline it waits and retries every minute; if the email already has a cloud account, the just-typed `password` tries signing in to it (merging, since it's the same person); otherwise the status says it needs attention (`email-taken`: enter that account's password; `needs-email`: add an email first).",
       security: bearerAuth,
       requestBody: jsonBody({ type: "object", properties: { password: { type: "string", format: "password", description: "Only to try the existing cloud account; not stored." } } }, { password: "Sup3rSecret!" }),
       responses: { 200: statusResponse("Linked, waiting, or needs attention (see `result`)."), 401: responses.unauthorized },
@@ -305,20 +295,6 @@ const localPaths = {
       description: "The person chose not to sync after all.",
       security: bearerAuth,
       responses: { 200: statusResponse("No longer waiting to link."), 401: responses.unauthorized },
-    },
-  },
-  "/sync/name-available": {
-    get: {
-      tags,
-      summary: "Is this name free in RoninArc Cloud?",
-      description: "For the sign-up form while typing (before there's an account, so no sign-in). Asks the cloud.",
-      parameters: [{ name: "username", in: "query", required: true, schema: { type: "string", minLength: 3 }, example: "ronin" }],
-      responses: {
-        200: { description: "Free or taken.", content: { "application/json": { schema: ref("NameAvailability") } } },
-        400: appError("Under 3 characters.", "Usernames are at least 3 characters."),
-        429: appError("Too many checks.", "Too many name checks. Try again in a few minutes."),
-        503: appError("RoninArc Cloud isn't reachable.", "Couldn't reach RoninArc Cloud. Check your internet connection and try again."),
-      },
     },
   },
   "/sync/phone-code": {

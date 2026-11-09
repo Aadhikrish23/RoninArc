@@ -75,7 +75,8 @@ Modules follow the same shape: routes, controller, service, Mongoose model. Ever
 ### Authentication
 
 - Passwords are hashed with bcrypt.
-- `POST /auth/login` accepts the username or the account's email (case-insensitive). Emails are unique in the cloud.
+- Accounts sign in with their email (case-insensitive) and password; emails are unique per database (checked in code). `displayName` is what the apps show and isn't unique. `username` stays as an internal unique handle (generated from the email, never typed or shown) because the unique index, sync and links key on it.
+- A PC account from before email sign-in (no email) can still sign in with its old name on that PC; `GET /auth/me` returns `needsEmail: true` and the app asks once per session for an email (`PATCH /auth/email`, password-confirmed; on a linked PC the cloud takes it first).
 - `POST /auth/login` and `POST /auth/register` return a JWT access token (15 minutes) and a single-use refresh token (stored as `RefreshToken`). `POST /auth/refresh` swaps the refresh token for a new pair.
 - "Remember me" on the desktop decides whether the refresh token is kept between launches.
 - In the cloud, a password change or reset sets a cutoff so every token issued before it stops working (`tokenCutoff.ts`).
@@ -105,9 +106,9 @@ Modules follow the same shape: routes, controller, service, Mongoose model. Ever
 - **Linking a PC:** `POST /sync/link` creates the cloud account with the PC account's id and password hash (`mode: "create"`), or signs in to an existing cloud account and merges (`mode: "signin"`). Settings → RoninArc Cloud → "Sync to cloud" calls it.
 - **"Sync with my other devices"** (desktop login and sign-up, ticked by default): after a local sign-in the UI calls `POST /sync/auto-link` in the background, which never blocks sign-in.
   - Offline, the choice is stored (`SyncIntent`) and the scheduler retries every minute.
-  - If the name is taken in the cloud, it silently tries the just-typed password on that cloud account (by username, then email). If that works it's the same person, so the libraries merge.
-  - Otherwise `/sync/status` reports `autoLink.attention: "name-taken"` with free names, and Settings shows "Sync needs your attention" (sync as a suggested name, another name, "It's mine" with that account's password, or "Not now").
-  - The sign-up form checks the name while you type (`GET /sync/name-available`, which the PC passes on to the cloud and which says only taken or free).
+  - If the email already has a cloud account, it silently tries the just-typed password on it. If that works it's the same person, so the libraries merge.
+  - Otherwise `/sync/status` reports `autoLink.attention: "email-taken"`, and Settings shows "Sync needs your attention" ("Enter its password" for that cloud account, or "Not now").
+  - An account with no email gets `attention: "needs-email"`; adding an email retries the link straight away.
   - Choosing "Stop syncing" or "Not now" makes the box start unticked from then on.
 - **Linking a phone:** a linked PC asks the cloud for a 6-digit code (`POST /sync/phone-code` on the PC, `POST /sync/link-code` in the cloud). It shows it in "Connect your phone" (`ConnectPhoneModal`) as a QR code of `roninarc://link/<code>` with the digits under it and a countdown.
   - The phone scans it (`expo-camera`) or types it, and `POST /sync/link-code/claim` returns a session, so there's no password on the phone.

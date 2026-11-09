@@ -92,13 +92,13 @@ export default function Settings() {
       <SettingsSection title="RoninArc Cloud" description="This phone and RoninArc on your PC share one library. Each keeps working offline and catches up when it's online.">
         <SettingsPanel>
           <SettingsRow
-            label={`Syncing as ${name}`}
+            label={`Syncing as ${user?.email ?? name}`}
             status={<StatusDot tone="ok">On</StatusDot>}
             detail={user?.via === "code" ? "Connected with a code from your PC." : "Signed in with your password."}
           />
           <SettingsRow
             label="Your PC"
-            detail={`On a PC, open RoninArc and sign in as ${name} (or with your email) with "Sync with my other devices" ticked. Already syncing there? Connect your phone shows a code that signs a phone in.`}
+            detail={`On a PC, open RoninArc and sign in with ${user?.email ?? "your email"} with "Sync with my other devices" ticked. Already syncing there? Connect your phone shows a code that signs a phone in.`}
             actions={<Button title="Use a code from a PC" size="sm" variant="outline" icon="maximize" onPress={() => router.push("/connect")} />}
           />
         </SettingsPanel>

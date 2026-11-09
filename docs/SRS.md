@@ -71,11 +71,14 @@ RoninArc lets a person:
 
 ### 3.1 Accounts and sessions
 
-- **FR-1.1** A player can register and sign in with a username and password. Sign-in also accepts the account's email instead of the username (case-insensitive), on the PC's cloud sign-in and on the phone.
-  - Usernames are at least 3 characters and stored in lower case.
+- **FR-1.1** A player registers with a display name, an email and a password, and signs in with the email and password, on the PC and on the phone.
+  - The email is required everywhere, unique per database (case-insensitive) and stored in lower case. It's also how a forgotten password is reset.
+  - The display name is only shown in the app and doesn't have to be unique. Without one, the part of the email before @ is used.
+  - Signing in with anything that isn't an email is refused with "Sign in with your email address and password." (400).
+  - Each account still has an internal unique handle (`username`), generated from the email and never typed or shown; sync and links key on it.
   - Passwords are at least 6 characters.
-  - On a PC the email is optional and never used. In the cloud a valid, unique email is required, because it's how a forgotten password is reset.
   - A repeated sign-up within 10 minutes with the same password signs the player in instead of failing.
+- **FR-1.1a** A PC account made before email sign-in has no email. It can still sign in on that PC with its old name, and is then asked once per session to add an email (`PATCH /auth/email`, confirmed by the password, rate-limited, unique; on a linked PC the cloud takes it first). Settings → Account shows "Add your email" until it's added.
 - **FR-1.1a** On a PC, when local sign-in fails, the PC tries the same details against RoninArc Cloud.
   - **New PC (or an account made on the phone):** a local account is created with the cloud account's id, the PC is linked, and the library comes down.
   - **After a password reset in the cloud:** the new password works on the PC.
@@ -169,10 +172,10 @@ RoninArc lets a person:
   - It never blocks or fails the local sign-in.
   - Offline, the choice is kept and retried every minute until the PC is online.
   - After "Stop syncing" or "Not now" the box starts unticked.
-- **FR-11.8** When the cloud name is already taken:
-  - the sign-up form says so while the player types, with up to three free names (the check says only taken or free)
-  - linking silently tries the just-typed password on that cloud account (by username, then email); if it works, the libraries merge
-  - otherwise the local account keeps working, and Settings shows "Sync needs your attention" once, offering a suggested free name, another name, "It's mine" (that account's password) or "Not now"
+- **FR-11.8** When the email already has a cloud account:
+  - linking silently tries the just-typed password on that cloud account; if it works, it's the same person and the libraries merge
+  - otherwise the local account keeps working, and Settings shows "Sync needs your attention" once, asking for that cloud account's password ("Enter its password") or "Not now"
+  - an account with no email (FR-1.1a) waits ("Add your email to turn on sync") and links as soon as an email is added
 - **FR-11.9** A linked PC can show a link code as digits and as a QR code (`roninarc://link/<code>`) from Settings → "Connect your phone" or the dashboard banner. A PC that isn't linked yet is linked first.
   - The phone scans the QR code or types the code and is signed in to the same cloud account with no password and no cloud name.
   - A code lasts 10 minutes, works once, and making a new one cancels the old one.
@@ -187,7 +190,7 @@ RoninArc lets a person:
 
 ### 3.13 Android app
 
-- **FR-13.1** A player can sign in (username or email), sign up and reset their password against RoninArc Cloud, or sign in by scanning or typing a link code from their PC (FR-11.9).
+- **FR-13.1** A player can sign in (email and password), sign up (name, email, password) and reset their password against RoninArc Cloud, or sign in by scanning or typing a link code from their PC (FR-11.9).
 - **FR-13.1a** While the cloud is waking up, sign-in and sign-up wait (up to about 100 seconds) and say "Waking up the server…" instead of failing.
 - **FR-13.1b** A phone with an empty library shows "Your games are on your PC" with "Scan code from your PC", "Enter code" and "No PC? Add a game here".
 - **FR-13.2** A player can browse their library, collections and dashboard, change statuses, rate, review, take notes and add games.

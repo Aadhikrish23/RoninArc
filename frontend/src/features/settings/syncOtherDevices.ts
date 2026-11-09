@@ -38,7 +38,7 @@ type Login = (user: AuthUser, accessToken: string, refreshToken: string, remembe
 /**
  * Right after a sign-in or sign-up with the box ticked: the same as pressing "Sync to cloud",
  * in the background. Never blocks or fails the sign-in. The password only tries the cloud
- * account of the same name (it's often the same person, signed up on the phone first).
+ * account with the same email (it's the same person, e.g. who signed up on the phone first).
  */
 export async function syncWithOtherDevices(opts: { password: string; rememberMe: boolean; email?: string; login: Login; toast: Toast }): Promise<SyncStatus | undefined> {
   let status: SyncStatus;
@@ -53,7 +53,8 @@ export async function syncWithOtherDevices(opts: { password: string; rememberMe:
 
   if (status.moved && status.session) {
     // Linked to the same person's existing cloud account: its id is this account's now.
-    opts.login({ name: status.cloudUsername ?? "", email: opts.email }, status.session.accessToken, status.session.refreshToken, opts.rememberMe);
+    const who = status.session.userdata;
+    opts.login({ name: who?.name ?? "", email: who?.email ?? opts.email }, status.session.accessToken, status.session.refreshToken, opts.rememberMe);
   }
   if (status.result === "linked") {
     opts.toast({ title: "Syncing with your other devices", description: "Sign in to RoninArc on your phone with the same account, or use Connect your phone in Settings.", status: "success", duration: 6000, isClosable: true });
@@ -64,8 +65,8 @@ export async function syncWithOtherDevices(opts: { password: string; rememberMe:
     opts.toast({
       title: "Sync needs your attention",
       description:
-        status.autoLink?.attention === "name-taken"
-          ? "Someone else already uses this name in RoninArc Cloud. Choose a name for syncing in Settings → RoninArc Cloud."
+        status.autoLink?.attention === "email-taken"
+          ? "Your email already has a RoninArc Cloud account with a different password. Enter that password in Settings → RoninArc Cloud to sync with it."
           : `${status.autoLink?.message ?? "Couldn't turn on sync."} See Settings → RoninArc Cloud.`,
       status: "warning",
       duration: 10000,

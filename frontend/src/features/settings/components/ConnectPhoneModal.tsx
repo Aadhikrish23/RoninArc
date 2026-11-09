@@ -55,13 +55,15 @@ export default function ConnectPhoneModal({ isOpen, onClose, onStatus }: { isOpe
     try {
       let status = await syncApi.status();
       if (!status.linked) {
-        // Same as "Sync to cloud". A taken name becomes "needs attention" in Settings instead of an error here.
+        // Same as "Sync to cloud". An email with another cloud account becomes "needs attention" in Settings.
         status = await syncApi.autoLink();
         onStatus?.(status);
         if (!status.linked) {
           setError(
-            status.autoLink?.attention === "name-taken"
-              ? "Someone else already uses this name in RoninArc Cloud. Choose a name for syncing under RoninArc Cloud in Settings, then connect your phone."
+            status.autoLink?.attention === "email-taken"
+              ? "Your email already has a RoninArc Cloud account with a different password. Enter that password under RoninArc Cloud in Settings, then connect your phone."
+              : status.autoLink?.attention === "needs-email"
+                ? "Add your email first (Settings → Account), then connect your phone."
               : status.autoLink?.waiting
                 ? "This PC can't reach RoninArc Cloud right now. Check your internet connection and try again."
                 : (status.autoLink?.message ?? "Couldn't turn on sync."),

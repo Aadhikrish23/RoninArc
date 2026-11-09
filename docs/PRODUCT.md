@@ -33,7 +33,8 @@ It brings every game you own into one place, whatever store it came from. You tr
 ### Windows desktop app (main product)
 
 - **Account:**
-  - A local account on the PC, with "Remember me" and "Sync with my other devices" (ticked by default). A cloud account made on the phone can also sign in on a PC (by username or email), and its library comes down.
+  - Sign in with an **email** and password. Sign-up asks for a name (shown in the app, doesn't have to be unique), an email and a password, with "Remember me" and "Sync with my other devices" (ticked by default). A cloud account made on the phone can also sign in on a PC with its email, and its library comes down.
+  - A PC account made before email sign-in (no email) still signs in with its old name and is asked once to add an email (password-confirmed); Settings keeps offering it until it's added.
   - Change password, sign out everywhere, delete the account.
 - **Library:**
   - Search IGDB and add games.
@@ -66,7 +67,7 @@ It brings every game you own into one place, whatever store it came from. You tr
   It also answers general game questions.
 - **Cloud sync and the phone:**
   - Ticking "Sync with my other devices" at sign-in (the default) puts the library in RoninArc Cloud in the background. If the PC is offline, it does this once it's back online.
-  - If the name is taken in the cloud, the sign-up form says so while you type. When the name turns out to be the player's own, the libraries merge. Otherwise Settings offers free names.
+  - If the email already has a cloud account (made on the phone first, say), the same password links to it and the libraries merge. A different password puts "Sync needs your attention" in Settings, which asks for that account's password.
   - "Connect your phone" (Settings, or the dashboard banner "Get your library on your phone") shows a QR code and a 6-digit code. The phone signs in by scanning or typing it, with no password.
   - Turning sync off keeps everything on the PC.
 - **Updates:** automatic, from GitHub releases, downloading only what changed. The app asks before restarting.
@@ -75,7 +76,7 @@ It brings every game you own into one place, whatever store it came from. You tr
 
 ### Android app (companion)
 
-- Sign in with username or email, sign up and forgot password against RoninArc Cloud, or sign in by scanning the PC's QR code or typing its 6-digit code. While the cloud wakes up, it says "Waking up the server…" instead of failing.
+- Sign in with email and password, sign up (name, email, password) and forgot password against RoninArc Cloud, or sign in by scanning the PC's QR code or typing its 6-digit code. While the cloud wakes up, it says "Waking up the server…" instead of failing.
 - An empty library shows "Your games are on your PC" with Scan code / Enter code.
 - Library home with collections and recommendations; all games; game page with status, rating, review and notes; collection pages.
 - Add games from IGDB search.

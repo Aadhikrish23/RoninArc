@@ -7,7 +7,7 @@ test.describe("Login page", () => {
   test("logs in with valid credentials and lands on the library @positive", async ({ page, user }) => {
     await open(page, "/login");
     await expect(page.getByRole("heading", { name: /Welcome back, Ronin/ })).toBeVisible();
-    await fillLogin(page, user.username, user.password);
+    await fillLogin(page, user.email, user.password);
 
     await expectToast(page, "Login successful", "Welcome back to RoninArc.");
     await expect(page).toHaveURL(/#\/$/);
@@ -17,7 +17,7 @@ test.describe("Login page", () => {
 
   test("without 'Remember me' the session lives in sessionStorage only @positive", async ({ page, user }) => {
     await open(page, "/login");
-    await fillLogin(page, user.username, user.password);
+    await fillLogin(page, user.email, user.password);
     await expect(page).toHaveURL(/#\/$/);
     const storage = await page.evaluate(() => ({
       local: localStorage.getItem("roninarc_token"),
@@ -29,7 +29,7 @@ test.describe("Login page", () => {
 
   test("with 'Remember me' the session survives a new tab @positive", async ({ page, user, context }) => {
     await open(page, "/login");
-    await fillLogin(page, user.username, user.password, true);
+    await fillLogin(page, user.email, user.password, true);
     await expect(page).toHaveURL(/#\/$/);
     expect(await page.evaluate(() => localStorage.getItem("roninarc_token"))).toEqual(expect.any(String));
     await page.getByRole("button", { name: "Skip" }).click();
@@ -39,10 +39,18 @@ test.describe("Login page", () => {
     await expect(second.getByRole("heading", { name: "Dashboard", exact: true })).toBeVisible();
   });
 
-  test("username is case-insensitive @positive", async ({ page, user }) => {
+  test("the email is case-insensitive @positive", async ({ page, user }) => {
     await open(page, "/login");
-    await fillLogin(page, user.username.toUpperCase(), user.password);
+    await fillLogin(page, user.email.toUpperCase(), user.password);
     await expect(page).toHaveURL(/#\/$/);
+  });
+
+  test("the name instead of the email is refused with a clear message @negative", async ({ page, user }) => {
+    await open(page, "/login");
+    await expect(page.getByRole("textbox", { name: "Username" })).toHaveCount(0);
+    await fillLogin(page, user.username, user.password);
+    await expectToast(page, "Login failed", "Sign in with your email address and password.");
+    await expect(page).toHaveURL(/#\/login$/);
   });
 
   test("the password visibility toggle reveals the password @positive", async ({ page }) => {
@@ -56,15 +64,15 @@ test.describe("Login page", () => {
 
   test("a wrong password shows an error and stays on the login page @negative", async ({ page, user }) => {
     await open(page, "/login");
-    await fillLogin(page, user.username, "WrongPass123");
-    await expectToast(page, "Login failed", "Invalid credentials");
+    await fillLogin(page, user.email, "WrongPass123");
+    await expectToast(page, "Login failed", "Wrong email or password.");
     await expect(page).toHaveURL(/#\/login$/);
   });
 
-  test("an unknown user shows the same error @negative", async ({ page }) => {
+  test("an unknown email shows the same error @negative", async ({ page }) => {
     await open(page, "/login");
-    await fillLogin(page, uniqueName("ghost"), DEFAULT_PASSWORD);
-    await expectToast(page, "Login failed", "Invalid credentials");
+    await fillLogin(page, `${uniqueName("ghost")}@example.com`, DEFAULT_PASSWORD);
+    await expectToast(page, "Login failed", "Wrong email or password.");
   });
 
   test("empty fields are rejected client-side without calling the API @negative", async ({ page }) => {
@@ -72,14 +80,14 @@ test.describe("Login page", () => {
     let called = false;
     page.on("request", (r) => r.url().includes("/auth/login") && (called = true));
     await page.getByRole("button", { name: "Log in" }).click();
-    await expectToast(page, "Login failed", "Please enter both username and password");
+    await expectToast(page, "Login failed", "Enter your email and password.");
     expect(called).toBe(false);
   });
 
   test("whitespace-only credentials are rejected @negative", async ({ page }) => {
     await open(page, "/login");
     await fillLogin(page, "   ", "   ");
-    await expectToast(page, "Login failed", "Please enter both username and password");
+    await expectToast(page, "Login failed", "Enter your email and password.");
   });
 
   test("the Sign up link opens the signup page @positive", async ({ page }) => {
@@ -90,8 +98,8 @@ test.describe("Login page", () => {
 });
 
 test.describe("Signup page", () => {
-  const fillSignup = async (page: any, f: { username?: string; email?: string; password?: string; confirm?: string }) => {
-    if (f.username !== undefined) await page.getByRole("textbox", { name: "Username" }).fill(f.username);
+  const fillSignup = async (page: any, f: { name?: string; email?: string; password?: string; confirm?: string }) => {
+    if (f.name !== undefined) await page.getByRole("textbox", { name: "Name" }).fill(f.name);
     if (f.email !== undefined) await page.getByRole("textbox", { name: "Email" }).fill(f.email);
     if (f.password !== undefined) await page.getByRole("textbox", { name: "Password", exact: true }).fill(f.password);
     if (f.confirm !== undefined) await page.getByRole("textbox", { name: "Confirm password" }).fill(f.confirm);
@@ -101,7 +109,7 @@ test.describe("Signup page", () => {
   test("creates an account, signs in and shows the onboarding wizard @positive", async ({ page }) => {
     const username = uniqueName("ui");
     await open(page, "/signup");
-    await fillSignup(page, { username, email: `${username}@example.com`, password: DEFAULT_PASSWORD, confirm: DEFAULT_PASSWORD });
+    await fillSignup(page, { name: username, email: `${username}@example.com`, password: DEFAULT_PASSWORD, confirm: DEFAULT_PASSWORD });
 
     await expectToast(page, "Signup successful", "Your RoninArc account has been created.");
     const wizard = page.getByRole("dialog", { name: "Welcome to RoninArc" });
@@ -110,20 +118,24 @@ test.describe("Signup page", () => {
     await expect(navbar(page)).toContainText(username);
   });
 
-  test("email is optional @positive", async ({ page }) => {
+  test("the email is required (you sign in with it) @negative", async ({ page }) => {
     await open(page, "/signup");
-    await fillSignup(page, { username: uniqueName("ui"), password: DEFAULT_PASSWORD, confirm: DEFAULT_PASSWORD });
-    await expectToast(page, "Signup successful");
+    await fillSignup(page, { name: uniqueName("ui"), password: DEFAULT_PASSWORD, confirm: DEFAULT_PASSWORD });
+    await expectToast(page, "Signup failed", "Enter your name, email and a password.");
+    await expect(page).toHaveURL(/#\/signup$/);
   });
 
   test("mismatched passwords are rejected @negative", async ({ page }) => {
     await open(page, "/signup");
-    await fillSignup(page, { username: uniqueName("ui"), password: DEFAULT_PASSWORD, confirm: "Different123" });
+    const name = uniqueName("ui");
+    await fillSignup(page, { name, email: `${name}@example.com`, password: DEFAULT_PASSWORD, confirm: "Different123" });
     await expectToast(page, "Signup failed", "Password and Confirm password must be the same");
     await expect(page).toHaveURL(/#\/signup$/);
   });
 
   test("an invalid email is flagged on blur and cleared, not sent @negative", async ({ page }) => {
+    let called = false;
+    page.on("request", (r) => r.url().endsWith("/auth/register") && (called = true));
     await open(page, "/signup");
     const email = page.getByRole("textbox", { name: "Email" });
     await email.fill("not-an-email");
@@ -131,28 +143,35 @@ test.describe("Signup page", () => {
     await expectToast(page, "Invalid Email", "Please enter a valid email address");
     await expect(email).toHaveValue("");
 
-    const sent = page.waitForRequest((r) => r.url().endsWith("/auth/register"));
-    await fillSignup(page, { username: uniqueName("ui"), password: DEFAULT_PASSWORD, confirm: DEFAULT_PASSWORD });
-    expect((await sent).postDataJSON().email).toBe("");
+    await fillSignup(page, { name: uniqueName("ui"), password: DEFAULT_PASSWORD, confirm: DEFAULT_PASSWORD });
+    await expectToast(page, "Signup failed", "Enter your name, email and a password.");
+    expect(called).toBe(false);
   });
 
-  test("missing username/password are rejected @negative", async ({ page }) => {
+  test("missing fields are rejected @negative", async ({ page }) => {
     await open(page, "/signup");
     await fillSignup(page, {});
-    await expectToast(page, "Signup failed", "Username and password are required");
+    await expectToast(page, "Signup failed", "Enter your name, email and a password.");
   });
 
-  test("a taken username shows the server error @negative", async ({ page, user }) => {
+  test("an email that already has an account shows the server error @negative", async ({ page, user }) => {
     await open(page, "/signup");
-    // Someone else trying the name (a repeat of your own just-made sign-up signs you in instead).
-    await fillSignup(page, { username: user.username, password: `${DEFAULT_PASSWORD}x9`, confirm: `${DEFAULT_PASSWORD}x9` });
-    await expectToast(page, "Signup failed", "Username is already taken");
+    // Someone else trying the email (a repeat of your own just-made sign-up signs you in instead).
+    await fillSignup(page, { name: "Someone", email: user.email, password: `${DEFAULT_PASSWORD}x9`, confirm: `${DEFAULT_PASSWORD}x9` });
+    await expectToast(page, "Signup failed", "An account with this email already exists. Sign in, or reset its password.");
+  });
+
+  test("the same name as someone else is fine @positive", async ({ page, user }) => {
+    await open(page, "/signup");
+    await fillSignup(page, { name: user.username, email: `${uniqueName("twin")}@example.com`, password: DEFAULT_PASSWORD, confirm: DEFAULT_PASSWORD });
+    await expectToast(page, "Signup successful");
   });
 
   test("a too-short password shows the server error @negative", async ({ page }) => {
     await open(page, "/signup");
-    await fillSignup(page, { username: uniqueName("ui"), password: "123", confirm: "123" });
-    await expectToast(page, "Signup failed", "Invalid input");
+    const name = uniqueName("ui");
+    await fillSignup(page, { name, email: `${name}@example.com`, password: "123", confirm: "123" });
+    await expectToast(page, "Signup failed", "Use a password of at least 6 characters.");
   });
 
   test("the Login link goes back to the login page @positive", async ({ page }) => {
@@ -165,7 +184,7 @@ test.describe("Signup page", () => {
 test.describe("Onboarding wizard", () => {
   test("'Skip' dismisses it for good @positive", async ({ page, user }) => {
     await open(page, "/login");
-    await fillLogin(page, user.username, user.password, true);
+    await fillLogin(page, user.email, user.password, true);
     const wizard = page.getByRole("dialog", { name: "Welcome to RoninArc" });
     await expect(wizard).toBeVisible();
     await expect(wizard).toContainText("Steam: available now");
@@ -178,7 +197,7 @@ test.describe("Onboarding wizard", () => {
 
   test("'Set Up Connections' goes to Settings @positive", async ({ page, user }) => {
     await open(page, "/login");
-    await fillLogin(page, user.username, user.password);
+    await fillLogin(page, user.email, user.password);
     await page.getByRole("button", { name: "Set Up Connections" }).click();
     await expect(page).toHaveURL(/#\/settings$/);
     await expect(page.getByRole("heading", { name: "Game sources" })).toBeVisible();
@@ -186,7 +205,7 @@ test.describe("Onboarding wizard", () => {
 
   test("cannot be dismissed with Escape @negative", async ({ page, user }) => {
     await open(page, "/login");
-    await fillLogin(page, user.username, user.password);
+    await fillLogin(page, user.email, user.password);
     const wizard = page.getByRole("dialog", { name: "Welcome to RoninArc" });
     await expect(wizard).toBeVisible();
     await page.keyboard.press("Escape");

@@ -30,8 +30,9 @@ The e2e suite (`e2e/tests/api/openapi.spec.ts`) fails if a route exists without 
 
 | Method | Path | Auth | What it does |
 |---|---|---|---|
-| POST | `/auth/register` | none | Create an account (rate limited in the cloud) |
-| POST | `/auth/login` | none | Sign in with a username **or email**, returns an access and refresh token (rate limited in the cloud). The phone app sends `X-RoninArc-Client: phone`, so a linked PC learns a phone uses the account |
+| POST | `/auth/register` | none | Create an account: `displayName`, `email`, `password` (rate limited in the cloud). Names don't have to be unique; emails do |
+| POST | `/auth/login` | none | Sign in with `email` and `password`; returns an access and refresh token (rate limited in the cloud). A name instead of an email gets 400. The phone app sends `X-RoninArc-Client: phone`, so a linked PC learns a phone uses the account |
+| PATCH | `/auth/email` | yes | Add an email to an account made before email sign-in (password-confirmed, rate limited) |
 | POST | `/auth/refresh` | none | Swap a refresh token for a new pair |
 | POST | `/auth/logout` | none | Sign out this device (revokes the refresh token) |
 | POST | `/auth/logout-all` | yes | Sign out every device |
@@ -128,11 +129,10 @@ In the cloud each person has a daily message allowance. Past it, `/ai/chat` retu
 
 | Method | Path | Mode | Auth | What it does |
 |---|---|---|---|---|
-| GET | `/sync/status` | PC | yes | Whether sync is available and linked, the cloud name, last sync, last error, whether it needs a fresh sign-in, pending changes, `phoneLinked` (a phone uses this account) and `autoLink` (`waiting`, `attention`, `message`, `suggestions`) |
-| POST | `/sync/link` | PC | yes | Start syncing: `mode: "create"` (new cloud account from this PC's account) or `"signin"` (existing cloud account, libraries merged) |
-| POST | `/sync/auto-link` | PC | yes | "Sync with my other devices" at sign-in. Links like `create` but never fails: offline it waits and retries every minute; if the name is taken it tries the just-typed password on that account (merging if it's the same person); otherwise the status says it needs attention, with free names. Returns `result`: `linked`, `waiting`, `needs-attention` or `unavailable` |
+| GET | `/sync/status` | PC | yes | Whether sync is available and linked, the cloud name, last sync, last error, whether it needs a fresh sign-in, pending changes, `cloudEmail` ("Syncing as ..."), `phoneLinked` (a phone uses this account) and `autoLink` (`waiting`, `attention`: `email-taken`, `needs-email` or `failed`, `message`) |
+| POST | `/sync/link` | PC | yes | Start syncing: `mode: "create"` (new cloud account from this PC's account) or `"signin"` with `email` and `password` (existing cloud account, libraries merged) |
+| POST | `/sync/auto-link` | PC | yes | "Sync with my other devices" at sign-in. Links like `create` but never fails: offline it waits and retries every minute; if the email already has a cloud account it tries the just-typed password on it (merging, since it's the same person); otherwise the status says it needs attention (`email-taken` or `needs-email`). Returns `result`: `linked`, `waiting`, `needs-attention` or `unavailable` |
 | DELETE | `/sync/auto-link` | PC | yes | Stop waiting to link ("Not now") |
-| GET | `/sync/name-available?username=...` | PC and Cloud | none | Whether a cloud name is free, plus up to three free names near a taken one. Says nothing else about the account. Rate limited. The PC passes the question on to the cloud |
 | POST | `/sync/phone-code` | PC | yes | Link the PC first if needed, then ask the cloud for a phone link code (shown with a QR code) |
 | POST | `/sync/reconnect` | PC | yes | Sign in to the cloud again after a password change |
 | POST | `/sync/now` | PC | yes | Sync now |

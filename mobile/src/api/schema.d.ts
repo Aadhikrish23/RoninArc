@@ -199,7 +199,7 @@ export interface paths {
         put?: never;
         /**
          * Create an account
-         * @description Creates a user and signs them in. Usernames are unique case-insensitively.
+         * @description Creates an account and signs it in. You sign in with the email; the display name is only shown in the app and doesn't have to be unique. Repeating a sign-up that just succeeded (same email and password, within 10 minutes) signs in instead of failing. Apps before 1.0.3 send the name as `username`, which still works.
          */
         post: {
             parameters: {
@@ -212,9 +212,9 @@ export interface paths {
                 content: {
                     /**
                      * @example {
-                     *       "username": "ronin",
-                     *       "password": "Sup3rSecret!",
-                     *       "email": "ronin@example.com"
+                     *       "displayName": "Ronin",
+                     *       "email": "ronin@example.com",
+                     *       "password": "Sup3rSecret!"
                      *     }
                      */
                     "application/json": components["schemas"]["RegisterRequest"];
@@ -234,7 +234,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing fields, or username < 3 / password < 6 characters. */
+                /** @description Missing or invalid email, or a password under 6 characters. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -243,13 +243,13 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "Username and password are required"
+                         *       "error": "Email and password are required"
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
                     };
                 };
-                /** @description Username already taken. */
+                /** @description The email already has an account. */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -258,7 +258,7 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "Username is already taken"
+                         *       "error": "An account with this email already exists. Sign in, or reset its password."
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
@@ -283,7 +283,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in
-         * @description `username` can also be the account's email address. Unknown users and wrong passwords get the same 401, so usernames can't be probed. The phone app sends `X-RoninArc-Client: phone`, which tells a linked PC that a phone uses this account.
+         * @description Sign in with the account's email and password. A name instead of an email is refused with 400, except on a PC for an account made before email sign-in that has no email yet (it signs in, and the app then asks for an email). Unknown emails and wrong passwords get the same 401. Apps before 1.0.3 send the email as `username`, which still works. The phone app sends `X-RoninArc-Client: phone`, which tells a linked PC that a phone uses this account.
          */
         post: {
             parameters: {
@@ -296,7 +296,7 @@ export interface paths {
                 content: {
                     /**
                      * @example {
-                     *       "username": "ronin",
+                     *       "email": "ronin@example.com",
                      *       "password": "Sup3rSecret!"
                      *     }
                      */
@@ -317,7 +317,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or too-short credentials. */
+                /** @description No email (or not an email) or no password. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -326,13 +326,13 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "Username and password are required"
+                         *       "error": "Sign in with your email address and password."
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
                     };
                 };
-                /** @description Wrong username or password. */
+                /** @description Wrong email or password. */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -341,7 +341,7 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "Invalid credentials"
+                         *       "error": "Wrong email or password."
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
@@ -579,6 +579,119 @@ export interface paths {
         options?: never;
         head?: never;
         patch?: never;
+        trace?: never;
+    };
+    "/auth/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Add or change the account's email
+         * @description For accounts made before email sign-in, which need an email to sign in again and to sync. The current password confirms it. On a PC that syncs, RoninArc Cloud takes the email first. At most 10 tries per 15 minutes per account.
+         */
+        patch: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "email": "ronin@example.com",
+                     *       "password": "Sup3rSecret!"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SetEmailRequest"];
+                };
+            };
+            responses: {
+                /** @description Email saved. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @constant */
+                            Status: "Success";
+                            Data: components["schemas"]["UserData"];
+                        };
+                    };
+                };
+                /** @description Not an email, or no password. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Enter a valid email address. You sign in with it, and it's how you reset a forgotten password."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+                /** @description Wrong password (or not signed in). */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Wrong password."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+                /** @description Another account uses the email. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Another account already uses this email."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+                /** @description Too many tries. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Too many tries. Wait a few minutes."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+            };
+        };
         trace?: never;
     };
     "/auth/change-password": {
@@ -4481,7 +4594,7 @@ export interface paths {
         put?: never;
         /**
          * Email a password reset link
-         * @description Emails a single-use link (valid 30 minutes) to the account with this email or username. Always answers the same way, so it can't reveal who has an account. On a PC, accounts that sync with RoninArc Cloud reset through the cloud.
+         * @description Emails a single-use link (valid 30 minutes) to the account with this email. Always answers the same way, so it can't reveal who has an account. On a PC, accounts that sync with RoninArc Cloud reset through the cloud.
          */
         post: {
             parameters: {
@@ -4516,7 +4629,7 @@ export interface paths {
                         "application/json": components["schemas"]["SuccessMessage"];
                     };
                 };
-                /** @description No email or username given. */
+                /** @description No email given. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -4525,7 +4638,7 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "Enter your email address or username."
+                         *       "error": "Enter your email address."
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
@@ -4703,7 +4816,7 @@ export interface paths {
         put?: never;
         /**
          * Create a cloud account for a PC's library
-         * @description Like `POST /auth/register`, but keeps the PC account's id so its library syncs without renumbering. Send `passwordHash` instead of `password` to keep the PC account's password.
+         * @description Like `POST /auth/register`, but keeps the PC account's id so its library syncs without renumbering. Send `passwordHash` instead of `password` to keep the PC account's password. `username` is the PC account's internal handle, kept when it's free here (PCs before 1.0.3 send only this, as the name too).
          */
         post: {
             parameters: {
@@ -4716,15 +4829,18 @@ export interface paths {
                 content: {
                     /**
                      * @example {
+                     *       "email": "ronin@example.com",
+                     *       "displayName": "Ronin",
                      *       "username": "ronin",
                      *       "password": "Sup3rSecret!",
-                     *       "email": "ronin@example.com",
                      *       "userId": "6a8f00c2b1d3e4f5a6b7c8d9"
                      *     }
                      */
                     "application/json": {
-                        username: string;
                         email: string;
+                        displayName?: string;
+                        /** @description The PC account's handle. */
+                        username?: string;
                         /** Format: password */
                         password?: string;
                         /** @description The PC account's bcrypt hash (cost 10 to 12). Needs `userId`. */
@@ -4748,7 +4864,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid fields (cloud accounts need an email). */
+                /** @description Missing or invalid fields. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -4757,13 +4873,13 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "Enter a valid email address. It's how you reset a forgotten password."
+                         *       "error": "Email and password are required"
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
                     };
                 };
-                /** @description Username or email taken, or the id is in use. */
+                /** @description The email already has an account, or the id is in use. */
                 409: {
                     headers: {
                         [name: string]: unknown;
@@ -4772,7 +4888,7 @@ export interface paths {
                         /**
                          * @example {
                          *       "Status": "Fail",
-                         *       "error": "Username is already taken"
+                         *       "error": "An account with this email already exists. Sign in, or reset its password."
                          *     }
                          */
                         "application/json": components["schemas"]["AppError"];
@@ -4795,78 +4911,6 @@ export interface paths {
                 };
             };
         };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sync/name-available": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Is this cloud name free?
-         * @description For sign-up forms, while typing. Says only taken or free, plus up to three free names near a taken one.
-         */
-        get: {
-            parameters: {
-                query: {
-                    /** @example ronin */
-                    username: string;
-                };
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Free or taken. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["NameAvailability"];
-                    };
-                };
-                /** @description Under 3 characters. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Usernames are at least 3 characters."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description Too many checks from this network. */
-                429: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Too many name checks. Try again in a few minutes."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-            };
-        };
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -5192,10 +5236,11 @@ export interface components {
         ProgressStatus: "none" | "plan" | "playing" | "paused" | "completed" | "dropped";
         Credentials: {
             /**
-             * @description Trimmed and lower-cased; at least 3 characters.
-             * @example ronin
+             * Format: email
+             * @description The account's email address (case doesn't matter).
+             * @example ronin@example.com
              */
-            username: string;
+            email: string;
             /**
              * Format: password
              * @description Trimmed; at least 6 characters.
@@ -5203,33 +5248,62 @@ export interface components {
              */
             password: string;
         };
-        RegisterRequest: components["schemas"]["Credentials"] & {
+        RegisterRequest: {
             /**
-             * @description Optional contact email.
+             * @description The name shown in the app. Not unique. Defaults to the part of the email before @.
+             * @example Ronin
+             */
+            displayName?: string;
+            /**
+             * Format: email
+             * @description How you sign in, and where password resets go. One account per email.
              * @example ronin@example.com
              */
-            email?: string;
+            email: string;
+            /**
+             * Format: password
+             * @example Sup3rSecret!
+             */
+            password: string;
+        };
+        UserData: {
+            /**
+             * @description The display name (same as `displayName`; kept for older apps).
+             * @example Ronin
+             */
+            name: string;
+            /** @example Ronin */
+            displayName: string;
+            /**
+             * @description Null only for a PC account made before email sign-in.
+             * @example ronin@example.com
+             */
+            email?: string | null;
+            /**
+             * Format: date-time
+             * @example 2026-10-09T14:03:12.000Z
+             */
+            updatedAt?: string;
         };
         /** @description Returned by register and login. */
         AuthSession: {
-            userdata: {
-                /**
-                 * @description The (lower-cased) username.
-                 * @example ronin
-                 */
-                name: string;
-                /** @example ronin@example.com */
-                email?: string;
-                /**
-                 * Format: date-time
-                 * @example 2026-10-09T14:03:12.000Z
-                 */
-                updatedAt?: string;
-            };
+            userdata: components["schemas"]["UserData"];
             /** @description JWT, valid for 15 minutes. Send as `Authorization: Bearer <token>`. */
             accessToken: string;
             /** @description Opaque token, valid 30 days, single-use (rotated on refresh). */
             refreshToken: string;
+        };
+        SetEmailRequest: {
+            /**
+             * Format: email
+             * @example ronin@example.com
+             */
+            email: string;
+            /**
+             * Format: password
+             * @description The account's current password, to confirm it's you.
+             */
+            password: string;
         };
         TokenPair: {
             accessToken: string;
@@ -5245,10 +5319,17 @@ export interface components {
              * @example 6a1f0c2b9e4d3a0012ab34cd
              */
             id: string;
-            /** @example ronin */
+            /**
+             * @description Internal handle, never typed or shown. Apps show `displayName`.
+             * @example ronin
+             */
             username: string;
+            /** @example Ronin */
+            displayName: string;
             /** @example ronin@example.com */
-            email?: string;
+            email?: string | null;
+            /** @description A PC account made before email sign-in: the app asks for an email once. */
+            needsEmail: boolean;
             /**
              * Format: date-time
              * @example 2026-10-09T14:03:12.000Z
@@ -5902,7 +5983,10 @@ export interface components {
             available: boolean;
             /** @description This account syncs with a RoninArc Cloud account. */
             linked: boolean;
+            /** @description The cloud account's internal handle. */
             cloudUsername?: string | null;
+            /** @description The email this PC signs in to the cloud with ("Syncing as ..."). */
+            cloudEmail?: string | null;
             lastSyncAt?: string | null;
             /** @description Why the last sync didn't finish, in plain words (e.g. offline). */
             lastError?: string | null;
@@ -5915,7 +5999,11 @@ export interface components {
             /** @description Linking took over an existing cloud account's id: use `session` from now on. */
             moved?: boolean;
             /** @description New sign-in for this PC, when the account id changed. */
-            session?: components["schemas"]["TokenPair"];
+            session?: {
+                accessToken: string;
+                refreshToken: string;
+                userdata?: components["schemas"]["UserData"];
+            };
             /** @description A phone has signed in to this cloud account, so the PC stops offering "get your library on your phone". */
             phoneLinked?: boolean;
             /** @description "Sync with my other devices" was ticked at sign-in but this PC isn't linked yet. */
@@ -5923,30 +6011,17 @@ export interface components {
                 /** @description Waiting for internet; retried every minute. */
                 waiting?: boolean;
                 /**
-                 * @description Needs the person: `name-taken` means the name belongs to someone else in the cloud.
+                 * @description Needs the person: `email-taken` means the email already has a cloud account with a different password (enter it to sync with it); `needs-email` means this account has no email yet.
                  * @enum {string|null}
                  */
-                attention?: "name-taken" | "failed" | null;
+                attention?: "email-taken" | "needs-email" | "failed" | null;
                 message?: string | null;
-                /** @description Free cloud names to offer instead. */
-                suggestions?: string[];
             } | null;
             /**
              * @description Only from `POST /sync/auto-link`.
              * @enum {unknown}
              */
             result?: "linked" | "waiting" | "needs-attention" | "unavailable";
-        };
-        NameAvailability: {
-            available: boolean;
-            /**
-             * @description Up to three free names close to a taken one.
-             * @example [
-             *       "ronin-pc",
-             *       "ronin2"
-             *     ]
-             */
-            suggestions: string[];
         };
         LinkCode: {
             /**
@@ -5967,12 +6042,7 @@ export interface components {
              */
             mode: "create" | "signin";
             /**
-             * @description Required to sign in. To create, defaults to this PC's account.
-             * @example ronin
-             */
-            username?: string;
-            /**
-             * @description To create, defaults to this PC's account (password resets go there).
+             * @description Required to sign in. To create, defaults to this PC's account's email.
              * @example ronin@example.com
              */
             email?: string;
@@ -6045,6 +6115,7 @@ export interface components {
             user: {
                 id?: string;
                 username?: string;
+                displayName?: string | null;
                 email?: string | null;
                 passwordHash?: string;
                 /** @description When a phone first signed in to this account. */
@@ -6053,7 +6124,7 @@ export interface components {
         };
         ForgotPasswordRequest: {
             /**
-             * @description The account's email address or username.
+             * @description The account's email address.
              * @example ronin@example.com
              */
             identifier: string;

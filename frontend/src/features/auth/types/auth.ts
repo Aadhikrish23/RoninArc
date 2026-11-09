@@ -1,7 +1,9 @@
 export interface RegisterSuccess {
   userdata: {
+    /** The display name. */
     name: string;
-    email?: string;
+    displayName?: string;
+    email?: string | null;
     updatedAt: string;
   };
   accessToken: string;
@@ -10,8 +12,10 @@ export interface RegisterSuccess {
 
 export interface LoginSuccess {
   userdata: {
+    /** The display name. */
     name: string;
-    email?: string;
+    displayName?: string;
+    email?: string | null;
     updatedAt: string;
   };
   accessToken: string;

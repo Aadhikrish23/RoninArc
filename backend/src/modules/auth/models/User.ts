@@ -1,7 +1,11 @@
 import mongoose from "mongoose";
 
 interface UserDocument extends mongoose.Document {
+  /** Internal unique handle (sync, links). Never typed or shown: people sign in with their email. */
   username: string;
+  /** The name shown in the app. Not unique. Older accounts don't have one: their username is it. */
+  displayName?: string;
+  /** How people sign in. Unique per database (checked in code). PC accounts made before 1.0.3 may lack one. */
   email?: string;
   passwordHash: string;
   tokensValidAfter?: Date;
@@ -41,8 +45,15 @@ const userSchema = new mongoose.Schema<UserDocument>(
       unique: true,
       lowercase: true,
     },
+    displayName: {
+      type: String,
+      trim: true,
+      maxLength: 60,
+    },
     email: {
       type: String,
+      trim: true,
+      lowercase: true,
     },
     passwordHash: {
       type: String,
@@ -94,5 +105,10 @@ const userSchema = new mongoose.Schema<UserDocument>(
 );
 
 const usermodel = mongoose.model<UserDocument>("User", userSchema);
+
+/** What the app calls this person: their display name, or (older accounts) their username. */
+export function displayNameOf(user: { displayName?: string | null; username?: string | null } | null | undefined): string {
+  return (user?.displayName || user?.username || "").trim();
+}
 
 export default usermodel;

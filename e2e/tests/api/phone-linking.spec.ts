@@ -1,23 +1,24 @@
 import { test, expect } from "../../fixtures/test";
 import { Api, DEFAULT_PASSWORD, json, registerUser, uniqueName } from "../../helpers/api";
+import { makeLegacyPcAccount } from "../../helpers/db";
 import { byName } from "../../fixtures/catalog.mjs";
 import { API_URL, CLOUD_URL } from "../../env";
 
 // Getting a PC's library onto a phone without Settings: the "Sync with my other devices" box at
-// sign-in (auto-link), a 6-digit code / QR the PC shows, a phone trading it for a session, the
-// cloud-name check while typing, and signing in with an email.
+// sign-in (auto-link), a 6-digit code / QR the PC shows, a phone trading it for a session, and
+// email sign-in (an email that already has a cloud account, or an account with no email yet).
 
 const status = async (api: Api) => json(await api.get("/sync/status"));
 const claim = (request: any, code: string) => request.post(`${CLOUD_URL}/sync/link-code/claim`, { data: { code } });
-const cloudLogin = (request: any, username: string, password = DEFAULT_PASSWORD, headers: Record<string, string> = {}) =>
-  request.post(`${CLOUD_URL}/auth/login`, { data: { username, password }, headers });
+const cloudLogin = (request: any, email: string, password = DEFAULT_PASSWORD, headers: Record<string, string> = {}) =>
+  request.post(`${CLOUD_URL}/auth/login`, { data: { email, password }, headers });
 
 test.describe("Sync with my other devices (auto-link at sign-in)", () => {
   test("links this PC straight away and uploads the library @positive", async ({ api, user, request }) => {
     const hades = await api.addGame(byName("Hades"));
     const body = await json(await api.post("/sync/auto-link", { password: user.password }));
-    expect(body).toMatchObject({ result: "linked", linked: true, cloudUsername: user.username, autoLink: null, moved: false });
-    const phone = await cloudLogin(request, user.username);
+    expect(body).toMatchObject({ result: "linked", linked: true, cloudEmail: user.email, autoLink: null, moved: false });
+    const phone = await cloudLogin(request, user.email);
     const cloud = new Api(request, CLOUD_URL, (await phone.json()).Data.accessToken);
     expect(((await json(await cloud.get("/game"))).Data as any[]).map((g) => g._id)).toEqual([hades._id]);
   });
@@ -28,42 +29,65 @@ test.describe("Sync with my other devices (auto-link at sign-in)", () => {
     expect(again).toMatchObject({ result: "linked", linked: true, moved: false });
   });
 
-  test("the same person signed up on the phone first: signs in to that account and merges @positive", async ({ request }) => {
+  test("signed up on the phone first (same email and password): signs in to that account and merges @positive", async ({ request }) => {
     const name = uniqueName("same");
     // The phone made the cloud account first, with a game in it.
     const onPhone = await registerUser(request, CLOUD_URL, { username: name });
     const phone = new Api(request, CLOUD_URL, onPhone.accessToken);
     await phone.addGame(byName("Celeste"));
-    // Then the PC account, same name and password, with its own game.
-    const pcUser = await registerUser(request, API_URL, { username: name, email: `pc-${name}@example.com` });
+    // Then the PC account, same email and password, with its own game.
+    const pcUser = await registerUser(request, API_URL, { username: "On The PC", email: onPhone.email });
     const pc = new Api(request, API_URL, pcUser.accessToken);
     await pc.addGame(byName("Hades"));
 
     const body = await json(await pc.post("/sync/auto-link", { password: DEFAULT_PASSWORD }));
-    expect(body).toMatchObject({ result: "linked", linked: true, moved: true });
+    expect(body).toMatchObject({ result: "linked", linked: true, moved: true, cloudEmail: onPhone.email });
     expect(body.session?.accessToken).toEqual(expect.any(String));
+    // The app carries on as the cloud account (its name, the same email).
+    expect(body.session.userdata).toMatchObject({ email: onPhone.email });
     const after = new Api(request, API_URL, body.session.accessToken);
     await after.post("/sync/now");
     const titles = ((await json(await after.get("/game"))).Data as any[]).map((g) => g.title).sort();
     expect(titles).toEqual(["Celeste", "Hades"]);
   });
 
-  test("the name belongs to someone else in the cloud: needs attention, with free names to offer @negative", async ({ api, user, request }) => {
-    await registerUser(request, CLOUD_URL, { username: user.username, password: "Someone3lse!", email: `other-${user.username}@example.com` });
+  test("the email already has a cloud account with another password: needs attention, then its password links it @negative", async ({ api, user, request }) => {
+    await registerUser(request, CLOUD_URL, { username: "Cloud Me", email: user.email, password: "Someone3lse!" });
     const body = await json(await api.post("/sync/auto-link", { password: user.password }));
-    expect(body).toMatchObject({ result: "needs-attention", linked: false, autoLink: { waiting: false, attention: "name-taken" } });
-    expect(body.autoLink.suggestions.length).toBeGreaterThan(0);
+    expect(body).toMatchObject({
+      result: "needs-attention",
+      linked: false,
+      autoLink: { waiting: false, attention: "email-taken", message: "That email already has a RoninArc Cloud account. Enter its password to sync with it." },
+    });
+    expect(body.autoLink).not.toHaveProperty("suggestions");
     // The local account is untouched: still signed in, still working.
     expect((await api.get("/game")).status()).toBe(200);
 
-    // Picking a suggested name links it and clears the notice.
-    const pick = body.autoLink.suggestions[0];
-    const linked = await json(await api.post("/sync/link", { mode: "create", username: pick }));
-    expect(linked).toMatchObject({ linked: true, cloudUsername: pick, autoLink: null });
+    // A wrong password keeps it waiting; the cloud account's password links and merges.
+    expect((await api.post("/sync/link", { mode: "signin", email: user.email, password: "not-it-either" })).status()).toBe(401);
+    const linked = await json(await api.post("/sync/link", { mode: "signin", email: user.email, password: "Someone3lse!" }));
+    expect(linked).toMatchObject({ linked: true, cloudEmail: user.email, autoLink: null, moved: true });
+  });
+
+  test("an account with no email waits for one; adding it turns sync on @positive", async ({ anon, request }) => {
+    const u = await registerUser(request, API_URL);
+    const oldName = await makeLegacyPcAccount(u.email);
+    const pc = new Api(request, API_URL, (await json(await anon.post("/auth/login", { username: oldName, password: u.password }))).Data.accessToken);
+
+    const body = await json(await pc.post("/sync/auto-link", { password: u.password }));
+    expect(body).toMatchObject({ result: "needs-attention", linked: false, autoLink: { attention: "needs-email", message: "Add your email to turn on sync." } });
+    expect((await pc.post("/sync/link", { mode: "create" })).status()).toBe(400);
+
+    const email = `${uniqueName("later")}@example.com`;
+    expect((await pc.patch("/auth/email", { email, password: u.password })).status()).toBe(200);
+    // It links in the background right after.
+    await expect.poll(async () => (await status(pc)).linked, { timeout: 30_000 }).toBe(true);
+    expect(await status(pc)).toMatchObject({ cloudEmail: email, autoLink: null });
+    expect((await cloudLogin(request, email, u.password)).status()).toBe(200);
   });
 
   test("'not now' drops the pending link @positive", async ({ api, user, request }) => {
-    await registerUser(request, CLOUD_URL, { username: user.username, password: "Someone3lse!", email: `x-${user.username}@example.com` });
+    await registerUser(request, CLOUD_URL, { username: "Cloud Me", email: user.email, password: "Someone3lse!" });
     await api.post("/sync/auto-link", { password: user.password });
     expect((await status(api)).autoLink).not.toBeNull();
     expect((await json(await api.delete("/sync/auto-link"))).autoLink).toBeNull();
@@ -73,27 +97,10 @@ test.describe("Sync with my other devices (auto-link at sign-in)", () => {
     expect((await anon.post("/sync/auto-link", {})).status()).toBe(401);
     expect((await anon.post("/sync/phone-code")).status()).toBe(401);
   });
-});
 
-test.describe("Is the name free in RoninArc Cloud? (sign-up form)", () => {
-  test("a free name is free; a taken one offers free names near it @positive", async ({ anon, request }) => {
-    const free = uniqueName("free");
-    expect(await json(await anon.get("/sync/name-available", { username: free }))).toEqual({ available: true, suggestions: [] });
-
-    const taken = await registerUser(request, CLOUD_URL);
-    const body = await json(await anon.get("/sync/name-available", { username: taken.username.toUpperCase() }));
-    expect(body.available).toBe(false);
-    expect(body.suggestions.length).toBeGreaterThan(0);
-    for (const s of body.suggestions) {
-      expect(s).not.toBe(taken.username);
-      expect((await json(await anon.get("/sync/name-available", { username: s }))).available).toBe(true);
-    }
-  });
-
-  test("too short is rejected @negative", async ({ anon }) => {
-    const res = await anon.get("/sync/name-available", { username: "ab" });
-    expect(res.status()).toBe(400);
-    expect((await json(res)).error).toBe("Usernames are at least 3 characters.");
+  test("there's no cloud name check any more (names don't have to be unique) @negative", async ({ request }) => {
+    expect((await request.get(`${API_URL}/sync/name-available`, { params: { username: "ronin" } })).status()).toBe(404);
+    expect((await request.get(`${CLOUD_URL}/sync/name-available`, { params: { username: "ronin" } })).status()).toBe(404);
   });
 });
 
@@ -119,7 +126,7 @@ test.describe("A code (and QR) from the PC signs the phone in", () => {
     const res = await claim(request, `roninarc://link/${code}`);
     expect(res.status(), await res.text()).toBe(200);
     const session = (await res.json()).Data;
-    expect(session.userdata.name).toBe(user.username);
+    expect(session.userdata).toMatchObject({ name: user.username, email: user.email });
     const phone = new Api(request, CLOUD_URL, session.accessToken);
     expect(((await json(await phone.get("/game"))).Data as any[]).map((g) => g.title)).toEqual(["Hades"]);
 
@@ -152,25 +159,28 @@ test.describe("A code (and QR) from the PC signs the phone in", () => {
 });
 
 test.describe("Signing in with an email", () => {
-  test("the cloud accepts the account's email as well as its name, in any case @positive", async ({ request }) => {
+  test("the cloud takes the account's email in any case, and refuses its name @positive", async ({ request }) => {
     const u = await registerUser(request, CLOUD_URL);
     const res = await cloudLogin(request, u.email.toUpperCase());
     expect(res.status(), await res.text()).toBe(200);
     expect((await res.json()).Data.userdata.name).toBe(u.username);
     expect((await cloudLogin(request, u.email, "Wr0ngPass!")).status()).toBe(401);
+    const byName = await request.post(`${CLOUD_URL}/auth/login`, { data: { username: u.username, password: DEFAULT_PASSWORD } });
+    expect(byName.status()).toBe(400);
+    expect((await byName.json()).error).toBe("Sign in with your email address and password.");
   });
 
-  test("a PC sign-in with the cloud account's email brings the account down under its real name @positive", async ({ request }) => {
-    const u = await registerUser(request, CLOUD_URL);
-    const res = await request.post(`${API_URL}/auth/login`, { data: { username: u.email, password: DEFAULT_PASSWORD } });
+  test("a PC sign-in with the cloud account's email brings the account down, name and all @positive", async ({ request }) => {
+    const u = await registerUser(request, CLOUD_URL, { username: "Phone Person", email: `${uniqueName("down")}@example.com` });
+    const res = await request.post(`${API_URL}/auth/login`, { data: { email: u.email, password: DEFAULT_PASSWORD } });
     expect(res.status(), await res.text()).toBe(200);
-    expect((await res.json()).Data.userdata.name).toBe(u.username);
+    expect((await res.json()).Data.userdata).toMatchObject({ name: "Phone Person", email: u.email });
   });
 
   test("a phone signing in tells the PC a phone uses the account @positive", async ({ api, user, request }) => {
     await api.post("/sync/link", { mode: "create" });
     expect((await status(api)).phoneLinked).toBe(false);
-    expect((await cloudLogin(request, user.username, DEFAULT_PASSWORD, { "X-RoninArc-Client": "phone" })).status()).toBe(200);
+    expect((await cloudLogin(request, user.email, DEFAULT_PASSWORD, { "X-RoninArc-Client": "phone" })).status()).toBe(200);
     await api.post("/sync/now");
     expect((await status(api)).phoneLinked).toBe(true);
   });

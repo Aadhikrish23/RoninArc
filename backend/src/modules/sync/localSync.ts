@@ -144,6 +144,7 @@ async function applyRemoteDelete(del: { coll: string; id: string; deletedAt: str
 async function applyProfile(user: any) {
   if (!user?.id || !mongoose.isValidObjectId(user.id)) return;
   const set: any = { passwordHash: user.passwordHash, email: user.email ?? undefined };
+  if (user.displayName) set.displayName = user.displayName;
   if (user.username) {
     const taken = await usermodel.collection.findOne({ username: user.username, _id: { $ne: new mongoose.Types.ObjectId(user.id) } });
     if (!taken) set.username = user.username;
@@ -299,6 +300,8 @@ export async function status(userIdRaw: string) {
     available: !!cloudApiUrl(),
     linked: !!link,
     cloudUsername: link?.cloudUsername ?? null,
+    /** What this PC signs in to the cloud with ("Syncing as ..."). */
+    cloudEmail: link ? link.cloudEmail ?? (await usermodel.collection.findOne({ _id: userId }))?.email ?? null : null,
     lastSyncAt: link?.lastSyncAt ?? null,
     lastError: link?.lastError ?? null,
     needsSignIn: !!link?.needsSignIn,
@@ -307,19 +310,9 @@ export async function status(userIdRaw: string) {
     phoneLinked: !!link?.phoneLinkedAt,
     /** "Sync with my other devices" was ticked but isn't linked yet: waiting for internet, or for the person. */
     autoLink: intent
-      ? { waiting: !intent.attention, attention: intent.attention ?? null, message: intent.message ?? null, suggestions: intent.suggestions ?? [] }
+      ? { waiting: !intent.attention, attention: intent.attention ?? null, message: intent.message ?? null }
       : null,
   };
-}
-
-/** Whether a name is free in RoninArc Cloud (for the sign-up form), and free ones near it. */
-export async function nameAvailable(username: string): Promise<{ available: boolean; suggestions: string[] }> {
-  try {
-    const { data } = await http(15_000).get("/sync/name-available", { params: { username } });
-    return { available: !!data?.available, suggestions: Array.isArray(data?.suggestions) ? data.suggestions : [] };
-  } catch (error) {
-    throw cloudError(error, "Couldn't check that name.");
-  }
 }
 
 /** A code (and QR) a phone uses to sign in to this PC's cloud account, no password needed. */
@@ -338,13 +331,17 @@ const isTaken = (error: any) => error instanceof AppError && error.statusCode ==
 // No answer, or the cloud still waking up (its host answers 502/503 meanwhile).
 const isOffline = (error: any) => error instanceof AppError && (error.statusCode === 503 || error.statusCode === 502);
 
+export const EMAIL_TAKEN_MESSAGE = "That email already has a RoninArc Cloud account. Enter its password to sync with it.";
+export const NEEDS_EMAIL_MESSAGE = "Add your email to turn on sync.";
+
 /**
  * "Sync with my other devices", ticked at sign-in. Links this account as if "Sync to cloud" was
  * pressed; never fails the sign-in.
  *  - Offline: remembered, and the scheduler tries again every minute.
- *  - The name is taken in the cloud: with the password just typed, try signing in to it (it's
- *    often the same person, e.g. who signed up on the phone first) and merge. Otherwise it
- *    "needs attention": Settings offers free names, or "It's mine".
+ *  - The email already has a cloud account: with the password just typed, try signing in to it
+ *    (it's usually the same person, e.g. who signed up on the phone first) and merge. Otherwise
+ *    it "needs attention": Settings asks for that account's password.
+ *  - No email yet (an account from before email sign-in): waits until one is added.
  * `moved`/`session` as for link(): the account id changed, so the app signs in afresh.
  */
 export async function autoLink(userIdRaw: string, password?: string) {
@@ -352,6 +349,12 @@ export async function autoLink(userIdRaw: string, password?: string) {
   if (!cloudApiUrl()) return { result: "unavailable" as const, moved: false, userId: userIdRaw, status: await status(userIdRaw) };
   if (await SyncLink.exists({ userId })) return { result: "linked" as const, moved: false, userId: userIdRaw, status: await status(userIdRaw) };
   await SyncIntent.updateOne({ userId }, { $setOnInsert: { attention: null } }, { upsert: true });
+
+  const account: any = await usermodel.collection.findOne({ _id: userId });
+  if (!account?.email) {
+    await SyncIntent.updateOne({ userId }, { $set: { attention: "needs-email", message: NEEDS_EMAIL_MESSAGE } });
+    return { result: "needs-attention" as const, moved: false, userId: userIdRaw, status: await status(userIdRaw) };
+  }
 
   try {
     const done = await link(userIdRaw, { mode: "create" });
@@ -361,25 +364,27 @@ export async function autoLink(userIdRaw: string, password?: string) {
       await SyncIntent.updateOne({ userId }, { $set: { attention: null, message: error.message } });
       return { result: "waiting" as const, moved: false, userId: userIdRaw, status: await status(userIdRaw) };
     }
-    const account: any = await usermodel.collection.findOne({ _id: userId });
     if (isTaken(error) && password) {
-      // The same person's account? Their name, then their email, with the password they just typed.
-      for (const name of [account?.username, account?.email].filter(Boolean)) {
-        try {
-          const done = await link(userIdRaw, { mode: "signin", username: String(name), password });
-          return { result: "linked" as const, ...done };
-        } catch {
-          /* not theirs (or not this one): next */
-        }
+      // The same person's cloud account? Their email, with the password they just typed.
+      try {
+        const done = await link(userIdRaw, { mode: "signin", email: String(account.email), password });
+        return { result: "linked" as const, ...done };
+      } catch {
+        /* a different password: ask the person */
       }
     }
-    const suggestions = isTaken(error) && account?.username ? await nameAvailable(account.username).then((r) => r.suggestions).catch(() => []) : [];
     await SyncIntent.updateOne(
       { userId },
-      { $set: { attention: isTaken(error) ? "name-taken" : "failed", message: error?.message ?? "Couldn't turn on sync.", suggestions } },
+      { $set: { attention: isTaken(error) ? "email-taken" : "failed", message: isTaken(error) ? EMAIL_TAKEN_MESSAGE : error?.message ?? "Couldn't turn on sync." } },
     );
     return { result: "needs-attention" as const, moved: false, userId: userIdRaw, status: await status(userIdRaw) };
   }
+}
+
+/** An email was just added: a "Sync with my other devices" that waited for one tries again. */
+export async function autoLinkIfWaiting(userIdRaw: string) {
+  const intent: any = await SyncIntent.findOne({ userId: new mongoose.Types.ObjectId(userIdRaw) }).lean();
+  if (intent && (intent.attention === "needs-email" || intent.attention === null)) await autoLink(userIdRaw);
 }
 
 /** The person chose not to sync after all ("Not now" on the notice, or "Stop syncing"). */
@@ -388,10 +393,13 @@ export async function dropAutoLink(userIdRaw: string) {
   return status(userIdRaw);
 }
 
-async function saveLink(userId: mongoose.Types.ObjectId, cloudUsername: string, tokens: { accessToken: string; refreshToken: string }) {
+async function saveLink(userId: mongoose.Types.ObjectId, cloud: { username: string; email: string | null }, tokens: { accessToken: string; refreshToken: string }) {
   await SyncLink.updateOne(
     { userId },
-    { $set: { cloudUrl: cloudApiUrl(), cloudUsername, ...tokens, needsSignIn: false, lastError: null }, $setOnInsert: { cursor: null } },
+    {
+      $set: { cloudUrl: cloudApiUrl(), cloudUsername: cloud.username || cloud.email || "account", cloudEmail: cloud.email, ...tokens, needsSignIn: false, lastError: null },
+      $setOnInsert: { cursor: null },
+    },
     { upsert: true },
   );
 }
@@ -410,37 +418,48 @@ async function moveLocalAccount(from: mongoose.Types.ObjectId, to: mongoose.Type
 
 /**
  * Link this PC's account.
- *  - "create": a new cloud account with this account's id; everything here goes up. Whatever
- *    isn't given comes from this PC's account, so its password works on the phone too.
- *  - "signin": an existing cloud account; this PC's data moves to it and merges.
+ *  - "create": a new cloud account with this account's id, email and password; everything here
+ *    goes up. Whatever isn't given comes from this PC's account, so its password works on the
+ *    phone too.
+ *  - "signin": an existing cloud account (by email); this PC's data moves to it and merges.
  * Returns `moved` when the account id changed (the app must sign in again with new tokens).
  */
-export async function link(userIdRaw: string, input: { mode: "create" | "signin"; username?: string; email?: string; password?: string }) {
+export async function link(userIdRaw: string, input: { mode: "create" | "signin"; email?: string; password?: string }) {
   if (isCloud()) throw new AppError("Not available in the cloud.", 400);
   const userId = new mongoose.Types.ObjectId(userIdRaw);
   if (await SyncLink.exists({ userId, needsSignIn: false })) throw new AppError("This account already syncs with RoninArc Cloud.", 409);
   const account: any = await usermodel.collection.findOne({ _id: userId });
-  const username = String(input.username?.trim() || account?.username || "").toLowerCase();
+  const email = String(input.email?.trim() || account?.email || "").toLowerCase();
+  if (!email) throw new AppError(NEEDS_EMAIL_MESSAGE, 400);
   const password = String(input.password ?? "");
 
   let cloudId: mongoose.Types.ObjectId;
   let tokens: { accessToken: string; refreshToken: string };
+  let cloudHandle = "";
   try {
     if (input.mode === "create") {
       const secret = password ? { password } : { passwordHash: account?.passwordHash };
-      const email = input.email?.trim() || account?.email;
       // Long: a cloud that's been idle can take this long to wake up.
-      const { data } = await http(CLOUD_WAKE_TIMEOUT_MS).post("/sync/register", { username, email, ...secret, userId: String(userId) });
+      const { data } = await http(CLOUD_WAKE_TIMEOUT_MS).post("/sync/register", {
+        email,
+        displayName: account?.displayName || account?.username,
+        // This PC's handle, kept in the cloud when it's free there.
+        username: account?.username,
+        ...secret,
+        userId: String(userId),
+      });
       tokens = tokensFrom(data);
       // Never trust that the account is ours: pushing into another would mix two libraries.
       const me = await http().get("/auth/me", { headers: { Authorization: `Bearer ${tokens.accessToken}` } });
-      if (String(me.data?.Data?.id) !== String(userId)) throw new AppError("That cloud account name is taken. Pick another, or sign in to it instead.", 409);
+      if (String(me.data?.Data?.id) !== String(userId)) throw new AppError(EMAIL_TAKEN_MESSAGE, 409);
+      cloudHandle = String(me.data?.Data?.username ?? "");
       cloudId = userId;
     } else {
-      const { data } = await http().post("/auth/login", { username, password });
+      const { data } = await http().post("/auth/login", { email, password });
       tokens = tokensFrom(data);
       const me = await http().get("/auth/me", { headers: { Authorization: `Bearer ${tokens.accessToken}` } });
       cloudId = new mongoose.Types.ObjectId(String(me.data?.Data?.id ?? me.data?.id ?? me.data?.data?.id));
+      cloudHandle = String(me.data?.Data?.username ?? "");
     }
   } catch (error) {
     throw cloudError(error, input.mode === "create" ? "Couldn't create the cloud account." : "Couldn't sign in to RoninArc Cloud.");
@@ -448,7 +467,7 @@ export async function link(userIdRaw: string, input: { mode: "create" | "signin"
 
   const moved = !cloudId.equals(userId);
   if (moved) await moveLocalAccount(userId, cloudId);
-  await saveLink(cloudId, username, tokens);
+  await saveLink(cloudId, { username: cloudHandle || account?.username, email }, tokens);
   await SyncIntent.deleteMany({ userId: { $in: [userId, cloudId] } });
   await syncNow(String(cloudId));
   return { moved, userId: String(cloudId), status: await status(String(cloudId)) };
@@ -460,8 +479,12 @@ export async function reconnect(userIdRaw: string, password: string) {
   const existing: any = await SyncLink.findOne({ userId }).lean();
   if (!existing) throw new AppError("This account doesn't sync with RoninArc Cloud.", 404);
   try {
-    const { data } = await http().post("/auth/login", { username: existing.cloudUsername, password });
-    await saveLink(userId, existing.cloudUsername, tokensFrom(data));
+    const account: any = await usermodel.collection.findOne({ _id: userId });
+    const email = existing.cloudEmail || account?.email;
+    // The cloud signs in by email only; a link from before email sign-in uses the account's email.
+    if (!email) throw new AppError(NEEDS_EMAIL_MESSAGE, 400);
+    const { data } = await http().post("/auth/login", { email, password });
+    await saveLink(userId, { username: existing.cloudUsername, email }, tokensFrom(data));
   } catch (error) {
     throw cloudError(error, "Couldn't sign in to RoninArc Cloud.");
   }
@@ -486,29 +509,41 @@ export async function unlink(userIdRaw: string) {
  * Sign-in on this PC with a cloud account (a new PC, or a password reset through the cloud).
  * Returns the local user to sign in, or undefined when the cloud can't vouch for these details.
  */
-export async function signInThroughCloud(username: string, password: string): Promise<any | undefined> {
+export async function signInThroughCloud(email: string, password: string): Promise<any | undefined> {
   if (isCloud() || !cloudApiUrl()) return undefined;
   let tokens: { accessToken: string; refreshToken: string };
   let cloudId: mongoose.Types.ObjectId;
+  let cloud: any;
   try {
     // Short: this also runs on a wrong password, and offline that shouldn't keep anyone waiting.
-    const { data } = await http(8_000).post("/auth/login", { username, password });
+    const { data } = await http(8_000).post("/auth/login", { email, password });
     tokens = tokensFrom(data);
     const me = await http(8_000).get("/auth/me", { headers: { Authorization: `Bearer ${tokens.accessToken}` } });
-    cloudId = new mongoose.Types.ObjectId(String(me.data?.Data?.id ?? me.data?.id ?? me.data?.data?.id));
-    // Signed in with an email: the account's name is the cloud's username, not the email.
-    const cloudName = me.data?.Data?.username;
-    if (typeof cloudName === "string" && cloudName) username = cloudName;
+    cloud = me.data?.Data ?? {};
+    cloudId = new mongoose.Types.ObjectId(String(cloud.id ?? me.data?.id ?? me.data?.data?.id));
   } catch {
     return undefined;
   }
+  const cloudEmail = String(cloud.email || email).toLowerCase();
   const local: any = await usermodel.collection.findOne({ _id: cloudId });
   if (!local) {
-    // A new PC: this account's library comes down from the cloud.
-    if (await usermodel.collection.findOne({ username })) return undefined; // a different local account has this name
-    await usermodel.collection.insertOne({ _id: cloudId, username, passwordHash: "", createdAt: new Date(), updatedAt: new Date() });
+    // Another account on this PC already uses the email: never mix two people's libraries.
+    if (await usermodel.collection.findOne({ email: cloudEmail })) return undefined;
+    // A new PC: this account's library comes down from the cloud. The handle is internal; if this
+    // PC already has it, a variant does (the next pull doesn't overwrite a taken one).
+    let handle = String(cloud.username || cloudEmail.split("@")[0]).toLowerCase();
+    if (await usermodel.collection.findOne({ username: handle })) handle = `${handle}-${String(cloudId).slice(-6)}`;
+    await usermodel.collection.insertOne({
+      _id: cloudId,
+      username: handle,
+      displayName: cloud.displayName || undefined,
+      email: cloudEmail,
+      passwordHash: "",
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    });
   }
-  await saveLink(cloudId, username, tokens);
+  await saveLink(cloudId, { username: String(cloud.username ?? ""), email: cloudEmail }, tokens);
   await syncNow(String(cloudId));
   return usermodel.findById(cloudId);
 }

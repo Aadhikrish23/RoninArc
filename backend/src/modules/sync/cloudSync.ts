@@ -165,7 +165,7 @@ export async function pull(userIdRaw: string, sinceRaw?: string) {
     if (docs.length) changes[coll.name] = docs.map((d) => EJSON.serialize(forWire(coll, d)));
   }
   const tombstones = await Tombstone.find({ userId, deletedAt: { $gt: since } }).sort({ deletedAt: 1 }).limit(PULL_LIMIT).lean();
-  const user = await usermodel.findById(userId).select("username email passwordHash phoneLinkedAt updatedAt").lean();
+  const user = await usermodel.findById(userId).select("username displayName email passwordHash phoneLinkedAt updatedAt").lean();
   if (!user) throw new AppError("User not found", 404);
   return {
     serverTime: serverTime.toISOString(),
@@ -174,6 +174,6 @@ export async function pull(userIdRaw: string, sinceRaw?: string) {
     changes,
     deletes: tombstones.map((t) => ({ coll: t.coll, id: String(t.docId), deletedAt: (t.deletedAt as Date).toISOString() })),
     // A PC linked to this account signs in offline with the cloud password.
-    user: { id: String(user._id), username: user.username, email: user.email ?? null, passwordHash: user.passwordHash, phoneLinkedAt: user.phoneLinkedAt ?? null },
+    user: { id: String(user._id), username: user.username, displayName: user.displayName ?? null, email: user.email ?? null, passwordHash: user.passwordHash, phoneLinkedAt: user.phoneLinkedAt ?? null },
   };
 }

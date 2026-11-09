@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 import AppError from "../../shared/errors/AppError";
 import usermodel from "../auth/models/User";
 import * as authServices from "../auth/authService";
+import { findByEmail } from "../auth/authService";
 import { LinkCode } from "./syncModels";
 
 /** How long a code shown on the PC works. */
@@ -49,29 +50,15 @@ export async function claimLinkCode(input: unknown) {
   if (!user) throw new AppError("That code didn't work. Make a new one on your PC.", 400);
   if (!user.phoneLinkedAt) await usermodel.updateOne({ _id: user._id }, { $set: { phoneLinkedAt: new Date() } });
   return {
-    userdata: { name: user.username, email: user.email, updatedAt: user.updatedAt },
+    userdata: authServices.userdata(user),
     accessToken: authServices.generateAccessToken(user._id, user.username),
     refreshToken: await authServices.generateRefreshToken(user._id),
   };
 }
 
-const NAME = /^[a-z0-9][a-z0-9._-]{2,29}$/;
-
-/** Whether a cloud name is free, and if not, a few free ones close to it. Says nothing else. */
-export async function nameAvailability(raw: unknown): Promise<{ available: boolean; suggestions: string[] }> {
-  const name = typeof raw === "string" ? raw.trim().toLowerCase() : "";
-  if (name.length < 3) throw new AppError("Usernames are at least 3 characters.", 400);
-  if (!(await usermodel.exists({ username: name }))) return { available: true, suggestions: [] };
-
-  const base = (name.replace(/[^a-z0-9._-]/g, "").slice(0, 24) || "ronin").replace(/[-_.]+$/, "");
-  const candidates = [`${base}-pc`, `${base}2`, `${base}-${new Date().getFullYear() % 100}`, `${base}_ronin`];
-  for (let i = 0; i < 4; i++) candidates.push(`${base}${crypto.randomInt(10, 1000)}`);
-  const valid = candidates.filter((c) => NAME.test(c));
-  const taken = new Set((await usermodel.find({ username: { $in: valid } }).select("username").lean()).map((u) => u.username));
-  return { available: false, suggestions: [...new Set(valid.filter((c) => !taken.has(c)))].slice(0, 3) };
-}
-
 /** A phone signed in (password or code): the PC stops offering "get your library on your phone". */
-export async function markPhoneLinked(username: string) {
-  await usermodel.updateOne({ username: username.trim().toLowerCase(), phoneLinkedAt: { $exists: false } }, { $set: { phoneLinkedAt: new Date() } });
+export async function markPhoneLinked(email: string | null | undefined) {
+  if (!email) return;
+  const user = await findByEmail(email);
+  if (user && !user.phoneLinkedAt) await usermodel.updateOne({ _id: user._id }, { $set: { phoneLinkedAt: new Date() } });
 }

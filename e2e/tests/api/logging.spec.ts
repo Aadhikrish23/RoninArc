@@ -55,10 +55,10 @@ test.describe("Logging & error monitoring (backend)", () => {
 
     test("passwords and tokens are never written to the log @negative", async ({ anon }) => {
       const password = `Pw-${randomUUID()}`;
-      const username = uniqueName("logpw");
-      const reg = await anon.post("/auth/register", { username, password });
+      const email = `${uniqueName("logpw")}@example.com`;
+      const reg = await anon.post("/auth/register", { email, password });
       const { accessToken, refreshToken } = (await json(reg)).Data;
-      await anon.post("/auth/login", { username, password: `${password}-wrong` });
+      await anon.post("/auth/login", { email, password: `${password}-wrong` });
       await waitForLog((l) => l.requestId === reg.headers()["x-request-id"]);
       const text = rawLogText();
       for (const secret of [password, accessToken, refreshToken]) expect(text).not.toContain(secret);
@@ -174,7 +174,7 @@ test.describe("Logging & error monitoring (backend)", () => {
   });
 
   test("a stale password on login is never echoed back @negative", async ({ anon }) => {
-    const res = await anon.post("/auth/login", { username: uniqueName("nobody"), password: DEFAULT_PASSWORD });
+    const res = await anon.post("/auth/login", { email: `${uniqueName("nobody")}@example.com`, password: DEFAULT_PASSWORD });
     expect(JSON.stringify(await json(res))).not.toContain(DEFAULT_PASSWORD);
   });
 });

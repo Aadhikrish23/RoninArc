@@ -30,7 +30,9 @@ const syncLinkSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
     cloudUrl: { type: String, required: true },
+    /** The cloud account's internal handle (older links); cloudEmail is what signs in. */
     cloudUsername: { type: String, required: true },
+    cloudEmail: { type: String, default: null },
     accessToken: { type: String, required: true },
     refreshToken: { type: String, required: true },
     /** Server time of the last pull: the next pull asks for changes after it. */
@@ -49,17 +51,15 @@ export const SyncLink = mongoose.model("SyncLink", syncLinkSchema);
 
 /**
  * Local only: "Sync with my other devices" was ticked at sign-in but linking hasn't worked yet
- * (offline, or the name is someone else's in the cloud). Offline it's retried every minute;
- * a taken name waits for the person to choose ("needs attention" in Settings).
+ * (offline, the email already has a cloud account whose password differs, or there's no email yet).
+ * Offline it's retried every minute; the others wait for the person ("needs attention" in Settings).
  */
 const syncIntentSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
-    /** Why it needs the person: "name-taken" (or another cloud refusal). Null while it just waits for internet. */
+    /** Why it needs the person: "email-taken", "needs-email" or "failed". Null while it just waits for internet. */
     attention: { type: String, default: null },
     message: { type: String, default: null },
-    /** Free cloud names to offer instead of a taken one. */
-    suggestions: { type: [String], default: [] },
   },
   { timestamps: true, versionKey: false },
 );

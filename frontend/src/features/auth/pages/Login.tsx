@@ -29,7 +29,7 @@ import { setSyncPreference, syncPreference, syncWithOtherDevices } from "../../s
 
 function Login() {
   const [show, setShow] = useState<boolean>(false);
-  const [username, setUsername] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [saveme, setSaveme] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -49,7 +49,7 @@ function Login() {
   }
 
   // Enter and a click in the same moment both see loading=false; a ref stops the second request
-  // (it came back "Username is already taken" for the account the first one had just made).
+  // (it came back "already exists" for the account the first one had just made).
   const submitting = useRef(false);
   const handlesubmit = async () => {
     if (submitting.current) return;
@@ -57,14 +57,14 @@ function Login() {
     try {
       setLoading(true);
 
-      let name = username.trim();
-      let pass = password.trim();
+      const mail = email.trim();
+      const pass = password.trim();
 
-      if (name === "" || pass === "") {
-        throw new Error("Please enter both username and password");
+      if (mail === "" || pass === "") {
+        throw new Error("Enter your email and password.");
       }
 
-      const datas = await authApi.userLogin(name, pass);
+      const datas = await authApi.userLogin(mail, pass);
 
       // Clear any old user
       // deleteCurrentUser();
@@ -125,10 +125,11 @@ function Login() {
             {/* Enter in any field submits, like a normal login form. */}
             <Stack spacing={4} onKeyDown={(e) => { if (e.key === "Enter" && !loading && (e.target as HTMLElement).tagName !== "BUTTON") handlesubmit(); }}>
               <FormControl>
-                <FormLabel color="gray.200">Username or email</FormLabel>
+                <FormLabel color="gray.200">Email</FormLabel>
                 <Input
-                  placeholder="Enter your username or email"
-                  autoComplete="username"
+                  type="email"
+                  placeholder="you@example.com"
+                  autoComplete="email"
                   bg="gray.900"
                   color="#fff"
                   borderColor="gray.700"
@@ -137,9 +138,9 @@ function Login() {
                     borderColor: "purple.400",
                     boxShadow: "0 0 0 1px #9F7AEA",
                   }}
-                  value={username}
+                  value={email}
                   onChange={(e) => {
-                    setUsername(e.target.value);
+                    setEmail(e.target.value);
                   }}
                 />
               </FormControl>

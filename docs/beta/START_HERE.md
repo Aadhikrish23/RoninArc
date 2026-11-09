@@ -15,7 +15,7 @@ RoninArc runs on Windows only for now.
 ## First launch
 
 1. Open RoninArc from the Start menu or desktop shortcut. The first start takes a few seconds longer while it sets itself up.
-2. Create an account. **"Sync with my other devices"** is ticked by default: it also puts your library in RoninArc Cloud, so your phone can use it. Untick it to keep everything only on this PC. With it ticked, use a real email address (that's how a forgotten password is reset); the form tells you straight away if your username is already taken in the cloud, and suggests free ones.
+2. Create an account with a name, your **email** and a password. You sign in with the email (use a real one: it's also how a forgotten password is reset). **"Sync with my other devices"** is ticked by default: it also puts your library in RoninArc Cloud, so your phone can use it. Untick it to keep everything only on this PC.
 3. Your library starts empty. Search for a game at the top and add it, or connect Steam/Epic in **Settings** to import what you own (optional).
 
 ## Things to try
@@ -60,11 +60,13 @@ There's an Android app too: **`RoninArc.apk`** from the same download page.
 2. On the PC, click **Show the code** on the dashboard's "Get your library on your phone" banner, or open **Settings → RoninArc Cloud → Connect your phone**. It shows a QR code and a 6-digit code (valid for 10 minutes). If the PC wasn't syncing yet, this turns sync on first.
 3. On the phone, tap **Scan code from your PC** and point the camera at the QR code, or tap **Enter code** and type the 6 digits. You're signed in with no password, and your library comes down.
 
-You can also sign in on the phone with your username **or email** and your password.
+You can also sign in on the phone with your **email** and password.
 
 If the phone says **"Waking up the server…"**, give it up to a minute. The cloud server sleeps when nobody's used it for a while, and the first request wakes it up.
 
-If Settings on the PC says **"Sync needs your attention"**, your username is already taken in RoninArc Cloud by someone else. Pick one of the suggested names, or choose **It's mine** if that cloud account is yours.
+If Settings on the PC says **"Sync needs your attention"**, your email already has a RoninArc Cloud account with a different password (you probably signed up on the phone first). Choose **Enter its password** and type that account's password; your libraries merge.
+
+Made your PC account before email sign-in? RoninArc asks you once to **add your email** (Settings → Account keeps offering it). You need it to sign in next time and to sync.
 
 Your game exe paths and Steam/Epic sign-ins never leave the PC. If you turn sync off, your library stays on the PC.
 
