@@ -14,7 +14,7 @@ export async function loadLibrarySnapshot(userId: string): Promise<LibrarySnapsh
     Collection.find({ userId: uid }).sort({ createdAt: -1 }).select("name").lean(),
   ]);
   return {
-    games: games.map((g: any) => ({ title: g.title, status: g.progressStatus || "none" })),
+    games: games.map((g: any) => ({ title: g.title, status: g.progressStatus || "none", id: String(g._id) })),
     totalGames,
     collections: collections.map((c: any) => c.name),
   };

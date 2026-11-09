@@ -219,6 +219,38 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect(collections[0].gameIds.map((g: any) => g.title).sort()).toEqual([...titles].sort());
     });
 
+    // Reported 2026-11-09: the user owns God of War (2005) and God of War (2018); only one went in,
+    // and the reply said it "wasn't sure which game" although nothing was left out.
+    test("'put all my god of war games in X' puts in both games called God of War @positive", async ({ api }) => {
+      const base = byName("Hades");
+      const titles = ["God of War", "God of War", "God of War II", "God of War III", "God of War Ragnarök"];
+      const ids: string[] = [];
+      for (const [i, title] of titles.entries()) ids.push((await api.addGame(base, { title, igdbId: 990100 + i }))._id);
+      await api.addGame(byName("Celeste"));
+      await api.post("/collection", { name: "God of War" });
+      const { status, body } = await chat(api, "put all my god of war games in the god of war collection");
+      expect(status).toBe(200);
+      expect(body.message).toContain('to your collection "God of War"');
+      expect(body.message).not.toMatch(/wasn't sure/i);
+      const collections = (await json(await api.get("/collection"))).Data;
+      expect(collections[0].gameIds.map((g: any) => g._id).sort()).toEqual([...ids].sort());
+    });
+
+    // Reported 2026-11-09: "Batman Arkham City" was taken for the owned River City Girls (one shared
+    // word), so it was never added, and the collection steps stopped at "Did you mean Arkham Knight?".
+    test("adding a game that shares one word with an owned game still adds it, then fills the new collection @positive", async ({ api }) => {
+      await api.addGame(byName("Hades"), { title: "Knight Squad", igdbId: 990200 });
+      const { status, body } = await chat(api, "add hollow knight to my library and create a platformers collection and put it in there");
+      expect(status).toBe(200);
+      expect(body.message).not.toMatch(/did you mean/i);
+      const library = (await json(await api.get("/game"))).Data;
+      const titles = (library.games ?? library).map((g: any) => g.title);
+      expect(titles).toContain("Hollow Knight");
+      const collections = (await json(await api.get("/collection"))).Data;
+      expect(collections.map((c: any) => c.name)).toEqual(["Platformers"]);
+      expect(collections[0].gameIds.map((g: any) => g.title)).toEqual(["Hollow Knight"]);
+    });
+
     test("'all my steam games' is not a series, so nothing extra goes in @negative", async ({ api }) => {
       await api.addGame(byName("Hades"));
       const { body } = await chat(api, "create a collection called favs and add all my steam games to it");

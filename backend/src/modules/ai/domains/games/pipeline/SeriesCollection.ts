@@ -31,9 +31,14 @@ export function seriesAsked(message: string): string | undefined {
 
 /** Owned titles in a series: "god of war" is God of War, God of War II and God of War Ragnarök. */
 export function seriesTitles(series: string, owned: string[]): string[] {
+  return seriesGames(series, owned.map((title) => ({ title }))).map((g) => g.title);
+}
+
+/** The owned games in a series, each one, even when two share a title. */
+export function seriesGames<G extends { title: string }>(series: string, owned: G[]): G[] {
   // words() leaves only letters, digits and spaces, so the series is safe inside a pattern.
   const pattern = new RegExp(`(^| )${series}( |$)`);
-  return owned.filter((title) => pattern.test(words(title)));
+  return owned.filter((game) => pattern.test(words(game.title)));
 }
 
 const isBulkName = (name = "") => /^(all|every)\s|\sgames?$/i.test(name.trim());
@@ -48,8 +53,15 @@ export function dropBulkCollectionSteps(plan: IntentPlan, message: string) {
   );
 }
 
-/** Adds one collection step per owned game in the series the message asked for. */
-export function fillSeriesCollection(plan: IntentPlan, message: string, owned: string[]) {
+const removes = (intent: any) =>
+  (intent.parameters ?? []).some((p: any) => String(p.type).toLowerCase() === "boolean" && (p.value === false || p.value === "false"));
+
+/**
+ * Adds one collection step per owned game in the series the message asked for. Each step carries
+ * the game's id: the user can own two games with one title (God of War, 2005 and 2018), and a
+ * step that only names "God of War" reaches just one of them.
+ */
+export function fillSeriesCollection(plan: IntentPlan, message: string, owned: { title: string; id?: string }[]) {
   const series = seriesAsked(message);
   if (!series) return;
   const collection = plan.intents
@@ -57,20 +69,56 @@ export function fillSeriesCollection(plan: IntentPlan, message: string, owned: s
     .flatMap((i) => i.targets ?? [])
     .find((t) => t.type === IntentTargetType.Collection)?.name;
   if (!collection) return;
-  for (const title of seriesTitles(series, owned)) {
+
+  const games = seriesGames(series, owned);
+  const count = new Map<string, number>();
+  for (const g of games) count.set(words(g.title), (count.get(words(g.title)) ?? 0) + 1);
+  const shared = (name: string) => (count.get(words(name)) ?? 0) > 1;
+
+  // "God of War" by name alone would add one of the two; they go in by id below instead.
+  plan.intents = plan.intents.filter(
+    (i) =>
+      i.type !== IntentType.OrganizeCollection ||
+      removes(i) ||
+      !(i.targets ?? []).some((t) => t.type === IntentTargetType.Game && !t.id && shared(t.name ?? "")),
+  );
+
+  for (const game of games) {
     const already = plan.intents.some(
       (i) =>
         i.type === IntentType.OrganizeCollection &&
-        (i.targets ?? []).some((t) => t.type === IntentTargetType.Game && words(t.name ?? "") === words(title)),
+        !removes(i) &&
+        (i.targets ?? []).some(
+          (t) => t.type === IntentTargetType.Game && (game.id && t.id ? t.id === game.id : words(t.name ?? "") === words(game.title)),
+        ),
     );
     if (already) continue;
     plan.intents.push({
       type: IntentType.OrganizeCollection,
       targets: [
         { type: IntentTargetType.Collection, name: collection },
-        { type: IntentTargetType.Game, name: title },
+        { type: IntentTargetType.Game, name: game.title, ...(game.id ? { id: game.id } : {}) },
       ],
       parameters: [{ type: IntentParameterType.Boolean, value: true }],
     } as any);
   }
+}
+
+/**
+ * Collection steps that grounding dropped ("God of War II" when the message only says "god of
+ * war") and the series fill put back: they weren't left undone, so they don't earn the "I wasn't
+ * sure which game you meant" note.
+ */
+export function restoredBySeries(dropped: IntentPlan["intents"], plan: IntentPlan): number {
+  const inPlan = new Set(
+    plan.intents
+      .filter((i) => i.type === IntentType.OrganizeCollection)
+      .flatMap((i) => (i.targets ?? []).filter((t) => t.type === IntentTargetType.Game).map((t) => words(t.name ?? ""))),
+  );
+  return dropped.filter(
+    (i) =>
+      i.type === IntentType.OrganizeCollection &&
+      (i.targets ?? []).some((t) => t.type === IntentTargetType.Game) &&
+      (i.targets ?? []).filter((t) => t.type === IntentTargetType.Game).every((t) => inPlan.has(words(t.name ?? ""))),
+  ).length;
 }

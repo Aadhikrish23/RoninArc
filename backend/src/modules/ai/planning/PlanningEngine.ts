@@ -193,7 +193,9 @@ export class PlanningEngine {
           for (const cand of candidates) {
             const newTargets = resolved.intent.targets.map(t => {
               if (t.name === bulkTarget.name) {
-                return { ...t, name: (cand as any).title || (cand as any).name };
+                // The id too: "all god of war games" can include two games both called God of War.
+                const id = (cand as any)._id ? String((cand as any)._id) : undefined;
+                return { ...t, name: (cand as any).title || (cand as any).name, ...(id ? { id } : {}) };
               }
               return t;
             });

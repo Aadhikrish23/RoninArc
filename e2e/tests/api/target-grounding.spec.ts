@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { closestTitle, dropUngroundedIntents, franchiseMatch, fullyNamedTitles, lastNamedTitle, mentions, namedTitles } from "../../../backend/src/modules/ai/domains/games/conversation/TargetGrounding";
+import { closestTitle, dropUngroundedIntents, franchiseMatch, fullyNamedTitles, lastNamedTitle, mentions, namedTitles, sameGame } from "../../../backend/src/modules/ai/domains/games/conversation/TargetGrounding";
 
 // The AI only changes a game the user actually named (or referred to). These
 // cases come from the gamer playtests: gibberish and two-part messages made the
@@ -145,4 +145,22 @@ test.describe("AI target grounding: abbreviations without a sequel number", () =
   test('"hades" still does not name Hades II @negative', () => {
     expect(namedTitles("hades", ["Hades II"])).toEqual([]);
   });
+});
+
+// Playtest 2026-11-09: one shared word made two different games "the same", so adding the new one
+// was skipped as already owned.
+test.describe("AI target grounding: the same game, not just a shared word", () => {
+  for (const [asked, owned, same] of [
+    ["Batman Arkham City", "River City Girls", false],
+    ["Batman: Origins", "Batman: Arkham Knight", false],
+    ["Batman Arkham Asylum", "Batman: Arkham Asylum", true],
+    ["Hollow Knight", "Knight Squad", false],
+    ["sekrio", "Sekiro: Shadows Die Twice", true],
+    ["hollow knigt", "Hollow Knight", true],
+    ["witcher 3", "The Witcher 3: Wild Hunt", true],
+  ] as const) {
+    test(`"${asked}" ${same ? "is" : "is not"} ${owned} @${same ? "positive" : "negative"}`, () => {
+      expect(sameGame(asked, owned)).toBe(same);
+    });
+  }
 });

@@ -48,7 +48,20 @@ export class EntityResolutionLayer {
       const resolvedTargets: ResolvedTarget[] = [];
 
       for (const target of intent.targets) {
-        if (target.type === IntentTargetType.Game) {
+        if (target.type === IntentTargetType.Game && target.id) {
+          // The plan already names the exact game (two can share a title); nothing to look up.
+          const resolvedTarget: ResolvedTarget = {
+            originalTarget: target,
+            resolution: {
+              status: EntityResolutionStatus.RESOLVED,
+              confidence: 1.0,
+              entity: { _id: target.id, title: target.name } as any,
+              reasoning: "Target carries its id.",
+            },
+          };
+          resolvedTargets.push(resolvedTarget);
+          allResolvedTargets.push(resolvedTarget);
+        } else if (target.type === IntentTargetType.Game) {
           const { isBulk, cleanQuery } = getBulkQueryInfo(target.name);
           const resolutionResult = await domainPack().resolveEntity(userId, cleanQuery, { isBulk });
 

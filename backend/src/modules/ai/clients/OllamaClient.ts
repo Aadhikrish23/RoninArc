@@ -121,6 +121,20 @@ export class OllamaClient {
             }
           ]
         });
+      } else if (queryLower.startsWith("put all my god of war games in")) {
+        // What the real model sent (2026-11-09): one "God of War" for the two the user owns
+        // (2005 and 2018), plus the numbered ones -- and no Ragnarök, which it didn't spell out.
+        const step = (name: string) => ({ type: "OrganizeCollection", targets: [{ type: "Collection", name: "God of War" }, { type: "Game", name }], parameters: [] });
+        responseText = JSON.stringify({ intents: [step("God of War"), step("God of War II"), step("God of War III")] });
+      } else if (queryLower.startsWith("add hollow knight to my library and create a platformers collection")) {
+        // The shape of the real model's Batman plan (2026-11-09): add, create, put in.
+        responseText = JSON.stringify({
+          intents: [
+            { type: "AddGame", targets: [{ type: "Library", name: "Hollow Knight" }], parameters: [] },
+            { type: "CreateCollection", targets: [{ type: "Collection", name: "Platformers" }], parameters: [] },
+            { type: "OrganizeCollection", targets: [{ type: "Collection", name: "Platformers" }, { type: "Game", name: "Hollow Knight" }], parameters: [] },
+          ],
+        });
       } else if (/collection called .+ and .*\ball\b.*\bgames\b/.test(queryLower)) {
         // What the real model sent for "create a collection called god of war and add all the god
         // of war games i have to it": the collection, and nothing for the games.

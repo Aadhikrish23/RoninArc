@@ -58,7 +58,10 @@ export class ToolParameterResolver {
         // A. Resolve gameId from Game target
         if (param.name === "gameId") {
           const gameTarget = targets.find((t) => t.type === "Game" || t.type?.toLowerCase() === "game");
-          if (gameTarget) {
+          if (gameTarget?.id) {
+            // Same-titled games are told apart by id, not by the (shared) name.
+            parameters[param.name] = String(gameTarget.id);
+          } else if (gameTarget) {
             const resolved = context.resolvedIntentPlan.resolvedTargets?.find(
               (r) => r.originalTarget.name === gameTarget.name
             );

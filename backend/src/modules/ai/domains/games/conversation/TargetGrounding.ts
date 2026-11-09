@@ -277,7 +277,14 @@ export function sameGame(a: string, b: string): boolean {
   const asked = tokens(expandAbbreviation(a) ?? a).filter((w) => !GENERIC.has(w));
   const title = new Set(tokens(b).filter((w) => !GENERIC.has(w)));
   if (asked.length > 0 && asked.every((w) => title.has(w))) return true;
-  return asked.length <= title.size && (mentions(a, b) || titleMatchScore(a, b) >= 85);
+  // One shared word isn't the same game: "Batman Arkham City" isn't River City Girls, and
+  // "Batman: Origins" isn't Batman: Arkham Knight. Each word asked for has to be in the title,
+  // as typed or with a small typo ("sekrio" is Sekiro).
+  const fits = (w: string) =>
+    title.has(w) ||
+    [...title].some((tw) => w.length >= 5 && tw.length >= 5 && !EVERYDAY.has(w) && w[0] === tw[0] && editDistance(w, tw) <= (tw.length >= 8 ? 2 : 1));
+  if (asked.length > 0 && asked.length <= title.size && asked.every(fits) && mentions(a, b)) return true;
+  return asked.length <= title.size && titleMatchScore(a, b) >= 85;
 }
 
 /**
