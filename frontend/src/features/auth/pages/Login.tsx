@@ -73,7 +73,7 @@ function Login() {
       login(datas.userdata, datas.accessToken, datas.refreshToken, saveme);
       setSyncPreference(syncDevices);
       // In the background: the sign-in is done whatever happens here.
-      if (syncDevices) void syncWithOtherDevices({ password: pass, rememberMe: saveme, email: datas.userdata.email, login, toast });
+      if (syncDevices) void syncWithOtherDevices({ password: pass, rememberMe: saveme, email: datas.userdata.email ?? undefined, login, toast });
 
       // Success toast
       toast({
