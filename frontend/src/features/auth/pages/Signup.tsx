@@ -16,7 +16,9 @@ import {
   Checkbox,
   useToast,
 } from "@chakra-ui/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import syncApi from "../../settings/api/syncApi";
+import { setSyncPreference, syncPreference, syncWithOtherDevices } from "../../settings/syncOtherDevices";
 import { Link as RouterLink, useNavigate } from "react-router-dom";
 import authApi from "../api/authApi";
 // import { deleteCurrentUser } from "../utils/auth";
@@ -34,6 +36,28 @@ function Signup() {
   const [loading, setLoading] = useState<boolean>(false);
 
   const [emailErrorShown, setEmailErrorShown] = useState(false);
+  const [syncDevices, setSyncDevices] = useState<boolean>(syncPreference);
+  // Is the name free in RoninArc Cloud? Asked while typing, only when syncing is ticked.
+  const [cloudName, setCloudName] = useState<{ name: string; available: boolean; suggestions: string[] } | null>(null);
+
+  useEffect(() => {
+    const name = username.trim().toLowerCase();
+    if (!syncDevices || name.length < 3) return;
+    let live = true;
+    const timer = setTimeout(() => {
+      syncApi
+        .nameAvailable(name)
+        .then((r) => live && setCloudName({ name, ...r }))
+        // Offline, or the cloud isn't set up in this build: say nothing; the sign-up still works.
+        .catch(() => live && setCloudName({ name, available: true, suggestions: [] }));
+    }, 500);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
+  }, [username, syncDevices]);
+  // Only the answer for the name in the box now (and only while syncing is ticked).
+  const nameTaken = syncDevices && !!cloudName && !cloudName.available && cloudName.name === username.trim().toLowerCase();
 
   const navigate = useNavigate();
   const toast = useToast();
@@ -84,6 +108,9 @@ function Signup() {
       // Clear old user data
       // deleteCurrentUser();
       login(datas.userdata, datas.accessToken, datas.refreshToken, saveme);
+      setSyncPreference(syncDevices);
+      // In the background: the account exists here whatever happens with the cloud.
+      if (syncDevices) void syncWithOtherDevices({ password: pass, rememberMe: saveme, email: mail, login, toast });
 
 
       toast({
@@ -153,11 +180,36 @@ function Signup() {
                   onChange={(e) => {
                     setUsername(e.target.value);
                   }}
+                  aria-describedby="cloud-name-note"
                 />
+                {nameTaken && (
+                  <Box id="cloud-name-note" mt={2} fontSize="sm" color="orange.200" aria-live="polite">
+                    <Text>That name is taken in RoninArc Cloud, so it can't be used for syncing. You can still use it on this PC.</Text>
+                    {cloudName!.suggestions.length > 0 && (
+                      <Flex mt={2} gap={2} flexWrap="wrap" align="center">
+                        <Text as="span" color="gray.300">
+                          Free:
+                        </Text>
+                        {cloudName!.suggestions.map((s) => (
+                          <Button key={s} size="xs" variant="outline" colorScheme="purple" onClick={() => setUsername(s)}>
+                            {s}
+                          </Button>
+                        ))}
+                      </Flex>
+                    )}
+                  </Box>
+                )}
               </FormControl>
 
               <FormControl>
-                <FormLabel color="gray.200">Email </FormLabel>
+                <FormLabel color="gray.200">
+                  Email{" "}
+                  {syncDevices && (
+                    <Text as="span" fontSize="xs" color="gray.400" fontWeight="normal">
+                      (needed for syncing, and to reset a forgotten password)
+                    </Text>
+                  )}
+                </FormLabel>
                 <Input
                   placeholder="Enter your email"
                   bg="gray.900"
@@ -262,6 +314,11 @@ function Signup() {
                   Remember me
                 </Checkbox>
               </Flex>
+              <Checkbox colorScheme="purple" color="gray.200" isChecked={syncDevices} onChange={(e) => setSyncDevices(e.target.checked)}>
+                <Text as="span" fontSize="sm">
+                  Sync with my other devices
+                </Text>
+              </Checkbox>
 
               {/* Signup button */}
               <Button

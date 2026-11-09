@@ -1,5 +1,0 @@
-export enum ExecutionPolicyType {
-  SEQUENTIAL = "SEQUENTIAL",
-  EXCLUSIVE = "EXCLUSIVE",
-  IDEMPOTENT = "IDEMPOTENT"
-}

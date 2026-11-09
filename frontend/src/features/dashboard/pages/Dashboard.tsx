@@ -39,6 +39,7 @@ import {
 import { getDashboardOverview } from "../api/dashboardApi";
 import type { DashboardGameSummary, DashboardOverview } from "../types/dashboard";
 import { eventBus } from "../../../shared/events/EventBus";
+import PhoneBanner from "../../settings/components/PhoneBanner";
 import { canLaunchGames } from "../../../shared/utils/runtime";
 import { PLACEHOLDER_IMAGE, coverImage } from "../../../shared/utils/placeholderImage";
 
@@ -167,6 +168,8 @@ function DashboardPage() {
             What you're playing, how much, and what's waiting.
           </Text>
         </Box>
+
+        <PhoneBanner hasGames={!!data && Object.values(data.backlog.byStatus).some((n) => n > 0)} />
 
         {error && (
           <Alert status="error" borderRadius="lg" mb={6}>

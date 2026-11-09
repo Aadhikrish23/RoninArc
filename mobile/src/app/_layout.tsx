@@ -31,11 +31,17 @@ function Routes() {
         <Stack.Screen name="games" options={{ headerShown: false }} />
         <Stack.Screen name="add" options={{ title: "Add a game", presentation: "modal" }} />
         <Stack.Screen name="collection/[id]" options={{ headerShown: false }} />
+        {/* The code from a PC, signed in (an empty library): switches to that PC's account. */}
+        <Stack.Screen name="connect" options={{ headerShown: false }} />
       </Stack.Protected>
       <Stack.Protected guard={!user}>
         <Stack.Screen name="sign-in" options={{ headerShown: false }} />
         <Stack.Screen name="sign-up" options={{ headerShown: false }} />
         <Stack.Screen name="forgot-password" options={{ headerShown: false }} />
+        {/* The code from a PC, signed out (first open). A signed-out phone lands on the allowed screen
+            with the shortest name (expo-router sorts by name length), so this one must stay longer
+            than "sign-in". */}
+        <Stack.Screen name="link-with-pc" options={{ headerShown: false }} />
       </Stack.Protected>
     </Stack>
   );

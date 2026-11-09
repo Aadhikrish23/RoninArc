@@ -25,6 +25,7 @@ import { Link as RouterLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { getErrorMessage } from "../../../shared/utils/error";
 import ForgotPasswordModal from "../components/ForgotPasswordModal";
+import { setSyncPreference, syncPreference, syncWithOtherDevices } from "../../settings/syncOtherDevices";
 
 function Login() {
   const [show, setShow] = useState<boolean>(false);
@@ -33,6 +34,7 @@ function Login() {
   const [saveme, setSaveme] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const [syncDevices, setSyncDevices] = useState<boolean>(syncPreference);
 
   const navigate = useNavigate();
   const toast = useToast();
@@ -69,6 +71,9 @@ function Login() {
 
       // Save user/token
       login(datas.userdata, datas.accessToken, datas.refreshToken, saveme);
+      setSyncPreference(syncDevices);
+      // In the background: the sign-in is done whatever happens here.
+      if (syncDevices) void syncWithOtherDevices({ password: pass, rememberMe: saveme, email: datas.userdata.email, login, toast });
 
       // Success toast
       toast({
@@ -120,9 +125,10 @@ function Login() {
             {/* Enter in any field submits, like a normal login form. */}
             <Stack spacing={4} onKeyDown={(e) => { if (e.key === "Enter" && !loading && (e.target as HTMLElement).tagName !== "BUTTON") handlesubmit(); }}>
               <FormControl>
-                <FormLabel color="gray.200">Username</FormLabel>
+                <FormLabel color="gray.200">Username or email</FormLabel>
                 <Input
-                  placeholder="Enter your username"
+                  placeholder="Enter your username or email"
+                  autoComplete="username"
                   bg="gray.900"
                   color="#fff"
                   borderColor="gray.700"
@@ -186,6 +192,12 @@ function Login() {
                   Forgot password?
                 </Link>
               </Flex>
+
+              <Checkbox colorScheme="purple" color="gray.200" isChecked={syncDevices} onChange={(e) => setSyncDevices(e.target.checked)}>
+                <Text as="span" fontSize="sm">
+                  Sync with my other devices
+                </Text>
+              </Checkbox>
 
               {/* Login button */}
               <Button

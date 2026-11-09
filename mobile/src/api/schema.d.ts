@@ -188,226 +188,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/backup/push": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Back up the current user to the cloud now
-         * @description Mirrors the user and all their data to the configured cloud database (Atlas_URL). Also runs automatically every 20 minutes.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Backed up. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @constant */
-                            Status: "Success";
-                            Data: components["schemas"]["BackupPushResult"];
-                        };
-                    };
-                };
-                /** @description Missing, malformed or expired bearer token (`Not authenticated` / `Invalid or expired token`). */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Not authenticated"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description User not found. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Failed",
-                         *       "Message": "User not found"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["FailedResponse"];
-                    };
-                };
-                /** @description Cloud backup isn't configured or failed. */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Failed",
-                         *       "Message": "Cloud backup is not configured: Atlas_URL is missing from the backend environment."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["FailedResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/backup/restore": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Restore an account from the cloud (no auth)
-         * @description For a fresh install: verifies the password against the cloud copy and recreates the account and its data locally. Refuses when the account already exists locally.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    /**
-                     * @example {
-                     *       "username": "ronin",
-                     *       "password": "Sup3rSecret!"
-                     *     }
-                     */
-                    "application/json": {
-                        username: string;
-                        /** Format: password */
-                        password: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Restored; the user can now log in. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            /** @constant */
-                            Status: "Success";
-                            Data: components["schemas"]["RestoreResult"];
-                        };
-                    };
-                };
-                /** @description Missing credentials. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Failed",
-                         *       "Message": "Username and password are required"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["FailedResponse"];
-                    };
-                };
-                /** @description Wrong password. */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Failed",
-                         *       "Message": "Invalid credentials"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["FailedResponse"];
-                    };
-                };
-                /** @description No cloud backup for this username. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Failed",
-                         *       "Message": "No cloud backup found for this account."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["FailedResponse"];
-                    };
-                };
-                /** @description The account already exists on this device. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Failed",
-                         *       "Message": "This account already exists on this device. Just log in normally."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["FailedResponse"];
-                    };
-                };
-                /** @description Cloud backup isn't configured or failed. */
-                500: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Failed",
-                         *       "Message": "Restore failed"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["FailedResponse"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/auth/register": {
         parameters: {
             query?: never;
@@ -503,7 +283,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in
-         * @description Unknown users and wrong passwords get the same 401, so usernames can't be probed.
+         * @description `username` can also be the account's email address. Unknown users and wrong passwords get the same 401, so usernames can't be probed. The phone app sends `X-RoninArc-Client: phone`, which tells a linked PC that a phone uses this account.
          */
         post: {
             parameters: {
@@ -921,7 +701,7 @@ export interface paths {
         post?: never;
         /**
          * Delete account and all data
-         * @description Permanently deletes the user and their library, reviews, notes, collections, sessions, activity, provider links and recommendation feedback. Cloud backups are kept.
+         * @description Permanently deletes the user and their library, reviews, notes, collections, sessions, activity, provider links and recommendation feedback.
          */
         delete: {
             parameters: {
@@ -3353,7 +3133,10 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** End the open play session */
+        /**
+         * End the open play session
+         * @description The desktop app sends `endedAt`, when it last saw the game running, so the few seconds it takes to notice a closed game aren't counted. It's kept between the session's start and now. Without it the session ends now.
+         */
         post: {
             parameters: {
                 query?: never;
@@ -3364,7 +3147,19 @@ export interface paths {
                 };
                 cookie?: never;
             };
-            requestBody?: never;
+            requestBody?: {
+                content: {
+                    /**
+                     * @example {
+                     *       "endedAt": "2026-11-08T12:13:05.000Z"
+                     *     }
+                     */
+                    "application/json": {
+                        /** Format: date-time */
+                        endedAt?: string;
+                    };
+                };
+            };
             responses: {
                 /** @description The closed session, with `endedAt` and `durationMinutes`. */
                 200: {
@@ -3379,7 +3174,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Malformed game id. */
+                /** @description Malformed id or `endedAt`. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -4789,14 +4584,17 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/sync/status": {
+    "/auth/reset-password": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** This PC's sync state */
+        /**
+         * The page a reset link opens
+         * @description A small HTML form that sets the new password through `POST /auth/reset-password`.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -4806,13 +4604,535 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description Linked or not, last sync, what's waiting to go up. */
+                /** @description The reset form. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": components["schemas"]["SyncStatus"];
+                        "text/html": string;
+                    };
+                };
+            };
+        };
+        put?: never;
+        /**
+         * Set a new password from a reset link
+         * @description Single use. Signs every device out (their refresh tokens stop working).
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "token": "Vq3…",
+                     *       "password": "N3wSecret!"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ResetPasswordRequest"];
+                };
+            };
+            responses: {
+                /** @description Password changed. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Success",
+                         *       "Message": "Your password is changed. Sign in with it."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["SuccessMessage"];
+                    };
+                };
+                /** @description Expired, used or unknown link; or a password under 6 characters. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "This reset link has expired or was already used. Ask for a new one."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+                /** @description Too many attempts from this network; try again later. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Too many reset requests. Try again in a few minutes."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sync/register": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create a cloud account for a PC's library
+         * @description Like `POST /auth/register`, but keeps the PC account's id so its library syncs without renumbering. Send `passwordHash` instead of `password` to keep the PC account's password.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "username": "ronin",
+                     *       "password": "Sup3rSecret!",
+                     *       "email": "ronin@example.com",
+                     *       "userId": "6a8f00c2b1d3e4f5a6b7c8d9"
+                     *     }
+                     */
+                    "application/json": {
+                        username: string;
+                        email: string;
+                        /** Format: password */
+                        password?: string;
+                        /** @description The PC account's bcrypt hash (cost 10 to 12). Needs `userId`. */
+                        passwordHash?: string;
+                        /** @description The PC account's id. */
+                        userId?: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Account created and signed in. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @constant */
+                            Status?: "Success";
+                            Data?: components["schemas"]["AuthSession"];
+                        };
+                    };
+                };
+                /** @description Missing or invalid fields (cloud accounts need an email). */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Enter a valid email address. It's how you reset a forgotten password."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+                /** @description Username or email taken, or the id is in use. */
+                409: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Username is already taken"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+                /** @description Too many attempts from this network; try again later. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Too many reset requests. Try again in a few minutes."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sync/name-available": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Is this cloud name free?
+         * @description For sign-up forms, while typing. Says only taken or free, plus up to three free names near a taken one.
+         */
+        get: {
+            parameters: {
+                query: {
+                    /** @example ronin */
+                    username: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Free or taken. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["NameAvailability"];
+                    };
+                };
+                /** @description Under 3 characters. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Usernames are at least 3 characters."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+                /** @description Too many checks from this network. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Too many name checks. Try again in a few minutes."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sync/link-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * A code for a phone to sign in with
+         * @description For a signed-in account (a linked PC asks on its owner's behalf). Replaces any earlier code. Stored only as a keyed hash.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A new 6-digit code, valid 10 minutes. */
+                201: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["LinkCode"];
+                    };
+                };
+                /** @description Missing, malformed or expired bearer token (`Not authenticated` / `Invalid or expired token`). */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Not authenticated"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+                /** @description Too many codes for this account. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Too many codes. Wait a few minutes."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sync/link-code/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign a phone in with a code
+         * @description Trades the code shown on the PC for a session. Each code works once. Rate-limited per network.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "code": "482913"
+                     *     }
+                     */
+                    "application/json": {
+                        /** @description Six digits; spaces or a scanned `roninarc://link/…` are fine. */
+                        code: string;
+                    };
+                };
+            };
+            responses: {
+                /** @description Signed in. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @constant */
+                            Status?: "Success";
+                            Data?: components["schemas"]["AuthSession"];
+                        };
+                    };
+                };
+                /** @description Not six digits, expired, already used or unknown. */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "That code didn't work. Codes last 10 minutes and work once; make a new one on your PC."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+                /** @description Too many tries from this network. */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Too many tries. Wait a few minutes, then make a new code on your PC."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sync/push": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send a device's changes
+         * @description Newer change wins (by when it was made); the same thing created on two devices is merged and reported in `remapped`.
+         */
+        post: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody: {
+                content: {
+                    /**
+                     * @example {
+                     *       "changes": {},
+                     *       "deletes": []
+                     *     }
+                     */
+                    "application/json": components["schemas"]["SyncPushRequest"];
+                };
+            };
+            responses: {
+                /** @description What the cloud took. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SyncPushResult"];
+                    };
+                };
+                /** @description Missing, malformed or expired bearer token (`Not authenticated` / `Invalid or expired token`). */
+                401: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Not authenticated"
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+                /** @description Too many changes in one push. */
+                413: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        /**
+                         * @example {
+                         *       "Status": "Fail",
+                         *       "error": "Too many changes in one push (max 5000)."
+                         *     }
+                         */
+                        "application/json": components["schemas"]["AppError"];
+                    };
+                };
+            };
+        };
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/sync/pull": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get changes since a cursor */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description `cursor` from the previous pull. */
+                    since?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Changes and deletions since `since`. */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": components["schemas"]["SyncPullResult"];
                     };
                 };
                 /** @description Missing, malformed or expired bearer token (`Not authenticated` / `Invalid or expired token`). */
@@ -4834,378 +5154,6 @@ export interface paths {
         };
         put?: never;
         post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sync/link": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Start syncing with RoninArc Cloud
-         * @description Creates a cloud account from this PC's library, or signs in to an existing one and merges this library into it, then syncs.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    /**
-                     * @example {
-                     *       "mode": "create"
-                     *     }
-                     */
-                    "application/json": components["schemas"]["SyncLinkRequest"];
-                };
-            };
-            responses: {
-                /** @description Linked and synced. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SyncStatus"];
-                    };
-                };
-                /** @description Missing or invalid fields. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Username and password are required"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description Missing, malformed or expired bearer token (`Not authenticated` / `Invalid or expired token`). */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Not authenticated"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description Already linked, or the cloud account name/email is taken. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "This account already syncs with RoninArc Cloud."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description RoninArc Cloud failed. */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Couldn't create the cloud account."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description RoninArc Cloud isn't reachable, or isn't set up in this build. */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Couldn't reach RoninArc Cloud. Check your internet connection and try again."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sync/reconnect": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sign in to the cloud again
-         * @description After the cloud refused this PC's session, e.g. the password was changed on the phone.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    /**
-                     * @example {
-                     *       "password": "N3wSecret!"
-                     *     }
-                     */
-                    "application/json": {
-                        /** Format: password */
-                        password: string;
-                    };
-                };
-            };
-            responses: {
-                /** @description Signed in again and synced. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SyncStatus"];
-                    };
-                };
-                /** @description Missing or invalid fields. */
-                400: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Username and password are required"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description Missing, malformed or expired bearer token (`Not authenticated` / `Invalid or expired token`). */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Not authenticated"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description Not linked. */
-                404: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "This account doesn't sync with RoninArc Cloud."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description Already linked, or the cloud account name/email is taken. */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "This account already syncs with RoninArc Cloud."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description RoninArc Cloud failed. */
-                502: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Couldn't create the cloud account."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-                /** @description RoninArc Cloud isn't reachable, or isn't set up in this build. */
-                503: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Couldn't reach RoninArc Cloud. Check your internet connection and try again."
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sync/unlink": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Stop syncing
-         * @description The library stays on this PC; the cloud keeps its copy.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description No longer syncing. */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SyncStatus"];
-                    };
-                };
-                /** @description Missing, malformed or expired bearer token (`Not authenticated` / `Invalid or expired token`). */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Not authenticated"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-            };
-        };
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/sync/now": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sync now
-         * @description Sends this PC's changes, then gets the cloud's. Failures show in `lastError`.
-         */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody?: never;
-            responses: {
-                /** @description Synced (or why not). */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["SyncStatus"];
-                    };
-                };
-                /** @description Missing, malformed or expired bearer token (`Not authenticated` / `Invalid or expired token`). */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        /**
-                         * @example {
-                         *       "Status": "Fail",
-                         *       "error": "Not authenticated"
-                         *     }
-                         */
-                        "application/json": components["schemas"]["AppError"];
-                    };
-                };
-            };
-        };
         delete?: never;
         options?: never;
         head?: never;
@@ -5329,7 +5277,7 @@ export interface components {
              * @example 113112
              */
             igdbId?: number | null;
-            /** @description Old IGDB id, on games added before the move to IGDB. Not interchangeable with igdbId: the same number is a different game on each. */
+            /** @description Old RAWG id, on games added before the move to IGDB. Not interchangeable with igdbId: the same number is a different game in each database. */
             rawgId?: number | null;
             /**
              * @description Play styles from the game database (`souls-like`, `co-op`).
@@ -5909,7 +5857,7 @@ export interface components {
             /**
              * @example [
              *       "Platformer, like Hollow Knight -- you rated Hollow Knight 9/10",
-             *       "Critically acclaimed (Metacritic 92)"
+             *       "Critically acclaimed (critics 92/100)"
              *     ]
              */
             reasons: string[];
@@ -5949,16 +5897,6 @@ export interface components {
             sessionId?: string;
             release?: string;
         };
-        BackupPushResult: {
-            /** @description User-scoped collections mirrored. */
-            collections: number;
-            /** @description Documents written (including the user record). */
-            documents: number;
-        };
-        RestoreResult: {
-            username: string;
-            documents: number;
-        };
         SyncStatus: {
             /** @description This build can reach RoninArc Cloud. */
             available: boolean;
@@ -5978,6 +5916,49 @@ export interface components {
             moved?: boolean;
             /** @description New sign-in for this PC, when the account id changed. */
             session?: components["schemas"]["TokenPair"];
+            /** @description A phone has signed in to this cloud account, so the PC stops offering "get your library on your phone". */
+            phoneLinked?: boolean;
+            /** @description "Sync with my other devices" was ticked at sign-in but this PC isn't linked yet. */
+            autoLink?: {
+                /** @description Waiting for internet; retried every minute. */
+                waiting?: boolean;
+                /**
+                 * @description Needs the person: `name-taken` means the name belongs to someone else in the cloud.
+                 * @enum {string|null}
+                 */
+                attention?: "name-taken" | "failed" | null;
+                message?: string | null;
+                /** @description Free cloud names to offer instead. */
+                suggestions?: string[];
+            } | null;
+            /**
+             * @description Only from `POST /sync/auto-link`.
+             * @enum {unknown}
+             */
+            result?: "linked" | "waiting" | "needs-attention" | "unavailable";
+        };
+        NameAvailability: {
+            available: boolean;
+            /**
+             * @description Up to three free names close to a taken one.
+             * @example [
+             *       "ronin-pc",
+             *       "ronin2"
+             *     ]
+             */
+            suggestions: string[];
+        };
+        LinkCode: {
+            /**
+             * @description Shown on the PC, with a QR code of `roninarc://link/<code>`. Works once, for 10 minutes.
+             * @example 482913
+             */
+            code: string;
+            /**
+             * Format: date-time
+             * @example 2026-10-09T14:03:12.000Z
+             */
+            expiresAt: string;
         };
         SyncLinkRequest: {
             /**
@@ -6066,6 +6047,8 @@ export interface components {
                 username?: string;
                 email?: string | null;
                 passwordHash?: string;
+                /** @description When a phone first signed in to this account. */
+                phoneLinkedAt?: string | null;
             };
         };
         ForgotPasswordRequest: {

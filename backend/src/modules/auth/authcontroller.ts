@@ -7,6 +7,11 @@ import type {
 import * as authServices from "./authService";
 
 import AppError from "../../shared/errors/AppError";
+import { isCloud } from "../../shared/runtimeMode";
+import { markPhoneLinked } from "../sync/linkCodes";
+
+/** The phone app says so in a header; the PC then stops offering "get your library on your phone". */
+const fromPhone = (req: Request) => isCloud() && req.get("x-roninarc-client") === "phone";
 
 const registerUser = async (
   req: Request,
@@ -58,6 +63,7 @@ const registerUser = async (
         password,
         email
       );
+    if (fromPhone(req)) await markPhoneLinked(data.userdata.name).catch(() => undefined);
 
     return res.status(201).json({
       Status: "Success",
@@ -109,6 +115,7 @@ const loginUser = async (
         username,
         password
       );
+    if (fromPhone(req)) await markPhoneLinked(data.userdata.name).catch(() => undefined);
 
     return res.status(200).json({
       Status: "Success",

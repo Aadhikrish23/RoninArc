@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { ForceScheme, space } from "./theme";
 import { T } from "./components";
@@ -50,5 +50,17 @@ export function AuthShell({ title, children, footer }: { title: string; children
         </SafeAreaView>
       </View>
     </ForceScheme>
+  );
+}
+
+/** Shown while RoninArc Cloud wakes up from sleep (the first sign-in in a while), instead of a silent wait. */
+export function WakingNote() {
+  return (
+    <View accessibilityLiveRegion="polite" style={{ flexDirection: "row", alignItems: "center", gap: space.sm, padding: space.md, borderRadius: 8, backgroundColor: "#2D3748" }}>
+      <ActivityIndicator color="#B794F4" />
+      <T size="sm" style={{ color: "#E2E8F0", flex: 1 }}>
+        Waking up the server. The first sign-in in a while can take up to a minute.
+      </T>
+    </View>
   );
 }

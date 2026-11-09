@@ -6,7 +6,7 @@ import { moduleLogger } from "../../shared/logging/logger";
 import usermodel from "../auth/models/User";
 import RefreshToken from "../auth/models/RefreshToken";
 import EpicOwnership from "../providers/epic/models/EpicOwnership";
-import { SyncLink, Tombstone } from "./syncModels";
+import { SyncIntent, SyncLink, Tombstone } from "./syncModels";
 import { CLOUD_META, SYNCED, changedAt, forWire, syncedByName, type SyncedCollection } from "./syncCollections";
 import { naturalFilters } from "./syncKeys";
 
@@ -149,6 +149,9 @@ async function applyProfile(user: any) {
     if (!taken) set.username = user.username;
   }
   await usermodel.collection.updateOne({ _id: new mongoose.Types.ObjectId(user.id) }, { $set: set });
+  if (user.phoneLinkedAt) {
+    await SyncLink.updateOne({ userId: new mongoose.Types.ObjectId(user.id), phoneLinkedAt: null }, { $set: { phoneLinkedAt: new Date(user.phoneLinkedAt) } });
+  }
 }
 
 async function applyPull(data: any) {
@@ -276,6 +279,9 @@ export function startSyncScheduler() {
   const tick = async () => {
     const links = await SyncLink.find({ needsSignIn: false }).select("userId").lean();
     for (const l of links) await syncNow(String(l.userId));
+    // "Sync with my other devices" ticked while offline: try again now.
+    const waiting = await SyncIntent.find({ attention: null }).select("userId").lean();
+    for (const w of waiting) await autoLink(String(w.userId)).catch(() => undefined);
   };
   setTimeout(() => void tick().catch(() => {}), 5_000);
   scheduler = setInterval(() => void tick().catch(() => {}), SYNC_EVERY_MS);
@@ -288,6 +294,7 @@ export function startSyncScheduler() {
 export async function status(userIdRaw: string) {
   const userId = new mongoose.Types.ObjectId(userIdRaw);
   const link: any = await SyncLink.findOne({ userId }).lean();
+  const intent: any = link ? null : await SyncIntent.findOne({ userId }).lean();
   return {
     available: !!cloudApiUrl(),
     linked: !!link,
@@ -296,7 +303,89 @@ export async function status(userIdRaw: string) {
     lastError: link?.lastError ?? null,
     needsSignIn: !!link?.needsSignIn,
     pending: link ? await pendingCounts(userId) : { changes: 0, deletes: 0 },
+    /** A phone has signed in to this account (so no "get your library on your phone"). */
+    phoneLinked: !!link?.phoneLinkedAt,
+    /** "Sync with my other devices" was ticked but isn't linked yet: waiting for internet, or for the person. */
+    autoLink: intent
+      ? { waiting: !intent.attention, attention: intent.attention ?? null, message: intent.message ?? null, suggestions: intent.suggestions ?? [] }
+      : null,
   };
+}
+
+/** Whether a name is free in RoninArc Cloud (for the sign-up form), and free ones near it. */
+export async function nameAvailable(username: string): Promise<{ available: boolean; suggestions: string[] }> {
+  try {
+    const { data } = await http(15_000).get("/sync/name-available", { params: { username } });
+    return { available: !!data?.available, suggestions: Array.isArray(data?.suggestions) ? data.suggestions : [] };
+  } catch (error) {
+    throw cloudError(error, "Couldn't check that name.");
+  }
+}
+
+/** A code (and QR) a phone uses to sign in to this PC's cloud account, no password needed. */
+export async function phoneCode(userIdRaw: string): Promise<{ code: string; expiresAt: string }> {
+  const link: any = await SyncLink.findOne({ userId: new mongoose.Types.ObjectId(userIdRaw) }).lean();
+  if (!link) throw new AppError("Sync this PC with RoninArc Cloud first.", 409);
+  if (link.needsSignIn) throw new AppError("Sign in to RoninArc Cloud again first (Settings → RoninArc Cloud).", 409);
+  try {
+    return await withCloud(link, async (api) => (await api.post("/sync/link-code")).data);
+  } catch (error) {
+    throw cloudError(error, "Couldn't make a code for your phone.");
+  }
+}
+
+const isTaken = (error: any) => error instanceof AppError && error.statusCode === 409;
+// No answer, or the cloud still waking up (its host answers 502/503 meanwhile).
+const isOffline = (error: any) => error instanceof AppError && (error.statusCode === 503 || error.statusCode === 502);
+
+/**
+ * "Sync with my other devices", ticked at sign-in. Links this account as if "Sync to cloud" was
+ * pressed; never fails the sign-in.
+ *  - Offline: remembered, and the scheduler tries again every minute.
+ *  - The name is taken in the cloud: with the password just typed, try signing in to it (it's
+ *    often the same person, e.g. who signed up on the phone first) and merge. Otherwise it
+ *    "needs attention": Settings offers free names, or "It's mine".
+ * `moved`/`session` as for link(): the account id changed, so the app signs in afresh.
+ */
+export async function autoLink(userIdRaw: string, password?: string) {
+  const userId = new mongoose.Types.ObjectId(userIdRaw);
+  if (!cloudApiUrl()) return { result: "unavailable" as const, moved: false, userId: userIdRaw, status: await status(userIdRaw) };
+  if (await SyncLink.exists({ userId })) return { result: "linked" as const, moved: false, userId: userIdRaw, status: await status(userIdRaw) };
+  await SyncIntent.updateOne({ userId }, { $setOnInsert: { attention: null } }, { upsert: true });
+
+  try {
+    const done = await link(userIdRaw, { mode: "create" });
+    return { result: "linked" as const, ...done };
+  } catch (error: any) {
+    if (isOffline(error)) {
+      await SyncIntent.updateOne({ userId }, { $set: { attention: null, message: error.message } });
+      return { result: "waiting" as const, moved: false, userId: userIdRaw, status: await status(userIdRaw) };
+    }
+    const account: any = await usermodel.collection.findOne({ _id: userId });
+    if (isTaken(error) && password) {
+      // The same person's account? Their name, then their email, with the password they just typed.
+      for (const name of [account?.username, account?.email].filter(Boolean)) {
+        try {
+          const done = await link(userIdRaw, { mode: "signin", username: String(name), password });
+          return { result: "linked" as const, ...done };
+        } catch {
+          /* not theirs (or not this one): next */
+        }
+      }
+    }
+    const suggestions = isTaken(error) && account?.username ? await nameAvailable(account.username).then((r) => r.suggestions).catch(() => []) : [];
+    await SyncIntent.updateOne(
+      { userId },
+      { $set: { attention: isTaken(error) ? "name-taken" : "failed", message: error?.message ?? "Couldn't turn on sync.", suggestions } },
+    );
+    return { result: "needs-attention" as const, moved: false, userId: userIdRaw, status: await status(userIdRaw) };
+  }
+}
+
+/** The person chose not to sync after all ("Not now" on the notice, or "Stop syncing"). */
+export async function dropAutoLink(userIdRaw: string) {
+  await SyncIntent.deleteOne({ userId: new mongoose.Types.ObjectId(userIdRaw) });
+  return status(userIdRaw);
 }
 
 async function saveLink(userId: mongoose.Types.ObjectId, cloudUsername: string, tokens: { accessToken: string; refreshToken: string }) {
@@ -360,6 +449,7 @@ export async function link(userIdRaw: string, input: { mode: "create" | "signin"
   const moved = !cloudId.equals(userId);
   if (moved) await moveLocalAccount(userId, cloudId);
   await saveLink(cloudId, username, tokens);
+  await SyncIntent.deleteMany({ userId: { $in: [userId, cloudId] } });
   await syncNow(String(cloudId));
   return { moved, userId: String(cloudId), status: await status(String(cloudId)) };
 }
@@ -406,6 +496,9 @@ export async function signInThroughCloud(username: string, password: string): Pr
     tokens = tokensFrom(data);
     const me = await http(8_000).get("/auth/me", { headers: { Authorization: `Bearer ${tokens.accessToken}` } });
     cloudId = new mongoose.Types.ObjectId(String(me.data?.Data?.id ?? me.data?.id ?? me.data?.data?.id));
+    // Signed in with an email: the account's name is the cloud's username, not the email.
+    const cloudName = me.data?.Data?.username;
+    if (typeof cloudName === "string" && cloudName) username = cloudName;
   } catch {
     return undefined;
   }

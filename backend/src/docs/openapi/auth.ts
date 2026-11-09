@@ -76,7 +76,7 @@ export const authPaths = {
     post: {
       tags,
       summary: "Sign in",
-      description: "Unknown users and wrong passwords get the same 401, so usernames can't be probed.",
+      description: "`username` can also be the account's email address. Unknown users and wrong passwords get the same 401, so usernames can't be probed. The phone app sends `X-RoninArc-Client: phone`, which tells a linked PC that a phone uses this account.",
       requestBody: jsonBody(ref("Credentials"), { username: "ronin", password: "Sup3rSecret!" }),
       responses: {
         200: ok("Signed in.", ref("AuthSession")),
@@ -158,7 +158,7 @@ export const authPaths = {
       tags,
       summary: "Delete account and all data",
       description:
-        "Permanently deletes the user and their library, reviews, notes, collections, sessions, activity, provider links and recommendation feedback. Cloud backups are kept.",
+        "Permanently deletes the user and their library, reviews, notes, collections, sessions, activity, provider links and recommendation feedback.",
       security: bearerAuth,
       requestBody: jsonBody({ type: "object", required: ["password"], properties: { password: { type: "string", format: "password" } } }),
       responses: {

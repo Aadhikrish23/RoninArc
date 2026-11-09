@@ -5,6 +5,8 @@ interface UserDocument extends mongoose.Document {
   email?: string;
   passwordHash: string;
   tokensValidAfter?: Date;
+  /** Cloud: when a phone first signed in to this account (a link code or the phone app). */
+  phoneLinkedAt?: Date;
 
   providers?: {
     epic?: {
@@ -48,6 +50,9 @@ const userSchema = new mongoose.Schema<UserDocument>(
     },
     /** Cloud: tokens issued before this (a password change or reset) no longer work. */
     tokensValidAfter: {
+      type: Date,
+    },
+    phoneLinkedAt: {
       type: Date,
     },
     providers: {

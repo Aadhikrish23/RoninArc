@@ -39,11 +39,48 @@ const syncLinkSchema = new mongoose.Schema(
     lastError: { type: String, default: null },
     /** The cloud refused this PC's session (password changed, account deleted): sign in again. */
     needsSignIn: { type: Boolean, default: false },
+    /** When a phone first signed in to this account (from the cloud's profile): no more "get it on your phone". */
+    phoneLinkedAt: { type: Date, default: null },
   },
   { timestamps: true, versionKey: false },
 );
 
 export const SyncLink = mongoose.model("SyncLink", syncLinkSchema);
+
+/**
+ * Local only: "Sync with my other devices" was ticked at sign-in but linking hasn't worked yet
+ * (offline, or the name is someone else's in the cloud). Offline it's retried every minute;
+ * a taken name waits for the person to choose ("needs attention" in Settings).
+ */
+const syncIntentSchema = new mongoose.Schema(
+  {
+    userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
+    /** Why it needs the person: "name-taken" (or another cloud refusal). Null while it just waits for internet. */
+    attention: { type: String, default: null },
+    message: { type: String, default: null },
+    /** Free cloud names to offer instead of a taken one. */
+    suggestions: { type: [String], default: [] },
+  },
+  { timestamps: true, versionKey: false },
+);
+
+export const SyncIntent = mongoose.model("SyncIntent", syncIntentSchema);
+
+/**
+ * Cloud only: a 6-digit code a linked PC shows (with a QR code) so a phone signs in without a
+ * password. Stored as an HMAC, single use, gone after ten minutes; one per account at a time.
+ */
+const linkCodeSchema = new mongoose.Schema(
+  {
+    userId: { type: mongoose.Schema.Types.ObjectId, required: true, unique: true },
+    codeHash: { type: String, required: true, unique: true },
+    expiresAt: { type: Date, required: true },
+  },
+  { versionKey: false },
+);
+linkCodeSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+export const LinkCode = mongoose.model("LinkCode", linkCodeSchema);
 
 /** Cloud only: one row per user per UTC day, for the per-user AI limit. */
 const usageSchema = new mongoose.Schema(

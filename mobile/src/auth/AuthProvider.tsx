@@ -1,12 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { api, clearSession, loadSession, onSessionEnded, saveSession, setSession, type Session } from "@/api/client";
+import { api, clearSession, loadSession, onSessionEnded, saveSession, setSession, wakeCloud, type Session } from "@/api/client";
 import { queryClient } from "@/data/queryClient";
 
 interface AuthState {
   ready: boolean;
   user: Session["user"] | null;
-  signIn: (username: string, password: string) => Promise<void>;
-  signUp: (username: string, email: string, password: string) => Promise<void>;
+  /** `onWaking`: the cloud is waking up (up to a minute), so the screen can say so. */
+  signIn: (usernameOrEmail: string, password: string, onWaking?: () => void) => Promise<void>;
+  signUp: (username: string, email: string, password: string, onWaking?: () => void) => Promise<void>;
+  /** The 6-digit code (or scanned QR) from RoninArc on the PC: signs in to that account, no password. */
+  signInWithCode: (code: string, onWaking?: () => void) => Promise<void>;
   signOut: () => Promise<void>;
 }
 
@@ -18,8 +21,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
   const [user, setUser] = useState<Session["user"] | null>(null);
 
-  const start = useCallback(async (payload: AuthPayload) => {
-    const s: Session = { accessToken: payload.accessToken, refreshToken: payload.refreshToken, user: { name: payload.userdata.name, email: payload.userdata.email ?? null } };
+  const start = useCallback(async (payload: AuthPayload, via: "code" | "password" = "password") => {
+    const s: Session = { accessToken: payload.accessToken, refreshToken: payload.refreshToken, user: { name: payload.userdata.name, email: payload.userdata.email ?? null, via } };
     setSession(s);
     await saveSession(s);
     setUser(s.user);
@@ -46,9 +49,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     () => ({
       ready,
       user,
-      signIn: async (username, password) => start(await api<AuthPayload>("/auth/login", { method: "POST", body: { username: username.trim(), password }, auth: false })),
-      signUp: async (username, email, password) =>
-        start(await api<AuthPayload>("/auth/register", { method: "POST", body: { username: username.trim(), email: email.trim(), password }, auth: false })),
+      signIn: async (username, password, onWaking) => {
+        await wakeCloud(onWaking);
+        await start(await api<AuthPayload>("/auth/login", { method: "POST", body: { username: username.trim(), password }, auth: false, timeoutMs: 45_000, retry: 1 }));
+      },
+      signUp: async (username, email, password, onWaking) => {
+        await wakeCloud(onWaking);
+        await start(await api<AuthPayload>("/auth/register", { method: "POST", body: { username: username.trim(), email: email.trim(), password }, auth: false, timeoutMs: 45_000, retry: 1 }));
+      },
+      signInWithCode: async (code, onWaking) => {
+        await wakeCloud(onWaking);
+        const payload = await api<AuthPayload>("/sync/link-code/claim", { method: "POST", body: { code }, auth: false, timeoutMs: 45_000 });
+        // Maybe another account was signed in (an empty one): nothing of it may show under the new one.
+        queryClient.clear();
+        await start(payload, "code");
+      },
       signOut: async () => {
         const s = await loadSession();
         if (s) await api("/auth/logout", { method: "POST", body: { refreshToken: s.refreshToken }, auth: false }).catch(() => {});

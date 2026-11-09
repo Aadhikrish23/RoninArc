@@ -185,9 +185,9 @@ async function loginUser(username: string, password: string) {
     throw new AppError("Invalid input", 400);
   }
 
-  let existingUser = await usermodel.findOne({
-    username,
-  });
+  // "aadhikrish23@gmail.com" signs in too: an email finds its account (emails are unique in the cloud).
+  let existingUser = await usermodel.findOne({ username });
+  if (!existingUser && EMAIL.test(username)) existingUser = await usermodel.findOne({ email: username });
 
   let passwordMatch = !!existingUser && !!existingUser.passwordHash && (await bcryptjs.compare(password, existingUser.passwordHash));
 

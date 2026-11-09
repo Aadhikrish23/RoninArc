@@ -3,7 +3,7 @@ import { Pressable, View } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@/auth/AuthProvider";
 import { Button, Field, T } from "@/ui/components";
-import { AuthShell } from "@/ui/AuthShell";
+import { AuthShell, WakingNote } from "@/ui/AuthShell";
 import { space } from "@/ui/theme";
 
 export default function SignUp() {
@@ -12,6 +12,7 @@ export default function SignUp() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [waking, setWaking] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const submit = async () => {
@@ -21,11 +22,12 @@ export default function SignUp() {
     setBusy(true);
     setError(null);
     try {
-      await signUp(username, email, password);
+      await signUp(username, email, password, () => setWaking(true));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Couldn't create the account.");
     } finally {
       setBusy(false);
+      setWaking(false);
     }
   };
 
@@ -48,14 +50,15 @@ export default function SignUp() {
       <Field label="Username" placeholder="Enter your username" value={username} onChangeText={setUsername} autoCapitalize="none" autoCorrect={false} autoComplete="username-new" />
       <Field label="Email" placeholder="Enter your email" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" hint="Only for resetting a forgotten password." />
       <Field label="Password" placeholder="Enter your password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" hint="At least 6 characters." />
+      {waking ? <WakingNote /> : null}
       {error ? (
         <T tone="danger" size="sm" accessibilityLiveRegion="polite">
           {error}
         </T>
       ) : null}
-      <Button title="Create account" onPress={submit} loading={busy} variant="brand" />
+      <Button title={waking ? "Waking up RoninArc" : "Create account"} onPress={submit} loading={busy} variant="brand" />
       <T size="xs" style={{ color: "#A0AEC0", textAlign: "center" }}>
-        Already use RoninArc on your PC? Sign in there with this account under Settings → RoninArc Cloud, and your library syncs.
+        Already use RoninArc on your PC? Go back and tap Scan code from your PC instead: your library comes along.
       </T>
     </AuthShell>
   );

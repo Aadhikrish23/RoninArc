@@ -124,6 +124,34 @@ function RecommendationCard({ rec, topPick }: { rec: Recommendation; topPick: bo
   );
 }
 
+/**
+ * An empty library on the phone usually means the games are on a PC that hasn't been connected:
+ * say so, and offer its code (scan or type) before "add a game by hand".
+ */
+function OnYourPc() {
+  const c = useColors();
+  return (
+    <View style={{ marginTop: space.xl, gap: space.md, padding: space.lg, borderRadius: radius.lg, borderWidth: 1, borderColor: c.border, backgroundColor: c.card, ...cardShadow }}>
+      <View style={{ flexDirection: "row", alignItems: "center", gap: space.sm }}>
+        <Feather name="monitor" size={20} color={c.accent} />
+        <T size="lg" weight="700" accessibilityRole="header">
+          Your games are on your PC
+        </T>
+      </View>
+      <T size="sm" tone="muted">
+        {"Open RoninArc on your PC and choose Show the code on the dashboard (or Settings → RoninArc Cloud → Connect your phone). Scan it here and your library comes along."}
+      </T>
+      <Button title="Scan code from your PC" icon="maximize" variant="solid" onPress={() => router.push("/connect")} />
+      <Button title="Enter code" icon="hash" variant="outline" onPress={() => router.push({ pathname: "/connect", params: { mode: "enter" } })} />
+      <Pressable accessibilityRole="button" accessibilityLabel="No PC? Add a game here" onPress={() => router.push("/add")} hitSlop={8} style={{ alignSelf: "center", paddingTop: space.xs }}>
+        <T size="sm" tone="accent" weight="600">
+          No PC? Add a game here
+        </T>
+      </Pressable>
+    </View>
+  );
+}
+
 export default function Library() {
   const games = useGames();
   const collections = useCollections();
@@ -195,7 +223,7 @@ export default function Library() {
       ) : games.error ? (
         <ErrorNote error={games.error} onRetry={() => games.refetch()} />
       ) : (games.data ?? []).length === 0 ? (
-        <Empty icon="book-open" title="Your library is empty" body="Search for a game you own and add it, or sync your PC's library from RoninArc on your PC." action={<Button title="Add a game" icon="plus" onPress={() => router.push("/add")} />} />
+        <OnYourPc />
       ) : (
         <>
           <Shelf title="Continue playing" games={shelves.continuePlaying} />

@@ -26,6 +26,34 @@ export const syncSchemas: Record<string, Schema> = {
       },
       moved: { type: "boolean", description: "Linking took over an existing cloud account's id: use `session` from now on." },
       session: { ...ref("TokenPair"), description: "New sign-in for this PC, when the account id changed." },
+      phoneLinked: { type: "boolean", description: "A phone has signed in to this cloud account, so the PC stops offering \"get your library on your phone\"." },
+      autoLink: {
+        type: ["object", "null"],
+        description: "\"Sync with my other devices\" was ticked at sign-in but this PC isn't linked yet.",
+        properties: {
+          waiting: { type: "boolean", description: "Waiting for internet; retried every minute." },
+          attention: { type: ["string", "null"], enum: ["name-taken", "failed", null], description: "Needs the person: `name-taken` means the name belongs to someone else in the cloud." },
+          message: { type: ["string", "null"] },
+          suggestions: { type: "array", items: { type: "string" }, description: "Free cloud names to offer instead." },
+        },
+      },
+      result: { enum: ["linked", "waiting", "needs-attention", "unavailable"], description: "Only from `POST /sync/auto-link`." },
+    },
+  },
+  NameAvailability: {
+    type: "object",
+    required: ["available", "suggestions"],
+    properties: {
+      available: { type: "boolean" },
+      suggestions: { type: "array", items: { type: "string" }, description: "Up to three free names close to a taken one.", example: ["ronin-pc", "ronin2"] },
+    },
+  },
+  LinkCode: {
+    type: "object",
+    required: ["code", "expiresAt"],
+    properties: {
+      code: { type: "string", pattern: "^[0-9]{6}$", description: "Shown on the PC, with a QR code of `roninarc://link/<code>`. Works once, for 10 minutes.", example: "482913" },
+      expiresAt: dateTime,
     },
   },
   SyncLinkRequest: {
@@ -78,7 +106,13 @@ export const syncSchemas: Record<string, Schema> = {
       user: {
         type: "object",
         description: "The account's name, email and password hash, so a linked PC can sign in offline.",
-        properties: { id: { type: "string" }, username: { type: "string" }, email: { type: ["string", "null"] }, passwordHash: { type: "string" } },
+        properties: {
+          id: { type: "string" },
+          username: { type: "string" },
+          email: { type: ["string", "null"] },
+          passwordHash: { type: "string" },
+          phoneLinkedAt: { oneOf: [dateTime, { type: "null" }], description: "When a phone first signed in to this account." },
+        },
       },
     },
   },
@@ -165,6 +199,45 @@ const cloudPaths = {
       },
     },
   },
+  "/sync/name-available": {
+    get: {
+      tags,
+      summary: "Is this cloud name free?",
+      description: "For sign-up forms, while typing. Says only taken or free, plus up to three free names near a taken one.",
+      parameters: [{ name: "username", in: "query", required: true, schema: { type: "string", minLength: 3 }, example: "ronin" }],
+      responses: {
+        200: { description: "Free or taken.", content: { "application/json": { schema: ref("NameAvailability") } } },
+        400: appError("Under 3 characters.", "Usernames are at least 3 characters."),
+        429: appError("Too many checks from this network.", "Too many name checks. Try again in a few minutes."),
+      },
+    },
+  },
+  "/sync/link-code": {
+    post: {
+      tags,
+      summary: "A code for a phone to sign in with",
+      description: "For a signed-in account (a linked PC asks on its owner's behalf). Replaces any earlier code. Stored only as a keyed hash.",
+      security: bearerAuth,
+      responses: {
+        201: { description: "A new 6-digit code, valid 10 minutes.", content: { "application/json": { schema: ref("LinkCode") } } },
+        401: responses.unauthorized,
+        429: appError("Too many codes for this account.", "Too many codes. Wait a few minutes."),
+      },
+    },
+  },
+  "/sync/link-code/claim": {
+    post: {
+      tags,
+      summary: "Sign a phone in with a code",
+      description: "Trades the code shown on the PC for a session. Each code works once. Rate-limited per network.",
+      requestBody: jsonBody({ type: "object", required: ["code"], properties: { code: { type: "string", description: "Six digits; spaces or a scanned `roninarc://link/…` are fine." } } }, { code: "482913" }),
+      responses: {
+        200: { description: "Signed in.", content: { "application/json": { schema: { type: "object", properties: { Status: { const: "Success" }, Data: ref("AuthSession") } } } } },
+        400: appError("Not six digits, expired, already used or unknown.", "That code didn't work. Codes last 10 minutes and work once; make a new one on your PC."),
+        429: appError("Too many tries from this network.", "Too many tries. Wait a few minutes, then make a new code on your PC."),
+      },
+    },
+  },
   "/sync/push": {
     post: {
       tags,
@@ -214,6 +287,52 @@ const localPaths = {
       security: bearerAuth,
       requestBody: jsonBody(ref("SyncLinkRequest"), { mode: "create" }),
       responses: { 200: statusResponse("Linked and synced."), ...cloudLinkError },
+    },
+  },
+  "/sync/auto-link": {
+    post: {
+      tags,
+      summary: "Sync with my other devices (at sign-in)",
+      description:
+        "Links like `POST /sync/link` in `create` mode but never fails: offline it waits and retries every minute; if the name is taken in the cloud, the just-typed `password` tries signing in to that account (merging when it's the same person); otherwise the status says it needs attention, with free names to offer.",
+      security: bearerAuth,
+      requestBody: jsonBody({ type: "object", properties: { password: { type: "string", format: "password", description: "Only to try the existing cloud account; not stored." } } }, { password: "Sup3rSecret!" }),
+      responses: { 200: statusResponse("Linked, waiting, or needs attention (see `result`)."), 401: responses.unauthorized },
+    },
+    delete: {
+      tags,
+      summary: "Stop trying to link",
+      description: "The person chose not to sync after all.",
+      security: bearerAuth,
+      responses: { 200: statusResponse("No longer waiting to link."), 401: responses.unauthorized },
+    },
+  },
+  "/sync/name-available": {
+    get: {
+      tags,
+      summary: "Is this name free in RoninArc Cloud?",
+      description: "For the sign-up form while typing (before there's an account, so no sign-in). Asks the cloud.",
+      parameters: [{ name: "username", in: "query", required: true, schema: { type: "string", minLength: 3 }, example: "ronin" }],
+      responses: {
+        200: { description: "Free or taken.", content: { "application/json": { schema: ref("NameAvailability") } } },
+        400: appError("Under 3 characters.", "Usernames are at least 3 characters."),
+        429: appError("Too many checks.", "Too many name checks. Try again in a few minutes."),
+        503: appError("RoninArc Cloud isn't reachable.", "Couldn't reach RoninArc Cloud. Check your internet connection and try again."),
+      },
+    },
+  },
+  "/sync/phone-code": {
+    post: {
+      tags,
+      summary: "A code for your phone",
+      description: "Asks the cloud for a 6-digit code (shown with a QR code) that signs the phone in to this PC's cloud account, no password needed.",
+      security: bearerAuth,
+      responses: {
+        201: { description: "A new code, valid 10 minutes.", content: { "application/json": { schema: ref("LinkCode") } } },
+        401: responses.unauthorized,
+        409: appError("This PC doesn't sync with the cloud yet, or must sign in again.", "Sync this PC with RoninArc Cloud first."),
+        503: appError("RoninArc Cloud isn't reachable.", "Couldn't reach RoninArc Cloud. Check your internet connection and try again."),
+      },
     },
   },
   "/sync/reconnect": {

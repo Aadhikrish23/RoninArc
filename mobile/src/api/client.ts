@@ -31,7 +31,8 @@ const KEYS = { access: "roninarc.access", refresh: "roninarc.refresh", user: "ro
 export interface Session {
   accessToken: string;
   refreshToken: string;
-  user: { name: string; email?: string | null };
+  /** `via`: how this phone signed in, a code from the PC or a password (Settings says which). */
+  user: { name: string; email?: string | null; via?: "code" | "password" };
 }
 
 export async function loadSession(): Promise<Session | null> {
@@ -113,18 +114,53 @@ function messageFrom(body: any, status: number): string {
 }
 
 /**
- * A call to RoninArc Cloud: JSON in and out, the signed-in session attached, one silent token
- * refresh when it has expired. Unwraps `{ Status, Data }`.
+ * RoninArc Cloud sleeps when nobody has used it for a while (its free hosting plan) and takes up
+ * to a minute to wake. The first sign-in after that used to give up at 30 seconds ("took too
+ * long"), then work on the second try. Sign-in screens call this first: it waits for the cloud,
+ * calling `onSlow` once it's clear it's waking up, so the screen can say so.
  */
-export async function api<T = unknown>(path: string, options: { method?: string; body?: unknown; auth?: boolean; timeoutMs?: number } = {}): Promise<T> {
-  const { method = "GET", body, auth = true, timeoutMs = 30_000 } = options;
-  const send = async () => {
+export async function wakeCloud(onSlow?: () => void, timeoutMs = 100_000): Promise<void> {
+  const slow = setTimeout(() => onSlow?.(), 2_500);
+  const started = Date.now();
+  try {
+    // Its host answers 502/503 for a moment while it starts: keep asking until it's up.
+    while (Date.now() - started < timeoutMs) {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), Math.max(5_000, timeoutMs - (Date.now() - started)));
+      try {
+        const res = await fetch(`${CLOUD_URL}/health`, { signal: controller.signal });
+        if (res.ok) return;
+      } catch (e: any) {
+        if (e?.name === "AbortError") break;
+        // Offline: no point waiting a minute.
+        throw new ApiError("Can't reach RoninArc. Check your internet connection.", 0);
+      } finally {
+        clearTimeout(timer);
+      }
+      await new Promise((r) => setTimeout(r, 2_000));
+    }
+    throw new ApiError("RoninArc is taking too long to wake up. Try again in a minute.", 0);
+  } finally {
+    clearTimeout(slow);
+  }
+}
+
+/**
+ * A call to RoninArc Cloud: JSON in and out, the signed-in session attached, one silent token
+ * refresh when it has expired. Unwraps `{ Status, Data }`. `retry` repeats a call that got no
+ * answer at all (a dropped connection, a cloud still waking).
+ */
+export async function api<T = unknown>(path: string, options: { method?: string; body?: unknown; auth?: boolean; timeoutMs?: number; retry?: number } = {}): Promise<T> {
+  const { method = "GET", body, auth = true, timeoutMs = 30_000, retry = 0 } = options;
+  const sendOnce = async () => {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       return await fetch(`${CLOUD_URL}${path}`, {
         method,
         headers: {
+          // Tells a linked PC that a phone uses this account (it stops offering the QR code).
+          "X-RoninArc-Client": "phone",
           ...(body !== undefined ? { "Content-Type": "application/json" } : {}),
           ...(auth && session ? { Authorization: `Bearer ${session.accessToken}` } : {}),
         },
@@ -138,6 +174,16 @@ export async function api<T = unknown>(path: string, options: { method?: string;
       );
     } finally {
       clearTimeout(timer);
+    }
+  };
+  const send = async () => {
+    for (let attempt = 0; ; attempt++) {
+      try {
+        return await sendOnce();
+      } catch (e) {
+        if (attempt >= retry) throw e;
+        await new Promise((r) => setTimeout(r, 1_500));
+      }
     }
   };
 

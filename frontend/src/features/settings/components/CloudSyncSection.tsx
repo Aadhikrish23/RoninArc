@@ -17,6 +17,8 @@ import {
 } from "@chakra-ui/react";
 import { SettingsPanel, SettingsRow, SettingsSection, StatusDot } from "./SettingsLayout";
 import syncApi, { type SyncStatus } from "../api/syncApi";
+import ConnectPhoneModal from "./ConnectPhoneModal";
+import { setSyncPreference } from "../syncOtherDevices";
 import { useAuth } from "../../auth/context/AuthContext";
 import { getErrorMessage } from "../../../shared/utils/error";
 
@@ -48,6 +50,7 @@ export default function CloudSyncSection() {
   const [problem, setProblem] = useState<string | null>(null);
   const [busy, setBusy] = useState<"link" | "sync" | "unlink" | "reconnect" | null>(null);
   const [confirmUnlink, setConfirmUnlink] = useState(false);
+  const [phoneOpen, setPhoneOpen] = useState(false);
 
   const refresh = useCallback(() => syncApi.status().then(setStatus).catch(() => {}), []);
   useEffect(() => {
@@ -133,6 +136,13 @@ export default function CloudSyncSection() {
   };
 
   const waiting = status.pending.changes + status.pending.deletes;
+  const attention = !status.linked ? status.autoLink : null;
+
+  // "Not now" on a sign-in that asked to sync: stop trying, and untick the box next time.
+  const notNow = () => run("unlink", async () => {
+    setSyncPreference(false);
+    return syncApi.dropAutoLink();
+  });
 
   const syncNow = (
     <Button size="sm" variant="outline" isLoading={busy === "sync"} loadingText="Syncing" onClick={() => run("sync", syncApi.syncNow)}>
@@ -191,11 +201,55 @@ export default function CloudSyncSection() {
               )
             )}
           </SettingsRow>
+        ) : attention?.attention && !mode ? (
+          // Ticked "Sync with my other devices", but the cloud said no: say why and offer the way out.
+          <SettingsRow
+            label="Sync needs your attention"
+            status={<StatusDot tone="warn">Not syncing yet</StatusDot>}
+            detail={
+              attention.attention === "name-taken"
+                ? `Someone else already uses "${user?.name ?? "this name"}" in RoninArc Cloud. Choose another name for syncing; you keep signing in here as you do now. If that cloud account is yours, sign in to it instead.`
+                : `${attention.message ?? "Couldn't turn on sync."}`
+            }
+            actions={
+              <Button size="sm" variant="ghost" color={muted} isLoading={busy === "unlink"} onClick={notNow}>
+                Not now
+              </Button>
+            }
+          >
+            <HStack mt={3} spacing={2} flexWrap="wrap">
+              {attention.attention === "name-taken" &&
+                attention.suggestions.map((s) => (
+                  <Button key={s} size="sm" colorScheme="purple" variant="outline" isLoading={busy === "link"} onClick={() => syncToCloud({ username: s })}>
+                    Sync as {s}
+                  </Button>
+                ))}
+              {attention.attention === "name-taken" ? (
+                <>
+                  <Button size="sm" variant="ghost" onClick={() => switchMode("create")}>
+                    Another name
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => switchMode("signin")}>
+                    It's mine
+                  </Button>
+                </>
+              ) : (
+                // e.g. no email on this PC's account: the form asks for what's missing.
+                <Button size="sm" colorScheme="purple" onClick={() => switchMode("create")}>
+                  Sync to cloud
+                </Button>
+              )}
+            </HStack>
+          </SettingsRow>
         ) : (
           <SettingsRow
-            label="Not syncing"
-            status={<StatusDot tone="off">Off</StatusDot>}
-            detail="Puts this library in the cloud under your RoninArc username and password, so you can sign in on your phone."
+            label={attention?.waiting ? "Waiting for internet" : "Not syncing"}
+            status={attention?.waiting ? <StatusDot tone="busy">Waiting</StatusDot> : <StatusDot tone="off">Off</StatusDot>}
+            detail={
+              attention?.waiting
+                ? "Sync turns on by itself as soon as this PC is online. Everything works here meanwhile."
+                : "Puts this library in the cloud under your RoninArc username and password, so you can sign in on your phone."
+            }
             actions={
               mode ? undefined : (
                 <Button size="sm" colorScheme="purple" isLoading={busy === "link"} loadingText="Syncing your library" onClick={() => syncToCloud()}>
@@ -276,7 +330,10 @@ export default function CloudSyncSection() {
                   size="sm"
                   colorScheme="purple"
                   isLoading={busy === "unlink"}
-                  onClick={() => run("unlink", syncApi.unlink, "Stopped syncing").finally(() => setConfirmUnlink(false))}
+                  onClick={() => {
+                    setSyncPreference(false);
+                    run("unlink", syncApi.unlink, "Stopped syncing").finally(() => setConfirmUnlink(false));
+                  }}
                 >
                   Stop syncing
                 </Button>
@@ -284,7 +341,29 @@ export default function CloudSyncSection() {
             }
           />
         )}
+        <SettingsRow
+          label="Your phone"
+          status={status.phoneLinked ? <StatusDot tone="ok">Connected</StatusDot> : <StatusDot tone="off">No phone yet</StatusDot>}
+          detail={
+            status.phoneLinked
+              ? "A phone uses this library. Connect another one the same way."
+              : "Show a code for the RoninArc phone app to scan. No password to type on the phone."
+          }
+          actions={
+            <Button size="sm" variant={status.phoneLinked ? "outline" : "solid"} colorScheme={status.phoneLinked ? undefined : "purple"} onClick={() => setPhoneOpen(true)}>
+              Connect your phone
+            </Button>
+          }
+        />
       </SettingsPanel>
+      <ConnectPhoneModal
+        isOpen={phoneOpen}
+        onClose={() => {
+          setPhoneOpen(false);
+          refresh();
+        }}
+        onStatus={setStatus}
+      />
     </SettingsSection>
   );
 }

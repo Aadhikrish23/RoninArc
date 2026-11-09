@@ -10,7 +10,7 @@ const cloudUrl = (process.env.RONINARC_CLOUD_URL || "http://10.0.2.2:5056").repl
 const config: ExpoConfig = {
   name: "RoninArc",
   slug: "roninarc",
-  version: "1.0.0",
+  version: "1.0.2",
   // Portrait in the config (Expo Go fell over with "default"); tablets unlock rotation at runtime
   // (src/ui/orientation.ts).
   orientation: "portrait",
@@ -21,7 +21,7 @@ const config: ExpoConfig = {
   ios: { bundleIdentifier: "com.roninarc.mobile" },
   android: {
     package: "com.roninarc.mobile",
-    versionCode: 1,
+    versionCode: 2,
     adaptiveIcon: {
       backgroundColor: "#1C1C1C",
       foregroundImage: "./assets/images/android-icon-foreground.png",
@@ -33,6 +33,8 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     "expo-secure-store",
+    // Only to read the QR code RoninArc on the PC shows (Connect your phone); no microphone.
+    ["expo-camera", { cameraPermission: "RoninArc uses the camera to scan the code shown by RoninArc on your PC.", recordAudioAndroid: false }],
     ["expo-splash-screen", { backgroundColor: "#1C1C1C", image: "./assets/images/splash-icon.png", imageWidth: 200 }],
     // Plain http is only allowed for a local test cloud; a real one is https.
     ["expo-build-properties", { android: { usesCleartextTraffic: cloudUrl.startsWith("http://") } }],
