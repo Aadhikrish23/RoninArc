@@ -1,6 +1,6 @@
 # RoninArc roadmap
 
-Current release: **1.0.1** (2026-11-08), on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
+Current release: **1.0.2**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
 
 ## Done
 
@@ -34,8 +34,8 @@ Current release: **1.0.1** (2026-11-08), on [GitHub releases](https://github.com
 ### Desktop app
 - **Self-contained Windows installer:** embedded MongoDB, no Node install needed, splash screen on a slow start.
 - **Keys:** handled through keygate, with per-install tokens.
-- **Updates:** automatic, from GitHub releases.
-- **Support:** problem reports zipped to the Desktop.
+- **Updates:** automatic, from GitHub releases; from 1.0.2 on they download only what changed.
+- **Support:** problem reports zipped to the Desktop, including the AI logs, which now live in the app-data log folder and survive reinstalls.
 - **Settings:** redesigned as one column of rows.
 
 ### Cloud and phone
@@ -44,37 +44,42 @@ Current release: **1.0.1** (2026-11-08), on [GitHub releases](https://github.com
 - **Android app:** library, game pages, collections, dashboard, add games, the assistant and settings.
 - **Landing page:** download links that always point at the newest release.
 
-## Next (agreed 2026-11-09)
+### Done in 1.0.2 (agreed 2026-11-09)
 
-### Bugs
-1. **AI:** "move all my God of War games into the collection" left one game out.
-2. **AI:** "add the Batman games, create a Batman collection and put them in it" didn't work properly.
-3. **Mobile sign-in:** fails on the first try and works on the second. Likely the free-plan cloud waking up; find the cause, then add an automatic retry with a "waking up the server" message, or keep the server awake.
+**AI fixes**
+- **Series collections:** "move all my God of War games into the collection" reaches every owned game in the series, including two games with the same title.
+- **Batman request:** "add the Batman games, create a Batman collection and put them in it" works. One shared word ("City") no longer counts as owning the game.
+- **Unclear games:** when one game is unclear, the clear steps run first and only that game is asked about. A name that fits two owned games equally well asks "which one?".
 
-### Mobile Settings
-4. **Redesign:** match the desktop's one-column Settings (rows instead of cards, same wording, only what applies to the phone).
+**Phone app**
+- **Settings:** redesigned to match the desktop's one-column rows.
+- **First sign-in:** no longer fails while the free-plan cloud wakes up. The app waits, says "Waking up the server…", and retries.
 
-### Getting the library onto the phone without hunting through Settings
-5. **Phone hint:** when the library is empty, a card says "Your games are on your PC" with "Scan the code" and "Enter code".
-6. **Link code:** the PC shows a 6-digit code. Typing it on the phone signs in and syncs, with no password.
-7. **QR code:** the same as the link code, scanned from the PC, with the code as a fallback.
-8. **PC prompt:** a one-time "Get your library on your phone" banner once the library has games, and a permanent "Connect your phone" item in Settings.
-9. **Sign-in checkbox:** "Sync with my other devices", **ticked by default**, on desktop register and login.
-   - It makes the same call as "Sync to cloud" in Settings.
-   - Offline, it links the next time the PC is online.
+**Getting the library onto the phone**
+- **Empty phone library:** a "Your games are on your PC" card with Scan code / Enter code.
+- **Link code and QR code:** "Connect your phone" on the PC shows a 6-digit code and a QR code. The phone signs in with no password and no cloud name.
+- **PC prompts:** a dismissible "Get your library on your phone" banner on the dashboard, and a permanent "Your phone" row in Settings.
+- **Sign-in checkbox:** "Sync with my other devices", ticked by default, on desktop login and sign-up. Offline, it links once the PC is online.
+- **Taken cloud names:** checked while you type; a silent sign-in when the name turns out to be yours; otherwise a "needs attention" notice with suggested free names or "It's mine".
+- **Email sign-in:** the cloud accepts the email as well as the username.
 
-### When the cloud username is taken
-10. **Live check:** on the register screen, check whether the name is free in the cloud while the user types.
-11. **Try signing in first:** if the name is taken, silently try signing in with the same username and password. If it works, it's the same person: merge and turn sync on.
-12. **Someone else's name:**
-    - The PC account keeps working, and sync shows "needs attention" in Settings plus a one-time notice.
-    - The notice suggests free names (like `name-2`) or lets the user choose "It's mine" and enter that account's password.
-13. **Link code hides the name:** linking by code or QR never asks for the cloud name. Settings shows "Syncing as …".
-14. **Email sign-in:** sign in to the cloud with email as well as username.
+**Housekeeping**
+- **Website:** shows the current version.
+- **Updates:** download only what changed (versioned installer names, GitHub update feed).
+- **Old backup:** the Atlas backup mirror is removed now that sync exists.
+- **Clean-up:**
+  - removed the unused `ai_v2` module and the RAWG leftovers
+  - added `backend/.env.example`
+  - builds start from a clean `dist/`
+
+## Next
+
+- **Link-code guessing:** add a global limit on link-code claims across networks, or a longer code.
+- **Phone account switching:** revoke a phone's old refresh token when it switches account with a code.
+- **APK signing:** sign the APK with a release keystore before sharing it widely.
 
 ## Later
 - **Installer:** code-sign it to remove the "Windows protected your PC" warning.
-- **Cloud plan:** move the cloud off the free plan once testers rely on it.
+- **Cloud plan:** move the cloud off the free plan once testers rely on it, so the first request doesn't wait for it to wake up.
 - **More stores:** GOG and other launcher imports.
 - **Achievements:** if they fit the product.
-- **Cleanup:** remove the unused `ai_v2` module, and retire the older Atlas backup mirror now that sync exists.

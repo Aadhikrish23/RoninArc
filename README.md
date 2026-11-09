@@ -8,9 +8,9 @@ RoninArc is a game library and backlog tracker for Windows PC gamers, with an An
 - **Recommendations:** what to play next from your backlog, and new games to discover, each with a reason.
 - **The AI assistant changes your library:** "I finished celeste, 9/10", "make a soulslike collection and put ds3 in it", "create a God of War collection with all my God of War games", "what should I play tonight? I've got 2 hours", "undo that".
 - **Offline-first:** everything except search, the AI and store imports works without internet, and your data stays on your PC.
-- **Optional cloud sync:** RoninArc Cloud keeps the PC and the Android app in step.
+- **Cloud sync and the phone app:** tick "Sync with my other devices" when you sign in (on by default), then scan a QR code or type a 6-digit code from the PC on your Android phone. No password on the phone, and the PC keeps working offline.
 
-Current version: **1.0.1**. Downloads are on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases/latest).
+Current version: **1.0.2**. Downloads are on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases/latest).
 
 ## Documentation
 
@@ -65,7 +65,7 @@ npm install
 npm run dev          # http://localhost:5000, Swagger at /api/docs
 ```
 
-`backend/.env` holds development settings and is never committed. The names it uses:
+`backend/.env` holds development settings and is never committed. Copy [`backend/.env.example`](backend/.env.example), which lists every setting the backend reads with a placeholder and a description. The main ones:
 
 - **Database and auth:** `LOCAL_URL_Mongo` (or `MONGO_URI`), `JWT_SECRET`, `PORT`
 - **CORS:** `ALLOWED_ORIGIN`, set to `http://localhost:5173` for the Vite dev server
@@ -79,8 +79,7 @@ npm run dev          # http://localhost:5000, Swagger at /api/docs
   - `MOCK_LLM=true` for a deterministic stand-in
 - **Steam:** `STEAM_API_KEY`
 - **Optional:**
-  - `CLOUD_API_URL` (a cloud to sync with), `SENTRY_DSN`, `LOG_LEVEL`
-  - `Atlas_URL` (the older backup mirror)
+  - `CLOUD_API_URL` (a cloud to sync with), `SENTRY_DSN`, `LOG_LEVEL`, `LOG_DIR`
 
 ### Desktop UI
 
@@ -134,7 +133,7 @@ npm run dev
 cd e2e
 npm install
 npx playwright install chromium
-npm run test:api     # about 600 API tests
+npm run test:api     # about 630 API tests
 npm run test:ui      # UI tests in Chromium
 ```
 
@@ -147,21 +146,21 @@ cd desktop
 npm run predist && npm run dist
 ```
 
-`predist` downloads MongoDB, builds the backend and the frontend, and copies the frontend in.
+`predist` downloads MongoDB, builds the backend (from a clean `dist/`) and the frontend, and copies the frontend in. `dist` never uploads anything (`--publish never`).
 
-The output goes to `desktop/dist/`: `RoninArc-Setup.exe`, `RoninArc-Setup.exe.blockmap` and `latest.yml`.
+The output goes to `desktop/dist/`: `RoninArc-Setup-<version>.exe`, its `.blockmap` and `latest.yml`.
 
 The build needs two gitignored files in `desktop/`, copied from their `.example.json` files:
 - `keygate.json`, so the installed app can get its own API token
-- `release.json`, with the update address and the cloud address
+- `release.json`, with where updates come from (`"github": { "owner", "repo" }`) and the cloud address
 
 ## Releasing
 
 Releases are published on GitHub with the GitHub CLI. Installed apps update themselves from the latest release, and the landing page's buttons always serve it. In short:
 
-1. Bump `version` in `desktop/package.json`.
-2. Build the installer, then commit and push.
-3. Run `gh release create vX.Y.Z --latest` with `RoninArc-Setup.exe`, `RoninArc-Setup.exe.blockmap`, `latest.yml` and `RoninArc.apk`.
+1. Bump `version` in `desktop/package.json` (and in `mobile/app.config.ts` with a higher `versionCode` if the APK changed).
+2. Build the installer (and the APK), then commit and push.
+3. Run `npm run stage-release` in `desktop/` (add `-- --apk <path>` for a new APK). It gathers `RoninArc-Setup-X.exe`, its blockmap, `latest.yml`, a fixed-name copy `RoninArc-Setup.exe` for the website, and `RoninArc.apk` into `release/vX/`, and prints the `gh release create` command to run.
 
 The full steps are in [docs/beta/RELEASING.md](docs/beta/RELEASING.md).
 

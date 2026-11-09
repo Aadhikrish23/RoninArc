@@ -2,7 +2,8 @@
 
 RoninArc Cloud is the same backend as the desktop app's, run with `CLOUD_MODE=true`. It serves:
 - the phone app, directly
-- PCs' sync, through Settings → RoninArc Cloud
+- PCs' sync ("Sync with my other devices" at sign-in, or Settings → RoninArc Cloud)
+- phone link codes: a linked PC asks for a 6-digit code, and a phone trades it for a session
 
 It needs five things:
 - **MongoDB Atlas:** the database
@@ -39,7 +40,7 @@ keygate's project-wide daily caps still bound the total cost.
 ## 4. Render
 
 1. Push the repo to GitHub, then go to https://dashboard.render.com → **New → Blueprint** and pick the repo. It reads `render.yaml`.
-2. Fill in the secrets it asks for:
+2. Fill in the secrets it asks for. Every setting the backend reads is listed, with a description, in `backend/.env.example`:
 
 | Key | Value |
 |---|---|
@@ -52,7 +53,9 @@ keygate's project-wide daily caps still bound the total cost.
 
 3. Deploy, then open `https://<service>.onrender.com/health`. It should say `RoninArc was healthy`.
 
-**Plan:** the free plan sleeps after about 15 idle minutes. The next request then takes about a minute, and AI conversations in progress are forgotten. A PC's sync waits up to 90 seconds for a sleeping cloud, but the phone's first sign-in can fail while the server wakes up (a known issue on the [roadmap](../roadmap.md)). Switch the service to **Starter** before friends rely on it.
+**Plan:** the free plan sleeps after about 15 idle minutes. The next request then takes about a minute, and AI conversations in progress are forgotten. A PC's sync waits up to 90 seconds for a sleeping cloud, and the phone waits on `/health` (up to about 100 seconds, showing "Waking up the server…") before signing in. Switch the service to **Starter** before friends rely on it.
+
+**Redeploy before releasing apps that need new cloud routes.** For example, 1.0.2's phone linking, name checks and email sign-in only work once the cloud runs the same code.
 
 ## 5. Point the apps at it
 
@@ -66,3 +69,5 @@ keygate's project-wide daily caps still bound the total cost.
 - **The phone:** reads and writes the cloud copy.
 - **Conflicts:** when the same thing changes on both, the later change wins. The same game added on two devices becomes one, with both devices' notes and reviews.
 - **Passwords:** the cloud is the source of truth. A reset on the phone works on the PC at its next sign-in.
+- **Link codes:** kept in the `linkcodes` collection only as an HMAC (keyed with `JWT_SECRET`), with a TTL index that deletes them once they expire (10 minutes). Each account has at most one; a phone's claim deletes it. Changing `JWT_SECRET` invalidates outstanding codes and all sessions.
+- **Phone sign-ins:** the phone sends `X-RoninArc-Client: phone`, and the cloud records `phoneLinkedAt` on the account so the PC stops offering "Get your library on your phone".

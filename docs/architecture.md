@@ -1,6 +1,6 @@
 # RoninArc architecture
 
-This describes RoninArc as of version 1.0.1. For the endpoints themselves, see [api.md](api.md) and the live Swagger UI at `/api/docs`.
+This describes RoninArc as of version 1.0.2. For the endpoints themselves, see [api.md](api.md) and the live Swagger UI at `/api/docs`.
 
 ## The pieces
 
@@ -46,7 +46,7 @@ Some routes only exist in one mode (for example `/sync/register`, `/sync/push`, 
 `backend/src/`:
 
 ```
-server.ts              connect to MongoDB, start sync scheduler, start optional Atlas mirror, listen
+server.ts              connect to MongoDB, start the sync scheduler, listen
 app.ts                 middleware, CORS, Swagger, rate limits, routers, error handler
 instrument.ts          Sentry (only when SENTRY_DSN is set)
 docs/openapi/          the OpenAPI 3.1 document, split by area
@@ -63,18 +63,19 @@ modules/
   playSession/         play sessions and playtime totals
   recommendation/      "play next" from the library and "discover" from IGDB, dismissals
   providers/           Steam (OpenID + Web API) and Epic (OAuth + library API) import and resync
-  sync/                cloud sync: link, push, pull, tombstones, AI quota
-  backup/              older mirror of a PC's data to an Atlas database (Atlas_URL), and restore
+  sync/                cloud sync: link, auto-link, push, pull, tombstones, phone link codes, name checks, AI quota
   logs/                client log ingestion (POST /logs/client)
   ai/                  the AI assistant (see below)
-  ai_v2/               an unfinished rewrite; not mounted in app.ts
 ```
+
+`npm run build` empties `dist/` before compiling, so removed code never reaches the installer. Every setting the backend reads is listed in `backend/.env.example`.
 
 Modules follow the same shape: routes, controller, service, Mongoose model. Every query is scoped to the signed-in user; another user's ids behave as not found.
 
 ### Authentication
 
 - Passwords are hashed with bcrypt.
+- `POST /auth/login` accepts the username or the account's email (case-insensitive). Emails are unique in the cloud.
 - `POST /auth/login` and `POST /auth/register` return a JWT access token (15 minutes) and a single-use refresh token (stored as `RefreshToken`). `POST /auth/refresh` swaps the refresh token for a new pair.
 - "Remember me" on the desktop decides whether the refresh token is kept between launches.
 - In the cloud, a password change or reset sets a cutoff so every token issued before it stops working (`tokenCutoff.ts`).
@@ -101,7 +102,18 @@ Modules follow the same shape: routes, controller, service, Mongoose model. Ever
 - **Deletes:** recorded as tombstones so they propagate.
 - **Conflicts:** the later change wins.
 - **Schedule (PC):** every 60 seconds while linked, and about 4 seconds after any change. The first request to a sleeping free-plan cloud can take up to about 90 seconds.
-- **Linking a PC:** `POST /sync/link` creates the cloud account with the PC account's id and password hash (`mode: "create"`), or signs in to an existing cloud account and merges (`mode: "signin"`). Today the user starts this from Settings → RoninArc Cloud.
+- **Linking a PC:** `POST /sync/link` creates the cloud account with the PC account's id and password hash (`mode: "create"`), or signs in to an existing cloud account and merges (`mode: "signin"`). Settings → RoninArc Cloud → "Sync to cloud" calls it.
+- **"Sync with my other devices"** (desktop login and sign-up, ticked by default): after a local sign-in the UI calls `POST /sync/auto-link` in the background, which never blocks sign-in.
+  - Offline, the choice is stored (`SyncIntent`) and the scheduler retries every minute.
+  - If the name is taken in the cloud, it silently tries the just-typed password on that cloud account (by username, then email). If that works it's the same person, so the libraries merge.
+  - Otherwise `/sync/status` reports `autoLink.attention: "name-taken"` with free names, and Settings shows "Sync needs your attention" (sync as a suggested name, another name, "It's mine" with that account's password, or "Not now").
+  - The sign-up form checks the name while you type (`GET /sync/name-available`, which the PC passes on to the cloud and which says only taken or free).
+  - Choosing "Stop syncing" or "Not now" makes the box start unticked from then on.
+- **Linking a phone:** a linked PC asks the cloud for a 6-digit code (`POST /sync/phone-code` on the PC, `POST /sync/link-code` in the cloud). It shows it in "Connect your phone" (`ConnectPhoneModal`) as a QR code of `roninarc://link/<code>` with the digits under it and a countdown.
+  - The phone scans it (`expo-camera`) or types it, and `POST /sync/link-code/claim` returns a session, so there's no password on the phone.
+  - Codes are stored as an HMAC under the server secret in the `linkcodes` collection (TTL index). They last 10 minutes, work once, and there's one per account. Claims are limited to 10 per 15 minutes per network.
+  - The phone sends `X-RoninArc-Client: phone` when signing in; the cloud records `phoneLinkedAt`, and the PC sees `phoneLinked` in `/sync/status` on its next pull.
+  - The desktop dashboard shows a dismissible "Get your library on your phone" banner while the library has games and no phone is linked. Settings has a permanent "Your phone" row.
 - **Signing in on a new PC:** when local sign-in fails, the PC tries the same details against the cloud (`signInThroughCloud`). If they work, it creates the local account with the cloud account's id, links it and pulls the library down.
 
 ### The AI assistant
@@ -110,11 +122,11 @@ Modules follow the same shape: routes, controller, service, Mongoose model. Ever
 
 1. **Pre-routing** (`pipeline/PreRoute.ts`): answers what needs no model (greetings, "what's in my collection", deleting or renaming a collection, undo, quick commands such as launch).
 2. **Planning:** the model turns the message into intents (JSON). Providers: NVIDIA NIM (primary model plus fallbacks, `NVIDIA_*`) or Ollama (`OLLAMA_*`), chosen by `AI_PROVIDER`. `MOCK_LLM=true` swaps in a deterministic stand-in for tests.
-3. **Corrections and grounding** (`PlanCorrections.ts`, `PlanGrounding.ts`, `SeriesCollection.ts`, ...): checks the plan against the user's own words. It drops changes nobody asked for, ties games to ones the user named, adds missing games before acting on them, and fills a collection with "all the X games" when the model leaves that step out.
-4. **Entity resolution and execution:** tools such as `AddGameTool`, `UpdateStatusTool`, `CreateReviewTool`, `AddToCollectionTool`, `LaunchGameTool`, `RecommendGamesTool`, `SearchGamesTool` and the Epic tools run in order. Adding a game runs first.
+3. **Corrections and grounding** (`PlanCorrections.ts`, `PlanGrounding.ts`, `SeriesCollection.ts`, ...): checks the plan against the user's own words. It drops changes nobody asked for, ties games to ones the user named (every word asked for must be in the title; one shared word isn't the same game), adds missing games before acting on them, and fills a collection with every owned game in a series ("all the X games") when the model leaves that step out. Steps can carry a game's library id, so two games with the same title (God of War 2005 and 2018) are both reached.
+4. **Entity resolution and execution:** a name that fits two owned games equally well ("batman arkham" with Asylum and City owned) gets a "which one?" question. When one game in a request is unclear, the clear steps run first and only the unclear part waits for the answer (`pipeline/PlanRunner.ts`), so answering doesn't repeat them. Tools such as `AddGameTool`, `UpdateStatusTool`, `CreateReviewTool`, `AddToCollectionTool`, `LaunchGameTool`, `RecommendGamesTool`, `SearchGamesTool` and the Epic tools run in order. Adding a game runs first.
 5. **Reply:** built from what actually happened, with optional follow-up offers ("Want me to add ... to it?") and an undo log.
 
-Questions get a second, plain-text "answer mode" call with library facts and IGDB facts attached. Each request writes a trace log to `backend/logs/ai/<date>/` relative to the backend's install folder.
+Questions get a second, plain-text "answer mode" call with library facts and IGDB facts attached. Each request writes a trace log (prompt, the model's raw plan, planning, execution, reply) to `LOG_DIR/ai/<date>/`, so it survives reinstalls. Day folders older than 14 days are deleted, and the oldest go first past 150 MB (`AI_LOG_RETENTION_DAYS`, `AI_LOG_MAX_MB`).
 
 ### Logging and errors
 
@@ -134,8 +146,8 @@ Questions get a second, plain-text "answer mode" call with library facts and IGD
 - **Play time** (`services/gameTracker.js`): after a launch, checks every 5 seconds whether a program from the game's folder is running. The session ends at the time the game was last seen.
 - **Store pages** (`services/gamePage.js`): "Open in Steam / Epic" for owned games that aren't installed. Epic store slugs are looked up through Electron's network stack.
 - **Scanners:** `steamScanner.js` and `epicScanner.js` find installed games.
-- **Updates** (`services/updates.js`): electron-updater with a generic feed set by `release.json`'s `updateUrl` (the GitHub "latest release" download folder). It checks shortly after start and every 4 hours, downloads in the background, and asks before restarting.
-- **Problem reports** (`services/diagnostics.js`): Settings → "Create problem report" zips `startup.log` and recent JSON logs onto the Desktop, with tokens and keys removed.
+- **Updates** (`services/updates.js`): electron-updater reading GitHub releases (`release.json`: `"github": { owner, repo }`; the older `updateUrl` generic feed still works). It checks shortly after start and every 4 hours, downloads in the background, and asks before restarting. From 1.0.2 on, installers have the version in their name, so an update downloads only the parts that changed (using the previous release's blockmap). 1.0.0 and 1.0.1 installs do one last full download.
+- **Problem reports** (`services/diagnostics.js`): Settings → "Create problem report" zips `startup.log`, recent JSON logs and the 40 newest AI logs onto the Desktop, with tokens and keys removed.
 - **Startup log:** `startup.log` in the app data folder, for "won't start" reports.
 
 ## Desktop UI
@@ -149,12 +161,12 @@ features/
   auth/         login, signup, AuthContext
   library/      library page, browse (search), game details page
   collections/  collection details
-  dashboard/    stats, playtime, activity
+  dashboard/    stats, playtime, activity, the "Get your library on your phone" banner
   recommendations/
   reviews/  notes/  playSession/  activity/
   providers/    Steam and Epic connect, resync, status
   ai/           the floating assistant and the full /ai page
-  settings/     one-column Settings (account, game sources, cloud, appearance, security, support, delete)
+  settings/     one-column Settings (account, game sources, cloud, your phone, appearance, security, support, delete), Connect your phone (QR + code), the sync attention flow
 ```
 
 Routes: `/` library, `/library/browse`, `/library/game/:igdbId`, `/collections/:collectionId`, `/dashboard`, `/recommendations`, `/ai`, `/settings`, `/providers/epic/callback`, plus `/login` and `/signup`.
@@ -165,15 +177,18 @@ Routes: `/` library, `/library/browse`, `/library/game/:igdbId`, `/collections/:
 
 - `app/`: Expo Router screens.
   - Tabs: Library, Dashboard and Settings.
-  - Other screens: game page, collection page, all games, add a game, the assistant, sign in, sign up and forgot password.
+  - Other screens: game page, collection page, all games, add a game, the assistant, sign in, sign up, forgot password, `link-with-pc` (scan the PC's QR code or type its code when signed out) and `connect` (the same when signed in; it switches account).
+  - Settings follows the desktop's one-column rows: Account, RoninArc Cloud ("Syncing as …", connected with a code or a password), Security, Delete account, then the app version and IGDB credit.
 - `api/`: typed client; `schema.d.ts` is generated from the backend's OpenAPI document (`npm run api:types`).
 - `auth/`: tokens in `expo-secure-store`.
 - `data/`: TanStack Query hooks.
 
-The phone app only talks to RoninArc Cloud, at the address baked in at build time (`RONINARC_CLOUD_URL`, see `app.config.ts`). It shows a library only after a PC has synced it, or after games are added on the phone.
+The phone app only talks to RoninArc Cloud, at the address baked in at build time (`RONINARC_CLOUD_URL`, see `app.config.ts`). A phone with an empty library shows "Your games are on your PC" with Scan code / Enter code / "No PC? Add a game here".
+
+The free Render plan sleeps when idle, so the first request can take about a minute. Before signing in, the client waits on `/health` (up to about 100 seconds, riding out 502/503 while the server starts) and retries once, and the sign-in screens say "Waking up the server…" meanwhile.
 
 ## Releases
 
-- Desktop releases are GitHub releases with fixed file names: `RoninArc-Setup.exe`, `RoninArc-Setup.exe.blockmap`, `latest.yml`, plus `RoninArc.apk`.
-- The desktop updater and the landing page both use `https://github.com/Aadhikrish23/RoninArc/releases/latest/download/<file>`.
+- Each GitHub release carries `RoninArc-Setup-<version>.exe`, its `.blockmap` and `latest.yml` for the updater, plus `RoninArc-Setup.exe` (a fixed-name copy) and `RoninArc.apk` for the landing page's `releases/latest/download/<file>` links.
+- The landing page's version is the desktop version at build time, swapped for the newest GitHub release tag when the page loads.
 - See [beta/RELEASING.md](beta/RELEASING.md).

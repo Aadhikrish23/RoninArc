@@ -12,7 +12,7 @@ The e2e suite (`e2e/tests/api/openapi.spec.ts`) fails if a route exists without 
 
 - **Auth:** send `Authorization: Bearer <accessToken>`. Access tokens last 15 minutes; refresh tokens are single-use.
 - **Success:** `{ "Status": "Success", "Data": ... }` (or `Message`). `/dashboard/stats` and `/ai/chat` return their payload directly.
-- **Errors:** `{ "Status": "Fail" | "Error", "error": "..." }` for most routes, `{ "Status": "Failed", "Message": "..." }` for reviews, notes, collections, play sessions, activity and backup, `{ "success": false, "message": "..." }` for the AI.
+- **Errors:** `{ "Status": "Fail" | "Error", "error": "..." }` for most routes, `{ "Status": "Failed", "Message": "..." }` for reviews, notes, collections, play sessions and activity, `{ "success": false, "message": "..." }` for the AI.
 - **Ownership:** everything is scoped to the signed-in user. Someone else's id behaves as not found.
 - **Request ids:** every response has an `X-Request-Id` header that also appears in the server logs.
 - **Modes:** some routes exist only on a PC (local mode) or only on RoninArc Cloud (`CLOUD_MODE=true`). They're marked below.
@@ -31,7 +31,7 @@ The e2e suite (`e2e/tests/api/openapi.spec.ts`) fails if a route exists without 
 | Method | Path | Auth | What it does |
 |---|---|---|---|
 | POST | `/auth/register` | none | Create an account (rate limited in the cloud) |
-| POST | `/auth/login` | none | Sign in, returns an access and refresh token (rate limited in the cloud) |
+| POST | `/auth/login` | none | Sign in with a username **or email**, returns an access and refresh token (rate limited in the cloud). The phone app sends `X-RoninArc-Client: phone`, so a linked PC learns a phone uses the account |
 | POST | `/auth/refresh` | none | Swap a refresh token for a new pair |
 | POST | `/auth/logout` | none | Sign out this device (revokes the refresh token) |
 | POST | `/auth/logout-all` | yes | Sign out every device |
@@ -126,22 +126,19 @@ In the cloud each person has a daily message allowance. Past it, `/ai/chat` retu
 
 ## Cloud sync
 
-| Method | Path | Mode | What it does |
-|---|---|---|---|
-| GET | `/sync/status` | PC | Whether sync is available and linked, the cloud name, last sync, last error, whether it needs a fresh sign-in, and pending changes |
-| POST | `/sync/link` | PC | Start syncing: `mode: "create"` (new cloud account from this PC's account) or `"signin"` (existing cloud account, libraries merged) |
-| POST | `/sync/reconnect` | PC | Sign in to the cloud again after a password change |
-| POST | `/sync/now` | PC | Sync now |
-| POST | `/sync/unlink` | PC | Stop syncing (the library stays on the PC) |
-| POST | `/sync/register` | Cloud | Create a cloud account for a PC's existing account, keeping its id and password hash |
-| POST | `/sync/push` | Cloud | Receive a batch of changes from a PC |
-| GET | `/sync/pull?since=...` | Cloud | Changes since a point in time |
-
-## Backup (older Atlas mirror)
-
-| Method | Path | What it does |
-|---|---|---|
-| POST | `/backup/push` | Copy the current user's data to the Atlas database in `Atlas_URL` now |
-| POST | `/backup/restore` | Restore an account from that database (no token; takes the account's username and password) |
-
-This predates cloud sync and only runs on a PC with `Atlas_URL` set.
+| Method | Path | Mode | Auth | What it does |
+|---|---|---|---|---|
+| GET | `/sync/status` | PC | yes | Whether sync is available and linked, the cloud name, last sync, last error, whether it needs a fresh sign-in, pending changes, `phoneLinked` (a phone uses this account) and `autoLink` (`waiting`, `attention`, `message`, `suggestions`) |
+| POST | `/sync/link` | PC | yes | Start syncing: `mode: "create"` (new cloud account from this PC's account) or `"signin"` (existing cloud account, libraries merged) |
+| POST | `/sync/auto-link` | PC | yes | "Sync with my other devices" at sign-in. Links like `create` but never fails: offline it waits and retries every minute; if the name is taken it tries the just-typed password on that account (merging if it's the same person); otherwise the status says it needs attention, with free names. Returns `result`: `linked`, `waiting`, `needs-attention` or `unavailable` |
+| DELETE | `/sync/auto-link` | PC | yes | Stop waiting to link ("Not now") |
+| GET | `/sync/name-available?username=...` | PC and Cloud | none | Whether a cloud name is free, plus up to three free names near a taken one. Says nothing else about the account. Rate limited. The PC passes the question on to the cloud |
+| POST | `/sync/phone-code` | PC | yes | Link the PC first if needed, then ask the cloud for a phone link code (shown with a QR code) |
+| POST | `/sync/reconnect` | PC | yes | Sign in to the cloud again after a password change |
+| POST | `/sync/now` | PC | yes | Sync now |
+| POST | `/sync/unlink` | PC | yes | Stop syncing (the library stays on the PC) |
+| POST | `/sync/register` | Cloud | none | Create a cloud account for a PC's existing account, keeping its id and password hash (rate limited) |
+| POST | `/sync/link-code` | Cloud | yes | A new 6-digit code for this account; any older one stops working. Stored as an HMAC, lasts 10 minutes, rate limited per account |
+| POST | `/sync/link-code/claim` | Cloud | none | A phone trades a code (`"482913"`, `"482 913"` or `roninarc://link/482913`) for a session. Works once; 10 tries per 15 minutes per network |
+| POST | `/sync/push` | Cloud | yes | Receive a batch of changes from a PC |
+| GET | `/sync/pull?since=...` | Cloud | yes | Changes since a point in time |

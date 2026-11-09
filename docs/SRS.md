@@ -1,6 +1,6 @@
 # RoninArc software requirements specification
 
-Version 1.0.1. This describes what the system does today. Planned work is listed separately at the end and in the [roadmap](roadmap.md).
+Version 1.0.2. This describes what the system does today. Planned work is listed separately at the end and in the [roadmap](roadmap.md).
 
 ## 1. Introduction
 
@@ -28,6 +28,7 @@ RoninArc lets a person:
 | Linked PC | A PC whose local account syncs with a cloud account |
 | IGDB | The Internet Game Database, the source of game metadata |
 | keygate | The Cloudflare Worker proxy that holds API keys and enforces per-token limits |
+| Link code | A 6-digit, single-use, 10-minute code a linked PC shows (also as a QR code) that signs a phone in to the same cloud account |
 | Intent | One action the AI planned from a message, for example `SetStatus` or `OrganizeCollection` |
 | Status | One of Plan to Play, Playing, Paused, Completed, Dropped (or none) |
 
@@ -70,7 +71,7 @@ RoninArc lets a person:
 
 ### 3.1 Accounts and sessions
 
-- **FR-1.1** A player can register and sign in with a username and password.
+- **FR-1.1** A player can register and sign in with a username and password. Sign-in also accepts the account's email instead of the username (case-insensitive), on the PC's cloud sign-in and on the phone.
   - Usernames are at least 3 characters and stored in lower case.
   - Passwords are at least 6 characters.
   - On a PC the email is optional and never used. In the cloud a valid, unique email is required, because it's how a forgotten password is reset.
@@ -147,7 +148,9 @@ RoninArc lets a person:
   - connect, disconnect or sync Epic
   - undo the last change
 - **FR-10.3** The assistant only changes games the player named or clearly referred to ("it", "that one", the game page they're on). Changes nobody asked for are dropped, and the reply says so.
-- **FR-10.4** A request for "all the X games" in a collection adds every owned game in that series, even when the model leaves that step out.
+- **FR-10.4** A request for "all the X games" in a collection adds every owned game in that series, even when the model leaves that step out, including two owned games with the same title (steps carry the game's library id).
+- **FR-10.4a** A name matches an owned game only if every word asked for is in its title (small typos allowed) or the titles match closely overall. One shared word ("Arkham City" and "River City Girls") isn't the same game.
+- **FR-10.4b** A name that fits two owned games equally well gets a "which one?" question. When one game in a request is unclear, the clear steps run first and only the unclear part waits for the answer; answering doesn't repeat the steps already done.
 - **FR-10.5** Removing a game from the library asks for confirmation first.
 - **FR-10.6** Questions get an answer written with the player's library and IGDB facts. Questions never change data.
 - **FR-10.7** Replies describe what actually happened, not what the model claimed.
@@ -162,24 +165,39 @@ RoninArc lets a person:
 - **FR-11.4** The same game added on two devices becomes one game. On conflicting edits, the later change wins. Deletes propagate.
 - **FR-11.5** A player can sync now, stop syncing (keeping the PC library), and sign in again after a password change.
 - **FR-11.6** The phone app reads and writes the cloud copy directly.
+- **FR-11.7** Desktop login and sign-up have a "Sync with my other devices" checkbox, ticked by default. When ticked, the PC links to the cloud in the background after a local sign-in, as in FR-11.1.
+  - It never blocks or fails the local sign-in.
+  - Offline, the choice is kept and retried every minute until the PC is online.
+  - After "Stop syncing" or "Not now" the box starts unticked.
+- **FR-11.8** When the cloud name is already taken:
+  - the sign-up form says so while the player types, with up to three free names (the check says only taken or free)
+  - linking silently tries the just-typed password on that cloud account (by username, then email); if it works, the libraries merge
+  - otherwise the local account keeps working, and Settings shows "Sync needs your attention" once, offering a suggested free name, another name, "It's mine" (that account's password) or "Not now"
+- **FR-11.9** A linked PC can show a link code as digits and as a QR code (`roninarc://link/<code>`) from Settings → "Connect your phone" or the dashboard banner. A PC that isn't linked yet is linked first.
+  - The phone scans the QR code or types the code and is signed in to the same cloud account with no password and no cloud name.
+  - A code lasts 10 minutes, works once, and making a new one cancels the old one.
+- **FR-11.10** The desktop dashboard shows a dismissible "Get your library on your phone" banner while the library has games and no phone has signed in to the account. Settings always has a "Your phone" row.
 
 ### 3.12 Desktop app lifecycle
 
 - **FR-12.1** Only one instance runs at a time.
 - **FR-12.2** On first launch the app creates its JWT secret and enrolls with keygate. Without a keygate token, offline features keep working.
-- **FR-12.3** The app checks for updates shortly after starting and every 4 hours, downloads in the background, and asks before restarting. Otherwise it installs on quit.
-- **FR-12.4** "Create problem report" saves a zip of recent logs to the Desktop with tokens, keys and passwords removed.
+- **FR-12.3** The app checks for updates shortly after starting and every 4 hours, downloads in the background, and asks before restarting. Otherwise it installs on quit. From 1.0.2 on, an update downloads only the parts that changed since the installed version.
+- **FR-12.4** "Create problem report" saves a zip of recent logs, including the 40 newest AI request logs, to the Desktop with tokens, keys and passwords removed.
 
 ### 3.13 Android app
 
-- **FR-13.1** A player can sign in, sign up and reset their password against RoninArc Cloud.
+- **FR-13.1** A player can sign in (username or email), sign up and reset their password against RoninArc Cloud, or sign in by scanning or typing a link code from their PC (FR-11.9).
+- **FR-13.1a** While the cloud is waking up, sign-in and sign-up wait (up to about 100 seconds) and say "Waking up the server…" instead of failing.
+- **FR-13.1b** A phone with an empty library shows "Your games are on your PC" with "Scan code from your PC", "Enter code" and "No PC? Add a game here".
 - **FR-13.2** A player can browse their library, collections and dashboard, change statuses, rate, review, take notes and add games.
 - **FR-13.3** A player can use the AI assistant. The conversation survives leaving the screen.
-- **FR-13.4** A player can change their password and delete their account from Settings.
+- **FR-13.4** Settings matches the desktop's one-column layout: account and log out, RoninArc Cloud ("Syncing as …", how this phone was connected, use a code from a PC), change password, delete account, and the app version with the IGDB credit.
 
 ### 3.14 Landing page
 
 - **FR-14.1** The download buttons always serve the newest GitHub release (`releases/latest/download/RoninArc-Setup.exe` and `RoninArc.apk`).
+- **FR-14.2** The version shown is the desktop version at build time, replaced by the newest GitHub release tag when the page loads.
 
 ## 4. Non-functional requirements
 
@@ -197,6 +215,7 @@ RoninArc lets a person:
 - **NFR-2.5** Sync accepts only plain data the app's own models would write: no query operators, and no changing the owner.
 - **NFR-2.6** HTTP security headers come from Helmet. In the cloud, CORS is limited to `ALLOWED_ORIGIN`.
 - **NFR-2.7** Problem reports and logs remove tokens, keys and bearer headers.
+- **NFR-2.8** Link codes are stored only as an HMAC under the server secret, expire after 10 minutes (TTL index), work once, and are limited to one per account. Claims are limited to 10 per 15 minutes per network; making codes to 20 per 15 minutes per account; name checks to 120 per 15 minutes per network.
 
 ### 4.3 Privacy
 
@@ -216,6 +235,7 @@ RoninArc lets a person:
 - **NFR-5.1** Two desktop instances never open the same database.
 - **NFR-5.2** Failed sync attempts are retried. Pending changes are counted and shown in Settings.
 - **NFR-5.3** Server errors are logged with a request id and sent to Sentry when configured.
+- **NFR-5.4** AI request logs are kept in the app's log folder (`LOG_DIR/ai`), so they survive reinstalls. Logs older than 14 days are deleted, and the oldest days go first past 150 MB.
 
 ### 4.6 Usability
 
@@ -225,7 +245,7 @@ RoninArc lets a person:
 ### 4.7 Maintainability and testing
 
 - **NFR-7.1** Every route is documented in the OpenAPI document, and a test fails otherwise.
-- **NFR-7.2** The Playwright suite (about 600 API tests and a UI project) runs against isolated servers: its own MongoDB, mock IGDB, Resend and Sentry, a local backend and a cloud backend.
+- **NFR-7.2** The Playwright suite (about 630 API tests and a UI project of about 150) runs against isolated servers: its own MongoDB, mock IGDB, Resend and Sentry, a local backend and a cloud backend.
 - **NFR-7.3** A reported bug gets a test that reproduces it.
 
 ## 5. External interfaces
@@ -238,23 +258,12 @@ RoninArc lets a person:
 | Steam | desktop (OpenID window), backend → keygate → Steam Web API | Owned games |
 | Epic | desktop (OAuth window), backend → Epic APIs | Owned games, store slugs via Electron's network stack |
 | Resend | cloud → Resend | Password reset emails |
-| GitHub Releases | desktop updater, landing page → GitHub | `latest.yml`, installer, blockmap, APK |
+| GitHub Releases | desktop updater, landing page → GitHub | `latest.yml`, versioned installer and blockmap (differential updates), fixed-name installer copy, APK, latest release tag |
+| Camera | phone | Scanning the PC's QR code (`expo-camera`, no microphone) |
 | Electron IPC | UI → desktop | App info, updates, problem report, choose exe, launch, scan, store sign-in, open store page |
 
 ## 6. Planned requirements (not built yet)
 
-Agreed on 2026-11-09:
-
-- **Getting the library onto the phone:**
-  - an empty-library card on the phone
-  - a 6-digit link code and a QR code shown on the PC
-  - a one-time "Get your library on your phone" banner and a "Connect your phone" item in desktop Settings
-  - a "Sync with my other devices" checkbox, ticked by default, on desktop register and login
-- **Cloud name already taken:**
-  - check availability while typing
-  - silently try signing in with the same credentials (merge if it works)
-  - otherwise flag "needs attention" in Settings with suggested free names or "it's mine"
-  - linking by code never asks for the cloud name
-- **Cloud sign-in by email** as well as username.
-- **Mobile Settings** redesigned to match the desktop's one-column layout.
-- **Mobile first sign-in failure** (likely the cloud waking up): find the cause and fix it.
+- **Link-code claims across networks:** claims are limited per network only. A global limit (or a longer code) would cap guessing spread over many networks.
+- **Switching a phone's account by code:** the old account's refresh token isn't revoked; it just expires. It should be revoked.
+- **Release signing for the APK:** the APK is signed with the debug key. A release keystore is needed before wider sharing, and every later APK must use the same key.
