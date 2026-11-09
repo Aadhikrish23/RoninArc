@@ -135,6 +135,15 @@ export class OllamaClient {
             { type: "OrganizeCollection", targets: [{ type: "Collection", name: "Platformers" }, { type: "Game", name: "Hollow Knight" }], parameters: [] },
           ],
         });
+      } else if (queryLower.includes("mixed bag")) {
+        // A new collection, a clear game and an unclear one (two owned games share the title).
+        responseText = JSON.stringify({
+          intents: [
+            { type: "CreateCollection", targets: [{ type: "Collection", name: "Mixed Bag" }], parameters: [] },
+            { type: "OrganizeCollection", targets: [{ type: "Collection", name: "Mixed Bag" }, { type: "Game", name: "Celeste" }], parameters: [] },
+            { type: "OrganizeCollection", targets: [{ type: "Collection", name: "Mixed Bag" }, { type: "Game", name: "Batman Arkham" }], parameters: [] },
+          ],
+        });
       } else if (/collection called .+ and .*\ball\b.*\bgames\b/.test(queryLower)) {
         // What the real model sent for "create a collection called god of war and add all the god
         // of war games i have to it": the collection, and nothing for the games.

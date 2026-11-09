@@ -204,6 +204,25 @@ export class EntityResolver {
       }
     }
 
+    // "batman arkham" when both Arkham Asylum and Arkham City are owned: both titles fit the words
+    // equally well, so ask which one instead of saying the game isn't there.
+    const tied = byTitle.filter((c) => byTitle.length > 1 && byTitle[0].score >= 70 && byTitle[0].score - c.score < 10);
+    if (tied.length > 1) {
+      traceInfo.chosenStrategy = "Title Match (Tied)";
+      traceInfo.finalConfidence = 0.5;
+      traceInfo.finalResolutionStatus = "AMBIGUOUS";
+      if (trace) {
+        trace.log("EntityResolver", "Resolution Trace", traceInfo);
+      }
+      return this.buildResult(
+        EntityResolutionStatus.AMBIGUOUS,
+        0.5,
+        undefined,
+        tied.map((c) => c.game),
+        `${tied.length} titles match "${gameName}" equally well`,
+      );
+    }
+
     const result = this.buildResult(
       EntityResolutionStatus.NOT_FOUND,
       0,

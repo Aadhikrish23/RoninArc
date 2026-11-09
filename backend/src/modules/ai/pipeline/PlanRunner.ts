@@ -9,6 +9,7 @@ import { PlanningRuntime } from "../planning/PlanningRuntime";
 import { PlanningStatus } from "../planning/PlanningStatus";
 import { ExecutionRuntime } from "../execution/ExecutionRuntime";
 import { IntentPlan } from "../intent/IntentPlan";
+import { IntentTargetType } from "../intent/IntentTargetType";
 import { ConversationSession } from "../conversation/ConversationSession";
 import type { RuntimeResponse } from "./Replies";
 import { domainPack } from "../domain/activeDomain";
@@ -31,6 +32,8 @@ export class PlanRunner {
     memoryContext: any,
     profiler: RuntimeProfiler,
     confirmed: boolean,
+    /** Set on the two halves of a split plan, so neither splits again. */
+    splitting = false,
   ): Promise<RuntimeResponse> {
     const { userId, requestId = "" } = toolContext;
 
@@ -45,6 +48,30 @@ export class PlanRunner {
       // "No resolved capabilities matched the user's intent." is for the trace log, not the user.
       const internal = /no resolved capabilities/i.test(planningResult.explanation ?? "");
       return { success: false, message: internal ? domainPack().phrases.notSureWhatToChange : planningResult.explanation };
+    }
+
+    // "add the arkham games, make a batman collection and put them in": one unclear game used to
+    // stop the whole request, so not even the collection was made. Do the clear steps now and ask
+    // only about the unclear one; the question's pending plan holds just that part, so answering
+    // it doesn't run the rest twice.
+    if (planningResult.status === PlanningStatus.CLARIFICATION_REQUIRED && !splitting) {
+      const unclearNames = new Set(resolvedIntentPlan.clarificationRequests.map((c) => c.originalQuery));
+      const isUnclear = (intent: IntentPlan["intents"][number]) =>
+        (intent.targets ?? []).some((t) => t.type === IntentTargetType.Game && unclearNames.has(t.name));
+      const unclear = intentPlan.intents.filter(isUnclear);
+      const clear = intentPlan.intents.filter((i) => !isUnclear(i));
+      if (unclear.length > 0 && clear.length > 0) {
+        const done = await this.run({ ...intentPlan, intents: clear }, session, cleanRequest, toolContext, memoryContext, profiler, confirmed, true);
+        // A removal waiting for a yes, or a failure: nothing ran, so ask about the whole request as before.
+        if (done.success && !/CONFIRMATION|CLARIFICATION/.test(done.status ?? "")) {
+          const ask = await this.run({ ...intentPlan, intents: unclear }, session, cleanRequest, toolContext, memoryContext, profiler, confirmed, true);
+          return {
+            ...ask,
+            message: `${done.message} ${ask.message}`.trim(),
+            ...(toolContext.clientActions?.length ? { clientActions: toolContext.clientActions } : {}),
+          };
+        }
+      }
     }
 
     // Evaluate the planning result and pause for a clarifying question if needed.

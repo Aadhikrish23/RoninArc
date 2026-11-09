@@ -251,6 +251,33 @@ test.describe("AI chat API (/ai/chat)", () => {
       expect(collections[0].gameIds.map((g: any) => g.title)).toEqual(["Hollow Knight"]);
     });
 
+    // One unclear game used to stop the whole request: not even the collection was made.
+    test("an unclear game doesn't stop the clear steps; only it is asked about @positive", async ({ api }) => {
+      const base = byName("Hades");
+      await api.addGame(base, { title: "Batman: Arkham Asylum", igdbId: 990300 });
+      await api.addGame(base, { title: "Batman: Arkham City", igdbId: 990301 });
+      const celeste = await api.addGame(byName("Celeste"));
+
+      // "batman arkham" could be either one.
+      const ask = await chat(api, "make a collection called mixed bag and put celeste and batman arkham in it");
+      expect(ask.status).toBe(200);
+      expect(ask.body.status, ask.body.message).toBe("CLARIFICATION_REQUIRED");
+      expect(ask.body.message).toContain('I\'ve created the collection "Mixed Bag"');
+      expect(ask.body.message).toContain('Celeste to your collection "Mixed Bag"');
+      let collections = (await json(await api.get("/collection"))).Data;
+      expect(collections.map((c: any) => c.name)).toEqual(["Mixed Bag"]);
+      expect(collections[0].gameIds.map((g: any) => g._id)).toEqual([celeste._id]);
+
+      // Answering runs only the unclear part: no second "created", no error about the collection existing.
+      const option = ask.body.clarificationRequest.options.find((o: any) => o.label === "Batman: Arkham Asylum") ?? ask.body.clarificationRequest.options[0];
+      const answer = await chat(api, option.label);
+      expect(answer.body.success, answer.body.message).toBe(true);
+      expect(answer.body.message).not.toMatch(/created|already exists/i);
+      collections = (await json(await api.get("/collection"))).Data;
+      expect(collections).toHaveLength(1);
+      expect(collections[0].gameIds).toHaveLength(2);
+    });
+
     test("'all my steam games' is not a series, so nothing extra goes in @negative", async ({ api }) => {
       await api.addGame(byName("Hades"));
       const { body } = await chat(api, "create a collection called favs and add all my steam games to it");
