@@ -2,13 +2,18 @@
 //
 // Automatic updates, so a fix reaches friends without sending a new installer.
 //
-//   release.json (next to main.js, written at build time, never committed):
-//     { "updateUrl": "https://<where the release files are hosted>/" }
+//   release.json (next to main.js, written at build time, never committed), either:
+//     { "github": { "owner": "Aadhikrish23", "repo": "RoninArc" } }   GitHub releases (1.0.2 on)
+//     { "updateUrl": "https://<where the release files are hosted>/" }  any static host
 //
-// Each release uploads three files from desktop/dist to that address: latest.yml,
-// "RoninArc Setup <version>.exe" and its .blockmap. Any static host works (Cloudflare R2,
-// a GitHub release, ...). The app checks a little after launch and every few hours,
-// downloads a newer version in the background, and asks before restarting into it.
+// Each release has latest.yml, RoninArc-Setup-<version>.exe and its .blockmap (see
+// docs/beta/RELEASING.md). With GitHub releases, an update downloads only the parts of the
+// installer that changed: electron-updater finds the installed version's blockmap in that
+// version's own release (download/v<old>/RoninArc-Setup-<old>.exe.blockmap) and compares it with
+// the installer copy NSIS keeps in %LOCALAPPDATA%\desktop-updater. A generic "latest/download"
+// URL can't do that, because only the newest release's files are reachable there.
+// The app checks a little after launch and every few hours, downloads a newer version in the
+// background, and asks before restarting into it.
 
 const fs = require("node:fs");
 const path = require("node:path");
@@ -26,9 +31,21 @@ function readRelease(dir) {
 
 const isUrl = (v) => typeof v === "string" && /^https?:\/\//.test(v);
 
+const isName = (v) => typeof v === "string" && /^[A-Za-z0-9_.-]+$/.test(v);
+
+/** Where updates come from: a GitHub repository's releases, or a generic URL. */
 function loadReleaseConfig(dir) {
   const config = readRelease(dir);
+  const gh = config.github;
+  if (gh && isName(gh.owner) && isName(gh.repo)) return { github: { owner: gh.owner, repo: gh.repo } };
   return isUrl(config.updateUrl) ? { updateUrl: config.updateUrl } : undefined;
+}
+
+/** electron-updater's feed for a release config. */
+function feedFor(config) {
+  return config.github
+    ? { provider: "github", owner: config.github.owner, repo: config.github.repo }
+    : { provider: "generic", url: config.updateUrl };
 }
 
 /** RoninArc Cloud's address (release.json "cloudUrl"): where this PC's library syncs. */
@@ -50,7 +67,7 @@ function setupUpdates({ app, dir, log = () => {}, askToRestart, updaterImpl }) {
   }
 
   const updater = updaterImpl ?? require("electron-updater").autoUpdater;
-  updater.setFeedURL({ provider: "generic", url: config.updateUrl });
+  updater.setFeedURL(feedFor(config));
   updater.autoDownload = true;
   updater.autoInstallOnAppQuit = true;
   updater.logger = { info: (m) => log("updates:", m), warn: (m) => log("updates: warn", m), error: (m) => log("updates: error", m), debug: () => {} };
@@ -94,4 +111,4 @@ function setupUpdates({ app, dir, log = () => {}, askToRestart, updaterImpl }) {
   return { status: async () => state, check, install };
 }
 
-module.exports = { setupUpdates, loadReleaseConfig, loadCloudUrl };
+module.exports = { setupUpdates, loadReleaseConfig, loadCloudUrl, feedFor };

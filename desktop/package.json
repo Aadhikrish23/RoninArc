@@ -7,7 +7,8 @@
     "dev": "electron .",
     "start": "electron .",
     "predist": "node scripts/fetch-mongod.js && npm --prefix ../backend run build && npm --prefix ../frontend run build && node scripts/copy-frontend.js",
-    "dist": "electron-builder"
+    "dist": "electron-builder --publish never",
+    "stage-release": "node scripts/stage-release.js"
   },
   "keywords": [],
   "author": "",
@@ -57,12 +58,13 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "artifactName": "RoninArc-Setup.${ext}"
+      "artifactName": "RoninArc-Setup-${version}.${ext}"
     },
     "publish": [
       {
-        "provider": "generic",
-        "url": "https://updates.invalid/roninarc"
+        "provider": "github",
+        "owner": "Aadhikrish23",
+        "repo": "RoninArc"
       }
     ]
   },

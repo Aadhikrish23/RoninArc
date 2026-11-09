@@ -10,6 +10,9 @@ const { execFile } = require("node:child_process");
 
 const MAX_BYTES_PER_FILE = 5 * 1024 * 1024;
 const LOG_FILES_KEPT = 3;
+// Each AI log holds the whole prompt (~30 KB), so the last few dozen requests are plenty.
+const AI_LOGS_KEPT = 40;
+const MAX_BYTES_PER_AI_LOG = 200 * 1024;
 
 /** Tokens, keys and passwords never leave the PC in a report. */
 function redact(text) {
@@ -58,6 +61,23 @@ function collect(userDataDir, staging, info) {
       .sort((a, b) => b.t - a.t)
       .slice(0, LOG_FILES_KEPT);
     for (const { f } of newest) add(`logs-${f}`, tail(path.join(logDir, f)));
+
+    // The AI assistant's own logs (prompt, the model's plan, what ran): logs/ai/<day>/<request>.log.
+    // The newest ones are what a chat bug report needs.
+    const aiDir = path.join(logDir, "ai");
+    if (fs.existsSync(aiDir)) {
+      const aiLogs = [];
+      for (const day of fs.readdirSync(aiDir)) {
+        const dayDir = path.join(aiDir, day);
+        if (!fs.statSync(dayDir).isDirectory()) continue;
+        for (const f of fs.readdirSync(dayDir)) {
+          if (!f.endsWith(".log")) continue;
+          aiLogs.push({ day, f, t: fs.statSync(path.join(dayDir, f)).mtimeMs });
+        }
+      }
+      aiLogs.sort((a, b) => b.t - a.t);
+      for (const { day, f } of aiLogs.slice(0, AI_LOGS_KEPT)) add(`ai-${day}-${f}`, tail(path.join(aiDir, day, f), MAX_BYTES_PER_AI_LOG));
+    }
   }
 
   add("info.json", JSON.stringify({ createdAt: new Date().toISOString(), os: `${os.type()} ${os.release()} ${os.arch()}`, ...info }, null, 2));

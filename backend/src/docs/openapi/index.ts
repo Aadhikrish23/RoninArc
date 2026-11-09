@@ -9,7 +9,7 @@ import { syncPaths, syncSchemas } from "./sync";
 
 const description = `
 REST API behind the RoninArc game launcher: accounts, the game library, IGDB metadata, reviews, notes,
-collections, play sessions, activity, Steam/Epic integration, cloud backup, recommendations and the AI assistant.
+collections, play sessions, activity, Steam/Epic integration, RoninArc Cloud sync, recommendations and the AI assistant.
 
 **Authentication.** Sign in with \`POST /auth/login\` (or register) and send the returned \`accessToken\` as
 \`Authorization: Bearer <token>\`. Access tokens last 15 minutes; exchange the single-use \`refreshToken\` at
@@ -18,7 +18,7 @@ collections, play sessions, activity, Steam/Epic integration, cloud backup, reco
 **Responses.** Successful calls return \`{ "Status": "Success", "Data": ... }\` (or \`Message\`), except
 \`/dashboard/stats\` and \`/ai/chat\`, which return their payload directly. Errors use one of:
 \`{ "Status": "Fail" | "Error", "error": "..." }\` (most endpoints), \`{ "Status": "Failed", "Message": "..." }\`
-(reviews, notes, collections, play sessions, activity, backup) or \`{ "success": false, "message": "..." }\` (AI).
+(reviews, notes, collections, play sessions, activity) or \`{ "success": false, "message": "..." }\` (AI).
 Every response carries an \`X-Request-Id\` header that also appears in the server logs.
 
 **Ownership.** Every resource is scoped to the signed-in user. Ids belonging to someone else behave as not found.
@@ -45,7 +45,6 @@ export const openApiDocument = {
     { name: "Recommendations", description: "What to play next, and what to discover." },
     { name: "AI assistant", description: "Natural-language control of the library." },
     { name: "Providers", description: "Steam and Epic Games integrations." },
-    { name: "Cloud backup", description: "Mirror to / restore from a cloud database." },
     { name: "System", description: "Health, logs and this document." },
     { name: "Sync", description: "RoninArc Cloud: a PC's link to the cloud, and the changes devices exchange." },
   ],

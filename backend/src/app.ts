@@ -15,7 +15,6 @@ import collectionRoutes from "./modules/collection/collectionRoutes";
 import activityRouter from "./modules/activity/activity";
 import playSessionRoutes from "./modules/playSession/playSession";
 import noteRouter from "./modules/notes/notes";
-import backupRouter from "./modules/backup/backup";
 import recommendationRouter from "./modules/recommendation/recommendation";
 import providerRoutes from "./modules/providers/providerRoutes";
 import { aiRoutes } from "./modules/ai";
@@ -105,7 +104,6 @@ app.use("/collection", collectionRoutes);
 app.use("/activity", activityRouter);
 app.use("/play-session", playSessionRoutes);
 app.use("/notes", noteRouter);
-app.use("/backup", backupRouter);
 app.use("/recommendations", recommendationRouter);
 
 app.use("/provider", providerRoutes);

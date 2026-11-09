@@ -1,7 +1,6 @@
 import "./instrument";
 import app from "./app";
 import mongoose from "mongoose";
-import backupService from "./modules/backup/backupService";
 import { startSyncScheduler } from "./modules/sync/localSync";
 import metadataEnrichmentService from "./modules/library/metadataEnrichmentService";
 import { syncFeedbackIndexes } from "./modules/recommendation/RecommendationFeedback";
@@ -16,8 +15,6 @@ const log = logger.child({ module: "server" });
 // of the dev-time local server. LOCAL_URL_Mongo stays the normal dev default.
 const MONGO_URI = process.env.MONGO_URI || process.env.LOCAL_URL_Mongo;
 const PORT = process.env.PORT || 5000;
-
-const AUTO_BACKUP_INTERVAL_MS = 20 * 60 * 1000; // 20 minutes
 
 const connectDB = async () => {
   if (!MONGO_URI) {
@@ -36,19 +33,6 @@ const connectDB = async () => {
   // Not a reason to stop the app: until this works, only dismissing a second IGDB-only game fails.
   await syncFeedbackIndexes().catch((error) => reportError(error, { phase: "feedback-indexes" }));
 };
-
-function startAutoBackup() {
-  // In the cloud, Atlas is the database itself; the mirror is for PCs.
-  if (!process.env.Atlas_URL || isCloud()) {
-    return;
-  }
-
-  setInterval(() => {
-    backupService.backupAllUsers().catch((error: any) => {
-      reportError(error, { phase: "auto-backup" });
-    });
-  }, AUTO_BACKUP_INTERVAL_MS);
-}
 
 async function shutdown(code: number) {
   await flushErrorReporting();
@@ -75,7 +59,6 @@ for (const signal of ["SIGINT", "SIGTERM"] as const) {
 
 const startserver = async () => {
   await connectDB();
-  startAutoBackup();
   // A PC linked to RoninArc Cloud syncs every minute (and soon after each change).
   startSyncScheduler();
   // Fills in tags and art for anything imported or synced without them. The cloud only gets games

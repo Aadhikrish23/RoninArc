@@ -7,7 +7,7 @@ const aiProvider = process.env.AI_PROVIDER || "ollama";
 // logged here and surfaced as a normal, catchable error only when an actual
 // chat request tries to use the misconfigured provider (see OllamaClient /
 // NvidiaNimClient), the same lazy-validation pattern used elsewhere
-// (steamWebApiService.getApiKey(), atlasConnection.getAtlasConnection()).
+// (e.g. steamWebApiService.getApiKey()).
 if (aiProvider !== "ollama" && aiProvider !== "nvidia") {
   console.warn(
     `[AIConfig] AI_PROVIDER must be "ollama" or "nvidia", got "${aiProvider}" -- AI features will be unavailable.`,

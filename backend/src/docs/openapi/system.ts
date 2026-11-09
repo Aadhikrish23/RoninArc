@@ -1,4 +1,4 @@
-import { appError, bearerAuth, failed, jsonBody, ok, responses, type Schema } from "./common";
+import { appError, bearerAuth, jsonBody, ok, type Schema } from "./common";
 
 export const systemSchemas: Record<string, Schema> = {
   ClientLogEntry: {
@@ -15,19 +15,6 @@ export const systemSchemas: Record<string, Schema> = {
       sessionId: { type: "string", maxLength: 500 },
       release: { type: "string", maxLength: 500 },
     },
-  },
-  BackupPushResult: {
-    type: "object",
-    required: ["collections", "documents"],
-    properties: {
-      collections: { type: "integer", description: "User-scoped collections mirrored." },
-      documents: { type: "integer", description: "Documents written (including the user record)." },
-    },
-  },
-  RestoreResult: {
-    type: "object",
-    required: ["username", "documents"],
-    properties: { username: { type: "string" }, documents: { type: "integer" } },
   },
 };
 
@@ -76,47 +63,6 @@ export const systemPaths = {
         400: appError("Invalid batch (reason names the offending entry).", "entries must be a non-empty array", "entries[0]: message is required"),
         413: appError("Body larger than 256 KB.", "Request body too large"),
         429: appError("Rate limit exceeded.", "Too many log entries, slow down"),
-      },
-    },
-  },
-  "/backup/push": {
-    post: {
-      tags: ["Cloud backup"],
-      summary: "Back up the current user to the cloud now",
-      description: "Mirrors the user and all their data to the configured cloud database (Atlas_URL). Also runs automatically every 20 minutes.",
-      security: bearerAuth,
-      responses: {
-        200: ok("Backed up.", { $ref: "#/components/schemas/BackupPushResult" }),
-        401: responses.unauthorized,
-        404: failed("User not found.", "User not found"),
-        500: failed(
-          "Cloud backup isn't configured or failed.",
-          "Cloud backup is not configured: Atlas_URL is missing from the backend environment.",
-        ),
-      },
-    },
-  },
-  "/backup/restore": {
-    post: {
-      tags: ["Cloud backup"],
-      summary: "Restore an account from the cloud (no auth)",
-      description:
-        "For a fresh install: verifies the password against the cloud copy and recreates the account and its data locally. Refuses when the account already exists locally.",
-      requestBody: jsonBody(
-        {
-          type: "object",
-          required: ["username", "password"],
-          properties: { username: { type: "string" }, password: { type: "string", format: "password" } },
-        },
-        { username: "ronin", password: "Sup3rSecret!" },
-      ),
-      responses: {
-        200: ok("Restored; the user can now log in.", { $ref: "#/components/schemas/RestoreResult" }),
-        400: failed("Missing credentials.", "Username and password are required"),
-        401: failed("Wrong password.", "Invalid credentials"),
-        404: failed("No cloud backup for this username.", "No cloud backup found for this account."),
-        409: failed("The account already exists on this device.", "This account already exists on this device. Just log in normally."),
-        500: failed("Cloud backup isn't configured or failed.", "Restore failed"),
       },
     },
   },

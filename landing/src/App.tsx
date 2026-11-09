@@ -18,7 +18,8 @@ import {
 
 import roninArc from "./assets/ronin-arc.png";
 import SayIt from "./SayIt";
-import { ANDROID_URL, RELEASES_URL, VERSION, WINDOWS_URL } from "./config";
+import { ANDROID_URL, RELEASES_URL, WINDOWS_URL } from "./config";
+import { useLatestVersion } from "./useLatestVersion";
 
 const ease = [0.16, 1, 0.3, 1] as const;
 const MotionBox = motion.create(Box);
@@ -112,6 +113,7 @@ function Nav() {
 
 function Hero() {
   const reduce = useReducedMotion();
+  const version = useLatestVersion();
   return (
     <Wrap as="section" id="top">
       <Grid
@@ -137,7 +139,7 @@ function Hero() {
             <DownloadButton kind="android" />
           </Flex>
           <Text mt={5} fontSize="sm" color="ash">
-            Public beta · v{VERSION} · Windows 10 and 11 · Android
+            Public beta · v{version} · Windows 10 and 11 · Android
           </Text>
         </Box>
         <MotionBox
@@ -349,6 +351,7 @@ function Steps({ items }: { items: ReactNode[] }) {
 }
 
 function Download() {
+  const version = useLatestVersion();
   return (
     <Box id="download" borderTop="1px solid" borderColor="line" position="relative" overflow="hidden">
       {/* The arc, once more, rising behind the downloads. */}
@@ -379,7 +382,7 @@ function Download() {
             Forge your game path.
           </Heading>
           <Text mt={5} textAlign="center" color="ash" fontSize={{ base: "md", md: "lg" }}>
-            Version {VERSION}, public beta.
+            Version {version}, public beta.
           </Text>
           <Grid templateColumns={{ base: "1fr", md: "1fr 1fr" }} gap={{ base: 12, md: 16 }} mt={{ base: 12, md: 16 }}>
             <Box>

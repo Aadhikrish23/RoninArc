@@ -9,4 +9,8 @@ export const WINDOWS_URL =
 export const ANDROID_URL =
   import.meta.env.VITE_ANDROID_URL || `${RELEASES_URL}/latest/download/RoninArc.apk`;
 
-export const VERSION = "1.0.0";
+// The desktop app's version at build time (vite.config.ts); useLatestVersion() swaps in the newest
+// GitHub release when the page loads.
+export const VERSION = __APP_VERSION__ || "1.0.2";
+
+export const LATEST_RELEASE_API = "https://api.github.com/repos/Aadhikrish23/RoninArc/releases/latest";

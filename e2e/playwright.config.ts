@@ -72,9 +72,6 @@ export default defineConfig({
       env: {
         PORT: String(API_PORT),
         MONGO_URI: `${MONGO_URL}/RoninArc_e2e`,
-        // A second database on the same throwaway mongod stands in for Atlas,
-        // so backup/restore get a real round-trip test.
-        Atlas_URL: `${MONGO_URL}/RoninArc_atlas_e2e`,
         ALLOWED_ORIGIN: WEB_URL,
         JWT_SECRET: "roninarc-e2e-secret",
         IGDB_BASE_URL: `http://127.0.0.1:${IGDB_PORT}`,
