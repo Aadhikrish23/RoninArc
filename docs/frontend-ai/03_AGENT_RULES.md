@@ -1,5 +1,7 @@
 # Agent Rules
 
+> **Historical.** A planning document from the first AI-frontend sprint (July 2026). It is kept for the record and no longer describes the app. For how RoninArc works today, see [../architecture.md](../architecture.md).
+
 These rules are mandatory.
 
 Violation of any rule means the task is incomplete.

@@ -1,5 +1,7 @@
 # The RoninArc AI module: adding a new domain (e.g. books)
 
+> **Historical.** Written in October 2026 to hand the AI module to another project as a domain pack. The module has changed since; the domain-pack idea still holds. For how it works today, see [../architecture.md](../architecture.md#the-ai-assistant).
+
 This explains RoninArc's AI assistant and how to give it a new world (books, movies, recipes) by writing a **domain pack**, the way RoninArc's games pack works. The bundle you received contains:
 
 | Folder | What |

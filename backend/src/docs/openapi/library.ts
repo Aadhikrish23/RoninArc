@@ -41,7 +41,7 @@ export const librarySchemas: Record<string, Schema> = {
       _id: objectId,
       userId: objectId,
       igdbId: { type: ["integer", "null"], description: "IGDB id. `null` for store imports (e.g. Steam) until they're matched.", example: 113112 },
-      rawgId: { type: ["integer", "null"], description: "Old IGDB id, on games added before the move to IGDB. Not interchangeable with igdbId: the same number is a different game on each." },
+      rawgId: { type: ["integer", "null"], description: "Old RAWG id, on games added before the move to IGDB. Not interchangeable with igdbId: the same number is a different game in each database." },
       styleTags: { type: "array", items: { type: "string" }, description: "Play styles from the game database (`souls-like`, `co-op`).", example: ["roguelike", "roguelite"] },
       title: { type: "string", example: "Hades" },
       description: { type: "string" },

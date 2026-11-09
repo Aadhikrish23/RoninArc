@@ -1,5 +1,7 @@
 # Brief for the books app's AI agent
 
+> **Historical.** Written in October 2026 to hand the AI module to another project as a domain pack. The module has changed since; the domain-pack idea still holds. For how it works today, see [../architecture.md](../architecture.md#the-ai-assistant).
+
 Copy everything below the line into your AI coding agent (Claude Code or similar), working in the books app's repository with this bundle unzipped next to it.
 
 ---

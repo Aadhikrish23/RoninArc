@@ -1,394 +1,170 @@
-# RoninArc — Forge Your Game Path
+# RoninArc
 
-RoninArc is a desktop-first game library, launcher, and tracking platform built with **React**, **TypeScript**, **Node.js**, **MongoDB**, **Electron**, and the **IGDB API**.
+RoninArc is a game library and backlog tracker for Windows PC gamers, with an Android companion app and an AI assistant you talk to in plain language.
 
-It allows users to discover games, build a personal game library, track progress, review games, manage launch paths, and launch installed PC games directly from a unified interface.
+- **One place for everything you own:** add games from IGDB, or import your whole Steam and Epic libraries.
+- **Track your games:** statuses (Plan to Play, Playing, Paused, Completed, Dropped), 1–10 ratings and reviews, notes, collections, and a dashboard with playtime and activity.
+- **Launch and time your games:** launch installed games straight from RoninArc, and play time is recorded until the game closes.
+- **Recommendations:** what to play next from your backlog, and new games to discover, each with a reason.
+- **The AI assistant changes your library:** "I finished celeste, 9/10", "make a soulslike collection and put ds3 in it", "create a God of War collection with all my God of War games", "what should I play tonight? I've got 2 hours", "undo that".
+- **Offline-first:** everything except search, the AI and store imports works without internet, and your data stays on your PC.
+- **Optional cloud sync:** RoninArc Cloud keeps the PC and the Android app in step.
 
-The backend is deployed on Render and the desktop application is packaged as a Windows installer.
+Current version: **1.0.1**. Downloads are on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases/latest).
 
----
+## Documentation
 
-# 🚀 Features
+| | |
+|---|---|
+| [docs/PRODUCT.md](docs/PRODUCT.md) | Product document |
+| [docs/SRS.md](docs/SRS.md) | Software requirements specification |
+| [docs/architecture.md](docs/architecture.md) | Architecture |
+| [docs/api.md](docs/api.md) | API overview (live Swagger UI at `/api/docs`) |
+| [docs/roadmap.md](docs/roadmap.md) | Roadmap |
+| [docs/beta/START_HERE.md](docs/beta/START_HERE.md) | Guide for testers |
+| [docs/beta/RELEASING.md](docs/beta/RELEASING.md) | Building and publishing a release |
+| [docs/cloud/DEPLOY.md](docs/cloud/DEPLOY.md) | Deploying RoninArc Cloud |
 
-## 🔐 Authentication
+## Tech stack
 
-- User Signup & Login
-- JWT Authentication
-- Remember Me Support
-- AuthContext State Management
-- Protected Routes
-- Persistent Sessions
+| Part | Built with |
+|---|---|
+| Backend | Node.js, Express 5, TypeScript, MongoDB with Mongoose 9, JWT auth, pino logs, Sentry (optional), Swagger UI |
+| Desktop UI | React 19, Vite, Chakra UI v2, TanStack Query, React Router 7, framer-motion |
+| Desktop app | Electron 39, electron-builder (NSIS installer), electron-updater, an embedded MongoDB |
+| Phone app | Expo, React Native, Expo Router, TanStack Query |
+| Landing page | React, Vite, deployed as a Render static site |
+| AI | NVIDIA NIM models with fallbacks (Ollama for local development) |
+| Game data | IGDB |
+| Cloud | Render (backend), MongoDB Atlas, Resend (email) |
+| API keys | keygate, a Cloudflare Worker key proxy (separate repository) |
+| Tests | Playwright (API and UI projects) with mock IGDB, Resend and Sentry servers |
 
----
+## Project structure
 
-## 🎮 Game Library
-
-- Add games from IGDB
-- Store game metadata
-- Track game progress
-- Status Management:
-  - Plan to Play
-  - Playing
-  - Completed
-  - Dropped
-- Update game information
-- Delete games
-- Search and filter library
-
----
-
-## 🔎 IGDB Integration
-
-- Search games from IGDB API
-- Import game information
-- Import images and genres
-- Quick add to library
-
----
-
-## ⚡ Desktop Game Launcher
-
-- Save executable paths
-- Launch installed PC games
-- Supports:
-  - `.exe`
-  - `.lnk`
-- Electron desktop integration
-- One-click launching
-
----
-
-## 📝 Reviews System
-
-- Rate games from 1–10
-- Optional review notes
-- Edit existing reviews
-- Delete reviews
-- One review per game
-- Persistent review storage
-
----
-
-## 📊 Dashboard Analytics
-
-### Library Analytics
-
-- Total Games
-- Currently Playing
-- Completed Games
-- Featured Game
-- Continue Playing
-- Recently Added
-
-### Review Analytics
-
-- Reviews Written
-- Average Rating
-- Highest Rated Game
-
----
-
-## 🎨 UI / UX
-
-- Chakra UI Design System
-- Responsive Layout
-- Dark Theme Support
-- Light Theme Support
-- Toast Notifications
-- Modular Feature Architecture
-
----
-
-# 🧩 Tech Stack
-
-## Frontend
-
-- React
-- TypeScript
-- Vite
-- Chakra UI
-- Axios
-- React Router
-
-## Backend
-
-- Node.js
-- Express
-- TypeScript
-- MongoDB Atlas
-- Mongoose
-- JWT Authentication
-
-## Desktop
-
-- Electron
-- Electron Builder
-
-## External APIs
-
-- IGDB Game Database API
-
-## Deployment
-
-- Render
-- MongoDB Atlas
-
----
-
-# 📁 Project Structure
-
-```text
-RoninArc/
-│
-├── backend/
-│
-├── frontend/
-│
-├── desktop/
-│
-├── docs/
-│   ├── api.md
-│   ├── architecture.md
-│   └── roadmap.md
-│
-└── README.md
+```
+backend/     Express API: runs inside the desktop app (local mode) and as RoninArc Cloud (CLOUD_MODE=true)
+frontend/    React UI for the desktop app
+desktop/     Electron app: embedded MongoDB, backend process, game launcher, play tracker, updater
+mobile/      Expo Android app (talks to RoninArc Cloud)
+landing/     Marketing site with the download buttons
+e2e/         Playwright API and UI tests
+docs/        Documentation
+render.yaml  Render Blueprint for RoninArc Cloud and the landing page
 ```
 
----
+## Local development
 
-# 🏗 Architecture
+You need Node.js 22 and a MongoDB server on `localhost:27017` for development. The packaged app brings its own MongoDB.
 
-## Backend
-
-```text
-backend/src/
-
-├── controllers/
-├── middleware/
-├── models/
-├── routes/
-├── services/
-├── app.ts
-└── server.ts
-```
-
-### Request Flow
-
-```text
-Route
-  ↓
-Controller
-  ↓
-Service
-  ↓
-Model
-```
-
----
-
-## Frontend
-
-```text
-frontend/src/
-
-├── api/
-├── components/
-├── context/
-├── features/
-│
-├── routes/
-├── types/
-└── main.tsx
-```
-
-### Current Feature Modules
-
-```text
-features/
-
-├── library/
-│   ├── api/
-│   ├── components/
-│   └── hooks/
-│
-└── reviews/
-    ├── api/
-    ├── components/
-    └── types/
-```
-
----
-
-# 🔧 Local Development
-
-## Backend
+### Backend
 
 ```bash
 cd backend
 npm install
-npm run dev
+npm run dev          # http://localhost:5000, Swagger at /api/docs
 ```
 
-Environment Variables:
+`backend/.env` holds development settings and is never committed. The names it uses:
 
-```env
-LOCAL_URL_Mongo=<mongodb_uri>
-JWT_SECRET=<jwt_secret>
-IGDB_API_KEY=<rawg_api_key>
-```
+- **Database and auth:** `LOCAL_URL_Mongo` (or `MONGO_URI`), `JWT_SECRET`, `PORT`
+- **CORS:** `ALLOWED_ORIGIN`, set to `http://localhost:5173` for the Vite dev server
+- **Game data:**
+  - straight to IGDB with `IGDB_CLIENT_ID` and `IGDB_CLIENT_SECRET`
+  - or through keygate with `IGDB_BASE_URL` and `IGDB_API_KEY`
+- **AI:**
+  - `AI_PROVIDER` (`nvidia` or `ollama`)
+  - `NVIDIA_API_KEY`, `NVIDIA_MODEL`, `NVIDIA_BASE_URL` and `NVIDIA_FALLBACK_MODELS`
+  - or `OLLAMA_BASE_URL` and `OLLAMA_MODEL`
+  - `MOCK_LLM=true` for a deterministic stand-in
+- **Steam:** `STEAM_API_KEY`
+- **Optional:**
+  - `CLOUD_API_URL` (a cloud to sync with), `SENTRY_DSN`, `LOG_LEVEL`
+  - `Atlas_URL` (the older backup mirror)
 
----
-
-## Frontend
+### Desktop UI
 
 ```bash
 cd frontend
 npm install
-npm run dev
+npm run dev          # http://localhost:5173
 ```
 
----
+The UI works in a browser for development. Launching games, store sign-in windows and updates need the Electron app.
 
-## Desktop Application
+### Desktop app
+
+With the backend and frontend dev servers running:
 
 ```bash
 cd desktop
 npm install
-npm start
+npm run dev
 ```
 
----
+In development, Electron uses your dev servers. Only a packaged build starts its own MongoDB and backend.
 
-# 📦 Production Build
+### RoninArc Cloud locally
 
-Download the latest Windows installer:
-
-https://drive.google.com/file/d/1z4RMcp3RiyEDz8LnnZSuhtDDtqx52AmD/view?usp=sharing
-
----
-
-# 🔗 API Overview
-
-## Authentication
-
-```http
-POST /auth/signup
-POST /auth/login
+```bash
+node backend/scripts/dev-cloud.cjs   # cloud mode on http://localhost:5056 with its own database
 ```
 
-## Library
+### Phone app
 
-```http
-GET    /library
-POST   /library/add
-GET    /library/:gameid
-PATCH  /library/:gameid
-DELETE /library/:gameid
-GET    /library/filter/search
+```bash
+cd mobile
+npm install
+npx expo start
 ```
 
-## Dashboard
+See [mobile/README.md](mobile/README.md) for the emulator, a real phone through Expo Go, and building the APK.
 
-```http
-GET /dashboard/stats
+### Landing page
+
+```bash
+cd landing
+npm install
+npm run dev
 ```
 
-## Reviews
+### Tests
 
-```http
-GET    /review/:gameId
-PUT    /review/:gameId
-DELETE /review/:gameId
+```bash
+cd e2e
+npm install
+npx playwright install chromium
+npm run test:api     # about 600 API tests
+npm run test:ui      # UI tests in Chromium
 ```
 
-## IGDB
+The suite starts its own MongoDB, mock IGDB, Resend and Sentry servers, a local backend, a cloud backend and the frontend, so it doesn't touch your data.
 
-```http
-GET /igdb/search
+## Building the Windows installer
+
+```bash
+cd desktop
+npm run predist && npm run dist
 ```
 
----
+`predist` downloads MongoDB, builds the backend and the frontend, and copies the frontend in.
 
-# 🛣 Roadmap
+The output goes to `desktop/dist/`: `RoninArc-Setup.exe`, `RoninArc-Setup.exe.blockmap` and `latest.yml`.
 
-## ✅ Completed
+The build needs two gitignored files in `desktop/`, copied from their `.example.json` files:
+- `keygate.json`, so the installed app can get its own API token
+- `release.json`, with the update address and the cloud address
 
-### Phase 1 — Stabilization
+## Releasing
 
-- AuthContext
-- useAuth Hook
-- Protected Routes
-- Route Cleanup
-- Architecture Refactor
+Releases are published on GitHub with the GitHub CLI. Installed apps update themselves from the latest release, and the landing page's buttons always serve it. In short:
 
-### Phase 2 — Dashboard
+1. Bump `version` in `desktop/package.json`.
+2. Build the installer, then commit and push.
+3. Run `gh release create vX.Y.Z --latest` with `RoninArc-Setup.exe`, `RoninArc-Setup.exe.blockmap`, `latest.yml` and `RoninArc.apk`.
 
-- Real Dashboard Statistics
-- Featured Game
-- Continue Playing
-- Recently Added
-- Review Analytics
+The full steps are in [docs/beta/RELEASING.md](docs/beta/RELEASING.md).
 
-### Phase 3 — Reviews
+## Author
 
-- Review CRUD
-- Rating System
-- Dashboard Integration
-
----
-
-## 🚧 In Progress
-
-### Phase 4 — Collections
-
-- Favorites
-- Custom Collections
-- Collection Management
-
----
-
-## 📅 Planned
-
-### Phase 5 — Play Sessions
-
-- Session Tracking
-- Playtime Analytics
-- Recently Played
-- Most Played Games
-
-### Phase 6 — Advanced Features
-
-- Notes
-- Achievements
-- Activity Feed
-- Enhanced Analytics
-
-### Phase 7 — Integrations
-
-- Steam Import
-- Epic Games Import
-- GOG Import
-- AI Recommendations
-
----
-
-# 👤 Author
-
-**Aadhi Narayanan**
-
----
-
-# 📌 Project Vision
-
-RoninArc began as a personal game launcher and library manager.
-
-The long-term vision is to evolve it into a complete gaming companion that combines:
-
-- Library Management
-- Progress Tracking
-- Reviews
-- Collections
-- Play Analytics
-- Game Discovery
-
-while also serving as a standalone product and a future module within the broader Hina ecosystem.
+Aadhi Narayanan

@@ -43,13 +43,25 @@ RoninArc runs on Windows only for now.
   - the AI assistant
   - Steam/Epic import
   - recommendations of new games
+  - cloud sync and the phone app
 
 The AI has a daily limit per PC. If you hit it, it tells you, and it resets at 5:30 AM (IST), which is midnight UTC.
 
 ## Your data
 
-- Everything you add (library, notes, reviews, collections, your account) is stored **on your PC only**.
-- When you search for a game or talk to the AI, that search or message goes over the internet to look things up or get an answer. Nothing else about your library is uploaded.
+- Everything you add (library, notes, reviews, collections, your account) is stored **on your PC**.
+- When you search for a game or talk to the AI, that search or message goes over the internet to look things up or get an answer. Nothing else about your library is uploaded, unless you turn on cloud sync.
+
+## On your phone (optional)
+
+There's an Android app too: **`RoninArc.apk`** from the same download page.
+
+1. On the PC, open **Settings → RoninArc Cloud → Sync to cloud**. That puts your library in RoninArc Cloud under your username and password, and keeps it in sync from then on.
+2. On the phone, install the APK (allow installing from your browser when Android asks) and sign in with the same username and password.
+
+If the phone's first sign-in fails, wait a few seconds and try again. The cloud server sleeps when nobody's used it for a while, and the first request wakes it up.
+
+Your game exe paths and Steam/Epic sign-ins never leave the PC. If you turn sync off, your library stays on the PC.
 
 ## Found a bug? Something confusing?
 

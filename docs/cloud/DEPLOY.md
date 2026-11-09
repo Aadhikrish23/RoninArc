@@ -52,12 +52,13 @@ keygate's project-wide daily caps still bound the total cost.
 
 3. Deploy, then open `https://<service>.onrender.com/health`. It should say `RoninArc was healthy`.
 
-**Plan:** the free plan sleeps after about 15 idle minutes. The next request then takes about a minute, and AI conversations in progress are forgotten. Switch the service to **Starter** before friends rely on it.
+**Plan:** the free plan sleeps after about 15 idle minutes. The next request then takes about a minute, and AI conversations in progress are forgotten. A PC's sync waits up to 90 seconds for a sleeping cloud, but the phone's first sign-in can fail while the server wakes up (a known issue on the [roadmap](../roadmap.md)). Switch the service to **Starter** before friends rely on it.
 
 ## 5. Point the apps at it
 
 - **Desktop:** in `desktop/release.json`, set `"cloudUrl": "https://<service>.onrender.com"`, then build (see `docs/beta/RELEASING.md`). Settings then shows **RoninArc Cloud**.
-- **Phone:** set `extra.cloudUrl` in `mobile/app.json` to the same address before building the APK.
+- **Phone:** the address is baked in at build time from `RONINARC_CLOUD_URL` (see `mobile/app.config.ts`). The simplest way is `node scripts/build-release.cjs https://<service>.onrender.com` in `mobile/`.
+- **Landing page:** `render.yaml` also defines the static site (`landing/`). Its download buttons need no change, because they always point at the newest GitHub release.
 
 ## What's where
 

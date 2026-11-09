@@ -1,0 +1,111 @@
+# RoninArc product document
+
+Version 1.0.1 (November 2026). Status: early beta, shared with invited testers.
+
+## What it is
+
+RoninArc is a personal game library and backlog tracker for Windows PC gamers, with an Android companion app and an AI assistant you talk to in plain language.
+
+It brings every game you own into one place, whatever store it came from. You track what you're playing, what's next and what you finished, and you can rate, review, take notes and make collections. It launches installed games and records how long you play.
+
+## Who it's for
+
+- **PC gamers with games spread over Steam, Epic and other launchers.** They have a backlog they've lost track of and want one place to see it, without keeping a spreadsheet.
+- **People who like talking to their tools.** They'd rather say "I finished Celeste, 9/10" than click through forms.
+- **Beta testers (now):** friends of the developer trying it in daily use and reporting problems.
+
+## The problem
+
+- Owned games are scattered across launchers, each with its own library and no shared view.
+- Backlogs grow without anyone noticing what's started, paused or abandoned.
+- Generic tracking sites need everything typed in by hand, don't know what you own, and can't launch anything.
+
+## Principles
+
+- **Offline-first.** The library, ratings, reviews, notes, collections, dashboard and game launching all work with no internet. Data lives on the user's own PC.
+- **The assistant acts.** It changes the library, not just chats. It checks its plan against what the user actually said, so it doesn't change things nobody asked for.
+- **Your real library.** Import what you own from Steam and Epic, and launch installed games from RoninArc.
+- **Honest beta.** Problems are easy to report, and nothing secret goes into a report.
+- **No keys on users' machines.** API keys stay in keygate. Each install gets its own limited token.
+
+## Features by platform
+
+### Windows desktop app (main product)
+
+- **Account:**
+  - A local account on the PC, with "Remember me". A cloud account made on the phone can also sign in on a PC, and its library comes down.
+  - Change password, sign out everywhere, delete the account.
+- **Library:**
+  - Search IGDB and add games.
+  - Statuses: Plan to Play, Playing, Paused, Completed, Dropped.
+  - Filters and sorting.
+  - A game page with summary, screenshots, genres, critic and community scores, and time to beat.
+- **Ratings and reviews:** 1–10 with optional text, one per game.
+- **Notes:** any number per game.
+- **Collections:** create, rename, delete, add and remove games.
+- **Dashboard:** totals by status, ratings, playtime, most played, recent activity, continue playing.
+- **Recommendations:**
+  - "Play next" from the user's own backlog.
+  - "Discover" picks from IGDB based on taste (genres, style tags, ratings).
+  - Each pick comes with a reason, and any pick can be dismissed.
+- **Steam and Epic:**
+  - Sign in once to import the whole owned library, and resync whenever.
+  - Installed games are found on the PC and can be launched.
+  - Owned games that aren't installed get an "Open in Steam/Epic" button.
+- **Launching and play time:** launch from an exe or through Steam/Epic. The session ends when the game's own process closes.
+- **AI assistant** (floating button and full page). It understands requests like these:
+  - "add elden ring"
+  - "I finished celeste, 9/10"
+  - "make a soulslike collection and put ds3 in it"
+  - "create a God of War collection with all my God of War games"
+  - "what should I play tonight? I've got 2 hours"
+  - "launch hades"
+  - "undo that"
+
+  It also answers general game questions.
+- **Cloud sync (optional):** Settings → RoninArc Cloud puts the library in the cloud and keeps it in sync with the phone.
+- **Updates:** automatic, from GitHub releases. The app asks before restarting.
+- **Support:** one-click problem report zipped to the Desktop.
+- **Appearance:** light and dark themes.
+
+### Android app (companion)
+
+- Sign in, sign up and forgot password against RoninArc Cloud.
+- Library home with collections and recommendations; all games; game page with status, rating, review and notes; collection pages.
+- Add games from IGDB search.
+- Dashboard with stats and activity.
+- The AI assistant.
+- Settings: account, how to connect the PC, change password, delete account.
+
+### Landing page
+
+A static site with what RoninArc is, examples of talking to the assistant, and download buttons for the latest Windows installer and Android APK.
+
+## Where data lives
+
+- **On the PC:** everything, in an embedded MongoDB in the user's app data folder.
+- **In RoninArc Cloud:** only for accounts that turned on sync, or that were created on the phone. Executable paths and Steam/Epic sign-ins never leave the PC.
+- **Sent to services:** game searches go to IGDB, chat messages go to the AI model, and Steam/Epic library requests go to those stores. All of these pass through keygate.
+
+## Non-goals (for now)
+
+- Buying, downloading or installing games (RoninArc opens the store page instead).
+- Social features: friends, sharing, public profiles.
+- Achievements and trophies.
+- macOS, Linux or iOS apps.
+- GOG, Xbox, EA or Ubisoft imports.
+- A web version for everyday use. The UI runs in a browser for development, but launching games and store sign-ins need the desktop app.
+
+## Known limits
+
+- The installer isn't code-signed, so Windows shows "Windows protected your PC" on install.
+- The cloud runs on Render's free plan, so the first request after a quiet period can be slow.
+- Playtime is only tracked for games launched through RoninArc.
+- The AI has a daily limit per person in the cloud, and per install through keygate.
+- The phone shows a PC's library only after that PC turns on sync. Making this automatic is next on the [roadmap](roadmap.md).
+
+## Success measures for the beta
+
+- Testers keep using it for a week of normal play without a blocking bug.
+- Most assistant requests do what was asked on the first try (tracked through playtest rounds and the AI logs).
+- Every reported bug gets a reproducing test in `e2e/` before it's marked fixed.

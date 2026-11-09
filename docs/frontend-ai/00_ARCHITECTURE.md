@@ -1,5 +1,7 @@
 # RoninArc AI Frontend Architecture
 
+> **Historical.** A planning document from the first AI-frontend sprint (July 2026). It is kept for the record and no longer describes the app. For how RoninArc works today, see [../architecture.md](../architecture.md).
+
 ## Goal
 
 Transform RoninArc into an AI-first desktop application where every backend AI capability is accessible through a polished frontend.

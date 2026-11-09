@@ -93,7 +93,7 @@ export const aiSchemas: Record<string, Schema> = {
         type: "array",
         minItems: 1,
         items: { type: "string" },
-        example: ["Platformer, like Hollow Knight -- you rated Hollow Knight 9/10", "Critically acclaimed (Metacritic 92)"],
+        example: ["Platformer, like Hollow Knight -- you rated Hollow Knight 9/10", "Critically acclaimed (critics 92/100)"],
       },
     },
   },
