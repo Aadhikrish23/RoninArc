@@ -55,7 +55,7 @@ keygate's project-wide daily caps still bound the total cost.
 
 **Plan:** the free plan sleeps after about 15 idle minutes. The next request then takes about a minute, and AI conversations in progress are forgotten. A PC's sync waits up to 90 seconds for a sleeping cloud, and the phone waits on `/health` (up to about 100 seconds, showing "Waking up the server…") before signing in. Switch the service to **Starter** before friends rely on it.
 
-**Redeploy before releasing apps that need new cloud routes.** For example, 1.0.2's phone linking, name checks and email sign-in only work once the cloud runs the same code.
+**Redeploy before releasing apps that need new cloud routes.** For example, 1.0.2's phone linking and 1.0.3's email-only sign-in only work once the cloud runs the same code.
 
 ## 5. Point the apps at it
 

@@ -1,6 +1,6 @@
 # RoninArc roadmap
 
-Current release: **1.0.2**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
+Current release: **1.0.3**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
 
 ## Done
 
@@ -60,7 +60,6 @@ Current release: **1.0.2**, on [GitHub releases](https://github.com/Aadhikrish23
 - **Link code and QR code:** "Connect your phone" on the PC shows a 6-digit code and a QR code. The phone signs in with no password and no cloud name.
 - **PC prompts:** a dismissible "Get your library on your phone" banner on the dashboard, and a permanent "Your phone" row in Settings.
 - **Sign-in checkbox:** "Sync with my other devices", ticked by default, on desktop login and sign-up. Offline, it links once the PC is online.
-- **Email sign-in only:** accounts sign in with email and password on the PC and the phone; names are display names and don't have to be unique. Old PC accounts without an email are asked to add one. An email that already has a cloud account links by its password (same person, libraries merge) or asks for it in Settings.
 
 **Housekeeping**
 - **Website:** shows the current version.
@@ -70,6 +69,10 @@ Current release: **1.0.2**, on [GitHub releases](https://github.com/Aadhikrish23
   - removed the unused `ai_v2` module and the RAWG leftovers
   - added `backend/.env.example`
   - builds start from a clean `dist/`
+
+### Done in 1.0.3 (2026-11-09)
+
+- **Email sign-in only:** accounts sign in with email and password on the PC and the phone; names are display names and don't have to be unique. Old PC accounts without an email are asked to add one. An email that already has a cloud account links by its password (same person, libraries merge) or asks for it in Settings.
 
 ## Next
 

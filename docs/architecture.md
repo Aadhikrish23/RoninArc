@@ -1,6 +1,6 @@
 # RoninArc architecture
 
-This describes RoninArc as of version 1.0.2. For the endpoints themselves, see [api.md](api.md) and the live Swagger UI at `/api/docs`.
+This describes RoninArc as of version 1.0.3. For the endpoints themselves, see [api.md](api.md) and the live Swagger UI at `/api/docs`.
 
 ## The pieces
 
