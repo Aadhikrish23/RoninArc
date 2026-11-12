@@ -71,7 +71,7 @@ const getRecentSessions = async (userId: Types.ObjectId, limit = 10) => {
   return PlaySession.find({
     userId,
   })
-    .populate("gameId")
+    .populate({ path: "gameId", match: { userId } })
     .sort({
       startedAt: -1,
     })

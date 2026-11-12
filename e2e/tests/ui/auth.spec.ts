@@ -171,7 +171,7 @@ test.describe("Signup page", () => {
     await open(page, "/signup");
     const name = uniqueName("ui");
     await fillSignup(page, { name, email: `${name}@example.com`, password: "123", confirm: "123" });
-    await expectToast(page, "Signup failed", "Use a password of at least 6 characters.");
+    await expectToast(page, "Signup failed", "Use a password of at least 8 characters.");
   });
 
   test("the Login link goes back to the login page @positive", async ({ page }) => {

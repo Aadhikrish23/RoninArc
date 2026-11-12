@@ -4,6 +4,9 @@ import usermodel from "../auth/models/User";
 import { Tombstone } from "./syncModels";
 import { CLOUD_META, LOCAL_META, SYNCED, changedAt, forWire, syncedByName, type SyncedCollection } from "./syncCollections";
 import { naturalFilters } from "./syncKeys";
+import { moduleLogger } from "../../shared/logging/logger";
+
+const log = moduleLogger("sync");
 
 const { EJSON } = mongoose.mongo.BSON;
 
@@ -11,6 +14,8 @@ const { EJSON } = mongoose.mongo.BSON;
 const PULL_OVERLAP_MS = 5000;
 const PULL_LIMIT = 5000;
 const PUSH_LIMIT = 5000;
+/** A device's clock may run a little ahead; a document claiming to be from further on is treated as made now-ish. */
+const MAX_CLOCK_AHEAD_MS = 5 * 60_000;
 
 export interface PushBody {
   changes?: Record<string, any[]>;
@@ -28,6 +33,17 @@ export interface PushResult {
 }
 
 const isId = (v: unknown) => mongoose.isValidObjectId(v) && String(new mongoose.Types.ObjectId(String(v))) === String(v);
+
+/**
+ * Ids in `ids` that belong to someone else: a pushed document may only point at the pusher's own
+ * documents. (An id that doesn't exist at all points at nothing, so it exposes nothing.)
+ */
+async function foreignIds(target: SyncedCollection, ids: unknown[], userId: mongoose.Types.ObjectId): Promise<Set<string>> {
+  const objectIds = ids.filter(isId).map((id) => new mongoose.Types.ObjectId(String(id)));
+  if (objectIds.length === 0) return new Set();
+  const rows = await target.model.collection.find({ _id: { $in: objectIds }, userId: { $ne: userId } }).project({ _id: 1 }).toArray();
+  return new Set(rows.map((r) => String(r._id)));
+}
 
 /** Only plain data the app's own models would write: no operators, no smuggled owners. */
 function clean(coll: SyncedCollection, raw: any, userId: mongoose.Types.ObjectId) {
@@ -68,7 +84,33 @@ export async function applyPush(userIdRaw: string, body: PushBody): Promise<Push
         if (ref.array && Array.isArray(doc[ref.field])) doc[ref.field] = doc[ref.field].map(to);
         else if (doc[ref.field]) doc[ref.field] = to(doc[ref.field]);
       }
-      const authored = doc.updatedAt ? new Date(doc.updatedAt) : new Date();
+      // Every reference has to be to the pusher's own documents: a game, collection or note of
+      // someone else's can't be attached to this account's data. Foreign ids are dropped from lists;
+      // a document whose single reference is foreign (or not an id at all) isn't taken.
+      let refsOk = true;
+      for (const ref of coll.refs ?? []) {
+        const target = syncedByName.get(ref.coll);
+        const value = doc[ref.field];
+        if (!target || value === undefined || value === null) continue;
+        if (ref.array) {
+          const wellFormed = (Array.isArray(value) ? value : []).filter(isId);
+          const foreign = await foreignIds(target, wellFormed, userId);
+          if (foreign.size > 0 || wellFormed.length !== (Array.isArray(value) ? value.length : 0)) {
+            log.warn({ coll: coll.name, field: ref.field, dropped: foreign.size }, "sync: dropped references to documents this account doesn't own");
+          }
+          doc[ref.field] = wellFormed.filter((id) => !foreign.has(String(id)));
+        } else if (!isId(value) || (await foreignIds(target, [value], userId)).size > 0) {
+          log.warn({ coll: coll.name, field: ref.field }, "sync: skipped a document that points at something this account doesn't own");
+          refsOk = false;
+          break;
+        }
+      }
+      if (!refsOk) continue;
+
+      // A device can't claim a time far in the future to make its version win over every later edit.
+      const sentAt = doc.updatedAt ? new Date(doc.updatedAt) : new Date();
+      const latest = new Date(Date.now() + MAX_CLOCK_AHEAD_MS);
+      const authored = Number.isNaN(+sentAt) ? new Date() : sentAt > latest ? latest : sentAt;
       const sentId = String(doc._id);
 
       let existing: any = await raw.findOne({ _id: doc._id });
@@ -113,7 +155,9 @@ export async function applyPush(userIdRaw: string, body: PushBody): Promise<Push
     const coll = syncedByName.get(del?.coll);
     const id = EJSON.deserialize({ id: del?.id }).id;
     if (!coll || !isId(id)) continue;
-    const deletedAt = new Date(EJSON.deserialize({ d: del.deletedAt }).d ?? Date.now());
+    const sentDeletedAt = new Date(EJSON.deserialize({ d: del.deletedAt }).d ?? Date.now());
+    const latestDelete = new Date(Date.now() + MAX_CLOCK_AHEAD_MS);
+    const deletedAt = Number.isNaN(+sentDeletedAt) ? new Date() : sentDeletedAt > latestDelete ? latestDelete : sentDeletedAt;
     const existing: any = await coll.model.collection.findOne({ _id: new mongoose.Types.ObjectId(String(id)) });
     if (!existing) {
       result.deletesAccepted.push(String(id));

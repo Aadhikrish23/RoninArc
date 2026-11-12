@@ -114,7 +114,7 @@ export default function Settings() {
             {changing ? (
               <View style={{ gap: space.md }}>
                 <Field label="Current password" value={current} onChangeText={setCurrent} secureTextEntry autoComplete="current-password" />
-                <Field label="New password" value={next} onChangeText={setNext} secureTextEntry autoComplete="new-password" hint="At least 6 characters." />
+                <Field label="New password" value={next} onChangeText={setNext} secureTextEntry autoComplete="new-password" hint="At least 8 characters." />
                 <Field label="Confirm password" value={confirm} onChangeText={setConfirm} secureTextEntry autoComplete="new-password" />
                 {passwordError ? (
                   <T tone="danger" size="sm" accessibilityLiveRegion="polite">
@@ -122,7 +122,7 @@ export default function Settings() {
                   </T>
                 ) : null}
                 <View style={{ flexDirection: "row", gap: space.sm, flexWrap: "wrap" }}>
-                  <Button title="Change password" size="sm" variant="solid" disabled={!current || next.length < 6 || !confirm} loading={busy === "password"} onPress={changePassword} />
+                  <Button title="Change password" size="sm" variant="solid" disabled={!current || next.length < 8 || !confirm} loading={busy === "password"} onPress={changePassword} />
                   <Button
                     title="Cancel"
                     size="sm"

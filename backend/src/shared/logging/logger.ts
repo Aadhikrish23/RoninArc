@@ -63,7 +63,42 @@ export const REDACT_PATHS = [
   "*.authorizationCode",
   "openIdParams",
   "*.openIdParams",
+  "access_token",
+  "*.access_token",
+  "refresh_token",
+  "*.refresh_token",
+  "id_token",
+  "*.id_token",
+  "client_secret",
+  "*.client_secret",
+  "secret",
+  "*.secret",
+  "apiKey",
+  "*.apiKey",
+  "cookie",
+  "*.cookie",
+  "headers.cookie",
+  "*.headers.cookie",
+  "code",
+  "*.code",
 ];
+
+/**
+ * Console output is formatted into one string before it reaches the structured log, so path
+ * redaction can't see inside it. Mask the usual shapes of a secret in that text: JSON or
+ * key=value pairs for token/secret/password-like names, bearer headers and long JWTs.
+ */
+const NAME = /(?:access_?token|refresh_?token|id_?token|token|client_?secret|secret|password|passwd|authorization(?:_?code)?|api_?key|set-cookie|cookie)/.source;
+// "name": "value" / name='value' (quoted), then name: value / name=value (bare).
+const QUOTED = new RegExp("([\"']?" + NAME + "[\"']?\\s*[:=]\\s*)([\"'])(?:(?!\\2).)*\\2", "gi");
+const BARE = new RegExp("([\"']?" + NAME + "[\"']?\\s*[:=]\\s*)(?![\"'\\[])[^\\s,;}&]+", "gi");
+export function scrubSecrets(text: string): string {
+  return text
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]{8,}/gi, "Bearer [REDACTED]")
+    .replace(QUOTED, "$1$2[REDACTED]$2")
+    .replace(BARE, "$1[REDACTED]")
+    .replace(/\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]*/g, "[REDACTED-JWT]");
+}
 
 export const logger = pino(
   {
@@ -91,10 +126,12 @@ export const moduleLogger = (module: string) => logger.child({ module });
 export function bridgeConsole() {
   const consoleLogger = logger.child({ source: "console" });
   const forward = (method: "debug" | "info" | "warn" | "error") => (...args: unknown[]) =>
-    consoleLogger[method](util.format(...args));
+    consoleLogger[method](scrubSecrets(util.format(...args)));
   console.log = forward("info");
   console.info = forward("info");
   console.debug = forward("debug");
   console.warn = forward("warn");
   console.error = forward("error");
+  // console.dir/trace print straight to stdout and skip the log files: route them through the same scrubbing.
+  console.dir = (value: unknown, options?: util.InspectOptions) => consoleLogger.info(scrubSecrets(util.inspect(value, options)));
 }

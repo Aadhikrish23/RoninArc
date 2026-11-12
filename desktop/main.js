@@ -12,9 +12,16 @@ const { openGamePage } = require("./services/gamePage");
 const keygate = require("./services/keygate");
 const diagnostics = require("./services/diagnostics");
 const { setupUpdates, loadCloudUrl } = require("./services/updates");
+const ipcGuards = require("./services/ipcGuards");
 
 const DEV_SERVER_URL = "http://localhost:5173";
 const isDev = !app.isPackaged;
+// The only pages allowed to ask the main process for anything: the packaged UI's index.html,
+// or (in development) the Vite dev server. See services/ipcGuards.js.
+const TRUSTED_PAGES = {
+  indexHtmlPath: path.join(__dirname, "frontend", "index.html"),
+  devOrigin: isDev ? DEV_SERVER_URL : undefined,
+};
 
 // ── Single instance lock ──────────────────────────────────────────────────
 // Two RoninArc processes both spawning their own embedded mongod against the
@@ -246,6 +253,11 @@ function stopChildProcesses() {
   }
 }
 
+// <webview> tags would be a second way to load pages with the app's privileges; the app has none.
+app.on("web-contents-created", (_event, contents) => {
+  contents.on("will-attach-webview", (event) => event.preventDefault());
+});
+
 function createMainWindow() {
   const win = new BrowserWindow({
     width: 1280,
@@ -263,6 +275,29 @@ function createMainWindow() {
     },
   });
 
+  // New windows: never created. A web link opens in the user's browser, a Steam or Epic launcher
+  // link goes to that launcher, anything else is dropped.
+  win.webContents.setWindowOpenHandler(({ url }) => {
+    const launcherLink = ipcGuards.validateLaunchTarget(url);
+    if (launcherLink.ok && launcherLink.kind === "uri") {
+      shell.openExternal(url).catch((err) => debugLog("window open: launcher link failed:", err.message));
+    } else if (ipcGuards.isExternalLinkAllowed(url)) {
+      shell.openExternal(url).catch((err) => debugLog("window open: link failed:", err.message));
+    } else {
+      debugLog("window open: refused", String(url).slice(0, 200));
+    }
+    return { action: "deny" };
+  });
+  // The main window stays on the app's own page.
+  const keepOnApp = (event, url) => {
+    if (ipcGuards.isAppNavigation(url, TRUSTED_PAGES)) return;
+    event.preventDefault();
+    debugLog("navigation: refused", String(url).slice(0, 200));
+    if (ipcGuards.isExternalLinkAllowed(url)) shell.openExternal(url).catch(() => {});
+  };
+  win.webContents.on("will-navigate", keepOnApp);
+  win.webContents.on("will-redirect", keepOnApp);
+
   if (isDev) {
     win.loadURL(DEV_SERVER_URL);
   } else {
@@ -276,15 +311,28 @@ function createMainWindow() {
   return win;
 }
 
+// ── IPC: every handler checks who is asking first ────────────────────────
+// A page that isn't the app's own (navigated away, an iframe, another window) gets an error and
+// nothing happens. Each handler then checks its own arguments (services/ipcGuards.js).
+function handleTrusted(channel, handler) {
+  ipcMain.handle(channel, (event, ...args) => {
+    if (!ipcGuards.isTrustedSender(event, TRUSTED_PAGES)) {
+      debugLog(`ipc: refused ${channel} from`, event?.senderFrame?.url ?? "(unknown sender)");
+      throw new Error("RoninArc refused this request: it didn't come from the app's own window.");
+    }
+    return handler(event, ...args);
+  });
+}
+
 // ── Settings: version, updates, problem reports ──────────────────────────
 let updates = null;
 
-ipcMain.handle("app:info", async () => ({ version: app.getVersion(), packaged: app.isPackaged }));
-ipcMain.handle("updates:status", async () => (updates ? updates.status() : { state: "disabled", current: app.getVersion() }));
-ipcMain.handle("updates:check", async () => (updates ? updates.check() : { state: "disabled", current: app.getVersion() }));
-ipcMain.handle("updates:install", async () => (updates ? updates.install() : false));
+handleTrusted("app:info", async () => ({ version: app.getVersion(), packaged: app.isPackaged }));
+handleTrusted("updates:status", async () => (updates ? updates.status() : { state: "disabled", current: app.getVersion() }));
+handleTrusted("updates:check", async () => (updates ? updates.check() : { state: "disabled", current: app.getVersion() }));
+handleTrusted("updates:install", async () => (updates ? updates.install() : false));
 
-ipcMain.handle("diagnostics:create", async () => {
+handleTrusted("diagnostics:create", async () => {
   try {
     const savedToken = (() => {
       try {
@@ -313,7 +361,7 @@ ipcMain.handle("diagnostics:create", async () => {
   }
 });
 
-ipcMain.handle("select-exe-path", async () => {
+handleTrusted("select-exe-path", async () => {
   const { canceled, filePaths } = await dialog.showOpenDialog({
     title: "Select game executable",
     properties: ["openFile"],
@@ -348,29 +396,78 @@ function getProcessList() {
   });
 }
 
-ipcMain.handle("open-game-page", (_event, game) => openGamePage(game, getProcessList));
+handleTrusted("open-game-page", (_event, game) => {
+  const request = ipcGuards.validateGamePageRequest(game);
+  if (!request) {
+    debugLog("open-game-page: refused a malformed request");
+    return false;
+  }
+  return openGamePage(request, getProcessList);
+});
 
-ipcMain.handle("launch-game", async (event, gameId, exePath) => {
+/** Starts an .exe directly, with no shell. Resolves the child, or null if Windows wouldn't start it that way. */
+function spawnDirect(file, cwd) {
+  return new Promise((resolve) => {
+    let child;
+    try {
+      child = spawn(file, [], { cwd, detached: true, stdio: "ignore" });
+    } catch {
+      resolve(null);
+      return;
+    }
+    child.once("error", (err) => {
+      debugLog("[launch-game] direct start failed:", err.code || err.message);
+      resolve(null);
+    });
+    child.once("spawn", () => {
+      child.unref();
+      resolve(child);
+    });
+  });
+}
+
+/** Through `cmd /c start`, which lets Windows ask for administrator rights or open a shortcut. Only for paths checked by ipcGuards. */
+function startThroughShell(file, cwd) {
+  return spawn("cmd.exe", ["/c", "start", '""', `"${file}"`], {
+    cwd,
+    windowsVerbatimArguments: true,
+    detached: true,
+  });
+}
+
+handleTrusted("launch-game", async (_event, gameId, exePath) => {
   try {
+    if (!ipcGuards.validateGameId(gameId)) {
+      debugLog("[launch-game] refused: bad game id");
+      return false;
+    }
+    const target = ipcGuards.validateLaunchTarget(exePath);
+    if (!target.ok) {
+      debugLog("[launch-game] refused:", target.reason, "-", String(exePath).slice(0, 200));
+      return false;
+    }
     console.log("[launch-game] Requested exePath:", exePath);
 
-    const isUri = exePath.includes("://");
-    const exeDir = isUri ? process.cwd() : path.dirname(exePath);
-    const exeName = isUri ? "" : path.basename(exePath);
-
-    console.log("[launch-game] Using cwd:", exeDir, "exe:", exeName || "(store link)");
-
     const before = await gameTracker.listProcesses();
+    let pid;
 
-    const child = spawn("cmd.exe", ["/c", "start", '""', `"${exePath}"`], {
-      cwd: exeDir,
-      windowsVerbatimArguments: true,
-      detached: true,
-    });
+    if (target.kind === "uri") {
+      // A Steam or Epic launcher link: handed to the system, never through a shell.
+      await shell.openExternal(exePath);
+    } else {
+      const exeDir = path.dirname(exePath);
+      console.log("[launch-game] Using cwd:", exeDir, "exe:", path.basename(exePath));
+      let child = null;
+      if (target.kind === "exe") child = await spawnDirect(exePath, exeDir);
+      // Shortcuts need the shell; so do games that ask Windows for administrator rights.
+      if (!child && target.shellSafe) child = startThroughShell(exePath, exeDir);
+      if (!child) return false;
+      pid = child.pid;
+    }
 
     const tracking = gameTracker.createTracking(exePath, before);
     activeGames.set(gameId, tracking);
-    debugLog(`[game-tracker] launched ${gameId} pid=${child.pid} watching ${tracking.gameDir || "(store game folder, found once it starts)"}`);
+    debugLog(`[game-tracker] launched ${gameId} pid=${pid ?? "(link)"} watching ${tracking.gameDir || "(store game folder, found once it starts)"}`);
 
     return true;
   } catch (err) {
@@ -473,10 +570,10 @@ setInterval(async () => {
   }
 }, 5000);
 
-ipcMain.handle("epic:scan", async () => {
+handleTrusted("epic:scan", async () => {
   return scanEpicGames();
 });
-ipcMain.handle("steam:scan", async () => {
+handleTrusted("steam:scan", async () => {
   return scanSteamGames();
 });
 
@@ -495,7 +592,12 @@ ipcMain.handle("steam:scan", async () => {
 //   Layer 2 – JSON body scrape via executeJavaScript once the page finishes loading.
 //   Layer 3 – 10-minute hard timeout → return null (treated as cancellation by renderer).
 
-ipcMain.handle("epic:login", async (_event, loginUrl) => {
+handleTrusted("epic:login", async (_event, loginUrl) => {
+  const allowed = ipcGuards.validateLoginUrl("epic", loginUrl);
+  if (!allowed.ok) {
+    debugLog("epic:login: refused:", allowed.reason);
+    return `ERROR:This sign-in page isn't allowed (${allowed.reason}).`;
+  }
   return new Promise((resolve) => {
     const TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 
@@ -648,7 +750,12 @@ ipcMain.handle("epic:login", async (_event, loginUrl) => {
 // needed. Verification of the captured params happens server-side, inside
 // the authenticated /connect call (see steamOpenIdService.verifyAssertion).
 
-ipcMain.handle("steam:login", async (_event, loginUrl) => {
+handleTrusted("steam:login", async (_event, loginUrl) => {
+  const allowed = ipcGuards.validateLoginUrl("steam", loginUrl);
+  if (!allowed.ok) {
+    debugLog("steam:login: refused:", allowed.reason);
+    return `ERROR:This sign-in page isn't allowed (${allowed.reason}).`;
+  }
   return new Promise((resolve) => {
     const TIMEOUT_MS = 10 * 60 * 1000; // 10 minutes
 

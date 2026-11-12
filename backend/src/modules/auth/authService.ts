@@ -12,6 +12,20 @@ import { isCloud } from "../../shared/runtimeMode";
 import * as localSync from "../sync/localSync";
 import { cutOffTokens } from "./tokenCutoff";
 
+/** Shortest password for a new account or a changed password. */
+export const MIN_PASSWORD_LENGTH = 8;
+
+/**
+ * Whether the typed password matches a stored hash. Passwords are used as typed; older accounts
+ * stored them trimmed, so a version without the surrounding spaces is tried second.
+ */
+export async function passwordMatches(typed: string, hash: string): Promise<boolean> {
+  if (typeof typed !== "string" || !hash) return false;
+  if (await bcryptjs.compare(typed, hash)) return true;
+  const trimmed = typed.trim();
+  return trimmed !== typed && trimmed.length > 0 && (await bcryptjs.compare(trimmed, hash));
+}
+
 const ACCESS_TOKEN_EXPIRY = "15m";
 const REFRESH_TOKEN_DAYS = 30;
 
@@ -45,6 +59,20 @@ function generateAccessToken(
    REFRESH TOKEN
 ============================ */
 
+/** What the database keeps of a refresh token: its SHA-256, so a leaked copy of the data can't be used to sign in. */
+export const hashRefreshToken = (token: string) => crypto.createHash("sha256").update(token).digest("hex");
+
+/**
+ * The stored values a presented token can match: its hash, and, only for the shape of an
+ * older raw token (128 hex characters, issued before tokens were hashed), the token itself.
+ * A stolen hash is 64 characters, so it can never be presented as a raw token.
+ */
+function storedForms(token: string): string[] {
+  const forms = [hashRefreshToken(token)];
+  if (/^[0-9a-f]{128}$/.test(token)) forms.push(token);
+  return forms;
+}
+
 async function generateRefreshToken(userId: mongoose.Types.ObjectId) {
   const token = crypto.randomBytes(64).toString("hex");
 
@@ -54,7 +82,7 @@ async function generateRefreshToken(userId: mongoose.Types.ObjectId) {
 
   await RefreshToken.create({
     userId,
-    token,
+    token: hashRefreshToken(token),
     expiresAt,
   });
 
@@ -63,7 +91,7 @@ async function generateRefreshToken(userId: mongoose.Types.ObjectId) {
 
 async function verifyRefreshToken(token: string) {
   const storedToken = await RefreshToken.findOne({
-    token,
+    token: { $in: storedForms(String(token ?? "")) },
   });
 
   if (!storedToken) {
@@ -81,7 +109,7 @@ async function verifyRefreshToken(token: string) {
 
 async function revokeRefreshToken(token: string) {
   await RefreshToken.findOneAndDelete({
-    token,
+    token: { $in: storedForms(String(token ?? "")) },
   });
 }
 
@@ -142,12 +170,12 @@ async function registerUser(
   emailRaw?: string,
   options: { id?: string; passwordHash?: string; handle?: string } = {},
 ) {
-  const plainPassword = password.trim();
+  const plainPassword = typeof password === "string" ? password : "";
   const email = cleanEmail(emailRaw);
   const displayName = (name ?? "").trim().slice(0, 60) || email.split("@")[0];
 
-  if (!options.passwordHash && plainPassword.length < 6) {
-    throw new AppError("Use a password of at least 6 characters.", 400);
+  if (!options.passwordHash && plainPassword.length < MIN_PASSWORD_LENGTH) {
+    throw new AppError(`Use a password of at least ${MIN_PASSWORD_LENGTH} characters.`, 400);
   }
 
   const existingUser = await findByEmail(email);
@@ -161,7 +189,7 @@ async function registerUser(
     const sameAccount = options.id === undefined || String(existingUser._id) === options.id;
     const samePassword = options.passwordHash
       ? options.passwordHash === existingUser.passwordHash
-      : await bcryptjs.compare(plainPassword, existingUser.passwordHash);
+      : await passwordMatches(plainPassword, existingUser.passwordHash);
     if (justMade && sameAccount && samePassword) {
       return {
         userdata: userdata(existingUser),
@@ -180,13 +208,38 @@ async function registerUser(
 
   const passwordHash = options.passwordHash ?? (await bcryptjs.hash(plainPassword, 11));
 
-  const user = await usermodel.create({
-    ...(options.id ? { _id: new mongoose.Types.ObjectId(options.id) } : {}),
-    username: await newHandle(email, options.handle),
-    displayName,
-    email,
-    passwordHash,
-  });
+  let user: any;
+  for (let attempt = 0; ; attempt++) {
+    try {
+      user = await usermodel.create({
+        ...(options.id ? { _id: new mongoose.Types.ObjectId(options.id) } : {}),
+        username: await newHandle(email, options.handle),
+        displayName,
+        email,
+        passwordHash,
+      });
+      break;
+    } catch (error: any) {
+      if (error?.code !== 11000) throw error;
+      const key = Object.keys(error.keyPattern ?? error.keyValue ?? {})[0];
+      // Two requests for one email got past the check above at the same moment: the second
+      // is an ordinary "already exists", or, for the same fresh sign-up again, a sign-in.
+      if (key === "email") {
+        const winner = await findByEmail(email);
+        if (winner && options.id === undefined) {
+          const justMade = Date.now() - new Date((winner as any).createdAt ?? 0).getTime() < 10 * 60 * 1000;
+          const samePassword = options.passwordHash ? options.passwordHash === winner.passwordHash : await passwordMatches(plainPassword, winner.passwordHash);
+          if (justMade && samePassword) {
+            return { userdata: userdata(winner), accessToken: generateAccessToken(winner._id, winner.username), refreshToken: await generateRefreshToken(winner._id) };
+          }
+        }
+        throw new AppError("An account with this email already exists. Sign in, or reset its password.", 409);
+      }
+      // The internal handle is taken: a new handle, a few times, then give up.
+      if (key === "username" && attempt < 3 && options.handle === undefined) continue;
+      throw new AppError(key === "_id" ? "This account can't be created with that id." : "Couldn't create the account. Try again.", 409);
+    }
+  }
 
   return {
     userdata: userdata(user),
@@ -203,7 +256,7 @@ export const SIGN_IN_WITH_EMAIL = "Sign in with your email address and password.
 
 async function loginUser(identifier: string, password: string) {
   const typed = identifier.trim();
-  password = password.trim();
+  if (typeof password !== "string") password = "";
 
   if (!typed || !password) throw new AppError(SIGN_IN_WITH_EMAIL, 400);
 
@@ -218,7 +271,7 @@ async function loginUser(identifier: string, password: string) {
     existingUser = legacy;
   }
 
-  let passwordMatch = !!existingUser && !!existingUser.passwordHash && (await bcryptjs.compare(password, existingUser.passwordHash));
+  let passwordMatch = !!existingUser && !!existingUser.passwordHash && (await passwordMatches(password, existingUser.passwordHash));
 
   // On a PC: the password may have changed in the cloud (a reset), or this is a new PC signing in
   // with a cloud account. The cloud decides; its password hash then comes down with the sync.
@@ -253,7 +306,7 @@ async function setEmail(userId: string, emailRaw: unknown, password: string) {
   const email = cleanEmail(emailRaw);
   const user = await usermodel.findById(userId);
   if (!user) throw new AppError("User not found", 404);
-  if (!password || !(await bcryptjs.compare(password, user.passwordHash))) throw new AppError("Wrong password.", 401);
+  if (!password || !(await passwordMatches(password, user.passwordHash))) throw new AppError("Wrong password.", 401);
   const other = await findByEmail(email);
   if (other && String(other._id) !== String(user._id)) {
     throw new AppError("Another account already uses this email.", 409);
@@ -278,15 +331,22 @@ async function setEmail(userId: string, emailRaw: unknown, password: string) {
 ============================ */
 
 async function refreshAccessToken(refreshToken: string) {
-  const payload = await verifyRefreshToken(refreshToken);
+  // One atomic step claims the token (and removes it), so two requests with the same token
+  // can't both succeed. An older raw-stored token is consumed the same way; its replacement is hashed.
+  const forms = storedForms(String(refreshToken ?? ""));
+  const claimed = await RefreshToken.findOneAndDelete({ token: { $in: forms }, expiresAt: { $gt: new Date() } });
 
-  const user = await usermodel.findById(payload.userId);
+  if (!claimed) {
+    // Say why, as before: gone (used, signed out) or past its date.
+    const expired = await RefreshToken.exists({ token: { $in: forms } });
+    throw new AppError(expired ? "Refresh token expired" : "Refresh token revoked", 401);
+  }
+
+  const user = await usermodel.findById(claimed.userId);
 
   if (!user) {
     throw new AppError("User not found", 404);
   }
-
-  await revokeRefreshToken(refreshToken);
 
   const newRefreshToken = await generateRefreshToken(user._id);
 
@@ -327,15 +387,15 @@ async function changePassword(
     throw new AppError("User not found", 404);
   }
 
-  const matches = await bcryptjs.compare(currentPassword, user.passwordHash);
+  const matches = await passwordMatches(currentPassword, user.passwordHash);
 
   if (!matches) {
     throw new AppError("Current password incorrect", 401);
   }
-  if (newPassword.trim().length < 6) {
-    throw new AppError("New password must be at least 6 characters", 400);
+  if (typeof newPassword !== "string" || newPassword.length < MIN_PASSWORD_LENGTH) {
+    throw new AppError(`New password must be at least ${MIN_PASSWORD_LENGTH} characters`, 400);
   }
-  const samePassword = await bcryptjs.compare(newPassword, user.passwordHash);
+  const samePassword = await passwordMatches(newPassword, user.passwordHash);
 
   if (samePassword) {
     throw new AppError("New password must be different", 400);
@@ -366,7 +426,7 @@ async function deleteAccount(userId: string, password: string) {
     throw new AppError("User not found", 404);
   }
 
-  const matches = await bcryptjs.compare(password, user.passwordHash);
+  const matches = await passwordMatches(password, user.passwordHash);
 
   if (!matches) {
     throw new AppError("Invalid password", 401);

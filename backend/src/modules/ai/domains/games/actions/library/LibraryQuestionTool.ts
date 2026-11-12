@@ -94,7 +94,7 @@ export class LibraryQuestionTool extends BaseTool<LibraryQuestionInput, any> {
     }
 
     if (has("top", "best", "favou?rite", "highest", "rated", "rating")) {
-      const reviews = await Review.find({ userId: uid }).sort({ rating: -1 }).limit(5).populate("gameId", "title").lean();
+      const reviews = await Review.find({ userId: uid }).sort({ rating: -1 }).limit(5).populate({ path: "gameId", select: "title", match: { userId: uid } }).lean();
       const rated = reviews.filter((r: any) => r.gameId?.title).map((r: any) => `${r.gameId.title} (${r.rating}/10)`);
       return this.success({ rated }, rated.length
         ? `Your top rated: ${listTitles(rated)}.`
@@ -135,7 +135,7 @@ export class LibraryQuestionTool extends BaseTool<LibraryQuestionInput, any> {
       const label = STATUS_LABEL[status].toLowerCase();
       // "what have i beaten and what did i rate them": the ratings go with the list.
       if (titles.length && has("rate", "rating", "score")) {
-        const reviews = await Review.find({ userId: uid }).populate("gameId", "title").lean();
+        const reviews = await Review.find({ userId: uid }).populate({ path: "gameId", select: "title", match: { userId: uid } }).lean();
         const ratingOf = new Map(reviews.filter((r: any) => r.gameId?.title).map((r: any) => [r.gameId.title as string, r.rating as number]));
         titles = titles.map((t) => (ratingOf.has(t) ? `${t} (${ratingOf.get(t)}/10)` : `${t} (not rated)`));
       }

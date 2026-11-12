@@ -234,7 +234,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid email, or a password under 6 characters. */
+                /** @description Missing or invalid email, or a password under 8 characters. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -4767,7 +4767,7 @@ export interface paths {
                         "application/json": components["schemas"]["SuccessMessage"];
                     };
                 };
-                /** @description Expired, used or unknown link; or a password under 6 characters. */
+                /** @description Expired, used or unknown link; or a password under 8 characters. */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -5243,7 +5243,7 @@ export interface components {
             email: string;
             /**
              * Format: password
-             * @description Trimmed; at least 6 characters.
+             * @description Used as typed (not trimmed); at least 8 characters.
              * @example Sup3rSecret!
              */
             password: string;

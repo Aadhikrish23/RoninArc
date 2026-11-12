@@ -111,4 +111,31 @@ export function displayNameOf(user: { displayName?: string | null; username?: st
   return (user?.displayName || user?.username || "").trim();
 }
 
+/**
+ * One account per email, enforced by the database (not only by a check before saving, which two
+ * simultaneous sign-ups can both pass). Case-insensitive, and only for accounts that have an
+ * email (older PC accounts don't). If existing data already has duplicates the index can't be
+ * built: that is logged, loudly, and the server keeps running with the application-level check.
+ */
+export async function ensureEmailIndex(): Promise<boolean> {
+  try {
+    await usermodel.collection.createIndex(
+      { email: 1 },
+      {
+        name: "email_unique_ci",
+        unique: true,
+        partialFilterExpression: { email: { $type: "string" } },
+        collation: { locale: "en", strength: 2 },
+      },
+    );
+    return true;
+  } catch (error) {
+    console.error(
+      "[users] Could not create the unique email index (probably two accounts share an email); sign-ups are still checked in code:",
+      error instanceof Error ? error.message : "unknown error",
+    );
+    return false;
+  }
+}
+
 export default usermodel;

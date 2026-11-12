@@ -7,6 +7,7 @@ import {
 } from "react";
 import authApi from "../api/authApi";
 import { setTokenUpdater } from "../../../shared/utils/tokenManager";
+import { clearSession, clearStore, signedInStore } from "../../../shared/utils/sessionStore";
 
 export interface AuthUser {
   /** The display name (shown in the app; not unique). */
@@ -44,17 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [refreshToken, setRefreshToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedUser =
-      localStorage.getItem("roninarc_user") ||
-      sessionStorage.getItem("roninarc_user");
-
-    const storedToken =
-      localStorage.getItem("roninarc_token") ||
-      sessionStorage.getItem("roninarc_token");
-
-    const storedRefreshToken =
-      localStorage.getItem("roninarc_refresh_token") ||
-      sessionStorage.getItem("roninarc_refresh_token");
+    // One store holds the session: all three values come from it, never a mix of the two.
+    const store = signedInStore();
+    const storedUser = store?.getItem("roninarc_user");
+    const storedToken = store?.getItem("roninarc_token");
+    const storedRefreshToken = store?.getItem("roninarc_refresh_token");
 
     if (storedUser && storedToken && storedRefreshToken) {
       setUser(JSON.parse(storedUser));
@@ -75,6 +70,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setToken(accessToken);
     setRefreshToken(refreshTokenValue);
 
+    // The other store may hold an older sign-in; leaving it would bring that one back later.
+    clearStore(rememberMe ? sessionStorage : localStorage);
+
     if (rememberMe) {
       localStorage.setItem("roninarc_user", JSON.stringify(userData));
 
@@ -92,9 +90,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     try {
-      const refreshToken =
-        localStorage.getItem("roninarc_refresh_token") ||
-        sessionStorage.getItem("roninarc_refresh_token");
+      const refreshToken = signedInStore()?.getItem("roninarc_refresh_token");
 
       if (refreshToken) {
         await authApi.logoutUser(refreshToken);
@@ -102,7 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } catch (error) {
       console.error(error);
     } finally {
-      clearStorage();
+      clearSession();
 
       setUser(null);
       setToken(null);
@@ -169,13 +165,4 @@ export function useAuth() {
   }
 
   return context;
-}
-function clearStorage() {
-  localStorage.removeItem("roninarc_user");
-  localStorage.removeItem("roninarc_token");
-  localStorage.removeItem("roninarc_refresh_token");
-
-  sessionStorage.removeItem("roninarc_user");
-  sessionStorage.removeItem("roninarc_token");
-  sessionStorage.removeItem("roninarc_refresh_token");
 }

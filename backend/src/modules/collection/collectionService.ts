@@ -42,7 +42,7 @@ const getCollections = async (userId: string) => {
   return await Collection.find({
     userId,
   })
-    .populate("gameIds")
+    .populate({ path: "gameIds", match: { userId } })
     .sort({
       createdAt: -1,
     });
@@ -55,7 +55,7 @@ const getCollectionById = async (
   const collection = await Collection.findOne({
     _id: collectionId,
     userId,
-  }).populate("gameIds");
+  }).populate({ path: "gameIds", match: { userId } });
 
   if (!collection) {
     throw new Error("Collection not found");
@@ -89,7 +89,7 @@ const addGameToCollection = async (
 
   const hasGame = existing.gameIds.some(id => id.toString() === gameId.toString());
   if (hasGame) {
-    return existing.populate("gameIds");
+    return existing.populate({ path: "gameIds", match: { userId } });
   }
 
   const collection = await Collection.findOneAndUpdate(
@@ -105,7 +105,7 @@ const addGameToCollection = async (
     {
       new: true,
     },
-  ).populate("gameIds");
+  ).populate({ path: "gameIds", match: { userId } });
 
   if (!collection) {
     throw new Error("Collection not found");
@@ -141,7 +141,7 @@ const removeGameFromCollection = async (
 
   const hasGame = existing.gameIds.some(id => id.toString() === gameId.toString());
   if (!hasGame) {
-    return existing.populate("gameIds");
+    return existing.populate({ path: "gameIds", match: { userId } });
   }
 
   const collection = await Collection.findOneAndUpdate(
@@ -157,7 +157,7 @@ const removeGameFromCollection = async (
     {
       new: true,
     },
-  ).populate("gameIds");
+  ).populate({ path: "gameIds", match: { userId } });
 
   if (!collection) {
     throw new Error("Collection not found");
@@ -240,7 +240,7 @@ const updateCollection = async (
       {
         new: true,
       },
-    ).populate("gameIds");
+    ).populate({ path: "gameIds", match: { userId } });
 
   if (!collection) {
     throw new Error(

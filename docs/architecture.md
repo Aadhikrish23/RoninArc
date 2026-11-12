@@ -193,3 +193,17 @@ The free Render plan sleeps when idle, so the first request can take about a min
 - Each GitHub release carries `RoninArc-Setup-<version>.exe`, its `.blockmap` and `latest.yml` for the updater, plus `RoninArc-Setup.exe` (a fixed-name copy) and `RoninArc.apk` for the landing page's `releases/latest/download/<file>` links.
 - The landing page's version is the desktop version at build time, swapped for the newest GitHub release tag when the page loads.
 - See [beta/RELEASING.md](beta/RELEASING.md).
+
+## Security hardening (2026-11)
+
+Changes made after a static security review (`issues/SECURITY-AND-ENGINEERING-FEEDBACK.md`):
+
+- **Logs never hold secrets.** Provider sign-in responses are not logged. Console output is scrubbed of tokens, passwords, bearer headers and JWTs before it reaches the log files, and `console.dir` goes through the same scrubbing.
+- **The PC's backend is for this machine only.** In the desktop app it listens on loopback (127.0.0.1 and ::1), not on every network interface. Browsers' cross-origin requests are accepted only from the app itself (`null` / `file://`) and from localhost pages; other websites are refused. Sign-in and sign-up are rate limited on a PC as well as in the cloud.
+- **Sync checks ownership.** A pushed document may only point at the pusher's own documents: foreign ids are dropped from lists, and a document whose single reference is foreign is not taken. Every read that follows a reference (collections, activity, play sessions, the dashboard, AI answers) only returns the signed-in person's own documents. Timestamps a device claims are capped at five minutes ahead.
+- **Accounts and tokens.** One account per email is enforced by a unique, case-insensitive database index (a duplicate sign-up race gets a 409). Refresh tokens are stored as SHA-256 hashes and are claimed atomically, so one token can be used once even under concurrent requests; tokens stored the old way keep working until they expire and are replaced by hashed ones. A password-reset link is claimed atomically. Passwords are used as typed and must be at least 8 characters for new accounts and changed passwords; older passwords still sign in.
+- **AI confirmations.** A casual reply ("thanks", "cool", "fine") is never taken as a yes to removing a game.
+- **Desktop sessions.** The renderer keeps its sign-in in one store (localStorage for "Remember me", else sessionStorage) and clears the other on sign-in.
+- **Desktop app.** Every privileged call from the page (launching a game, the Epic and Steam sign-in windows, store pages, updates, problem reports) is accepted only from RoninArc's own page. A game launches only from an existing `.exe`, `.lnk` or `.url` path, or a `steam://` / `com.epicgames.launcher://` link; paths with shell characters are refused, and `.exe` files start without a shell. The sign-in windows open only the real Epic and Steam pages. The main window can't navigate away from the app, open extra windows or embed web views; web links open in the user's browser. The checks live in `desktop/services/ipcGuards.js`.
+- **Downloaded database.** `desktop/scripts/fetch-mongod.js` can verify the MongoDB download against a pinned SHA-256 (`MONGO_ZIP_SHA256`); until a hash is pinned it prints a warning.
+- **CI.** `.github/workflows/ci.yml` builds and type-checks each project, scans for secrets (gitleaks), reports `npm audit`, and runs the API tests on Windows (non-blocking until it has passed once).

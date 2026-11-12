@@ -2,6 +2,7 @@ import axios from "axios";
 import { API_BASE_URL } from "./config";
 import { updateAuthTokens } from "../utils/tokenManager";
 import { log } from "../logging/clientLogger";
+import { clearSession, signedInStore } from "../utils/sessionStore";
 
 const newRequestId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : String(Date.now());
@@ -18,11 +19,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    const sessionToken = sessionStorage.getItem("roninarc_token");
-
-    const localToken = localStorage.getItem("roninarc_token");
-
-    const token = sessionToken || localToken;
+    const token = signedInStore()?.getItem("roninarc_token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -57,9 +54,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        const currentRefreshToken =
-          localStorage.getItem("roninarc_refresh_token") ||
-          sessionStorage.getItem("roninarc_refresh_token");
+        const currentRefreshToken = signedInStore()?.getItem("roninarc_refresh_token");
 
         if (!currentRefreshToken) {
           throw new Error("Refresh token missing");
@@ -93,15 +88,10 @@ api.interceptors.response.use(
 
         return api(originalRequest);
       } catch (refreshError) {
-        localStorage.removeItem("roninarc_user");
-        localStorage.removeItem("roninarc_token");
-        localStorage.removeItem("roninarc_refresh_token");
+        clearSession();
 
-        sessionStorage.removeItem("roninarc_user");
-        sessionStorage.removeItem("roninarc_token");
-        sessionStorage.removeItem("roninarc_refresh_token");
-
-        window.location.href = "/#/login";
+        // The hash only: "/#/login" resolves to file:///#/login in the installed app, a blank page.
+        window.location.hash = "#/login";
 
         return Promise.reject(refreshError);
       } finally {

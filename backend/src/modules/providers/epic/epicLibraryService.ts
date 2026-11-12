@@ -70,11 +70,8 @@ const syncLibrary = async (userId: string) => {
 
       imported++;
     } catch (error) {
-      console.error("[SAVE FAILED]");
-
-      console.dir(error, {
-        depth: 10,
-      });
+      // Only the message: a full axios/mongo error object can carry request headers and tokens.
+      console.error("[SAVE FAILED]", error instanceof Error ? error.message : "unknown error");
 
       throw error;
     }

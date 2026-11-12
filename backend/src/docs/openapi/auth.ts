@@ -6,7 +6,7 @@ export const authSchemas: Record<string, Schema> = {
     required: ["email", "password"],
     properties: {
       email: { type: "string", format: "email", description: "The account's email address (case doesn't matter).", example: "ronin@example.com" },
-      password: { type: "string", minLength: 6, format: "password", description: "Trimmed; at least 6 characters.", example: "Sup3rSecret!" },
+      password: { type: "string", minLength: 8, format: "password", description: "Used as typed (not trimmed); at least 8 characters.", example: "Sup3rSecret!" },
     },
   },
   RegisterRequest: {
@@ -15,7 +15,7 @@ export const authSchemas: Record<string, Schema> = {
     properties: {
       displayName: { type: "string", maxLength: 60, description: "The name shown in the app. Not unique. Defaults to the part of the email before @.", example: "Ronin" },
       email: { type: "string", format: "email", description: "How you sign in, and where password resets go. One account per email.", example: "ronin@example.com" },
-      password: { type: "string", minLength: 6, format: "password", example: "Sup3rSecret!" },
+      password: { type: "string", format: "password", example: "Sup3rSecret!" },
     },
   },
   UserData: {
@@ -83,7 +83,7 @@ export const authPaths = {
       requestBody: jsonBody(ref("RegisterRequest"), { displayName: "Ronin", email: "ronin@example.com", password: "Sup3rSecret!" }),
       responses: {
         201: { ...ok("Account created and signed in.", ref("AuthSession")), description: "Account created and signed in." },
-        400: appError("Missing or invalid email, or a password under 6 characters.", "Email and password are required", "Use a password of at least 6 characters."),
+        400: appError("Missing or invalid email, or a password under 8 characters.", "Email and password are required", "Use a password of at least 8 characters."),
         409: appError("The email already has an account.", "An account with this email already exists. Sign in, or reset its password."),
       },
     },
@@ -169,7 +169,7 @@ export const authPaths = {
           required: ["currentPassword", "newPassword"],
           properties: {
             currentPassword: { type: "string", format: "password" },
-            newPassword: { type: "string", format: "password", minLength: 6, description: "Must differ from the current password." },
+            newPassword: { type: "string", format: "password", minLength: 8, description: "Must differ from the current password." },
           },
         },
         { currentPassword: "Sup3rSecret!", newPassword: "Brand-New-Pass-42" },
@@ -179,7 +179,7 @@ export const authPaths = {
         400: appError(
           "Missing fields, new password too short, or unchanged.",
           "Current password and new password are required",
-          "New password must be at least 6 characters",
+          "New password must be at least 8 characters",
           "New password must be different",
         ),
         401: appError("Current password incorrect, or not signed in.", "Current password incorrect"),

@@ -71,6 +71,8 @@ export default defineConfig({
       // suite is isolated from whatever the developer has configured locally.
       env: {
         PORT: String(API_PORT),
+        // Every test call comes from one address; the PC backend limits sign-in and sign-up too.
+        RATE_LIMIT_MULTIPLIER: "1000",
         MONGO_URI: `${MONGO_URL}/RoninArc_e2e`,
         ALLOWED_ORIGIN: WEB_URL,
         JWT_SECRET: "roninarc-e2e-secret",

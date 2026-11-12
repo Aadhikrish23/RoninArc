@@ -49,8 +49,8 @@ const getRecentActivities = async (
       createdAt: -1,
     })
     .limit(limit)
-    .populate("gameId")
-    .populate("collectionId");
+    .populate({ path: "gameId", match: { userId } })
+    .populate({ path: "collectionId", match: { userId } });
 };
 
 export default {

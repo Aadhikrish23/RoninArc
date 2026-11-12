@@ -1,0 +1,177 @@
+# Runs on every push and pull request to main: builds, type checks, the API tests, a secret scan and a
+# dependency audit. Releases are still built and published by hand (docs/beta/RELEASING.md).
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  backend:
+    name: Backend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: backend/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  frontend:
+    name: Desktop UI build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      # tsc -b is the type check; the project uses references, so a plain `tsc --noEmit` checks nothing.
+      - run: npm run build
+      # Known lint errors exist; this reports them without blocking.
+      - run: npm run lint
+        continue-on-error: true
+
+  mobile:
+    name: Phone app type check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npx tsc --noEmit -p .
+
+  landing:
+    name: Website build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: landing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  desktop:
+    name: Desktop app syntax check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: desktop
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      # Electron itself isn't needed to parse the main process files.
+      - run: |
+          for f in main.js preload.js services/*.js services/providers/*/*.js scripts/*.js; do
+            node --check "$f"
+          done
+
+  api-tests:
+    name: API tests (Windows)
+    # The suite starts its own throwaway mongod; the repo's helper fetches the Windows binary. This job
+    # was written without being able to run GitHub Actions, so it doesn't block merges until it has
+    # passed once; then remove continue-on-error.
+    runs-on: windows-latest
+    continue-on-error: true
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            e2e/package-lock.json
+      - name: Cache the MongoDB binary
+        id: mongod
+        uses: actions/cache@v4
+        with:
+          path: desktop/mongodb-bin
+          key: mongod-${{ runner.os }}-${{ hashFiles('desktop/scripts/fetch-mongod.js') }}
+      - name: Fetch mongod.exe
+        if: steps.mongod.outputs.cache-hit != 'true'
+        run: node desktop/scripts/fetch-mongod.js
+      - run: npm ci
+        working-directory: backend
+      - run: npm ci
+        working-directory: frontend
+      - run: npm ci
+        working-directory: e2e
+      - name: Run the API tests
+        run: npx playwright test --project=api --reporter=line
+        working-directory: e2e
+      - name: Keep the report when tests fail
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: e2e/playwright-report
+          retention-days: 7
+
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    # Reports high-severity advisories in what ships; doesn't block (fix them in their own change).
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [backend, frontend, mobile, landing, desktop]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - run: npm audit --omit=dev --audit-level=high
+        working-directory: ${{ matrix.project }}

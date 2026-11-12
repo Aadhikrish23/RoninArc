@@ -4,6 +4,7 @@ import mongoose from "mongoose";
 import { startSyncScheduler } from "./modules/sync/localSync";
 import metadataEnrichmentService from "./modules/library/metadataEnrichmentService";
 import { syncFeedbackIndexes } from "./modules/recommendation/RecommendationFeedback";
+import { ensureEmailIndex } from "./modules/auth/models/User";
 import { isCloud } from "./shared/runtimeMode";
 import { logger, LOG_DIR, appLogFile } from "./shared/logging/logger";
 import { flushErrorReporting, reportError, sentryEnabled } from "./shared/logging/errorReporter";
@@ -32,6 +33,7 @@ const connectDB = async () => {
   }
   // Not a reason to stop the app: until this works, only dismissing a second IGDB-only game fails.
   await syncFeedbackIndexes().catch((error) => reportError(error, { phase: "feedback-indexes" }));
+  await ensureEmailIndex();
 };
 
 async function shutdown(code: number) {
@@ -64,9 +66,19 @@ const startserver = async () => {
   // Fills in tags and art for anything imported or synced without them. The cloud only gets games
   // that have been through this on a PC or when they were added.
   if (!isCloud()) void metadataEnrichmentService.enrichAllLibraries().catch((error) => reportError(error, { phase: "enrichment" }));
-  app.listen(PORT, () => {
-    log.info({ port: Number(PORT), logDir: LOG_DIR, sentry: sentryEnabled() }, `Server is up and running on port:${PORT}`);
-  });
+  // On a PC the backend is for this machine only: loopback, not every network interface.
+  // (The cloud has to listen on all of them behind its host's proxy.)
+  const bindHost = process.env.ELECTRON_EMBEDDED === "1" ? "127.0.0.1" : undefined;
+  const onListening = () => {
+    log.info({ port: Number(PORT), host: bindHost ?? "all interfaces", logDir: LOG_DIR, sentry: sentryEnabled() }, `Server is up and running on port:${PORT}`);
+  };
+  if (bindHost) {
+    app.listen(Number(PORT), bindHost, onListening);
+    // "localhost" may resolve to ::1 first; loopback only, and fine to skip where IPv6 is off.
+    app.listen(Number(PORT), "::1").on("error", () => undefined);
+  } else {
+    app.listen(PORT, onListening);
+  }
 };
 
 startserver();

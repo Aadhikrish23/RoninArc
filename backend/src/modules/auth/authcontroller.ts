@@ -14,6 +14,8 @@ import { markPhoneLinked } from "../sync/linkCodes";
 const fromPhone = (req: Request) => isCloud() && req.get("x-roninarc-client") === "phone";
 
 const str = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+/** A password exactly as typed: never trimmed (login also tries it trimmed, for older accounts). */
+const raw = (v: unknown) => (typeof v === "string" ? v : "");
 
 /** Sign up: a name (shown in the app, not unique), an email (you sign in with it) and a password. */
 const registerUser = async (req: Request, res: Response, next: NextFunction) => {
@@ -21,7 +23,7 @@ const registerUser = async (req: Request, res: Response, next: NextFunction) => 
     // Apps before 1.0.3 send the name as `username`.
     const name = str(req.body?.displayName) || str(req.body?.name) || str(req.body?.username);
     const email = str(req.body?.email);
-    const password = str(req.body?.password);
+    const password = raw(req.body?.password);
     if (!email || !password) return next(new AppError("Email and password are required", 400));
     const data = await authServices.registerUser(name, password, email);
     if (fromPhone(req)) await markPhoneLinked(data.userdata.email).catch(() => undefined);
@@ -36,7 +38,7 @@ const loginUser = async (req: Request, res: Response, next: NextFunction) => {
   try {
     // Apps before 1.0.3 send whatever was typed as `username`.
     const identifier = str(req.body?.email) || str(req.body?.username);
-    const password = str(req.body?.password);
+    const password = raw(req.body?.password);
     if (!identifier || !password) return next(new AppError(authServices.SIGN_IN_WITH_EMAIL, 400));
     const data = await authServices.loginUser(identifier, password);
     if (fromPhone(req)) await markPhoneLinked(data.userdata.email).catch(() => undefined);

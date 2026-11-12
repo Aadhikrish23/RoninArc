@@ -4,6 +4,7 @@ import usermodel, { displayNameOf } from "./models/User";
 import PasswordReset from "./models/PasswordReset";
 import RefreshToken from "./models/RefreshToken";
 import { cutOffTokens } from "./tokenCutoff";
+import { MIN_PASSWORD_LENGTH } from "./authService";
 import AppError from "../../shared/errors/AppError";
 import { sendEmail } from "../../shared/email/resend";
 import { moduleLogger } from "../../shared/logging/logger";
@@ -52,16 +53,20 @@ export async function requestPasswordReset(identifier: string): Promise<void> {
 
 /** Sets the new password from a reset link and signs every device out. */
 export async function resetPassword(token: string, password: string): Promise<void> {
-  const plain = String(password ?? "").trim();
-  if (plain.length < 6) throw new AppError("Use at least 6 characters.", 400);
-  const reset: any = await PasswordReset.findOne({ tokenHash: hash(String(token ?? "")), usedAt: null });
-  if (!reset || reset.expiresAt < new Date()) throw new AppError("This reset link has expired or was already used. Ask for a new one.", 400);
+  const plain = typeof password === "string" ? password : "";
+  if (plain.length < MIN_PASSWORD_LENGTH) throw new AppError(`Use at least ${MIN_PASSWORD_LENGTH} characters.`, 400);
+  // One conditional update claims the link (unused and unexpired), so two requests with the same
+  // link can't both get through.
+  const now = new Date();
+  const reset: any = await PasswordReset.findOneAndUpdate(
+    { tokenHash: hash(String(token ?? "")), usedAt: null, expiresAt: { $gt: now } },
+    { $set: { usedAt: now } },
+  );
+  if (!reset) throw new AppError("This reset link has expired or was already used. Ask for a new one.", 400);
   const user = await usermodel.findById(reset.userId);
   if (!user) throw new AppError("This reset link has expired or was already used. Ask for a new one.", 400);
   user.passwordHash = await bcryptjs.hash(plain, 11);
   await user.save();
-  reset.usedAt = new Date();
-  await reset.save();
   await RefreshToken.deleteMany({ userId: user._id });
   await cutOffTokens(String(user._id));
 }
@@ -87,8 +92,8 @@ button:disabled{opacity:.6;cursor:default}.msg{margin-top:14px;font-size:14px}.e
 <h1>Set a new password</h1>
 <p>For your RoninArc account. Afterwards, sign in with it on your phone and PC.</p>
 <form id="f">
-<label for="p1">New password</label><input id="p1" type="password" autocomplete="new-password" minlength="6" required>
-<label for="p2">Repeat it</label><input id="p2" type="password" autocomplete="new-password" minlength="6" required>
+<label for="p1">New password</label><input id="p1" type="password" autocomplete="new-password" minlength="8" required>
+<label for="p2">Repeat it</label><input id="p2" type="password" autocomplete="new-password" minlength="8" required>
 <button id="b" type="submit">Save new password</button>
 <div id="m" class="msg" role="status" aria-live="polite"></div>
 </form>

@@ -25,7 +25,9 @@ test.describe("Auth API", () => {
       expect((await json(res)).Data.userdata.email).toBe(`${base}@example.com`);
 
       const login = await anon.post("/auth/login", { email: `${base.toUpperCase()}@EXAMPLE.com`, password: DEFAULT_PASSWORD });
-      expect(login.status()).toBe(200);
+      expect(login.status()).toBe(401); // the password was typed with spaces, and is used with them
+      const typed = await anon.post("/auth/login", { email: `${base.toUpperCase()}@EXAMPLE.com`, password: `  ${DEFAULT_PASSWORD}  ` });
+      expect(typed.status()).toBe(200);
     });
 
     test("display names don't have to be unique @positive", async ({ anon }) => {
@@ -70,10 +72,10 @@ test.describe("Auth API", () => {
       expect((await json(res)).error).toMatch(/valid email/);
     });
 
-    test("rejects a password shorter than 6 characters @negative", async ({ anon }) => {
-      const res = await anon.post("/auth/register", { email: `${uniqueName("short")}@example.com`, password: "12345" });
+    test("rejects a password shorter than 8 characters @negative", async ({ anon }) => {
+      const res = await anon.post("/auth/register", { email: `${uniqueName("short")}@example.com`, password: "1234567" });
       expect(res.status()).toBe(400);
-      expect((await json(res)).error).toBe("Use a password of at least 6 characters.");
+      expect((await json(res)).error).toBe("Use a password of at least 8 characters.");
     });
 
     test("rejects a duplicate email, case-insensitively, with 409 @negative", async ({ anon, user }) => {
@@ -295,10 +297,10 @@ test.describe("Auth API", () => {
       expect((await json(res)).error).toBe("Current password incorrect");
     });
 
-    test("rejects a new password shorter than 6 characters @negative", async ({ api, user }) => {
-      const res = await api.patch("/auth/change-password", { currentPassword: user.password, newPassword: "12345" });
+    test("rejects a new password shorter than 8 characters @negative", async ({ api, user }) => {
+      const res = await api.patch("/auth/change-password", { currentPassword: user.password, newPassword: "1234567" });
       expect(res.status()).toBe(400);
-      expect((await json(res)).error).toBe("New password must be at least 6 characters");
+      expect((await json(res)).error).toBe("New password must be at least 8 characters");
     });
 
     test("rejects reusing the current password @negative", async ({ api, user }) => {

@@ -125,7 +125,7 @@ export const syncSchemas: Record<string, Schema> = {
   ResetPasswordRequest: {
     type: "object",
     required: ["token", "password"],
-    properties: { token: { type: "string", description: "From the emailed link." }, password: { type: "string", minLength: 6, format: "password" } },
+    properties: { token: { type: "string", description: "From the emailed link." }, password: { type: "string", minLength: 8, format: "password" } },
   },
 };
 
@@ -168,7 +168,7 @@ const cloudPaths = {
       requestBody: jsonBody(ref("ResetPasswordRequest"), { token: "Vq3…", password: "N3wSecret!" }),
       responses: {
         200: okMessage("Password changed.", "Your password is changed. Sign in with it."),
-        400: appError("Expired, used or unknown link; or a password under 6 characters.", "This reset link has expired or was already used. Ask for a new one.", "Use at least 6 characters."),
+        400: appError("Expired, used or unknown link; or a password under 8 characters.", "This reset link has expired or was already used. Ask for a new one.", "Use at least 8 characters."),
         429: rateLimited,
       },
     },

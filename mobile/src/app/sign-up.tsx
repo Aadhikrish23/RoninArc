@@ -18,7 +18,7 @@ export default function SignUp() {
   const submit = async () => {
     if (!name.trim()) return setError("Enter a name: it's what RoninArc calls you.");
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) return setError("Enter a valid email address.");
-    if (password.length < 6) return setError("Use at least 6 characters for the password.");
+    if (password.length < 8) return setError("Use at least 8 characters for the password.");
     setBusy(true);
     setError(null);
     try {
@@ -49,7 +49,7 @@ export default function SignUp() {
     >
       <Field label="Name" placeholder="What should RoninArc call you?" value={name} onChangeText={setName} autoComplete="nickname" />
       <Field label="Email" placeholder="you@example.com" value={email} onChangeText={setEmail} autoCapitalize="none" keyboardType="email-address" autoComplete="email" hint="You sign in with it, and it's how you reset a forgotten password." />
-      <Field label="Password" placeholder="Enter your password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" hint="At least 6 characters." />
+      <Field label="Password" placeholder="Enter your password" value={password} onChangeText={setPassword} secureTextEntry autoComplete="new-password" hint="At least 8 characters." />
       {waking ? <WakingNote /> : null}
       {error ? (
         <T tone="danger" size="sm" accessibilityLiveRegion="polite">

@@ -46,9 +46,17 @@ const allowedOrgin = process.env.ALLOWED_ORIGIN || "http://localhost:3000";
 // is only ever reachable from localhost by this same packaged app in that
 // mode, so ELECTRON_EMBEDDED (set by main.js when it spawns this process)
 // just reflects back whatever origin the request declares instead.
+// In that mode (ELECTRON_EMBEDDED, set by main.js when it spawns this process) the backend answers
+// requests with no Origin, the app's own "null" / file:// origin and localhost pages (dev). A
+// website open in the user's browser is refused, so it can't call the local API from a page.
+const trustedLocalOrigin = (origin: string) =>
+  origin === "null" || origin.startsWith("file://") || /^https?:\/\/(localhost|127\.0\.0\.1|\[::1\])(:\d+)?$/i.test(origin);
 app.use(
   cors({
-    origin: process.env.ELECTRON_EMBEDDED === "1" ? true : allowedOrgin,
+    origin:
+      process.env.ELECTRON_EMBEDDED === "1"
+        ? (origin, callback) => callback(null, !origin || trustedLocalOrigin(origin))
+        : allowedOrgin,
     exposedHeaders: ["X-Request-Id"],
   }),
 );
@@ -87,10 +95,15 @@ app.use(
 app.get("/health", (req: Request, res: Response) => {
   return res.json({ Status: "ok", message: "RoninArc was healthy " });
 });
+{
+  // Guessing passwords and mass sign-ups, per network. A PC's own backend gets them too: it is
+  // only meant for this machine, but a page open in the browser can still reach localhost.
+  // (RATE_LIMIT_MULTIPLIER scales both; the test suite sends everything from one address.)
+  const local = !isCloud();
+  app.post("/auth/login", rateLimit({ windowMs: 15 * 60_000, max: local ? 20 : 30, message: "Too many sign-in attempts. Try again in a few minutes." }));
+  app.post("/auth/register", rateLimit({ windowMs: 60 * 60_000, max: local ? 20 : 10, message: "Too many sign-ups from this network. Try again later." }));
+}
 if (isCloud()) {
-  // Guessing passwords and mass sign-ups, per network.
-  app.post("/auth/login", rateLimit({ windowMs: 15 * 60_000, max: 30, message: "Too many sign-in attempts. Try again in a few minutes." }));
-  app.post("/auth/register", rateLimit({ windowMs: 60 * 60_000, max: 10, message: "Too many sign-ups from this network. Try again later." }));
   // Each person's own daily AI allowance (everyone shares the server's keys).
   app.post("/ai/chat", authMiddleware, cloudAiQuota);
 }

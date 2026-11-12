@@ -152,7 +152,7 @@ async function describeFeature(question: string, ctx: DirectAnswerContext): Prom
 
 async function describeFavourite(question: string, ctx: DirectAnswerContext): Promise<string | undefined> {
   if (!FAVOURITE.test(question) || !MY_LIBRARY.test(question) || ACTION.test(question) || /\b(like|similar|recommend|suggest)\b/i.test(question)) return undefined;
-  const reviews = (await Review.find({ userId: new Types.ObjectId(ctx.userId) }).sort({ rating: -1, updatedAt: -1 }).populate("gameId", "title tags").lean()) as any[];
+  const reviews = (await Review.find({ userId: new Types.ObjectId(ctx.userId) }).sort({ rating: -1, updatedAt: -1 }).populate({ path: "gameId", select: "title tags", match: { userId: new Types.ObjectId(ctx.userId) } }).lean()) as any[];
   const rated = reviews.filter((r) => r.gameId?.title);
   // "whats my fav genre based on my ratings": the genre of the games rated highest, not a game list.
   if (/\bgenres?\b/i.test(question) && rated.length > 0) {

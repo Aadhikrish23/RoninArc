@@ -58,7 +58,7 @@ function Login() {
       setLoading(true);
 
       const mail = email.trim();
-      const pass = password.trim();
+      const pass = password; // as typed (the server also tries it trimmed, for older accounts)
 
       if (mail === "" || pass === "") {
         throw new Error("Enter your email and password.");

@@ -76,7 +76,7 @@ RoninArc lets a person:
   - The display name is only shown in the app and doesn't have to be unique. Without one, the part of the email before @ is used.
   - Signing in with anything that isn't an email is refused with "Sign in with your email address and password." (400).
   - Each account still has an internal unique handle (`username`), generated from the email and never typed or shown; sync and links key on it.
-  - Passwords are at least 6 characters.
+  - Passwords are at least 8 characters (new, changed and reset passwords) and are used exactly as typed; older accounts that stored a trimmed password still sign in.
   - A repeated sign-up within 10 minutes with the same password signs the player in instead of failing.
 - **FR-1.1a** A PC account made before email sign-in has no email. It can still sign in on that PC with its old name, and is then asked once per session to add an email (`PATCH /auth/email`, confirmed by the password, rate-limited, unique; on a linked PC the cloud takes it first). Settings → Account shows "Add your email" until it's added.
 - **FR-1.1a** On a PC, when local sign-in fails, the PC tries the same details against RoninArc Cloud.

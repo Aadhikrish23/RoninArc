@@ -63,8 +63,8 @@ function Signup() {
       setLoading(true);
 
       const name = displayName.trim();
-      const pass = password.trim();
-      const confirm = confirmpassword.trim();
+      const pass = password; // as typed: passwords are not trimmed
+      const confirm = confirmpassword;
       const mail = email.trim();
 
       if (!name || !mail || !pass) {
