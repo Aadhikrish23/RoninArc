@@ -1,6 +1,6 @@
 # RoninArc roadmap
 
-Current release: **1.0.3**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
+Current release: **1.0.4**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
 
 ## Done
 
@@ -73,6 +73,11 @@ Current release: **1.0.3**, on [GitHub releases](https://github.com/Aadhikrish23
 ### Done in 1.0.3 (2026-11-09)
 
 - **Email sign-in only:** accounts sign in with email and password on the PC and the phone; names are display names and don't have to be unique. Old PC accounts without an email are asked to add one. An email that already has a cloud account links by its password (same person, libraries merge) or asks for it in Settings.
+
+### Done in 1.0.4 (2026-11-12)
+
+- **Security hardening** from a code review: no tokens or passwords in logs; the PC's backend only answers this PC; sync can't touch other accounts' data; one account per email, atomic refresh and reset tokens; passwords need 8 characters; casual replies like "thanks" no longer confirm removing a game; the desktop app validates game launches and sign-in windows. A GitHub workflow builds and scans every push. See the Security hardening section in [architecture.md](architecture.md).
+- **Fixed:** an expired session now returns to the login page in the installed app.
 
 ## Next
 
