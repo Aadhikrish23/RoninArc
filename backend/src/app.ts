@@ -101,6 +101,21 @@ app.get("/health", (req: Request, res: Response) => {
   // (RATE_LIMIT_MULTIPLIER scales both; the test suite sends everything from one address.)
   const local = !isCloud();
   app.post("/auth/login", rateLimit({ windowMs: 15 * 60_000, max: local ? 20 : 30, message: "Too many sign-in attempts. Try again in a few minutes." }));
+  // The per-network limit above is keyed by req.ip, which ultimately trusts a client-supplied
+  // header behind any reverse proxy -- a distributed guesser can reset it by claiming a new
+  // "network" on every request. A second limiter keyed by the email itself closes that: it caps
+  // wrong guesses against one specific account regardless of how many networks the attacker
+  // claims to be. (A missing/non-string email just falls through with no key, matching the field
+  // validation the login handler itself does next.)
+  app.post(
+    "/auth/login",
+    rateLimit({
+      windowMs: 15 * 60_000,
+      max: 10,
+      message: "Too many attempts on this account. Try again in a few minutes.",
+      key: (req) => (typeof req.body?.email === "string" ? `login:${req.body.email.trim().toLowerCase()}` : "login:unknown"),
+    }),
+  );
   app.post("/auth/register", rateLimit({ windowMs: 60 * 60_000, max: local ? 20 : 10, message: "Too many sign-ups from this network. Try again later." }));
 }
 if (isCloud()) {

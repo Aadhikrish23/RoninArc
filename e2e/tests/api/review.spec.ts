@@ -68,11 +68,23 @@ test.describe("Review API (/review)", () => {
     expect(activity.some((a: any) => a.type === "REVIEW_DELETED")).toBe(true);
   });
 
-  test("deleting a non-existent review is a harmless no-op @negative", async ({ api }) => {
+  test("deleting a non-existent review is a 404, not a false success @negative", async ({ api }) => {
     const res = await api.delete(`/review/${MISSING_ID}`);
-    expect(res.status()).toBe(200);
+    expect(res.status()).toBe(404);
+    expect((await json(res)).Message).toBe("Review not found");
     const activity = (await json(await api.get("/activity"))).Data;
     expect(activity.some((a: any) => a.type === "REVIEW_DELETED")).toBe(false);
+  });
+
+  test("deleting another user's review by its gameId is a 404, not a false success @negative", async ({ api, request }) => {
+    const owner = new Api(request, API_URL, (await registerUser(request, API_URL)).accessToken);
+    const game = await owner.addGame(hades);
+    await owner.put(`/review/${game._id}`, { rating: 5 });
+    const res = await api.delete(`/review/${game._id}`);
+    expect(res.status()).toBe(404);
+    expect((await json(res)).Message).toBe("Review not found");
+    // The real owner's review is untouched.
+    expect((await json(await owner.get(`/review/${game._id}`))).Data.rating).toBe(5);
   });
 
   test("a malformed game id is rejected with 400 @negative", async ({ api }) => {

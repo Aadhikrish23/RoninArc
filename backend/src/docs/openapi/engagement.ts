@@ -169,13 +169,13 @@ export const engagementPaths = {
     delete: {
       tags: ["Reviews"],
       summary: "Delete a review",
-      description: "Deleting a review that doesn't exist is a no-op that still returns 200.",
       security: bearerAuth,
       parameters: [libraryGameId()],
       responses: {
-        200: okMessage("Deleted (or nothing to delete).", "Review deleted"),
+        200: okMessage("Deleted.", "Review deleted"),
         400: invalidGameId,
         401: responses.unauthorized,
+        404: failed("No review on this game (never reviewed, or someone else's).", "Review not found"),
         500: failed("Delete failed.", "Failed to delete review"),
       },
     },

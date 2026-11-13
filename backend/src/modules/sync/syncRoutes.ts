@@ -69,6 +69,14 @@ if (isCloud()) {
   syncRouter.post(
     "/link-code/claim",
     rateLimit({ windowMs: 15 * 60_000, max: 10, message: "Too many tries. Wait a few minutes, then make a new code on your PC." }),
+    // The limit above is keyed by req.ip, which (behind any reverse proxy) ultimately trusts a
+    // client-supplied header -- rotating it resets that limiter's bucket. A code is a 6-digit,
+    // single-use secret with a 10-minute life, so the real defense has to hold regardless of how
+    // many distinct "networks" an attacker claims to be: a fixed global cap on wrong guesses,
+    // shared by every caller, that header games cannot reset. 100 wrong guesses across all callers
+    // in 15 minutes is far more than real usage ever needs and leaves an attacker under a 0.01%
+    // chance of landing one code's 1,000,000-value space inside its lifetime.
+    rateLimit({ windowMs: 15 * 60_000, max: 100, message: "Too many tries right now. Make a new code on your PC and try again shortly.", key: () => "link-code-claim" }),
     wrap(async (req, res) => res.json({ Status: "Success", Data: await claimLinkCode(req.body?.code) })),
   );
   syncRouter.post("/push", authMiddleware, wrap(async (req, res) => res.json(await applyPush(userId(req), req.body ?? {}))));

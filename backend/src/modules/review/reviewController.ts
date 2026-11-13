@@ -99,10 +99,17 @@ const deleteReview = async (
     const { gameId } = req.params;
     if (!Types.ObjectId.isValid(gameId)) return invalidId(res);
 
-    await reviewService.deleteReview(
+    const review = await reviewService.deleteReview(
       userId,
       gameId
     );
+
+    if (!review) {
+      return res.status(404).json({
+        Status: "Failed",
+        Message: "Review not found",
+      });
+    }
 
     return res.status(200).json({
       Status: "Success",
