@@ -11,7 +11,7 @@ RoninArc is a game library and backlog tracker for Windows PC gamers, with an An
 - **Accounts:** sign in with your email and password on the PC and the phone. Your name is just what the app calls you, so it doesn't have to be unique.
 - **Cloud sync and the phone app:** tick "Sync with my other devices" when you sign in (on by default), then scan a QR code or type a 6-digit code from the PC on your Android phone. No password on the phone, and the PC keeps working offline.
 
-Current version: **1.0.4**. Downloads are on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases/latest).
+Current version: **1.0.5**. Downloads are on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases/latest).
 
 ## Documentation
 

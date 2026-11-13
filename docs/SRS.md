@@ -1,6 +1,6 @@
 # RoninArc software requirements specification
 
-Version 1.0.4. This describes what the system does today. Planned work is listed separately at the end and in the [roadmap](roadmap.md).
+Version 1.0.5. This describes what the system does today. Planned work is listed separately at the end and in the [roadmap](roadmap.md).
 
 ## 1. Introduction
 

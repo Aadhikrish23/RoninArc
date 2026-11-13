@@ -1,6 +1,6 @@
 # RoninArc architecture
 
-This describes RoninArc as of version 1.0.4. For the endpoints themselves, see [api.md](api.md) and the live Swagger UI at `/api/docs`.
+This describes RoninArc as of version 1.0.5. For the endpoints themselves, see [api.md](api.md) and the live Swagger UI at `/api/docs`.
 
 ## The pieces
 
@@ -207,3 +207,25 @@ Changes made after a static security review (`issues/SECURITY-AND-ENGINEERING-FE
 - **Desktop app.** Every privileged call from the page (launching a game, the Epic and Steam sign-in windows, store pages, updates, problem reports) is accepted only from RoninArc's own page. A game launches only from an existing `.exe`, `.lnk` or `.url` path, or a `steam://` / `com.epicgames.launcher://` link; paths with shell characters are refused, and `.exe` files start without a shell. The sign-in windows open only the real Epic and Steam pages. The main window can't navigate away from the app, open extra windows or embed web views; web links open in the user's browser. The checks live in `desktop/services/ipcGuards.js`.
 - **Downloaded database.** `desktop/scripts/fetch-mongod.js` can verify the MongoDB download against a pinned SHA-256 (`MONGO_ZIP_SHA256`); until a hash is pinned it prints a warning.
 - **CI.** `.github/workflows/ci.yml` builds and type-checks each project, scans for secrets (gitleaks), reports `npm audit`, and runs the API tests on Windows (non-blocking until it has passed once).
+
+### Pentest findings, 2026-11-13
+
+A black-box test against a local copy (never the live service) found that the per-network rate limits on
+`POST /sync/link-code/claim` and `POST /auth/login` are keyed by `req.ip`, which behind a reverse proxy
+trusts a header the caller can set. Rotating that header resets the limiter's bucket. For the pairing code
+(a 6-digit, 10-minute-lived secret meant to sign a phone in with no password) this meant the whole keyspace
+could be brute-forced inside one code's lifetime; reproduced end-to-end, including claiming a real code
+through a spoofed-header bucket after the per-network limit had already been hit. The same trick also
+emptied out sign-in's brute-force protection.
+
+Fixed with a second limiter on each route, keyed by something the trick can't reset: a fixed key shared by
+every caller for the pairing code (so no amount of claimed "networks" raises the real cap), and the attempted
+email for sign-in (so guesses against one account are capped regardless of apparent source). Neither depends
+on `req.ip` or on trusting any proxy configuration. Separately, `DELETE /review/:gameId` always replied
+"Review deleted" even when nothing matched (someone else's game id, or no review at all); it now replies 404,
+matching how notes already behaved.
+
+Not changed by this pass, and still open: whether `trust proxy` is configured correctly for Render's actual
+edge was not established either way (Render's docs don't document it); the fixes above don't depend on the
+answer. A phone's old refresh token isn't revoked when it switches accounts by a new pairing code (listed in
+the roadmap).

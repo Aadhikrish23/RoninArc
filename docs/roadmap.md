@@ -1,6 +1,6 @@
 # RoninArc roadmap
 
-Current release: **1.0.4**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
+Current release: **1.0.5**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
 
 ## Done
 
@@ -79,9 +79,12 @@ Current release: **1.0.4**, on [GitHub releases](https://github.com/Aadhikrish23
 - **Security hardening** from a code review: no tokens or passwords in logs; the PC's backend only answers this PC; sync can't touch other accounts' data; one account per email, atomic refresh and reset tokens; passwords need 8 characters; casual replies like "thanks" no longer confirm removing a game; the desktop app validates game launches and sign-in windows. A GitHub workflow builds and scans every push. See the Security hardening section in [architecture.md](architecture.md).
 - **Fixed:** an expired session now returns to the login page in the installed app.
 
+### Done in 1.0.5 (2026-11-13)
+
+- **Security hardening, found by a black-box pentest** against a local copy (not the live service): the phone pairing code's "10 guesses per network" limit was keyed by a header the caller controls, so rotating it reset the limit and let the 6-digit code be brute-forced with no password within its 10-minute life. The same trick defeated sign-in's own brute-force limit. Both routes now also enforce a limit that header games can't reset: a fixed cap shared by every caller on the pairing code, and a per-account cap on sign-in. Also: deleting a review that doesn't exist (or isn't yours) now correctly replies 404 instead of a false "success". See the Security hardening section in [architecture.md](architecture.md).
+
 ## Next
 
-- **Link-code guessing:** add a global limit on link-code claims across networks, or a longer code.
 - **Phone account switching:** revoke a phone's old refresh token when it switches account with a code.
 - **APK signing:** sign the APK with a release keystore before sharing it widely.
 

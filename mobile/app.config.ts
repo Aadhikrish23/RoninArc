@@ -10,7 +10,7 @@ const cloudUrl = (process.env.RONINARC_CLOUD_URL || "http://10.0.2.2:5056").repl
 const config: ExpoConfig = {
   name: "RoninArc",
   slug: "roninarc",
-  version: "1.0.4",
+  version: "1.0.5",
   // Portrait in the config (Expo Go fell over with "default"); tablets unlock rotation at runtime
   // (src/ui/orientation.ts).
   orientation: "portrait",
@@ -21,7 +21,7 @@ const config: ExpoConfig = {
   ios: { bundleIdentifier: "com.roninarc.mobile" },
   android: {
     package: "com.roninarc.mobile",
-    versionCode: 4,
+    versionCode: 5,
     adaptiveIcon: {
       backgroundColor: "#1C1C1C",
       foregroundImage: "./assets/images/android-icon-foreground.png",
