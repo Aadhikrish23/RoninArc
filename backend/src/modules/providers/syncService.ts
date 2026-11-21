@@ -1,7 +1,7 @@
 import metadataEnrichmentService from "../library/metadataEnrichmentService";
 import mongoose from "mongoose";
 import EpicOwnership from "./epic/models/EpicOwnership";
-import gameLibrarymodel from "../library/LibraryGame";
+import gameLibrarymodel, { type IGameLibrary } from "../library/LibraryGame";
 import Review from "../review/Reviewmodel";
 import activityService from "../activity/activityService";
 import { normalizeTitle, isNonGame } from "./shared/matcher/matcher";
@@ -412,7 +412,7 @@ export async function disconnectProviderGames(
   );
   const games = await gameLibrarymodel.find({
     userId,
-    $or: [{ [`providers.${provider}`]: { $exists: true } }, { provider }],
+    $or: [{ [`providers.${provider}`]: { $exists: true } }, { provider: provider as IGameLibrary["provider"] }],
   });
 
   for (const game of games) {
@@ -467,7 +467,7 @@ export async function syncInstallationsOnly(
   // 1. Get all library games for this user that currently have this provider defined
   const existingGames = await gameLibrarymodel.find({
     userId,
-    $or: [{ [`providers.${provider}`]: { $exists: true } }, { provider }],
+    $or: [{ [`providers.${provider}`]: { $exists: true } }, { provider: provider as IGameLibrary["provider"] }],
   });
 
   const matchedDbIds = new Set<string>();
