@@ -7,6 +7,11 @@ test.describe("Health & routing", () => {
     expect(await res.json()).toMatchObject({ Status: "ok" });
   });
 
+  test("GET /health reports the backend's version, so a deploy can be checked from outside @positive", async ({ anon }) => {
+    const body = await (await anon.get("/health")).json();
+    expect(body.version).toMatch(/^\d+\.\d+\.\d+$/);
+  });
+
   test("unknown route returns JSON 404 @negative", async ({ anon }) => {
     const res = await anon.get("/definitely/not/a/route");
     expect(res.status()).toBe(404);

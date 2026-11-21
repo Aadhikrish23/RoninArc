@@ -28,6 +28,18 @@ import { cloudAiQuota } from "./modules/sync/aiQuota";
 import { syncSoon } from "./modules/sync/localSync";
 import { isCloud } from "./shared/runtimeMode";
 import { rateLimit } from "./shared/rateLimit";
+import fs from "node:fs";
+import path from "node:path";
+
+// The version this server was built as (backend/package.json), shown by /health so a deploy can be
+// checked from outside. Not secret, and never blocks startup if the file can't be read.
+const appVersion: string = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, "..", "package.json"), "utf8")).version ?? "unknown";
+  } catch {
+    return "unknown";
+  }
+})();
 dotenv.config();
 const app = express();
 // The cloud runs behind its host's proxy (Render): the client's address is in X-Forwarded-For.
@@ -93,7 +105,7 @@ app.use(
 
 
 app.get("/health", (req: Request, res: Response) => {
-  return res.json({ Status: "ok", message: "RoninArc was healthy " });
+  return res.json({ Status: "ok", message: "RoninArc was healthy ", version: appVersion });
 });
 {
   // Guessing passwords and mass sign-ups, per network. A PC's own backend gets them too: it is

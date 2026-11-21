@@ -41,6 +41,8 @@ Install the GitHub CLI and sign in once with `gh auth login`.
    cd desktop
    npm version 1.0.3 --no-git-tag-version
    ```
+   Also set `version` in `backend/package.json` to the same number: `GET /health` reports it, which is how you confirm a cloud deploy is the new code.
+
    If the phone app changed, also bump `version` in `mobile/app.config.ts` (and `mobile/package.json`) **and raise `android.versionCode`**. Android refuses to install an APK over one with the same or a higher `versionCode`.
 2. **Build the installer.** `predist` fetches MongoDB, builds the backend from a clean `dist/` and the frontend, and copies the frontend in. `dist` runs `electron-builder --publish never`, so building never uploads anything.
    ```bash

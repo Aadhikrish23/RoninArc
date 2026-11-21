@@ -28,7 +28,7 @@ export const systemPaths = {
           description: "The server is up.",
           content: {
             "application/json": {
-              schema: { type: "object", required: ["Status"], properties: { Status: { const: "ok" }, message: { type: "string" } } },
+              schema: { type: "object", required: ["Status"], properties: { Status: { const: "ok" }, message: { type: "string" }, version: { type: "string", description: "The backend's version (backend/package.json), e.g. `1.0.6`." } } },
             },
           },
         },

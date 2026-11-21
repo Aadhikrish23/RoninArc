@@ -1,6 +1,6 @@
 # RoninArc roadmap
 
-Current release: **1.0.5**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
+Current release: **1.0.6**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
 
 ## Done
 
@@ -83,8 +83,14 @@ Current release: **1.0.5**, on [GitHub releases](https://github.com/Aadhikrish23
 
 - **Security hardening, found by a black-box pentest** against a local copy (not the live service): the phone pairing code's "10 guesses per network" limit was keyed by a header the caller controls, so rotating it reset the limit and let the 6-digit code be brute-forced with no password within its 10-minute life. The same trick defeated sign-in's own brute-force limit. Both routes now also enforce a limit that header games can't reset: a fixed cap shared by every caller on the pairing code, and a per-account cap on sign-in. Also: deleting a review that doesn't exist (or isn't yours) now correctly replies 404 instead of a false "success". See the Security hardening section in [architecture.md](architecture.md).
 
+### Done in 1.0.6 (2026-11-21)
+
+- **Dependency security updates.** The backend's libraries had 2 critical and 4 high known vulnerabilities (Mongoose input-filter and prototype-pollution bugs, an IP-spoofing bug in the library Express uses behind a proxy, and denial-of-service bugs in request parsing and routing). All are updated (Mongoose 9.0 to 9.12); the production-dependency audit now passes for the backend, UI, phone app and website. `electron-updater` stays pinned at 6.6.2 (its two advisories concern credentials on cross-origin redirects, which the updater doesn't send); upgrading it needs a proper update test first.
+- **`GET /health` reports the backend's version**, so a cloud deploy can be confirmed from outside.
+
 ## Next
 
+- **Updater library:** upgrade `electron-updater` past 6.6.2 after testing an update end to end (clears the last two audit findings).
 - **Phone account switching:** revoke a phone's old refresh token when it switches account with a code.
 - **APK signing:** sign the APK with a release keystore before sharing it widely.
 
