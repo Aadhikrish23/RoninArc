@@ -1,6 +1,6 @@
 # RoninArc product document
 
-Version 1.0.6 (November 2026). Status: early beta, shared with invited testers.
+Version 1.0.7 (November 2026). Status: early beta, shared with invited testers.
 
 ## What it is
 

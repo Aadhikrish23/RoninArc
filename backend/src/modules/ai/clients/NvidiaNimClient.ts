@@ -22,6 +22,8 @@ export class NvidiaNimClient {
   /** Time the first model gets before the next one is tried. */
   private readonly firstTryTimeout = AIConfig.nvidiaPrimaryTimeout;
   private readonly unhealthyUntil = new Map<string, number>();
+  /** Models NVIDIA answered "gone" (404/410): retired, so they are not tried again until a restart. */
+  private readonly retired = new Set<string>();
 
   /**
    * Sends prompt to NVIDIA NIM's OpenAI-compatible chat completions endpoint
@@ -29,9 +31,12 @@ export class NvidiaNimClient {
    */
   async generate(prompt: string, totalTimeoutMs: number = this.timeout): Promise<string> {
     const deadline = Date.now() + totalTimeoutMs;
-    const healthy = this.models.filter((m) => (this.unhealthyUntil.get(m) ?? 0) <= Date.now());
+    // A retired model is dropped for good -- unless that leaves nothing, so the error stays honest.
+    const live = this.models.filter((m) => !this.retired.has(m));
+    const pool = live.length > 0 ? live : this.models;
+    const healthy = pool.filter((m) => (this.unhealthyUntil.get(m) ?? 0) <= Date.now());
     // Everything recently failed: try them all again rather than give up.
-    const order = healthy.length > 0 ? healthy : this.models;
+    const order = healthy.length > 0 ? healthy : pool;
 
     let lastError: unknown;
     for (let i = 0; i < order.length; i++) {
@@ -49,9 +54,13 @@ export class NvidiaNimClient {
         // A bad key or rate limit applies to every model; don't hammer the others.
         if (error instanceof AIQuotaError || (error instanceof Error && /401|429/.test(error.message))) throw error;
         this.unhealthyUntil.set(order[i], Date.now() + UNHEALTHY_FOR_MS);
-        if (process.env.NODE_ENV !== "production") {
-          console.log(`[NvidiaNimClient] ${order[i]} failed (${error instanceof Error ? error.message : error}); trying the next model.`);
-        }
+        const reason = error instanceof Error ? error.message : String(error);
+        const gone = /non-200 HTTP response status: (404|410)\b/.test(reason);
+        if (gone) this.retired.add(order[i]);
+        // Shown in production too (it reaches the log files): a dead model in the chain went
+        // unnoticed for days when this was only printed in development. At most once per model per
+        // 5 minutes, since a failed model is skipped for that long.
+        console.warn(`[NvidiaNimClient] ${order[i]} failed (${reason})${gone ? "; it looks retired, so it is dropped until restart" : "; skipping it for 5 minutes"}.`);
       }
     }
     throw lastError ?? new AIProviderUnavailableError("NVIDIA NIM request timed out. Please try again.");

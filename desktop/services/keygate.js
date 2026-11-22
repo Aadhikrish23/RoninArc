@@ -16,8 +16,11 @@ const os = require("node:os");
 
 const TOKEN_FILE = "keygate-token.json";
 // The app's AI models; keygate only forwards these (see keygate.config.ts).
-const NVIDIA_MODEL = "nvidia/nemotron-3.5-lightning-30b-a3b";
-const NVIDIA_FALLBACK_MODELS = "nvidia/nemotron-3-super-120b-a12b,openai/gpt-oss-20b";
+// The 120B model plans multi-step requests ("add these games, make a collection, put them in it")
+// correctly (23 of 24 varied real requests; the small 30B lightning model only 14) at about the same
+// speed. The two earlier fallbacks were retired by NVIDIA on 2026-11-18, so lightning is the last resort.
+const NVIDIA_MODEL = "nvidia/nemotron-3.5-super-vl-120b-a12b";
+const NVIDIA_FALLBACK_MODELS = "nvidia/nemotron-3-ultra-550b-a55b,nvidia/nemotron-3.5-lightning-30b-a3b";
 
 function readJson(file) {
   try {

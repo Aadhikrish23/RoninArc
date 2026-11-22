@@ -457,3 +457,26 @@ test.describe("AI: round 21 collection references", () => {
     expect(parseCollectionCommand("rename it to fromsoft pain", ["Soulslikes"], exchanges)).toEqual({ kind: "rename", name: "Soulslikes", newName: "fromsoft pain" });
   });
 });
+
+// 2026-11-22: found replaying real prompts against bigger models (backend/scripts/ai-model-eval.cjs).
+test.describe("AI: reading notes is a library lookup, whatever the model planned", () => {
+  for (const planned of ["AskQuestion", "AddNote"]) {
+    test(`"read me my notes for hollow knight" planned as ${planned} becomes a library question @positive`, () => {
+      const plan: any = { intents: [{ type: planned, targets: [{ type: "Game", name: "Hollow Knight" }], parameters: [{ type: "Text", value: "model's own answer" }] }] };
+      correctPlan(plan, "read me my notes for hollow knight");
+      expect(plan.intents).toHaveLength(1);
+      expect(plan.intents[0].type).toBe("LibraryQuestion");
+      expect(plan.intents[0].parameters[0].value).toBe("read me my notes for hollow knight");
+    });
+  }
+
+  test('"add a note: x" stays a note, and an ordinary question is not turned into a lookup @negative', () => {
+    const note: any = { intents: [{ type: "AddNote", targets: [{ type: "Game", name: "Hollow Knight" }], parameters: [{ type: "Text", value: "bosses are hard" }] }] };
+    correctPlan(note, "add a note to hollow knight: bosses are hard");
+    expect(note.intents[0].type).toBe("AddNote");
+
+    const question: any = { intents: [{ type: "AskQuestion", targets: [], parameters: [{ type: "Text", value: "It is a great metroidvania." }] }] };
+    correctPlan(question, "is hollow knight worth it?");
+    expect(question.intents[0].type).toBe("AskQuestion");
+  });
+});

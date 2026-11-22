@@ -1,6 +1,6 @@
 # RoninArc architecture
 
-This describes RoninArc as of version 1.0.6. For the endpoints themselves, see [api.md](api.md) and the live Swagger UI at `/api/docs`.
+This describes RoninArc as of version 1.0.7. For the endpoints themselves, see [api.md](api.md) and the live Swagger UI at `/api/docs`.
 
 ## The pieces
 
@@ -126,6 +126,13 @@ Modules follow the same shape: routes, controller, service, Mongoose model. Ever
 3. **Corrections and grounding** (`PlanCorrections.ts`, `PlanGrounding.ts`, `SeriesCollection.ts`, ...): checks the plan against the user's own words. It drops changes nobody asked for, ties games to ones the user named (every word asked for must be in the title; one shared word isn't the same game), adds missing games before acting on them, and fills a collection with every owned game in a series ("all the X games") when the model leaves that step out. Steps can carry a game's library id, so two games with the same title (God of War 2005 and 2018) are both reached.
 4. **Entity resolution and execution:** a name that fits two owned games equally well ("batman arkham" with Asylum and City owned) gets a "which one?" question. When one game in a request is unclear, the clear steps run first and only the unclear part waits for the answer (`pipeline/PlanRunner.ts`), so answering doesn't repeat them. Tools such as `AddGameTool`, `UpdateStatusTool`, `CreateReviewTool`, `AddToCollectionTool`, `LaunchGameTool`, `RecommendGamesTool`, `SearchGamesTool` and the Epic tools run in order. Adding a game runs first.
 5. **Reply:** built from what actually happened, with optional follow-up offers ("Want me to add ... to it?") and an undo log.
+
+### AI models
+
+- **Chain:** `nvidia/nemotron-3.5-super-vl-120b-a12b` (main), then `nvidia/nemotron-3-ultra-550b-a55b`, then `nvidia/nemotron-3.5-lightning-30b-a3b` as a last resort. The main model gets a 6-second budget before the next is tried; a model that fails is skipped for 5 minutes, and one that answers 404/410 (retired) is dropped until restart. Every failure is logged as a warning, in production too.
+- **Where the names live (keep them in step):** the desktop app's built-in list (`desktop/services/keygate.js`), the cloud's environment (`render.yaml`: `NVIDIA_MODEL`, `NVIDIA_FALLBACK_MODELS`), the backend default (`AIConfig.ts`), and keygate's allowlist (`E:\keygate\keygate.config.ts`, which refuses any other model). Deploy keygate first, then release.
+- **Why this chain (2026-11-22):** the earlier main model, the small `nemotron-3.5-lightning-30b-a3b`, planned only 14 of 24 varied real requests correctly (it dropped the collection step of multi-step requests, planned "drop gta 5" as removing the game, and turned "read me my notes" into a saved note); the 120B model planned 23 of 24 at about the same speed, the 550B one 20. Both earlier fallbacks (`nemotron-3-super-120b-a12b`, `gpt-oss-20b`) were retired by NVIDIA on 2026-11-18, which went unnoticed for days because failures were only logged in development.
+- **Judging a model change:** the test suite runs a stand-in model, so it cannot judge AI quality. Use `node backend/scripts/ai-model-eval.cjs <ai-log-file> <model> ...`: it replays a real prompt from an app log (`%APPDATA%\desktop\logs\ai\<date>\`) with 24 varied messages and scores each model. `GET <NVIDIA_BASE_URL>/models` lists what NVIDIA serves today.
 
 Questions get a second, plain-text "answer mode" call with library facts and IGDB facts attached. Each request writes a trace log (prompt, the model's raw plan, planning, execution, reply) to `LOG_DIR/ai/<date>/`, so it survives reinstalls. Day folders older than 14 days are deleted, and the oldest go first past 150 MB (`AI_LOG_RETENTION_DAYS`, `AI_LOG_MAX_MB`).
 

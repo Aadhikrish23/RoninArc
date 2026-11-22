@@ -1,6 +1,6 @@
 # RoninArc roadmap
 
-Current release: **1.0.6**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
+Current release: **1.0.7**, on [GitHub releases](https://github.com/Aadhikrish23/RoninArc/releases).
 
 ## Done
 
@@ -88,8 +88,16 @@ Current release: **1.0.6**, on [GitHub releases](https://github.com/Aadhikrish23
 - **Dependency security updates.** The backend's libraries had 2 critical and 4 high known vulnerabilities (Mongoose input-filter and prototype-pollution bugs, an IP-spoofing bug in the library Express uses behind a proxy, and denial-of-service bugs in request parsing and routing). All are updated (Mongoose 9.0 to 9.12); the production-dependency audit now passes for the backend, UI, phone app and website. `electron-updater` stays pinned at 6.6.2 (its two advisories concern credentials on cross-origin redirects, which the updater doesn't send); upgrading it needs a proper update test first.
 - **`GET /health` reports the backend's version**, so a cloud deploy can be confirmed from outside.
 
+### Done in 1.0.7 (2026-11-22)
+
+- **A better AI model.** The assistant's main model was the small `nemotron-3.5-lightning-30b-a3b`. Replaying real prompts showed it planned only 14 of 24 varied requests correctly: it dropped the "create a collection / put them in it" half of multi-step requests, planned "drop gta 5" as removing the game, and turned "read me my notes" into a saved note. The main model is now `nemotron-3.5-super-vl-120b-a12b` (23 of 24, at about the same speed), with `nemotron-3-ultra-550b-a55b` and then the small one as fallbacks. Keygate's allowlist, the cloud's settings and the app's built-in list all changed together.
+- **The AI fallback chain had been dead since 2026-11-18**, when NVIDIA retired both fallback models. The client now logs every model failure in production too, drops a retired model (HTTP 404/410) until restart, and still reports a clear error if none are left.
+- "Read me my notes" is always a library lookup, whichever step the model plans.
+- **`backend/scripts/ai-model-eval.cjs`** replays a real prompt from an app log with 24 varied messages and scores each model, so model changes are judged before they ship (the test suite uses a stand-in model and cannot).
+
 ## Next
 
+- **A standing AI regression set:** grow the 24-message evaluation, and run it whenever a model or the planner prompt changes.
 - **Updater library:** upgrade `electron-updater` past 6.6.2 after testing an update end to end (clears the last two audit findings).
 - **Phone account switching:** revoke a phone's old refresh token when it switches account with a code.
 - **APK signing:** sign the APK with a release keystore before sharing it widely.

@@ -52,7 +52,7 @@ export const AIConfig = {
    */
   nvidiaAnswerTimeout: process.env.NVIDIA_ANSWER_TIMEOUT ? parseInt(process.env.NVIDIA_ANSWER_TIMEOUT, 10) : 20000,
   /** Tried in order when the main model is slow or failing (same key and endpoint). */
-  nvidiaFallbackModels: (process.env.NVIDIA_FALLBACK_MODELS ?? "nvidia/nemotron-3-super-120b-a12b,openai/gpt-oss-20b")
+  nvidiaFallbackModels: (process.env.NVIDIA_FALLBACK_MODELS ?? "nvidia/nemotron-3-ultra-550b-a55b,nvidia/nemotron-3.5-lightning-30b-a3b")
     .split(",")
     .map((m) => m.trim())
     .filter(Boolean),

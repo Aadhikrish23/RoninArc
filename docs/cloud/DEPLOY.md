@@ -51,7 +51,9 @@ keygate's project-wide daily caps still bound the total cost.
 | `STEAM_API_BASE` | `https://keygate.<you>.workers.dev/roninarc/steam` |
 | `IGDB_API_KEY`, `NVIDIA_API_KEY`, `STEAM_API_KEY` | the `kg_roninarc_…` token from step 3, in all three |
 
-3. Deploy, then open `https://<service>.onrender.com/health`. It should say `RoninArc was healthy`.
+3. Deploy, then open `https://<service>.onrender.com/health`. It should say `RoninArc was healthy` and show the version.
+
+**AI models:** `NVIDIA_MODEL` and `NVIDIA_FALLBACK_MODELS` are set in `render.yaml` (they are not secrets), and keygate refuses any model that isn't in its allowlist. When NVIDIA retires a model, change all of: keygate's allowlist (deploy it first), `render.yaml`, the desktop app's list and the `AIConfig.ts` default. If Render doesn't pick up a changed `render.yaml` value for an existing service, set the same two values in the service's Environment tab. See [architecture.md](../architecture.md#ai-models).
 
 **Plan:** the free plan sleeps after about 15 idle minutes. The next request then takes about a minute, and AI conversations in progress are forgotten. A PC's sync waits up to 90 seconds for a sleeping cloud, and the phone waits on `/health` (up to about 100 seconds, showing "Waking up the server…") before signing in. Switch the service to **Starter** before friends rely on it.
 

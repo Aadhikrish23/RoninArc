@@ -122,10 +122,11 @@ export function correctPlan(plan: IntentPlan, message: string, lastReply = ""): 
     }
   }
 
-  // "read me my notes" is never a note to save.
+  // "read me my notes" is never a note to save, and it is a lookup in the library, not a general
+  // question the model answers from memory (the 120B model plans it as AskQuestion; the 30B one as AddNote).
   if (asksToReadNotes(message)) {
     plan.intents = plan.intents.map((intent) =>
-      intent.type === IntentType.AddNote
+      intent.type === IntentType.AddNote || intent.type === IntentType.AskQuestion
         ? { ...intent, type: IntentType.LibraryQuestion, parameters: [{ type: IntentParameterType.Text, value: message }] as any }
         : intent,
     );
